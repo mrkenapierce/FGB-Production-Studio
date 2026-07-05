@@ -3,11 +3,16 @@ name: Generate Assets
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Generate assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git clone https://github.com/mrkenapierce/FGB-Production-Studio.git repo
           cd repo
@@ -17,4 +22,5 @@ jobs:
           git config user.email "github-actions@github.com"
           git add dist-assets
           git commit -m "Generate assets" || echo "No asset changes"
-          git push
+          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/mrkenapierce/FGB-Production-Studio.git
+          git push origin HEAD:main
