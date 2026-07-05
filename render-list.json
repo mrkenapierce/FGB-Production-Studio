@@ -1,9 +1,42 @@
 [
   {
     "project": "fgb",
-    "episodeNumber": "001",
-    "episodeTitle": "Episode Title",
+    "episodeNumber": "022",
+    "episodeTitle": "Episode 022 Title Pending",
     "durationSeconds": 900,
-    "preset": "standard"
+    "preset": "standard",
+    "assetTypes": ["background", "thumbnail"]
+  },
+  {
+    "project": "fgb",
+    "episodeNumber": "023",
+    "episodeTitle": "Episode 023 Title Pending",
+    "durationSeconds": 900,
+    "preset": "standard",
+    "assetTypes": ["background", "thumbnail"]
+  },
+  {
+    "project": "fgb",
+    "episodeNumber": "024",
+    "episodeTitle": "Episode 024 Title Pending",
+    "durationSeconds": 900,
+    "preset": "standard",
+    "assetTypes": ["background", "thumbnail"]
+  },
+  {
+    "project": "fgb",
+    "episodeNumber": "025",
+    "episodeTitle": "Episode 025 Title Pending",
+    "durationSeconds": 900,
+    "preset": "standard",
+    "assetTypes": ["background", "thumbnail"]
+  },
+  {
+    "project": "fgbars",
+    "episodeNumber": "002",
+    "episodeTitle": "Why Every Fan Needs A Football Home",
+    "durationSeconds": 900,
+    "preset": "standard",
+    "assetTypes": ["background", "thumbnail"]
   }
 ]
