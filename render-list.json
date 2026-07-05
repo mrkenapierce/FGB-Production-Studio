@@ -5,9 +5,9 @@
     "episodeTitle": "Can the Bears Start the Season 1-0? | Panthers Preview",
     "durationSeconds": 900,
     "preset": "standard",
-    "assetTypes": ["background", "thumbnail"],
+    "assetTypes": ["background", "thumbnail", "video"],
     "status": "ready",
-    "renderBatch": "2026-07-05-a"
+    "renderBatch": "2026-07-05-separated-video-a"
   },
   {
     "project": "fgb",
@@ -15,9 +15,9 @@
     "episodeTitle": "Can the Bears Defend Home Against the Vikings?",
     "durationSeconds": 900,
     "preset": "standard",
-    "assetTypes": ["background", "thumbnail"],
+    "assetTypes": ["background", "thumbnail", "video"],
     "status": "ready",
-    "renderBatch": "2026-07-05-a"
+    "renderBatch": "2026-07-05-separated-video-a"
   },
   {
     "project": "fgb",
@@ -25,9 +25,9 @@
     "episodeTitle": "Can Caleb Williams Beat the Eagles?",
     "durationSeconds": 900,
     "preset": "standard",
-    "assetTypes": ["background", "thumbnail"],
+    "assetTypes": ["background", "thumbnail", "video"],
     "status": "ready",
-    "renderBatch": "2026-07-05-a"
+    "renderBatch": "2026-07-05-separated-video-a"
   },
   {
     "project": "fgb",
@@ -35,9 +35,9 @@
     "episodeTitle": "Are the Bears Better Than the Jets?",
     "durationSeconds": 900,
     "preset": "standard",
-    "assetTypes": ["background", "thumbnail"],
+    "assetTypes": ["background", "thumbnail", "video"],
     "status": "ready",
-    "renderBatch": "2026-07-05-a"
+    "renderBatch": "2026-07-05-separated-video-a"
   },
   {
     "project": "fgbars",
@@ -45,8 +45,8 @@
     "episodeTitle": "FGBars Episode 003 Title Pending",
     "durationSeconds": 900,
     "preset": "standard",
-    "assetTypes": ["background", "thumbnail"],
+    "assetTypes": ["background", "thumbnail", "video"],
     "status": "title-pending",
-    "renderBatch": "2026-07-05-b"
+    "renderBatch": "2026-07-05-separated-video-a"
   }
 ]
