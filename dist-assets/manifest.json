@@ -1,0 +1,77 @@
+[
+  {
+    "item": {
+      "project": "fgb",
+      "episodeNumber": "022",
+      "episodeTitle": "Episode 022 Title Pending",
+      "durationSeconds": 900,
+      "preset": "standard",
+      "assetTypes": [
+        "background",
+        "thumbnail"
+      ]
+    },
+    "background": "backgrounds/fgb-022-episode-022-title-pending-background.png",
+    "thumbnail": "thumbnails/fgb-022-episode-022-title-pending-thumbnail.png"
+  },
+  {
+    "item": {
+      "project": "fgb",
+      "episodeNumber": "023",
+      "episodeTitle": "Episode 023 Title Pending",
+      "durationSeconds": 900,
+      "preset": "standard",
+      "assetTypes": [
+        "background",
+        "thumbnail"
+      ]
+    },
+    "background": "backgrounds/fgb-023-episode-023-title-pending-background.png",
+    "thumbnail": "thumbnails/fgb-023-episode-023-title-pending-thumbnail.png"
+  },
+  {
+    "item": {
+      "project": "fgb",
+      "episodeNumber": "024",
+      "episodeTitle": "Episode 024 Title Pending",
+      "durationSeconds": 900,
+      "preset": "standard",
+      "assetTypes": [
+        "background",
+        "thumbnail"
+      ]
+    },
+    "background": "backgrounds/fgb-024-episode-024-title-pending-background.png",
+    "thumbnail": "thumbnails/fgb-024-episode-024-title-pending-thumbnail.png"
+  },
+  {
+    "item": {
+      "project": "fgb",
+      "episodeNumber": "025",
+      "episodeTitle": "Episode 025 Title Pending",
+      "durationSeconds": 900,
+      "preset": "standard",
+      "assetTypes": [
+        "background",
+        "thumbnail"
+      ]
+    },
+    "background": "backgrounds/fgb-025-episode-025-title-pending-background.png",
+    "thumbnail": "thumbnails/fgb-025-episode-025-title-pending-thumbnail.png"
+  },
+  {
+    "item": {
+      "project": "fgbars",
+      "episodeNumber": "002",
+      "episodeTitle": "Why Every Fan Needs A Football Home",
+      "durationSeconds": 900,
+      "preset": "standard",
+      "assetTypes": [
+        "background",
+        "thumbnail"
+      ]
+    },
+    "background": "backgrounds/fgbars-002-why-every-fan-needs-a-football-home-background.png",
+    "thumbnail": "thumbnails/fgbars-002-why-every-fan-needs-a-football-home-thumbnail.png"
+  }
+]
