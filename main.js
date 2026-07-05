@@ -1,16 +1,11 @@
-const { app, BrowserWindow, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow } = require('electron');
 const path = require('path');
 
 function createWindow() {
   const win = new BrowserWindow({
     width: 1440,
     height: 900,
-    backgroundColor: '#031226',
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false
-    }
+    backgroundColor: '#031226'
   });
 
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
@@ -18,24 +13,6 @@ function createWindow() {
 
 app.whenReady().then(createWindow);
 
-app.on('window-all-closed', () => {
+app.on('window-all-closed', function () {
   if (process.platform !== 'darwin') app.quit();
-});
-
-ipcMain.handle('render-countdown', async (_event, settings) => {
-  const save = await dialog.showSaveDialog({
-    title: 'Save countdown MP4',
-    defaultPath: settings.defaultName || 'FGB_Countdown.mp4',
-    filters: [{ name: 'MP4 Video', extensions: ['mp4'] }]
-  });
-
-  if (save.canceled || !save.filePath) {
-    return { ok: false, canceled: true };
-  }
-
-  return {
-    ok: false,
-    path: save.filePath,
-    message: 'Render path selected. MP4 rendering engine will be connected in the next build.'
-  };
 });
