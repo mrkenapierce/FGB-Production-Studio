@@ -9,6 +9,7 @@ const ROOT = process.cwd();
 const OUT = path.join(ROOT, 'dist-assets');
 const EPISODES = path.join(OUT, 'episodes');
 const QR_URL = 'https://epiccontentcreatorgrants.org/';
+const OFFICIAL_EPIC_LOGO_BASE64 = path.join(ROOT, 'renderer', 'assets', 'epic-logo-for-qr.base64.txt');
 
 const C = {
   navy: '#031226', navy2: '#061a34', black: '#020812', orange: '#f15a24',
@@ -43,14 +44,15 @@ async function makeQrDataUri() {
     color: { dark: '#000000', light: '#ffffff' }
   });
 
+  const logoBase64 = (await fs.readFile(OFFICIAL_EPIC_LOGO_BASE64, 'utf8')).trim();
+  const logoSource = Buffer.from(logoBase64, 'base64');
   const logoSize = 112;
-  const logoSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${logoSize}" height="${logoSize}" viewBox="0 0 ${logoSize} ${logoSize}">
-    <rect x="0" y="0" width="${logoSize}" height="${logoSize}" rx="22" fill="#ffffff"/>
-    <path d="M56 11 L92 29 L84 86 L56 103 L28 86 L20 29 Z" fill="#050505" stroke="#f15a24" stroke-width="7"/>
-    <text x="56" y="64" text-anchor="middle" fill="#f15a24" font-family="Impact, Arial Black, Arial, sans-serif" font-size="31" letter-spacing="1" style="paint-order:stroke;stroke:#000000;stroke-width:2;stroke-linejoin:round">EPIC</text>
-  </svg>`;
+  const logoBuffer = await sharp(logoSource)
+    .resize(logoSize, logoSize, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+    .extend({ top: 8, bottom: 8, left: 8, right: 8, background: { r: 255, g: 255, b: 255, alpha: 1 } })
+    .png()
+    .toBuffer();
 
-  const logoBuffer = await sharp(Buffer.from(logoSvg)).png().toBuffer();
   const brandedQr = await sharp(qrBuffer)
     .composite([{ input: logoBuffer, gravity: 'center' }])
     .png()
