@@ -3,14 +3,16 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import sharp from 'sharp';
 import ffmpeg from 'ffmpeg-static';
+import QRCode from 'qrcode';
 
 const ROOT = process.cwd();
 const OUT = path.join(ROOT, 'dist-assets');
 const EPISODES = path.join(OUT, 'episodes');
+const QR_URL = 'https://epiccontentcreatorgrants.org/';
 
 const C = {
   navy: '#031226', navy2: '#061a34', black: '#020812', orange: '#f15a24',
-  white: '#f7f4ee', muted: '#bec8d4', brown: '#2b160c', gold: '#c68b3d'
+  white: '#f7f4ee', muted: '#bec8d4'
 };
 
 function esc(v = '') {
@@ -33,13 +35,13 @@ function wrap(text, max) {
   return lines.slice(0, 4);
 }
 
-async function loadQr() {
-  try {
-    const css = await fs.readFile(path.join(ROOT, 'renderer', 'styles.css'), 'utf8');
-    const match = css.match(/data:image\/png;base64,([^'\")]+)/);
-    if (match) return `data:image/png;base64,${match[1]}`;
-  } catch {}
-  return '';
+async function makeQrDataUri() {
+  return QRCode.toDataURL(QR_URL, {
+    errorCorrectionLevel: 'H',
+    margin: 2,
+    width: 512,
+    color: { dark: '#000000', light: '#ffffff' }
+  });
 }
 
 function projectLabel(item) {
@@ -54,6 +56,12 @@ function brand(item) {
   return 'FGB';
 }
 
+function productionName(item) {
+  if (item.project === 'fgb') return `FGB Episode ${item.episodeNumber} Production Screen`;
+  if (item.project === 'fgbars') return `FGBars Episode ${item.episodeNumber} Production Screen`;
+  return `EPIC Episode ${item.episodeNumber} Production Screen`;
+}
+
 function skyline(w, y) {
   return [70,150,250,340,470,560,680,790,880,1020,1120,1270,1390,1510,1620,1760]
     .map((x, i) => `<rect x="${x}" y="${y - (80 + (i % 4) * 30)}" width="80" height="${80 + (i % 4) * 30}" fill="#07111f" opacity=".72"/>`).join('') +
@@ -64,9 +72,13 @@ function titleLines(lines, x, y, size) {
   return lines.map((line, i) => `<text x="${x}" y="${y + i * size * 1.05}" text-anchor="middle" fill="${C.orange}" font-family="Impact, Arial Narrow, sans-serif" font-size="${size}" font-weight="900" letter-spacing="1.5" style="paint-order:stroke;stroke:#000;stroke-width:${Math.max(4, size / 15)};stroke-linejoin:round">${esc(line).toUpperCase()}</text>`).join('\n');
 }
 
-function qr(qrData, x, y, size) {
-  if (!qrData) return `<rect x="${x}" y="${y}" width="${size}" height="${size}" fill="#fff" stroke="${C.orange}" stroke-width="4"/><text x="${x + size/2}" y="${y + size/2}" text-anchor="middle" font-size="28">QR</text>`;
-  return `<rect x="${x - 5}" y="${y - 5}" width="${size + 10}" height="${size + 10}" rx="18" fill="none" stroke="${C.orange}" stroke-width="4"/><rect x="${x}" y="${y}" width="${size}" height="${size}" rx="12" fill="#fff"/><image href="${qrData}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet"/>`;
+function qrBlock(qrData, centerX, topY, size) {
+  const x = centerX - size / 2;
+  return `<text x="${centerX}" y="${topY - 24}" text-anchor="middle" fill="${C.white}" font-family="Impact, Arial Narrow, sans-serif" font-size="24" letter-spacing="4" style="paint-order:stroke;stroke:#000;stroke-width:3">LEARN MORE</text>
+    <rect x="${x - 6}" y="${topY - 6}" width="${size + 12}" height="${size + 12}" rx="18" fill="none" stroke="${C.orange}" stroke-width="4"/>
+    <rect x="${x}" y="${topY}" width="${size}" height="${size}" rx="12" fill="#fff"/>
+    <image href="${qrData}" x="${x}" y="${topY}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet"/>
+    <text x="${centerX}" y="${topY + size + 26}" text-anchor="middle" fill="${C.orange}" font-family="Arial" font-size="17">epiccontentcreatorgrants.org</text>`;
 }
 
 function backgroundSvg(item, qrData, includeTimer = true) {
@@ -82,9 +94,7 @@ function backgroundSvg(item, qrData, includeTimer = true) {
     <text x="960" y="216" text-anchor="middle" fill="${C.muted}" font-family="Impact, Arial Narrow, sans-serif" font-size="24" letter-spacing="7" style="paint-order:stroke;stroke:#000;stroke-width:3;stroke-linejoin:round">EPISODE ${esc(item.episodeNumber)}</text>
     ${titleLines(lines, 960, 292, lines.length > 2 ? 48 : 58)}
     ${includeTimer ? `<text x="960" y="650" text-anchor="middle" fill="${C.white}" font-family="Rockwell, Georgia, serif" font-size="190" font-weight="900" letter-spacing="16" style="paint-order:stroke;stroke:#081020;stroke-width:9;stroke-linejoin:round">15:00</text>` : ''}
-    <text x="1595" y="786" text-anchor="middle" fill="${C.white}" font-family="Impact, Arial Narrow, sans-serif" font-size="22" letter-spacing="4" style="paint-order:stroke;stroke:#000;stroke-width:3">LEARN MORE</text>
-    ${qr(qrData, 1510, 810, 170)}
-    <text x="1595" y="1006" text-anchor="middle" fill="${C.orange}" font-family="Arial" font-size="17">epiccontentcreatorgrants.org</text>
+    ${qrBlock(qrData, 1595, 810, 170)}
     <text x="1774" y="1025" fill="${C.orange}" font-family="Impact, Arial Narrow, sans-serif" font-size="34" letter-spacing="5" style="paint-order:stroke;stroke:#000;stroke-width:3">${esc(brand(item))}</text>
   </svg>`;
 }
@@ -126,25 +136,26 @@ async function writeMp4(countdownBase, file, seconds) {
 async function main() {
   await fs.mkdir(EPISODES, { recursive: true });
   const list = JSON.parse(await fs.readFile(path.join(ROOT, 'render-list.json'), 'utf8'));
-  const qrData = await loadQr();
+  const qrData = await makeQrDataUri();
   const manifest = [];
   for (const item of list) {
     if (item.status === 'title-pending') continue;
-    const id = `${item.project}-${item.episodeNumber}-${slug(item.episodeTitle)}`;
+    const name = productionName(item);
+    const id = `${name} - ${slug(item.episodeTitle)}`;
     const dir = path.join(EPISODES, id);
     await fs.mkdir(dir, { recursive: true });
-    const bg = path.join(dir, 'background.png');
-    const countdownBase = path.join(dir, 'countdown-base.png');
-    const th = path.join(dir, 'thumbnail.png');
-    const mp4 = path.join(dir, 'countdown-15min.mp4');
+    const bg = path.join(dir, `${name}.png`);
+    const countdownBase = path.join(dir, `${name} Countdown Base.png`);
+    const th = path.join(dir, `${name} Thumbnail.png`);
+    const mp4 = path.join(dir, `${name}.mp4`);
     await writePng(backgroundSvg(item, qrData, true), bg, 1920, 1080);
     await writePng(backgroundSvg(item, qrData, false), countdownBase, 1920, 1080);
     await writePng(thumbnailSvg(item), th, 1280, 720);
     await writeMp4(countdownBase, mp4, item.durationSeconds || 900);
-    manifest.push({ episode: id, item, files: { background: path.relative(OUT, bg), thumbnail: path.relative(OUT, th), video: path.relative(OUT, mp4) } });
+    manifest.push({ episode: name, item, files: { productionScreen: path.relative(OUT, bg), thumbnail: path.relative(OUT, th), video: path.relative(OUT, mp4) } });
   }
   await fs.writeFile(path.join(OUT, 'separate-manifest.json'), JSON.stringify(manifest, null, 2));
-  console.log(`Generated ${manifest.length} separated countdown episode folders.`);
+  console.log(`Generated ${manifest.length} separated countdown production screens.`);
 }
 
 main().catch(err => { console.error(err); process.exit(1); });
