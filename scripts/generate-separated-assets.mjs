@@ -36,12 +36,27 @@ function wrap(text, max) {
 }
 
 async function makeQrDataUri() {
-  return QRCode.toDataURL(QR_URL, {
+  const qrBuffer = await QRCode.toBuffer(QR_URL, {
     errorCorrectionLevel: 'H',
     margin: 2,
     width: 512,
     color: { dark: '#000000', light: '#ffffff' }
   });
+
+  const logoSize = 112;
+  const logoSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${logoSize}" height="${logoSize}" viewBox="0 0 ${logoSize} ${logoSize}">
+    <rect x="0" y="0" width="${logoSize}" height="${logoSize}" rx="22" fill="#ffffff"/>
+    <path d="M56 11 L92 29 L84 86 L56 103 L28 86 L20 29 Z" fill="#050505" stroke="#f15a24" stroke-width="7"/>
+    <text x="56" y="64" text-anchor="middle" fill="#f15a24" font-family="Impact, Arial Black, Arial, sans-serif" font-size="31" letter-spacing="1" style="paint-order:stroke;stroke:#000000;stroke-width:2;stroke-linejoin:round">EPIC</text>
+  </svg>`;
+
+  const logoBuffer = await sharp(Buffer.from(logoSvg)).png().toBuffer();
+  const brandedQr = await sharp(qrBuffer)
+    .composite([{ input: logoBuffer, gravity: 'center' }])
+    .png()
+    .toBuffer();
+
+  return `data:image/png;base64,${brandedQr.toString('base64')}`;
 }
 
 function projectLabel(item) {
