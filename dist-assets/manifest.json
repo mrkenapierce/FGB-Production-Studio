@@ -9,7 +9,8 @@
       "assetTypes": [
         "background",
         "thumbnail"
-      ]
+      ],
+      "status": "ready"
     },
     "background": "backgrounds/fgb-022-can-the-bears-start-the-season-1-0-panthers-preview-background.png",
     "thumbnail": "thumbnails/fgb-022-can-the-bears-start-the-season-1-0-panthers-preview-thumbnail.png"
@@ -24,7 +25,8 @@
       "assetTypes": [
         "background",
         "thumbnail"
-      ]
+      ],
+      "status": "ready"
     },
     "background": "backgrounds/fgb-023-can-the-bears-defend-home-against-the-vikings-background.png",
     "thumbnail": "thumbnails/fgb-023-can-the-bears-defend-home-against-the-vikings-thumbnail.png"
@@ -39,7 +41,8 @@
       "assetTypes": [
         "background",
         "thumbnail"
-      ]
+      ],
+      "status": "ready"
     },
     "background": "backgrounds/fgb-024-can-caleb-williams-beat-the-eagles-background.png",
     "thumbnail": "thumbnails/fgb-024-can-caleb-williams-beat-the-eagles-thumbnail.png"
@@ -54,7 +57,8 @@
       "assetTypes": [
         "background",
         "thumbnail"
-      ]
+      ],
+      "status": "ready"
     },
     "background": "backgrounds/fgb-025-are-the-bears-better-than-the-jets-background.png",
     "thumbnail": "thumbnails/fgb-025-are-the-bears-better-than-the-jets-thumbnail.png"
@@ -63,15 +67,16 @@
     "item": {
       "project": "fgbars",
       "episodeNumber": "002",
-      "episodeTitle": "Why Every Fan Needs A Football Home",
+      "episodeTitle": "Why Every NFL Fan Needs A Football Home",
       "durationSeconds": 900,
       "preset": "standard",
       "assetTypes": [
         "background",
         "thumbnail"
-      ]
+      ],
+      "status": "ready"
     },
-    "background": "backgrounds/fgbars-002-why-every-fan-needs-a-football-home-background.png",
-    "thumbnail": "thumbnails/fgbars-002-why-every-fan-needs-a-football-home-thumbnail.png"
+    "background": "backgrounds/fgbars-002-why-every-nfl-fan-needs-a-football-home-background.png",
+    "thumbnail": "thumbnails/fgbars-002-why-every-nfl-fan-needs-a-football-home-thumbnail.png"
   }
 ]
