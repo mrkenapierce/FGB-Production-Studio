@@ -69,7 +69,7 @@ function qr(qrData, x, y, size) {
   return `<rect x="${x - 5}" y="${y - 5}" width="${size + 10}" height="${size + 10}" rx="18" fill="none" stroke="${C.orange}" stroke-width="4"/><rect x="${x}" y="${y}" width="${size}" height="${size}" rx="12" fill="#fff"/><image href="${qrData}" x="${x}" y="${y}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet"/>`;
 }
 
-function backgroundSvg(item, qrData) {
+function backgroundSvg(item, qrData, includeTimer = true) {
   const w = 1920, h = 1080;
   const bars = item.project === 'fgbars';
   const lines = wrap(item.episodeTitle, 34);
@@ -81,9 +81,7 @@ function backgroundSvg(item, qrData) {
     <text x="960" y="135" text-anchor="middle" fill="${C.white}" font-family="Rockwell, Georgia, serif" font-size="68" font-weight="900" letter-spacing="9" style="paint-order:stroke;stroke:#000;stroke-width:7;stroke-linejoin:round">${esc(projectLabel(item)).toUpperCase()}</text>
     <text x="960" y="216" text-anchor="middle" fill="${C.muted}" font-family="Impact, Arial Narrow, sans-serif" font-size="24" letter-spacing="7" style="paint-order:stroke;stroke:#000;stroke-width:3;stroke-linejoin:round">EPISODE ${esc(item.episodeNumber)}</text>
     ${titleLines(lines, 960, 292, lines.length > 2 ? 48 : 58)}
-    <text x="960" y="650" text-anchor="middle" fill="${C.white}" font-family="Rockwell, Georgia, serif" font-size="190" font-weight="900" letter-spacing="16" style="paint-order:stroke;stroke:#081020;stroke-width:9;stroke-linejoin:round">15:00</text>
-    <text x="960" y="742" text-anchor="middle" fill="${C.white}" font-family="Impact, Arial Narrow, sans-serif" font-size="34" letter-spacing="7" style="paint-order:stroke;stroke:#000;stroke-width:4;stroke-linejoin:round">STARTING SOON</text>
-    <rect x="480" y="805" width="960" height="18" rx="9" fill="#192d46"/><rect x="480" y="805" width="120" height="18" rx="9" fill="${C.orange}"/>
+    ${includeTimer ? `<text x="960" y="650" text-anchor="middle" fill="${C.white}" font-family="Rockwell, Georgia, serif" font-size="190" font-weight="900" letter-spacing="16" style="paint-order:stroke;stroke:#081020;stroke-width:9;stroke-linejoin:round">15:00</text>` : ''}
     <text x="1595" y="786" text-anchor="middle" fill="${C.white}" font-family="Impact, Arial Narrow, sans-serif" font-size="22" letter-spacing="4" style="paint-order:stroke;stroke:#000;stroke-width:3">LEARN MORE</text>
     ${qr(qrData, 1510, 810, 170)}
     <text x="1595" y="1006" text-anchor="middle" fill="${C.orange}" font-family="Arial" font-size="17">epiccontentcreatorgrants.org</text>
@@ -91,7 +89,7 @@ function backgroundSvg(item, qrData) {
   </svg>`;
 }
 
-function thumbnailSvg(item, qrData) {
+function thumbnailSvg(item) {
   const w = 1280, h = 720;
   const bars = item.project === 'fgbars';
   const lines = wrap(item.episodeTitle, bars ? 20 : 18);
@@ -118,8 +116,11 @@ function run(cmd, args) {
   });
 }
 
-async function writeMp4(background, file, seconds) {
-  await run(ffmpeg, ['-y','-loop','1','-i',background,'-t',String(seconds || 900),'-r','30','-c:v','libx264','-pix_fmt','yuv420p','-movflags','+faststart',file]);
+async function writeMp4(countdownBase, file, seconds) {
+  const fontFile = '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf';
+  const text = `%{eif\\:floor(max(0,${seconds}-t)/60)\\:d\\:2}\\:%{eif\\:mod(max(0,${seconds}-t),60)\\:d\\:2}`;
+  const filter = `drawtext=fontfile=${fontFile}:text='${text}':x=(w-text_w)/2:y=500:fontsize=190:fontcolor=0xF7F4EE:borderw=9:bordercolor=0x081020:shadowx=5:shadowy=5:shadowcolor=black`;
+  await run(ffmpeg, ['-y','-loop','1','-framerate','1','-i',countdownBase,'-f','lavfi','-i','anullsrc=channel_layout=stereo:sample_rate=48000','-t',String(seconds),'-vf',filter,'-c:v','libx264','-preset','veryfast','-tune','stillimage','-pix_fmt','yuv420p','-c:a','aac','-b:a','128k','-shortest','-movflags','+faststart',file]);
 }
 
 async function main() {
@@ -133,15 +134,17 @@ async function main() {
     const dir = path.join(EPISODES, id);
     await fs.mkdir(dir, { recursive: true });
     const bg = path.join(dir, 'background.png');
+    const countdownBase = path.join(dir, 'countdown-base.png');
     const th = path.join(dir, 'thumbnail.png');
-    const mp4 = path.join(dir, 'starting-screen.mp4');
-    await writePng(backgroundSvg(item, qrData), bg, 1920, 1080);
-    await writePng(thumbnailSvg(item, qrData), th, 1280, 720);
-    await writeMp4(bg, mp4, item.durationSeconds || 900);
+    const mp4 = path.join(dir, 'countdown-15min.mp4');
+    await writePng(backgroundSvg(item, qrData, true), bg, 1920, 1080);
+    await writePng(backgroundSvg(item, qrData, false), countdownBase, 1920, 1080);
+    await writePng(thumbnailSvg(item), th, 1280, 720);
+    await writeMp4(countdownBase, mp4, item.durationSeconds || 900);
     manifest.push({ episode: id, item, files: { background: path.relative(OUT, bg), thumbnail: path.relative(OUT, th), video: path.relative(OUT, mp4) } });
   }
   await fs.writeFile(path.join(OUT, 'separate-manifest.json'), JSON.stringify(manifest, null, 2));
-  console.log(`Generated ${manifest.length} separated episode folders.`);
+  console.log(`Generated ${manifest.length} separated countdown episode folders.`);
 }
 
 main().catch(err => { console.error(err); process.exit(1); });
