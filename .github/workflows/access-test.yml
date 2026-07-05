@@ -7,5 +7,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Confirm asset workflow
-        run: echo "Asset workflow placeholder is active."
+      - name: Generate assets
+        run: |
+          git clone https://github.com/mrkenapierce/FGB-Production-Studio.git repo
+          cd repo
+          npm install
+          npm run assets
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add dist-assets
+          git commit -m "Generate assets" || echo "No asset changes"
+          git push
