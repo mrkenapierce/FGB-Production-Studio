@@ -70,18 +70,18 @@
   {
     "item": {
       "project": "fgbars",
-      "episodeNumber": "002",
-      "episodeTitle": "Why Every NFL Fan Needs A Football Home",
+      "episodeNumber": "003",
+      "episodeTitle": "FGBars Episode 003 Title Pending",
       "durationSeconds": 900,
       "preset": "standard",
       "assetTypes": [
         "background",
         "thumbnail"
       ],
-      "status": "ready",
-      "renderBatch": "2026-07-05-a"
+      "status": "title-pending",
+      "renderBatch": "2026-07-05-b"
     },
-    "background": "backgrounds/fgbars-002-why-every-nfl-fan-needs-a-football-home-background.png",
-    "thumbnail": "thumbnails/fgbars-002-why-every-nfl-fan-needs-a-football-home-thumbnail.png"
+    "background": "backgrounds/fgbars-003-fgbars-episode-003-title-pending-background.png",
+    "thumbnail": "thumbnails/fgbars-003-fgbars-episode-003-title-pending-thumbnail.png"
   }
 ]
