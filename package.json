@@ -1,6 +1,6 @@
 {
   "name": "fgb-production-studio",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "Desktop and automated asset production studio for FGB, FGBars, and EPIC Communities.",
   "main": "main.js",
   "private": true,
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "ffmpeg-static": "^5.2.0",
+    "qrcode": "^1.5.4",
     "sharp": "^0.33.5"
   },
   "devDependencies": {
