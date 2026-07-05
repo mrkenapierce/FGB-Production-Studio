@@ -41,12 +41,12 @@
   },
   {
     "project": "fgbars",
-    "episodeNumber": "002",
-    "episodeTitle": "Why Every NFL Fan Needs A Football Home",
+    "episodeNumber": "003",
+    "episodeTitle": "FGBars Episode 003 Title Pending",
     "durationSeconds": 900,
     "preset": "standard",
     "assetTypes": ["background", "thumbnail"],
-    "status": "ready",
-    "renderBatch": "2026-07-05-a"
+    "status": "title-pending",
+    "renderBatch": "2026-07-05-b"
   }
 ]
