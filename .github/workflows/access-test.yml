@@ -2,6 +2,15 @@ name: Generate Assets
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - render-list.json
+      - scripts/generate-assets.mjs
+      - renderer/styles.css
+      - package.json
+      - .github/workflows/access-test.yml
 
 permissions:
   contents: write
