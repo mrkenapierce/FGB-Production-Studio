@@ -5,7 +5,8 @@
     "episodeTitle": "Can the Bears Start the Season 1-0? | Panthers Preview",
     "durationSeconds": 900,
     "preset": "standard",
-    "assetTypes": ["background", "thumbnail"]
+    "assetTypes": ["background", "thumbnail"],
+    "status": "ready"
   },
   {
     "project": "fgb",
@@ -13,7 +14,8 @@
     "episodeTitle": "Can the Bears Defend Home Against the Vikings?",
     "durationSeconds": 900,
     "preset": "standard",
-    "assetTypes": ["background", "thumbnail"]
+    "assetTypes": ["background", "thumbnail"],
+    "status": "ready"
   },
   {
     "project": "fgb",
@@ -21,7 +23,8 @@
     "episodeTitle": "Can Caleb Williams Beat the Eagles?",
     "durationSeconds": 900,
     "preset": "standard",
-    "assetTypes": ["background", "thumbnail"]
+    "assetTypes": ["background", "thumbnail"],
+    "status": "ready"
   },
   {
     "project": "fgb",
@@ -29,14 +32,16 @@
     "episodeTitle": "Are the Bears Better Than the Jets?",
     "durationSeconds": 900,
     "preset": "standard",
-    "assetTypes": ["background", "thumbnail"]
+    "assetTypes": ["background", "thumbnail"],
+    "status": "ready"
   },
   {
     "project": "fgbars",
     "episodeNumber": "002",
-    "episodeTitle": "Why Every Fan Needs A Football Home",
+    "episodeTitle": "Why Every NFL Fan Needs A Football Home",
     "durationSeconds": 900,
     "preset": "standard",
-    "assetTypes": ["background", "thumbnail"]
+    "assetTypes": ["background", "thumbnail"],
+    "status": "ready"
   }
 ]
