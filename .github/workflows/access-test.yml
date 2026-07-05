@@ -1,0 +1,11 @@
+name: Access Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  access-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Confirm workflow access
+        run: echo "GitHub workflow access is working."
