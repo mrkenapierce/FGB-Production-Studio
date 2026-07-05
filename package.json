@@ -1,15 +1,17 @@
 {
   "name": "fgb-production-studio",
-  "version": "2.0.0",
-  "description": "Desktop production studio for FGB, FGBars, and EPIC Communities.",
+  "version": "2.1.0",
+  "description": "Desktop and automated asset production studio for FGB, FGBars, and EPIC Communities.",
   "main": "main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
-    "dist:win": "electron-builder --win portable --x64"
+    "dist:win": "electron-builder --win portable --x64",
+    "assets": "node scripts/generate-assets.mjs"
   },
   "dependencies": {
-    "ffmpeg-static": "^5.2.0"
+    "ffmpeg-static": "^5.2.0",
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "electron": "^33.2.1",
@@ -20,7 +22,7 @@
     "productName": "FGB Production Studio",
     "asar": true,
     "asarUnpack": ["node_modules/ffmpeg-static/**"],
-    "files": ["main.js", "preload.js", "renderer/**/*", "package.json", "node_modules/**/*"],
+    "files": ["main.js", "renderer/**/*", "package.json", "node_modules/**/*"],
     "win": {
       "target": [{ "target": "portable", "arch": ["x64"] }],
       "artifactName": "FGB-Production-Studio-${version}-Windows.${ext}"
