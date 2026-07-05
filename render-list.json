@@ -6,7 +6,8 @@
     "durationSeconds": 900,
     "preset": "standard",
     "assetTypes": ["background", "thumbnail"],
-    "status": "ready"
+    "status": "ready",
+    "renderBatch": "2026-07-05-a"
   },
   {
     "project": "fgb",
@@ -15,7 +16,8 @@
     "durationSeconds": 900,
     "preset": "standard",
     "assetTypes": ["background", "thumbnail"],
-    "status": "ready"
+    "status": "ready",
+    "renderBatch": "2026-07-05-a"
   },
   {
     "project": "fgb",
@@ -24,7 +26,8 @@
     "durationSeconds": 900,
     "preset": "standard",
     "assetTypes": ["background", "thumbnail"],
-    "status": "ready"
+    "status": "ready",
+    "renderBatch": "2026-07-05-a"
   },
   {
     "project": "fgb",
@@ -33,7 +36,8 @@
     "durationSeconds": 900,
     "preset": "standard",
     "assetTypes": ["background", "thumbnail"],
-    "status": "ready"
+    "status": "ready",
+    "renderBatch": "2026-07-05-a"
   },
   {
     "project": "fgbars",
@@ -42,6 +46,7 @@
     "durationSeconds": 900,
     "preset": "standard",
     "assetTypes": ["background", "thumbnail"],
-    "status": "ready"
+    "status": "ready",
+    "renderBatch": "2026-07-05-a"
   }
 ]
