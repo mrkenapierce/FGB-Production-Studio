@@ -3,7 +3,7 @@
     "item": {
       "project": "fgb",
       "episodeNumber": "022",
-      "episodeTitle": "Episode 022 Title Pending",
+      "episodeTitle": "Can the Bears Start the Season 1-0? | Panthers Preview",
       "durationSeconds": 900,
       "preset": "standard",
       "assetTypes": [
@@ -11,14 +11,14 @@
         "thumbnail"
       ]
     },
-    "background": "backgrounds/fgb-022-episode-022-title-pending-background.png",
-    "thumbnail": "thumbnails/fgb-022-episode-022-title-pending-thumbnail.png"
+    "background": "backgrounds/fgb-022-can-the-bears-start-the-season-1-0-panthers-preview-background.png",
+    "thumbnail": "thumbnails/fgb-022-can-the-bears-start-the-season-1-0-panthers-preview-thumbnail.png"
   },
   {
     "item": {
       "project": "fgb",
       "episodeNumber": "023",
-      "episodeTitle": "Episode 023 Title Pending",
+      "episodeTitle": "Can the Bears Defend Home Against the Vikings?",
       "durationSeconds": 900,
       "preset": "standard",
       "assetTypes": [
@@ -26,14 +26,14 @@
         "thumbnail"
       ]
     },
-    "background": "backgrounds/fgb-023-episode-023-title-pending-background.png",
-    "thumbnail": "thumbnails/fgb-023-episode-023-title-pending-thumbnail.png"
+    "background": "backgrounds/fgb-023-can-the-bears-defend-home-against-the-vikings-background.png",
+    "thumbnail": "thumbnails/fgb-023-can-the-bears-defend-home-against-the-vikings-thumbnail.png"
   },
   {
     "item": {
       "project": "fgb",
       "episodeNumber": "024",
-      "episodeTitle": "Episode 024 Title Pending",
+      "episodeTitle": "Can Caleb Williams Beat the Eagles?",
       "durationSeconds": 900,
       "preset": "standard",
       "assetTypes": [
@@ -41,14 +41,14 @@
         "thumbnail"
       ]
     },
-    "background": "backgrounds/fgb-024-episode-024-title-pending-background.png",
-    "thumbnail": "thumbnails/fgb-024-episode-024-title-pending-thumbnail.png"
+    "background": "backgrounds/fgb-024-can-caleb-williams-beat-the-eagles-background.png",
+    "thumbnail": "thumbnails/fgb-024-can-caleb-williams-beat-the-eagles-thumbnail.png"
   },
   {
     "item": {
       "project": "fgb",
       "episodeNumber": "025",
-      "episodeTitle": "Episode 025 Title Pending",
+      "episodeTitle": "Are the Bears Better Than the Jets?",
       "durationSeconds": 900,
       "preset": "standard",
       "assetTypes": [
@@ -56,8 +56,8 @@
         "thumbnail"
       ]
     },
-    "background": "backgrounds/fgb-025-episode-025-title-pending-background.png",
-    "thumbnail": "thumbnails/fgb-025-episode-025-title-pending-thumbnail.png"
+    "background": "backgrounds/fgb-025-are-the-bears-better-than-the-jets-background.png",
+    "thumbnail": "thumbnails/fgb-025-are-the-bears-better-than-the-jets-thumbnail.png"
   },
   {
     "item": {
