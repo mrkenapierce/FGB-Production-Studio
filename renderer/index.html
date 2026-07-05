@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FGB Production Studio</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="studio">
+    <aside class="controls">
+      <h1>FGB Production Studio 2.0</h1>
+
+      <label>Project</label>
+      <select id="project">
+        <option value="fgb">Football's Greatest Bears</option>
+        <option value="fgbars">Football's Greatest Bars</option>
+        <option value="epic">EPIC Communities</option>
+      </select>
+
+      <label>Preset</label>
+      <select id="preset">
+        <option value="standard">Standard</option>
+        <option value="minimal">Minimal</option>
+        <option value="partner">Community Partner</option>
+        <option value="sponsor">Sponsor Spotlight</option>
+        <option value="countdown">Countdown Only</option>
+        <option value="full">Full</option>
+      </select>
+
+      <label>Episode Number</label>
+      <input id="episodeNumber" value="001" />
+
+      <label>Episode Title</label>
+      <input id="episodeTitle" value="Episode Title" />
+
+      <label>Countdown Minutes</label>
+      <input id="minutes" type="number" value="15" min="1" max="120" />
+
+      <label>Business Name</label>
+      <input id="business" value="Your Business Name" />
+
+      <label>Location</label>
+      <input id="location" value="Your City, Your State" />
+
+      <label>Contact</label>
+      <input id="contact" value="Website • Phone • Social" />
+
+      <label>Promotion</label>
+      <input id="promotion" value="Community Partner Promotion" />
+
+      <div class="button-row">
+        <button id="start">Start</button>
+        <button id="pause">Pause</button>
+        <button id="reset">Reset</button>
+        <button id="render">Render MP4</button>
+      </div>
+
+      <section class="visibility">
+        <h2>Visibility</h2>
+        <button data-toggle="episodeLine">Episode Line</button>
+        <button data-toggle="timer">Timer</button>
+        <button data-toggle="status">Status</button>
+        <button data-toggle="progress">Progress</button>
+        <button data-toggle="partner">Community Partner</button>
+        <button data-toggle="badge">Grant Badge</button>
+        <button data-toggle="qr">QR</button>
+        <button data-toggle="brand">Branding</button>
+      </section>
+    </aside>
+
+    <section class="preview">
+      <div class="bar top"></div>
+      <div class="bar bottom"></div>
+      <div class="center-stack">
+        <div id="projectLabel" class="series">Football's Greatest Bears</div>
+        <div id="episodeLine" class="episode">Episode 001 • Episode Title</div>
+        <div id="timer" class="timer">15:00</div>
+        <div id="status" class="status">Ready</div>
+      </div>
+      <div id="progress" class="progress"><div></div></div>
+      <section id="partner" class="partner">
+        <h2>Featured Community Partner</h2>
+        <p><b>Business Name</b><br /><span id="businessOut">Your Business Name</span></p>
+        <p><b>Location</b><br /><span id="locationOut">Your City, Your State</span></p>
+        <p><b>Contact Information</b><br /><span id="contactOut">Website • Phone • Social</span></p>
+        <p><b>Community Partner Promotion</b><br /><span id="promotionOut">Community Partner Promotion</span></p>
+        <div id="badge" class="grant-badge">Community Grant Fund Supported</div>
+      </section>
+      <aside id="qr" class="qr"><div>Learn More</div><div class="qr-box">EPIC<br/>Communities<br/>QR</div></aside>
+      <div id="brand" class="brand">FGB</div>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
