@@ -8,6 +8,7 @@ on:
     paths:
       - render-list.json
       - scripts/generate-assets.mjs
+      - scripts/generate-separated-assets.mjs
       - renderer/styles.css
       - package.json
       - .github/workflows/access-test.yml
