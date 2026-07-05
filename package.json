@@ -1,13 +1,14 @@
 {
   "name": "fgb-production-studio",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "Desktop and automated asset production studio for FGB, FGBars, and EPIC Communities.",
   "main": "main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
     "dist:win": "electron-builder --win portable --x64",
-    "assets": "node scripts/generate-assets.mjs"
+    "assets": "node scripts/generate-separated-assets.mjs",
+    "assets:legacy": "node scripts/generate-assets.mjs"
   },
   "dependencies": {
     "ffmpeg-static": "^5.2.0",
