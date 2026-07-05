@@ -1,11 +1,11 @@
-name: Access Test
+name: Generate Assets
 
 on:
   workflow_dispatch:
 
 jobs:
-  access-test:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Confirm workflow access
-        run: echo "GitHub workflow access is working."
+      - name: Confirm asset workflow
+        run: echo "Asset workflow placeholder is active."
