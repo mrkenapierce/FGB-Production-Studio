@@ -39,17 +39,17 @@ function wrap(text, max) {
 async function makeQrDataUri() {
   const qrBuffer = await QRCode.toBuffer(QR_URL, {
     errorCorrectionLevel: 'H',
-    margin: 2,
-    width: 512,
+    margin: 4,
+    width: 1024,
     color: { dark: '#000000', light: '#ffffff' }
   });
 
   const logoBase64 = (await fs.readFile(OFFICIAL_EPIC_LOGO_BASE64, 'utf8')).trim();
   const logoSource = Buffer.from(logoBase64, 'base64');
-  const logoSize = 112;
+  const logoSize = 96;
   const logoBuffer = await sharp(logoSource)
     .resize(logoSize, logoSize, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
-    .extend({ top: 8, bottom: 8, left: 8, right: 8, background: { r: 255, g: 255, b: 255, alpha: 1 } })
+    .extend({ top: 10, bottom: 10, left: 10, right: 10, background: { r: 255, g: 255, b: 255, alpha: 1 } })
     .png()
     .toBuffer();
 
@@ -91,11 +91,10 @@ function titleLines(lines, x, y, size) {
 
 function qrBlock(qrData, centerX, topY, size) {
   const x = centerX - size / 2;
-  return `<text x="${centerX}" y="${topY - 24}" text-anchor="middle" fill="${C.white}" font-family="Impact, Arial Narrow, sans-serif" font-size="24" letter-spacing="4" style="paint-order:stroke;stroke:#000;stroke-width:3">LEARN MORE</text>
-    <rect x="${x - 6}" y="${topY - 6}" width="${size + 12}" height="${size + 12}" rx="18" fill="none" stroke="${C.orange}" stroke-width="4"/>
-    <rect x="${x}" y="${topY}" width="${size}" height="${size}" rx="12" fill="#fff"/>
-    <image href="${qrData}" x="${x}" y="${topY}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet"/>
-    <text x="${centerX}" y="${topY + size + 26}" text-anchor="middle" fill="${C.orange}" font-family="Arial" font-size="17">epiccontentcreatorgrants.org</text>`;
+  return `<text x="${centerX}" y="${topY - 28}" text-anchor="middle" fill="${C.white}" font-family="Impact, Arial Narrow, sans-serif" font-size="30" letter-spacing="4" style="paint-order:stroke;stroke:#000;stroke-width:4">SCAN TO LEARN MORE</text>
+    <rect x="${x - 14}" y="${topY - 14}" width="${size + 28}" height="${size + 28}" rx="8" fill="#ffffff" stroke="${C.orange}" stroke-width="6"/>
+    <image href="${qrData}" x="${x}" y="${topY}" width="${size}" height="${size}" preserveAspectRatio="xMidYMid meet" style="image-rendering:pixelated"/>
+    <text x="${centerX}" y="${topY + size + 32}" text-anchor="middle" fill="${C.white}" font-family="Arial" font-size="22" font-weight="700" style="paint-order:stroke;stroke:#000;stroke-width:3">epiccontentcreatorgrants.org</text>`;
 }
 
 function backgroundSvg(item, qrData, includeTimer = true) {
@@ -111,7 +110,7 @@ function backgroundSvg(item, qrData, includeTimer = true) {
     <text x="960" y="216" text-anchor="middle" fill="${C.muted}" font-family="Impact, Arial Narrow, sans-serif" font-size="24" letter-spacing="7" style="paint-order:stroke;stroke:#000;stroke-width:3;stroke-linejoin:round">EPISODE ${esc(item.episodeNumber)}</text>
     ${titleLines(lines, 960, 292, lines.length > 2 ? 48 : 58)}
     ${includeTimer ? `<text x="960" y="650" text-anchor="middle" fill="${C.white}" font-family="Rockwell, Georgia, serif" font-size="190" font-weight="900" letter-spacing="16" style="paint-order:stroke;stroke:#081020;stroke-width:9;stroke-linejoin:round">15:00</text>` : ''}
-    ${qrBlock(qrData, 1595, 810, 170)}
+    ${qrBlock(qrData, 1548, 714, 292)}
     <text x="1774" y="1025" fill="${C.orange}" font-family="Impact, Arial Narrow, sans-serif" font-size="34" letter-spacing="5" style="paint-order:stroke;stroke:#000;stroke-width:3">${esc(brand(item))}</text>
   </svg>`;
 }
@@ -147,7 +146,7 @@ async function writeMp4(countdownBase, file, seconds) {
   const fontFile = '/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf';
   const text = `%{eif\\:floor(max(0,${seconds}-t)/60)\\:d\\:2}\\:%{eif\\:mod(max(0,${seconds}-t),60)\\:d\\:2}`;
   const filter = `drawtext=fontfile=${fontFile}:text='${text}':x=(w-text_w)/2:y=500:fontsize=190:fontcolor=0xF7F4EE:borderw=9:bordercolor=0x081020:shadowx=5:shadowy=5:shadowcolor=black`;
-  await run(ffmpeg, ['-y','-loop','1','-framerate','1','-i',countdownBase,'-f','lavfi','-i','anullsrc=channel_layout=stereo:sample_rate=48000','-t',String(seconds),'-vf',filter,'-c:v','libx264','-preset','veryfast','-tune','stillimage','-pix_fmt','yuv420p','-c:a','aac','-b:a','128k','-shortest','-movflags','+faststart',file]);
+  await run(ffmpeg, ['-y','-loop','1','-framerate','30','-i',countdownBase,'-f','lavfi','-i','anullsrc=channel_layout=stereo:sample_rate=48000','-t',String(seconds),'-vf',filter,'-c:v','libx264','-preset','veryfast','-tune','stillimage','-crf','15','-pix_fmt','yuv420p','-c:a','aac','-b:a','128k','-shortest','-movflags','+faststart',file]);
 }
 
 async function main() {
