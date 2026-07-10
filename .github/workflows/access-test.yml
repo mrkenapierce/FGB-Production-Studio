@@ -9,6 +9,7 @@ on:
       - render-list.json
       - scripts/generate-assets.mjs
       - scripts/generate-separated-assets.mjs
+      - scripts/render-standard-production-package.mjs
       - renderer/styles.css
       - package.json
       - .github/workflows/access-test.yml
