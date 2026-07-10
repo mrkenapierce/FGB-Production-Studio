@@ -9,7 +9,7 @@ const ROOT = process.cwd();
 const OUT = path.join(ROOT, 'dist-assets', 'production');
 const QR_URL = 'https://epiccontentcreatorgrants.org/';
 const LOGO_BASE64 = path.join(ROOT, 'renderer', 'assets', 'epic-logo-for-qr.base64.txt');
-const EPISODE_FILTER = process.env.EPISODE_FILTER || '025';
+const EPISODE_FILTER = process.env.EPISODE_FILTER || '003';
 const ZERO_HOLD_SECONDS = Number(process.env.COUNTDOWN_ZERO_HOLD_SECONDS || 1);
 
 const C = {
@@ -22,7 +22,21 @@ function esc(v = '') {
 }
 
 function productionName(item) {
+  if (item.project === 'fgbars') return `FGBars Episode ${item.episodeNumber} Production Screen`;
+  if (item.project === 'epic') return `EPIC Episode ${item.episodeNumber} Production Screen`;
   return `FGB Episode ${item.episodeNumber} Production Screen`;
+}
+
+function projectLabel(item) {
+  if (item.project === 'fgbars') return "FOOTBALL'S GREATEST BARS";
+  if (item.project === 'epic') return 'EPIC COMMUNITIES';
+  return "FOOTBALL'S GREATEST BEARS";
+}
+
+function projectBrand(item) {
+  if (item.project === 'fgbars') return 'FGBARS';
+  if (item.project === 'epic') return 'EPIC';
+  return 'FGB';
 }
 
 function gameNumber(item) {
@@ -30,8 +44,15 @@ function gameNumber(item) {
   return Number.isFinite(n) ? Math.max(1, n - 21) : 1;
 }
 
+function episodeSubtitle(item) {
+  if (item.episodeSubtitle) return String(item.episodeSubtitle).toUpperCase();
+  if (item.project === 'fgb') return `2026 BEARS SEASON PREDICTION SERIES - GAME ${gameNumber(item)} OF 17`;
+  return '';
+}
+
 function wrapTitle(title) {
   const clean = String(title).replace(/\s*\|\s*.*/, '').trim();
+  if (/Welcome to Football's Greatest Bars/i.test(clean)) return ["WELCOME TO FOOTBALL'S", 'GREATEST BARS'];
   if (/Are the Bears Better Than the Jets\?/i.test(clean)) return ['ARE THE BEARS BETTER THAN', 'THE JETS?'];
   if (/Can Caleb Williams Beat the Eagles/i.test(clean)) return ['CAN CALEB WILLIAMS BEAT THE', 'EAGLES? | EAGLES PREVIEW'];
   const words = clean.toUpperCase().split(/\s+/);
@@ -61,7 +82,20 @@ async function makeQr(outputFile) {
 
 function skyline() {
   const items = [[0,70,85],[64,135,95],[140,230,125],[230,318,160],[325,410,230],[440,535,85],[535,640,120],[650,755,155],[755,840,210],[860,955,85],[980,1085,120],[1125,1230,160],[1260,1360,210],[1390,1495,210],[1525,1618,170],[1660,1770,220],[1815,1900,100]];
-  return items.map(([x1,x2,h]) => `<rect x="${x1}" y="${1008-h}" width="${x2-x1}" height="${h}" fill="${C.skyline}"/>`).join('\n') + `<rect x="0" y="1008" width="1920" height="72" fill="${C.skyline}"/>`;
+  return items.map(([x1,x2,h], index) => {
+    const y = 1008 - h;
+    const windows = [];
+    const startX = x1 + 18;
+    const startY = y + 25;
+    for (let wy = startY; wy < 992; wy += 28) {
+      for (let wx = startX; wx < x2 - 12; wx += 26) {
+        if ((Math.floor(wx / 13) + Math.floor(wy / 14) + index) % 3 !== 0) {
+          windows.push(`<rect x="${wx}" y="${wy}" width="6" height="7" fill="${C.orange}" opacity=".9"/>`);
+        }
+      }
+    }
+    return `<rect x="${x1}" y="${y}" width="${x2-x1}" height="${h}" fill="${C.skyline}"/>${windows.join('')}`;
+  }).join('\n') + `<rect x="0" y="1008" width="1920" height="72" fill="${C.skyline}"/>`;
 }
 
 function titleSvg(lines) {
@@ -79,7 +113,7 @@ function qrBlock(qrData) {
 
 function productionSvg(item, qrData, includeTimer) {
   const lines = wrapTitle(item.episodeTitle);
-  const subtitle = `2026 BEARS SEASON PREDICTION SERIES - GAME ${gameNumber(item)} OF 17`;
+  const subtitle = episodeSubtitle(item);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
   <rect width="1920" height="1080" fill="${C.dark}"/>
   <rect x="360" y="20" width="1180" height="1040" fill="${C.panel}"/>
@@ -88,26 +122,27 @@ function productionSvg(item, qrData, includeTimer) {
   ${skyline()}
   <rect x="0" y="0" width="1920" height="19" fill="${C.orange}"/><rect x="0" y="1061" width="1920" height="19" fill="${C.orange}"/>
   <rect x="25" y="25" width="1870" height="1030" fill="none" stroke="${C.orange}" stroke-width="5"/>
-  <text x="960" y="135" text-anchor="middle" fill="${C.white}" font-family="Georgia, serif" font-size="62" font-weight="900" letter-spacing="2" style="paint-order:stroke;stroke:#000;stroke-width:6;stroke-linejoin:round">FOOTBALL'S GREATEST BEARS</text>
+  <text x="960" y="135" text-anchor="middle" fill="${C.white}" font-family="Georgia, serif" font-size="62" font-weight="900" letter-spacing="2" style="paint-order:stroke;stroke:#000;stroke-width:6;stroke-linejoin:round">${esc(projectLabel(item))}</text>
   <text x="960" y="215" text-anchor="middle" fill="${C.muted}" font-family="Impact, Arial Narrow, Arial, sans-serif" font-size="30" font-weight="900" style="paint-order:stroke;stroke:#000;stroke-width:3">EPISODE ${esc(item.episodeNumber)}</text>
   ${titleSvg(lines)}
-  <text x="960" y="455" text-anchor="middle" fill="${C.white}" font-family="Impact, Arial Narrow, Arial, sans-serif" font-size="29" font-weight="900" style="paint-order:stroke;stroke:#000;stroke-width:3">${subtitle}</text>
+  ${subtitle ? `<text x="960" y="455" text-anchor="middle" fill="${C.white}" font-family="Impact, Arial Narrow, Arial, sans-serif" font-size="29" font-weight="900" style="paint-order:stroke;stroke:#000;stroke-width:3">${esc(subtitle)}</text>` : ''}
   ${includeTimer ? `<text x="960" y="665" text-anchor="middle" fill="${C.white}" font-family="Georgia, serif" font-size="174" font-weight="900" style="paint-order:stroke;stroke:#000;stroke-width:8;stroke-linejoin:round">15:00</text>` : ''}
   ${qrBlock(qrData)}
-  <text x="1774" y="1053" fill="${C.orange}" font-family="Impact, Arial Narrow, Arial, sans-serif" font-size="32" font-weight="900" style="paint-order:stroke;stroke:#000;stroke-width:3">FGB</text>
+  <text x="1850" y="1053" text-anchor="end" fill="${C.orange}" font-family="Impact, Arial Narrow, Arial, sans-serif" font-size="32" font-weight="900" style="paint-order:stroke;stroke:#000;stroke-width:3">${esc(projectBrand(item))}</text>
   </svg>`;
 }
 
 function thumbnailSvg(item) {
   const title = String(item.episodeTitle).replace(/\s*\|\s*.*/, '').toUpperCase();
   const lines = /ARE THE BEARS BETTER THAN THE JETS/.test(title) ? ['ARE THE BEARS', 'BETTER THAN', 'THE JETS?'] : wrapTitle(title);
+  const brand = projectBrand(item);
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
   <rect width="1536" height="1024" fill="#03080f"/><path d="M0 140 L210 0 L360 0 L0 545 Z" fill="#691e04"/>
   <rect x="0" y="0" width="1536" height="1024" fill="none" stroke="${C.orange}" stroke-width="6"/>
-  <text x="768" y="205" text-anchor="middle" fill="${C.white}" font-family="Impact, Arial Narrow, Arial, sans-serif" font-size="190" font-weight="900" style="paint-order:stroke;stroke:#000;stroke-width:8">FGB</text>
+  <text x="768" y="205" text-anchor="middle" fill="${C.white}" font-family="Impact, Arial Narrow, Arial, sans-serif" font-size="190" font-weight="900" style="paint-order:stroke;stroke:#000;stroke-width:8">${esc(brand)}</text>
   ${lines.map((line, i) => `<text x="768" y="${400 + i*95}" text-anchor="middle" fill="${i===0 ? C.orange : C.white}" font-family="Impact, Arial Narrow, Arial, sans-serif" font-size="86" font-weight="900" style="paint-order:stroke;stroke:#000;stroke-width:5">${esc(line)}</text>`).join('\n')}
   <rect x="405" y="745" width="725" height="125" fill="${C.orange}"/><text x="768" y="838" text-anchor="middle" fill="#080808" font-family="Impact, Arial Narrow, Arial, sans-serif" font-size="78" font-weight="900">EPISODE ${Number(item.episodeNumber)}</text>
-  <text x="768" y="980" text-anchor="middle" fill="${C.white}" font-family="Impact, Arial Narrow, Arial, sans-serif" font-size="42" letter-spacing="10" style="paint-order:stroke;stroke:#000;stroke-width:3">FOOTBALL'S GREATEST BEARS</text>
+  <text x="768" y="980" text-anchor="middle" fill="${C.white}" font-family="Impact, Arial Narrow, Arial, sans-serif" font-size="42" letter-spacing="10" style="paint-order:stroke;stroke:#000;stroke-width:3">${esc(projectLabel(item))}</text>
   </svg>`;
 }
 
@@ -148,7 +183,19 @@ async function main() {
   await writePng(productionSvg(item, qrData, false), base, 1920, 1080);
   await writePng(thumbnailSvg(item), thumb, 1536, 1024);
   await writeCountdown(base, video, item.durationSeconds || 900);
-  await fs.writeFile(path.join(dir, 'manifest.json'), JSON.stringify({ episode: name, title: item.episodeTitle, production_screen_protocol: 'Use uploaded Episode 024 production screen layout; do not redesign', countdown_start: '15:00', countdown_end: '00:00', zero_hold_seconds: ZERO_HOLD_SECONDS, expected_video_duration_seconds: (item.durationSeconds || 900) + ZERO_HOLD_SECONDS, qr_target: QR_URL, files: [path.basename(screen), path.basename(base), path.basename(video), path.basename(thumb), path.basename(qrFile)] }, null, 2));
+  await fs.writeFile(path.join(dir, 'manifest.json'), JSON.stringify({
+    episode: name,
+    project: item.project,
+    title: item.episodeTitle,
+    subtitle: item.episodeSubtitle || null,
+    production_screen_protocol: 'Use uploaded Episode 025 production screen layout; preserve design and coloration',
+    countdown_start: '15:00',
+    countdown_end: '00:00',
+    zero_hold_seconds: ZERO_HOLD_SECONDS,
+    expected_video_duration_seconds: (item.durationSeconds || 900) + ZERO_HOLD_SECONDS,
+    qr_target: QR_URL,
+    files: [path.basename(screen), path.basename(base), path.basename(video), path.basename(thumb), path.basename(qrFile)]
+  }, null, 2));
   console.log(`Rendered ${name} using standardized production screen protocol.`);
 }
 
