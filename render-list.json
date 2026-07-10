@@ -42,11 +42,12 @@
   {
     "project": "fgbars",
     "episodeNumber": "003",
-    "episodeTitle": "FGBars Episode 003 Title Pending",
+    "episodeTitle": "Welcome to Football's Greatest Bars",
+    "episodeSubtitle": "The Grand Re-Opening",
     "durationSeconds": 900,
     "preset": "standard",
     "assetTypes": ["background", "thumbnail", "video"],
-    "status": "title-pending",
-    "renderBatch": "2026-07-05-separated-video-a"
+    "status": "ready",
+    "renderBatch": "2026-07-10-fgbars-grand-reopening"
   }
 ]
