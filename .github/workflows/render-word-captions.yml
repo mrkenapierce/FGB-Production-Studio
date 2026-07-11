@@ -1,0 +1,70 @@
+name: Render Word Captions
+
+on:
+  workflow_dispatch:
+    inputs:
+      input_video:
+        description: Repository path to the source production-screen video
+        required: true
+        default: production-inputs/FGBars_Episode_003_Production_Screen.mp4
+      caption_file:
+        description: Repository path to the word-caption JSON file
+        required: true
+        default: captions/fgbars-003-word-demo.json
+      output_name:
+        description: Output MP4 filename
+        required: true
+        default: FGBars_Episode_003_Word_Captions.mp4
+      clip_duration:
+        description: Optional preview duration in seconds; leave blank for the full video
+        required: false
+        default: ""
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate source video
+        shell: bash
+        run: |
+          test -f "${{ inputs.input_video }}" || {
+            echo "Source video not found: ${{ inputs.input_video }}"
+            exit 1
+          }
+
+      - name: Render one-word captions
+        shell: bash
+        run: |
+          mkdir -p dist-assets/captions
+          EXTRA_ARGS=()
+          if [ -n "${{ inputs.clip_duration }}" ]; then
+            EXTRA_ARGS+=(--clip-duration "${{ inputs.clip_duration }}")
+          fi
+          npm run render:captions -- \
+            --input "${{ inputs.input_video }}" \
+            --captions "${{ inputs.caption_file }}" \
+            --output "dist-assets/captions/${{ inputs.output_name }}" \
+            "${EXTRA_ARGS[@]}"
+
+      - name: Upload captioned video
+        uses: actions/upload-artifact@v4
+        with:
+          name: fgb-word-caption-render
+          path: dist-assets/captions/${{ inputs.output_name }}
+          if-no-files-found: error
+          retention-days: 30
