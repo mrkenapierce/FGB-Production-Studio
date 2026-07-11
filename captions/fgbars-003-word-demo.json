@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "oneWordAtATime": true,
+  "style": {
+    "color": "#C83803",
+    "outlineColor": "#000000",
+    "outlineWidth": 8,
+    "shadowColor": "black@0.85",
+    "shadowX": 6,
+    "shadowY": 6,
+    "fontSize": 150,
+    "y": 720,
+    "fps": 30,
+    "preset": "veryfast",
+    "crf": 18,
+    "audioBitrate": "192k"
+  },
+  "captions": [
+    { "text": "ARE", "start": 0.50, "end": 0.95 },
+    { "text": "THE", "start": 0.95, "end": 1.40 },
+    { "text": "BEARS", "start": 1.40, "end": 1.85 },
+    { "text": "BETTER", "start": 1.85, "end": 2.30 },
+    { "text": "THAN", "start": 2.30, "end": 2.75 },
+    { "text": "THE", "start": 2.75, "end": 3.20 },
+    { "text": "JETS?", "start": 3.20, "end": 3.80 }
+  ]
+}
