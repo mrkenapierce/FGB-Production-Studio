@@ -48,7 +48,7 @@
     "preset": "standard",
     "assetTypes": ["background", "thumbnail", "video"],
     "status": "ready",
-    "renderBatch": "2026-07-10-fgbars-grand-reopening-youtube-final",
+    "renderBatch": "2026-07-10-fgbars-grand-reopening-youtube-final-with-music",
     "introCaptions": {
       "words": ["WELCOME", "TO", "FOOTBALL'S", "GREATEST", "BARS"],
       "startSeconds": 0.5,
@@ -61,6 +61,16 @@
       "shadowX": 6,
       "shadowY": 6,
       "centerY": 860
+    },
+    "backgroundMusic": {
+      "enabled": true,
+      "privateAssetPath": "private-media/music/fgbars-countdown-theme.mp3",
+      "licenseRecordPath": "private-media/music/licenses/fgbars-countdown-theme.json",
+      "volume": 0.15,
+      "loop": true,
+      "fadeInSeconds": 2,
+      "fadeOutSeconds": 5,
+      "requiredForFinalYouTubeRender": true
     }
   }
 ]
