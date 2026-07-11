@@ -44,10 +44,23 @@
     "episodeNumber": "003",
     "episodeTitle": "Welcome to Football's Greatest Bars",
     "episodeSubtitle": "The Grand Re-Opening",
-    "durationSeconds": 900,
+    "durationSeconds": 570,
     "preset": "standard",
     "assetTypes": ["background", "thumbnail", "video"],
     "status": "ready",
-    "renderBatch": "2026-07-10-fgbars-grand-reopening"
+    "renderBatch": "2026-07-10-fgbars-grand-reopening-final",
+    "introCaptions": {
+      "words": ["WELCOME", "TO", "FOOTBALL'S", "GREATEST", "BARS"],
+      "startSeconds": 0.5,
+      "wordDurationSeconds": 0.65,
+      "gapSeconds": 0.1,
+      "fontSize": 112,
+      "color": "#C83803",
+      "outlineColor": "#000000",
+      "outlineWidth": 8,
+      "shadowX": 6,
+      "shadowY": 6,
+      "centerY": 860
+    }
   }
 ]
