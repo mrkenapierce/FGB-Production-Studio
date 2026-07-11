@@ -9,7 +9,7 @@
     "dist:win": "electron-builder --win portable --x64",
     "assets": "node scripts/generate-separated-assets.mjs",
     "assets:legacy": "node scripts/generate-assets.mjs",
-    "render:production": "node scripts/render-production-package.mjs",
+    "render:production": "node scripts/render-standard-production-package.mjs",
     "render:captions": "node scripts/render-word-captions.mjs"
   },
   "dependencies": {
