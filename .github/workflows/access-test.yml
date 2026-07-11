@@ -1,4 +1,4 @@
-name: Generate Assets
+name: Generate YouTube Production Assets
 
 on:
   workflow_dispatch:
@@ -21,17 +21,39 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Generate assets
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate separated assets
+        run: npm run assets
+
+      - name: Render final YouTube production video
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EPISODE_FILTER: "003"
+          COUNTDOWN_ZERO_HOLD_SECONDS: "0"
+        run: npm run render:production
+
+      - name: Upload final Episode 003 package
+        uses: actions/upload-artifact@v4
+        with:
+          name: FGBars-Episode-003-YouTube-Final
+          path: "dist-assets/production/FGBars Episode 003 Production Screen/**"
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Commit generated assets
         run: |
-          git clone https://github.com/mrkenapierce/FGB-Production-Studio.git repo
-          cd repo
-          npm install
-          npm run assets
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
           git add dist-assets
-          git commit -m "Generate assets" || echo "No asset changes"
-          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/mrkenapierce/FGB-Production-Studio.git
-          git push origin HEAD:main
+          git commit -m "Generate final FGBars Episode 003 YouTube video" || echo "No asset changes"
+          git push
