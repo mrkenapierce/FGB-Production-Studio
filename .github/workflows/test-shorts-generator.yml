@@ -1,17 +1,21 @@
-name: Test Produced Shorts Generator
+name: Test Shorts Generators
 
 on:
   pull_request:
     paths:
       - 'scripts/generate-produced-shorts.mjs'
+      - 'scripts/generate-audio-first-shorts.mjs'
       - 'test/shorts-generator.test.mjs'
+      - 'test/audio-first-shorts.test.mjs'
       - 'package.json'
       - '.github/workflows/test-shorts-generator.yml'
   push:
     branches: [main]
     paths:
       - 'scripts/generate-produced-shorts.mjs'
+      - 'scripts/generate-audio-first-shorts.mjs'
       - 'test/shorts-generator.test.mjs'
+      - 'test/audio-first-shorts.test.mjs'
       - 'package.json'
       - '.github/workflows/test-shorts-generator.yml'
 
@@ -24,4 +28,4 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - run: npm run test:shorts
+      - run: npm test
