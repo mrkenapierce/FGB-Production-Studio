@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audio-First Shorts | FGB Production Studio</title>
+  <link rel="stylesheet" href="audio-shorts.css" />
+</head>
+<body>
+  <main class="audio-studio">
+    <header class="topbar">
+      <div>
+        <a class="back-link" href="shorts.html">← Shorts Generator</a>
+        <h1>Audio-First Shorts</h1>
+        <p>Produce intentionally designed vertical Shorts from WAV narration—without imitating the missing source video.</p>
+      </div>
+      <div class="status-badge">3 premium + 5 rapid</div>
+    </header>
+
+    <section class="notice">
+      <strong>Default system:</strong> three premium editorial Shorts, including an automatic tactical explainer when the narration supports it, plus five rapid quote-driven Shorts. The locked one-word caption protocol remains standard.
+    </section>
+
+    <div class="workspace">
+      <section class="panel form-panel">
+        <h2>Channel and episode</h2>
+        <div class="two-col">
+          <label>Channel profile
+            <select id="project">
+              <option value="fgb">Football's Greatest Bears</option>
+              <option value="fgbars">Football's Greatest Bars</option>
+              <option value="epic">EPIC Communities</option>
+              <option value="custom">Custom / future channel</option>
+            </select>
+          </label>
+          <label>Episode number
+            <input id="episodeNumber" value="004" autocomplete="off" />
+          </label>
+        </div>
+
+        <div class="two-col custom-row hidden" id="customRow">
+          <label>Channel name
+            <input id="channelName" placeholder="Custom YouTube channel" autocomplete="off" />
+          </label>
+          <label>Watermark
+            <input id="watermark" placeholder="CHANNEL" autocomplete="off" />
+          </label>
+        </div>
+
+        <label>Episode title
+          <input id="episodeTitle" placeholder="Enter the parent-episode title" autocomplete="off" />
+        </label>
+
+        <label>YouTube reference URL
+          <input id="referenceUrl" type="url" value="https://youtu.be/tO0nBSeo0pg" placeholder="https://youtu.be/..." autocomplete="off" />
+        </label>
+
+        <h2 class="section-heading">Audio and source material</h2>
+        <label>WAV audio
+          <div class="path-row">
+            <input id="audioPath" readonly placeholder="Select the WAV narration or episode audio" />
+            <button id="chooseAudio" type="button" class="secondary">Choose</button>
+          </div>
+        </label>
+
+        <label>Optional time-coded transcript
+          <div class="path-row">
+            <input id="transcriptPath" readonly placeholder="Leave blank to transcribe the WAV automatically" />
+            <button id="chooseTranscript" type="button" class="secondary">Choose</button>
+          </div>
+        </label>
+
+        <label>Optional visual asset folder
+          <div class="path-row">
+            <input id="visualsPath" readonly placeholder="AI images, licensed stock, public-domain, or supplied photos" />
+            <button id="chooseVisuals" type="button" class="secondary">Choose</button>
+          </div>
+        </label>
+
+        <label>Output folder
+          <div class="path-row">
+            <input id="outputPath" readonly placeholder="Every video and metadata file is saved separately" />
+            <button id="chooseOutput" type="button" class="secondary">Choose</button>
+          </div>
+        </label>
+
+        <h2 class="section-heading">Batch settings</h2>
+        <div class="four-col">
+          <label>Total Shorts
+            <input id="totalShorts" type="number" min="1" max="12" value="8" />
+          </label>
+          <label>Premium slots
+            <input id="premiumShorts" type="number" min="0" max="6" value="3" />
+          </label>
+          <label>Minimum seconds
+            <input id="minSeconds" type="number" min="12" max="55" value="20" />
+          </label>
+          <label>Maximum seconds
+            <input id="maxSeconds" type="number" min="17" max="60" value="58" />
+          </label>
+        </div>
+
+        <div class="locked-style">
+          <span>Locked caption protocol</span>
+          <strong>ONE WORD AT A TIME · #C83803 · BLACK OUTLINE · LOWER-MIDDLE SAFE AREA</strong>
+        </div>
+
+        <section class="integration-card">
+          <div>
+            <h3>Automatic WAV transcription</h3>
+            <p id="apiStatus">Checking configuration…</p>
+          </div>
+          <div class="api-row">
+            <input id="apiKey" type="password" placeholder="OpenAI API key" autocomplete="off" />
+            <button id="saveKey" type="button" class="secondary">Save securely</button>
+            <button id="clearKey" type="button" class="ghost">Clear</button>
+          </div>
+          <small>The key is encrypted using the operating system's secure storage. It is required only when no transcript file is supplied.</small>
+        </section>
+
+        <button id="generate" type="button" class="primary">Generate Audio-First Shorts</button>
+      </section>
+
+      <section class="panel progress-panel">
+        <h2>Production status</h2>
+        <div id="state" class="state idle">Ready</div>
+        <p id="message">Select the WAV file and output folder.</p>
+        <div class="progress-track"><div id="progressBar"></div></div>
+        <div id="counter" class="counter">0 / 0</div>
+        <div id="errorBox" class="error-box hidden" role="alert"></div>
+
+        <section class="tier-summary">
+          <article><strong>Flagship</strong><span>Animated editorial/newspaper visuals</span></article>
+          <article><strong>Explainer</strong><span>Automatically used for tactical narration</span></article>
+          <article><strong>Rapid</strong><span>Fast quote-driven branded graphics</span></article>
+        </section>
+
+        <section id="results" class="results hidden">
+          <div class="results-header">
+            <div><h3>Produced files</h3><p id="resultSummary"></p></div>
+            <button id="openOutput" type="button" class="secondary">Open output folder</button>
+          </div>
+          <div id="resultList" class="result-list"></div>
+        </section>
+      </section>
+    </div>
+  </main>
+  <script src="audio-shorts.js"></script>
+</body>
+</html>
