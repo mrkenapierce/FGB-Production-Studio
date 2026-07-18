@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Produced Shorts Generator | FGB Production Studio</title>
+  <link rel="stylesheet" href="shorts.css" />
+</head>
+<body>
+  <main class="shorts-studio">
+    <header class="topbar">
+      <div>
+        <a class="back-link" href="index.html">← Production Studio</a>
+        <h1>Produced Shorts Generator</h1>
+        <p>Turn an authorized episode file and its time-coded captions into separate, finished vertical MP4 Shorts.</p>
+      </div>
+      <div class="status-badge">Local FFmpeg workflow</div>
+    </header>
+
+    <section class="notice">
+      <strong>YouTube workflow:</strong> paste the YouTube URL below for source attribution, then select the original video file you own or are authorized to edit. The generator does not download arbitrary YouTube videos. Export the episode captions from YouTube Studio as SRT or VTT and select that file.
+    </section>
+
+    <div class="workspace">
+      <section class="panel form-panel">
+        <h2>Episode intake</h2>
+
+        <div class="two-col">
+          <label>Project
+            <select id="project">
+              <option value="fgb">Football's Greatest Bears</option>
+              <option value="fgbars">Football's Greatest Bars</option>
+              <option value="epic">EPIC Communities</option>
+            </select>
+          </label>
+          <label>Episode number
+            <input id="episodeNumber" value="004" autocomplete="off" />
+          </label>
+        </div>
+
+        <label>Episode title
+          <input id="episodeTitle" placeholder="Enter the full parent-episode title" autocomplete="off" />
+        </label>
+
+        <label>YouTube reference URL
+          <input id="referenceUrl" type="url" placeholder="https://youtu.be/..." autocomplete="off" />
+        </label>
+
+        <label>Authorized source video
+          <div class="path-row">
+            <input id="videoPath" readonly placeholder="Select MP4, MOV, M4V, WebM, or MKV" />
+            <button id="chooseVideo" type="button" class="secondary">Choose</button>
+          </div>
+        </label>
+
+        <label>Time-coded transcript
+          <div class="path-row">
+            <input id="transcriptPath" readonly placeholder="Select SRT, VTT, or timestamped TXT" />
+            <button id="chooseTranscript" type="button" class="secondary">Choose</button>
+          </div>
+        </label>
+
+        <label>Output folder
+          <div class="path-row">
+            <input id="outputPath" readonly placeholder="Each Short will be saved separately here" />
+            <button id="chooseOutput" type="button" class="secondary">Choose</button>
+          </div>
+        </label>
+
+        <h2 class="section-heading">Production settings</h2>
+        <div class="three-col">
+          <label>Number of Shorts
+            <input id="limit" type="number" min="1" max="12" value="8" />
+          </label>
+          <label>Minimum seconds
+            <input id="minSeconds" type="number" min="10" max="55" value="20" />
+          </label>
+          <label>Maximum seconds
+            <input id="maxSeconds" type="number" min="15" max="60" value="58" />
+          </label>
+        </div>
+
+        <div class="two-col">
+          <label>Portrait treatment
+            <select id="layout">
+              <option value="blur">Full video + blurred portrait background</option>
+              <option value="crop">Center crop to fill 9:16</option>
+            </select>
+          </label>
+          <label>Watermark
+            <input id="watermark" placeholder="Uses project default" autocomplete="off" />
+          </label>
+        </div>
+
+        <div class="locked-style">
+          <span>Locked caption protocol</span>
+          <strong>ONE WORD AT A TIME · #C83803 · BLACK OUTLINE · LOWER-MIDDLE SAFE AREA</strong>
+        </div>
+
+        <button id="generate" type="button" class="primary">Generate Produced Shorts</button>
+      </section>
+
+      <section class="panel progress-panel">
+        <h2>Production status</h2>
+        <div id="state" class="state idle">Ready</div>
+        <p id="message">Select the source video, timed captions, and output folder.</p>
+        <div class="progress-track" aria-label="Production progress">
+          <div id="progressBar"></div>
+        </div>
+        <div id="counter" class="counter">0 / 0</div>
+
+        <div id="errorBox" class="error-box hidden" role="alert"></div>
+
+        <section id="results" class="results hidden">
+          <div class="results-header">
+            <div>
+              <h3>Produced files</h3>
+              <p id="resultSummary"></p>
+            </div>
+            <button id="openOutput" type="button" class="secondary">Open output folder</button>
+          </div>
+          <div id="resultList" class="result-list"></div>
+        </section>
+
+        <section class="deliverables">
+          <h3>Each approved output includes</h3>
+          <ul>
+            <li>A separate 1080 × 1920 MP4 video</li>
+            <li>A separate metadata JSON file</li>
+            <li>A separate copy-ready TXT file</li>
+            <li>A word-timing caption JSON file</li>
+            <li>Episode-level JSON and Markdown package records</li>
+          </ul>
+        </section>
+      </section>
+    </div>
+  </main>
+  <script src="shorts.js"></script>
+</body>
+</html>
