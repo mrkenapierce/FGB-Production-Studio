@@ -10,7 +10,9 @@
     "assets": "node scripts/generate-separated-assets.mjs",
     "assets:legacy": "node scripts/generate-assets.mjs",
     "render:production": "node scripts/render-standard-production-package.mjs",
-    "render:captions": "node scripts/render-word-captions.mjs"
+    "render:captions": "node scripts/render-word-captions.mjs",
+    "generate:shorts": "node scripts/generate-produced-shorts.mjs",
+    "test:shorts": "node --test test/shorts-generator.test.mjs"
   },
   "dependencies": {
     "ffmpeg-static": "^5.2.0",
@@ -25,10 +27,26 @@
     "appId": "org.epiccommunities.fgbproductionstudio",
     "productName": "FGB Production Studio",
     "asar": true,
-    "asarUnpack": ["node_modules/ffmpeg-static/**"],
-    "files": ["main.js", "renderer/**/*", "package.json", "node_modules/**/*"],
+    "asarUnpack": [
+      "node_modules/ffmpeg-static/**"
+    ],
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "scripts/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
     "win": {
-      "target": [{ "target": "portable", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "artifactName": "FGB-Production-Studio-${version}-Windows.${ext}"
     }
   }
