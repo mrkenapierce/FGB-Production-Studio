@@ -1,6 +1,6 @@
 {
   "name": "fgb-production-studio",
-  "version": "2.5.0",
+  "version": "2.6.0",
   "description": "Desktop and automated asset production studio for FGB, FGBars, and EPIC Communities.",
   "main": "main.js",
   "private": true,
@@ -12,7 +12,10 @@
     "render:production": "node scripts/render-standard-production-package.mjs",
     "render:captions": "node scripts/render-word-captions.mjs",
     "generate:shorts": "node scripts/generate-produced-shorts.mjs",
-    "test:shorts": "node --test test/shorts-generator.test.mjs"
+    "generate:audio-shorts": "node scripts/generate-audio-first-shorts.mjs",
+    "test:shorts": "node --test test/shorts-generator.test.mjs",
+    "test:audio-shorts": "node --test test/audio-first-shorts.test.mjs",
+    "test": "npm run test:shorts && npm run test:audio-shorts"
   },
   "dependencies": {
     "ffmpeg-static": "^5.2.0",
