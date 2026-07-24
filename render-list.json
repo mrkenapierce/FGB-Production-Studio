@@ -72,5 +72,16 @@
       "fadeOutSeconds": 5,
       "requiredForFinalYouTubeRender": true
     }
+  },
+  {
+    "project": "fgbars",
+    "episodeNumber": "005",
+    "episodeTitle": "Training Camp Headlines",
+    "episodeSubtitle": "The NFL's Biggest Stories This Week",
+    "durationSeconds": 900,
+    "preset": "standard",
+    "assetTypes": ["background", "video"],
+    "status": "ready",
+    "renderBatch": "2026-07-24-fgbars-training-camp-headlines"
   }
 ]
