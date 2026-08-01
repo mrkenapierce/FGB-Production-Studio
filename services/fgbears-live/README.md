@@ -101,11 +101,11 @@ Standard relay format:
 - 1280x720
 - 30 fps constant frame rate
 - H.264 High Profile
-- 2.5 Mbps video
+- 4 Mbps video
 - AAC stereo, 48 kHz, 128 kbps
 - keyframe interval: 2 seconds
 
-At approximately 2.63 Mbps total, continuous outbound transfer is roughly 0.86 TB per 30-day month, comfortably below a 10 TB allowance. Actual usage varies.
+At approximately 4.13 Mbps total, continuous outbound transfer is roughly 1.34 TB per 30-day month, comfortably below a 10 TB allowance. Actual usage varies.
 
 ## Start the channel
 
