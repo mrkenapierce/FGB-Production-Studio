@@ -1,0 +1,16 @@
+#cloud-config
+package_update: true
+packages:
+  - git
+write_files:
+  - path: /root/install-fgbears-live.sh
+    permissions: '0700'
+    content: |
+      #!/usr/bin/env bash
+      set -Eeuo pipefail
+      rm -rf /opt/FGB-Production-Studio
+      git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /opt/FGB-Production-Studio
+      bash /opt/FGB-Production-Studio/services/fgbears-live/bin/install.sh
+runcmd:
+  - [bash, /root/install-fgbears-live.sh]
+final_message: "FGBears Live software installed. Add the YouTube stream key and episode files before enabling the stream."
