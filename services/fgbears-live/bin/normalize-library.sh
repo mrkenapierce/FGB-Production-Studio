@@ -6,7 +6,7 @@ usage() {
 Usage: normalize-library.sh INPUT [OUTPUT]
 
 Standardizes one owned/authorized episode for low-CPU 24/7 relay:
-  1280x720, 30 fps CFR, H.264, AAC stereo 48 kHz, ~2.5 Mbps video.
+  1280x720, 30 fps CFR, H.264, AAC stereo 48 kHz, ~4 Mbps video.
 USAGE
 }
 
@@ -28,7 +28,7 @@ fi
 VIDEO_FILTER='scale=1280:720:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=black,fps=30,format=yuv420p'
 COMMON_VIDEO=(
   -c:v libx264 -preset veryfast -profile:v high -level 4.0
-  -b:v 2500k -maxrate 2500k -bufsize 5000k
+  -b:v 4000k -maxrate 4000k -bufsize 8000k
   -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p
   -threads 2
 )
