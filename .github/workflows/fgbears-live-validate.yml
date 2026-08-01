@@ -1,0 +1,28 @@
+name: Validate FGBears Live
+
+on:
+  pull_request:
+    paths:
+      - 'services/fgbears-live/**'
+      - '.github/workflows/fgbears-live-validate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'services/fgbears-live/**'
+      - '.github/workflows/fgbears-live-validate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install validation tools
+        run: sudo apt-get update && sudo apt-get install -y shellcheck ffmpeg
+      - name: ShellCheck
+        run: shellcheck services/fgbears-live/bin/*.sh services/fgbears-live/tests/*.sh
+      - name: Functional tests
+        run: bash services/fgbears-live/tests/test-scripts.sh
