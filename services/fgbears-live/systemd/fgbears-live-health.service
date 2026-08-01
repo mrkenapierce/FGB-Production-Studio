@@ -1,0 +1,7 @@
+[Unit]
+Description=Check and recover the FGBears TV stream
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/fgbears-healthcheck
