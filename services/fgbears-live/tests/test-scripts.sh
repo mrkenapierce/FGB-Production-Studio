@@ -9,7 +9,10 @@ for script in "$ROOT"/bin/*.sh; do
 done
 
 grep -q 'REPLACE_WITH_YOUTUBE_STREAM_KEY' "$ROOT/config/stream.env.example"
-! find "$ROOT" -type f -name 'stream.env' -print -quit | grep -q .
+if find "$ROOT" -type f -name 'stream.env' -print -quit | grep -q .; then
+  echo 'A real stream.env file must never be committed.' >&2
+  exit 1
+fi
 
 mkdir -p "$TMP/media"
 ffmpeg -hide_banner -loglevel error \
