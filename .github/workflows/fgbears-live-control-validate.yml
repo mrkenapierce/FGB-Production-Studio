@@ -7,6 +7,7 @@ on:
       - 'services/fgbears-live/bin/validate-control.py'
       - 'services/fgbears-live/bin/render-control-assets.sh'
       - 'services/fgbears-live/bin/sync-control.sh'
+      - 'services/fgbears-live/bin/start-control-poc.sh'
       - '.github/workflows/fgbears-live-control-validate.yml'
   push:
     branches: [main]
@@ -15,6 +16,7 @@ on:
       - 'services/fgbears-live/bin/validate-control.py'
       - 'services/fgbears-live/bin/render-control-assets.sh'
       - 'services/fgbears-live/bin/sync-control.sh'
+      - 'services/fgbears-live/bin/start-control-poc.sh'
       - '.github/workflows/fgbears-live-control-validate.yml'
 
 permissions:
@@ -32,6 +34,8 @@ jobs:
         run: |
           bash -n services/fgbears-live/bin/sync-control.sh
           bash -n services/fgbears-live/bin/render-control-assets.sh
+          bash -n services/fgbears-live/bin/start-control-poc.sh
+          bash -n services/fgbears-live/bin/install-control.sh
       - name: Validate SVG XML
         run: |
           python3 - <<'PY'
