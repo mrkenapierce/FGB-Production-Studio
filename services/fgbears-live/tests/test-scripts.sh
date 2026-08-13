@@ -51,6 +51,12 @@ PY
 grep -Fq 'FFMPEG_PROGRESS_FILE' "$ROOT/bin/start-stream.sh"
 grep -Fq 'FFMPEG_HEALTH_SAMPLE_FILE' "$ROOT/bin/healthcheck.sh"
 grep -Fq 'age > 90' "$ROOT/bin/healthcheck.sh"
+grep -Fq 'RESTART_BUDGET' "$ROOT/bin/healthcheck.sh"
+grep -Fq 'RESTART_BREAKER_FILE' "$ROOT/bin/healthcheck.sh"
+grep -Fq 'PROGRESS_MISSING' "$ROOT/bin/healthcheck.sh"
+grep -Fq 'StartLimitBurst=3' "$ROOT/systemd/fgbears-live.service"
+grep -Fq 'Restart=on-failure' "$ROOT/systemd/fgbears-live.service"
+grep -Fq 'fgbears-stream-status' "$ROOT/bin/install.sh"
 if grep -Fq 'Encoder interval speed' "$ROOT/bin/healthcheck.sh"; then
   echo 'A slow encoder must not trigger a viewer-visible restart loop.' >&2
   exit 1

@@ -1,0 +1,120 @@
+name: Monitor FGBears Live
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: fgbears-live-production-monitor
+  cancel-in-progress: true
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  monitor:
+    name: Check Oracle stream health
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require Oracle access secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+
+      - name: Trust Oracle host key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Measure stream health
+        id: health
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set +e
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
+            'sudo /usr/local/bin/fgbears-stream-status --sample-seconds 20' \
+            > stream-status.env
+          ssh_status=$?
+          set -e
+          if (( ssh_status != 0 )); then
+            cat > stream-status.env <<REPORT
+          OVERALL_STATUS=CRITICAL
+          REASON=SSH_OR_STATUS_COMMAND_FAILED
+          CHECKED_AT_EPOCH=$(date +%s)
+          SSH_EXIT_CODE=$ssh_status
+          REPORT
+          fi
+
+          status=$(sed -n 's/^OVERALL_STATUS=\(OK\|WARN\|CRITICAL\)$/\1/p' stream-status.env | tail -n 1)
+          reason=$(sed -n 's/^REASON=\([A-Z0-9_]*\)$/\1/p' stream-status.env | tail -n 1)
+          [[ -n "$status" ]] || status=CRITICAL
+          [[ -n "$reason" ]] || reason=INVALID_STATUS_REPORT
+          printf 'status=%s\nreason=%s\n' "$status" "$reason" >> "$GITHUB_OUTPUT"
+
+          {
+            printf '## FGBears Live: %s\n\n' "$status"
+            printf 'Reason: `%s`\n\n```text\n' "$reason"
+            cat stream-status.env
+            printf '```\n'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Archive status report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fgbears-live-status-${{ github.run_id }}
+          path: stream-status.env
+          retention-days: 14
+
+      - name: Manage stream incident
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          STREAM_STATUS: ${{ steps.health.outputs.status }}
+          STREAM_REASON: ${{ steps.health.outputs.reason }}
+        run: |
+          status=${STREAM_STATUS:-CRITICAL}
+          reason=${STREAM_REASON:-MONITOR_STEP_FAILED}
+          gh label create stream-monitor --color B60205 \
+            --description 'Automated FGBears Live stream incident' --force
+          issue=$(gh issue list --state open --label stream-monitor \
+            --json number --jq '.[0].number // empty')
+
+          if [[ "$status" != "OK" ]]; then
+            if [[ -z "$issue" ]]; then
+              {
+                printf 'The independent stream monitor detected `%s`.\n\n' "$reason"
+                printf '[Open the monitoring run](%s/%s/actions/runs/%s) for the full report.\n\n' \
+                  "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+                printf 'The local restart circuit breaker remains authoritative; this monitor does not restart the stream.\n'
+              } > incident.md
+              gh issue create --title '[Stream Monitor] FGBears Live incident' \
+                --label stream-monitor --body-file incident.md
+            fi
+            echo "Stream status is $status: $reason" >&2
+            exit 1
+          fi
+
+          if [[ -n "$issue" ]]; then
+            gh issue close "$issue" --comment \
+              "Recovered automatically. Current monitoring run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          fi
