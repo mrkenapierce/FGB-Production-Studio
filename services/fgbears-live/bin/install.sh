@@ -8,7 +8,7 @@ SOURCE_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y --no-install-recommends \
-  ffmpeg ca-certificates curl git jq rsync python3 python3-pil fonts-dejavu-core
+  ffmpeg ca-certificates curl git jq rsync python3 python3-pil qrencode fonts-dejavu-core
 
 if ! id fgbears >/dev/null 2>&1; then
   useradd --system --home-dir /srv/fgbears-live --shell /usr/sbin/nologin fgbears
@@ -16,6 +16,9 @@ fi
 
 install -d -m 0755 /opt/fgbears-live
 rsync -a --delete "$SOURCE_DIR/" /opt/fgbears-live/
+install -d -m 0755 /opt/fgbears-live/assets
+base64 --decode "$SOURCE_DIR/../../renderer/assets/epic-logo-for-qr.base64.txt" > /opt/fgbears-live/assets/epic-logo.png
+chmod 0644 /opt/fgbears-live/assets/epic-logo.png
 install -d -o fgbears -g fgbears -m 0755 /srv/fgbears-live /srv/fgbears-live/media /srv/fgbears-live/incoming /srv/fgbears-live/logs
 install -d -o root -g fgbears -m 0750 /etc/fgbears-live
 

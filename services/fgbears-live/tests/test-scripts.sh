@@ -3,10 +3,15 @@ set -Eeuo pipefail
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 TMP=$(mktemp -d)
 OVERLAY_PID=""
+CRAWL_PID=""
 cleanup() {
   if [[ -n "$OVERLAY_PID" ]] && kill -0 "$OVERLAY_PID" 2>/dev/null; then
     kill "$OVERLAY_PID" 2>/dev/null || true
     wait "$OVERLAY_PID" 2>/dev/null || true
+  fi
+  if [[ -n "$CRAWL_PID" ]] && kill -0 "$CRAWL_PID" 2>/dev/null; then
+    kill "$CRAWL_PID" 2>/dev/null || true
+    wait "$CRAWL_PID" 2>/dev/null || true
   fi
   rm -rf "$TMP"
 }
@@ -16,6 +21,7 @@ for script in "$ROOT"/bin/*.sh; do
   bash -n "$script"
 done
 python3 -m py_compile "$ROOT/bin/ad-overlay.py"
+python3 -m py_compile "$ROOT/bin/crawl-overlay.py"
 
 grep -q 'REPLACE_WITH_YOUTUBE_STREAM_KEY' "$ROOT/config/stream.env.example"
 if find "$ROOT" -type f -name 'stream.env' -print -quit | grep -q .; then
@@ -38,11 +44,33 @@ python3 - "$TMP/frame.jpg" <<'PY'
 import sys
 from PIL import Image
 img = Image.open(sys.argv[1])
-assert img.size == (640, 240), img.size
+assert img.size == (1280, 720), img.size
 PY
 kill "$OVERLAY_PID"
 wait "$OVERLAY_PID" 2>/dev/null || true
 OVERLAY_PID=""
+
+cat > "$TMP/crawl.json" <<'JSON'
+{"active":true,"label":"EPIC LIVE","message":"TRIVIA & GIVEAWAYS ARE LIVE — VISIT EPICCONTENTCREATORGRANTS.ORG/EPIC-MEDIA TO PARTICIPATE","speed":"normal","updatedAt":"2026-08-12T00:00:00Z"}
+JSON
+CRAWL_FEED_FILE="$TMP/crawl.json" CRAWL_OVERLAY_PORT=18788 CRAWL_OVERLAY_FPS=10 python3 "$ROOT/bin/crawl-overlay.py" >"$TMP/crawl-overlay.log" 2>&1 &
+CRAWL_PID=$!
+for _ in {1..30}; do
+  curl --silent --fail --max-time 1 http://127.0.0.1:18788/healthz >"$TMP/crawl-health.json" && break
+  sleep 0.1
+done
+jq -e '.ok == true and .active == true' "$TMP/crawl-health.json" >/dev/null
+curl --silent --fail http://127.0.0.1:18788/frame.png -o "$TMP/crawl.png"
+python3 - "$TMP/crawl.png" <<'PY'
+import sys
+from PIL import Image
+img = Image.open(sys.argv[1])
+assert img.size == (1280, 118), img.size
+assert img.mode == "RGBA", img.mode
+PY
+kill "$CRAWL_PID"
+wait "$CRAWL_PID" 2>/dev/null || true
+CRAWL_PID=""
 
 mkdir -p "$TMP/media"
 ffmpeg -hide_banner -loglevel error \

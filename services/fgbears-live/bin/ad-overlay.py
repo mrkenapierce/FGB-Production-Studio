@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Dynamic FGBears live advertising panel.
+"""Dynamic FGBears full-screen advertising interstitial.
 
-Polls the public Lovable sponsor feed and serves a 640x240 MJPEG panel that
-FFmpeg overlays into the middle-right third of the 1280x720 live broadcast.
+Polls the public Lovable sponsor feed and serves a 1280x720 MJPEG creative that
+FFmpeg displays as a timed, full-screen interstitial in the live broadcast.
 The feed already applies paid-ad -> House Ad -> placeholder priority.
 """
 from __future__ import annotations
@@ -10,6 +10,8 @@ from __future__ import annotations
 import io
 import json
 import os
+import re
+import subprocess
 import threading
 import time
 import urllib.parse
@@ -28,17 +30,20 @@ FEED_FILE = os.getenv("SPONSOR_FEED_FILE", "").strip()
 POLL_SECONDS = max(5, int(os.getenv("SPONSOR_POLL_SECONDS", "10")))
 ROTATION_SECONDS = max(5, int(os.getenv("AD_ROTATION_SECONDS", "20")))
 PORT = int(os.getenv("AD_OVERLAY_PORT", "8787"))
-WIDTH = int(os.getenv("AD_PANEL_WIDTH", "640"))
-HEIGHT = int(os.getenv("AD_PANEL_HEIGHT", "240"))
+WIDTH = 1280
+HEIGHT = 720
 FPS = max(1, int(os.getenv("AD_OVERLAY_FPS", "2")))
 
 BEARS_BLUE = "#0B162A"
 BEARS_ORANGE = "#C83803"
 WHITE = "#FFFFFF"
 MUTED = "#D5D9E2"
+GOLD = "#F2B134"
+EPIC_MEDIA_URL = "https://epiccontentcreatorgrants.org/epic-media"
 
-FONT_REGULAR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+FONT_REGULAR = os.getenv("AD_FONT_REGULAR", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+FONT_BOLD = os.getenv("AD_FONT_BOLD", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
+EPIC_LOGO_PATH = os.getenv("EPIC_LOGO_PATH", "/opt/fgbears-live/assets/epic-logo.png")
 
 
 def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
@@ -181,83 +186,156 @@ def draw_centered(draw: ImageDraw.ImageDraw, text: str, y: int, f: ImageFont.Ima
     return bbox[3] - bbox[1]
 
 
+def draw_brand_frame(draw: ImageDraw.ImageDraw, disclosure: str) -> None:
+    """Draw the locked navy/orange FGBears full-screen frame."""
+    draw.rectangle((0, 0, WIDTH, 88), fill=BEARS_ORANGE)
+    draw.rectangle((0, HEIGHT - 82, WIDTH, HEIGHT), fill="#07101F")
+    draw.text((54, 24), "FOOTBALL'S GREATEST BEARS", font=font(32, bold=True), fill=WHITE)
+    badge = font(19, bold=True)
+    badge_box = draw.textbbox((0, 0), disclosure.upper(), font=badge)
+    badge_w = badge_box[2] - badge_box[0]
+    draw.rounded_rectangle((WIDTH - badge_w - 92, 22, WIDTH - 42, 67), radius=20, fill=BEARS_BLUE)
+    draw.text((WIDTH - badge_w - 67, 32), disclosure.upper(), font=badge, fill=WHITE)
+    draw.text((112, HEIGHT - 56), "EPIC CONTENT CREATOR GRANTS", font=font(24, bold=True), fill=GOLD)
+    draw.text((WIDTH - 430, HEIGHT - 54), "WE TURN CONTENT INTO OPPORTUNITY.", font=font(18, bold=True), fill=MUTED)
+    draw.rectangle((18, 18, WIDTH - 19, HEIGHT - 19), outline=BEARS_ORANGE, width=4)
+
+
+def add_epic_logo(image: Image.Image) -> None:
+    try:
+        logo = Image.open(EPIC_LOGO_PATH).convert("RGBA")
+        logo.thumbnail((56, 56), Image.Resampling.LANCZOS)
+        image.paste(logo, (48, HEIGHT - 69), logo)
+    except Exception:
+        # The wordmark remains present if a deployment lacks the optional asset.
+        return
+
+
+def qr_for(url: str, size: int) -> Image.Image | None:
+    if not url:
+        return None
+    try:
+        encoded = subprocess.run(
+            ["qrencode", "-t", "PNG", "-o", "-", "-s", "10", "-m", "4", url],
+            check=True,
+            capture_output=True,
+            timeout=5,
+        ).stdout
+        return Image.open(io.BytesIO(encoded)).convert("RGB").resize((size, size), Image.Resampling.NEAREST)
+    except Exception:
+        return None
+
+
+def house_event_parts(title: str) -> tuple[str, str]:
+    """Split titles like 'Preseason Game One is 8/15/2026' for TV hierarchy."""
+    match = re.fullmatch(r"\s*(.*?)\s+is\s+(\d{1,2})/(\d{1,2})/(\d{4})\s*", title, flags=re.IGNORECASE)
+    if not match:
+        return title, ""
+    headline, month, day, year = match.groups()
+    months = ["", "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"]
+    month_number = int(month)
+    if not 1 <= month_number <= 12:
+        return title, ""
+    return headline, f"{months[month_number]} {int(day)}, {year}"
+
+
 def render_placeholder(label: str) -> Image.Image:
     image = Image.new("RGB", (WIDTH, HEIGHT), BEARS_BLUE)
     draw = ImageDraw.Draw(image)
-    draw.rectangle((0, 0, WIDTH - 1, HEIGHT - 1), outline=BEARS_ORANGE, width=4)
-    small = font(18, bold=True)
-    title = fit_text(draw, label.upper(), WIDTH - 60, 44, 24)
-    draw_centered(draw, "FOOTBALL'S GREATEST BEARS", 34, small, MUTED)
-    draw_centered(draw, label.upper(), 88, title, BEARS_ORANGE)
-    draw_centered(draw, "LIVE ADVERTISING", 166, small, WHITE)
+    draw_brand_frame(draw, "Advertising")
+    title = fit_text(draw, label.upper(), WIDTH - 140, 88, 44)
+    draw_centered(draw, label.upper(), 265, title, BEARS_ORANGE)
+    draw_centered(draw, "Promote your business during the live broadcast", 390, font(32), WHITE)
+    draw_centered(draw, "epiccontentcreatorgrants.org/advertise/fgbears", 475, font(28, bold=True), MUTED)
+    add_epic_logo(image)
     return image
 
 
 def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
     image = Image.new("RGB", (WIDTH, HEIGHT), BEARS_BLUE)
     draw = ImageDraw.Draw(image)
-    draw.rectangle((0, 0, WIDTH - 1, HEIGHT - 1), outline=BEARS_ORANGE, width=4)
 
     business = str(sponsor.get("businessName") or "Advertisement").strip()
     message = str(sponsor.get("promoMessage") or "").strip()
     website = str(sponsor.get("website") or "").strip()
     image_url = str(sponsor.get("imageUrl") or "").strip()
     creative = STATE.image_for(image_url) if image_url else None
-
-    label_font = font(16, bold=True)
-    draw.text((18, 12), "ADVERTISEMENT", font=label_font, fill=BEARS_ORANGE)
+    kind = STATE.snapshot()[0]
+    draw_brand_frame(draw, "EPIC House Ad" if kind == "house" else "Paid Sponsor")
 
     if creative is not None:
-        box = (18, 42, 278, HEIGHT - 18)
+        box = (54, 132, 540, HEIGHT - 122)
         target_w = box[2] - box[0]
         target_h = box[3] - box[1]
         fitted = ImageOps.contain(creative, (target_w, target_h))
         canvas = Image.new("RGBA", (target_w, target_h), WHITE)
         canvas.alpha_composite(fitted, ((target_w - fitted.width) // 2, (target_h - fitted.height) // 2))
         image.paste(canvas.convert("RGB"), (box[0], box[1]))
-        text_x = 298
-        text_w = WIDTH - text_x - 22
-        title_font = fit_text(draw, business, text_w, 30, 18)
+        text_x = 585
+        text_w = WIDTH - text_x - 60
+        title_font = fit_text(draw, business, text_w, 54, 30)
         title_lines = wrap_text(draw, business, title_font, text_w, max_lines=2)
-        y = 42
+        y = 145
         for line in title_lines:
             draw.text((text_x, y), line, font=title_font, fill=WHITE)
-            y += int(getattr(title_font, "size", 22) * 1.18)
+            y += int(getattr(title_font, "size", 40) * 1.18)
         if message:
-            msg_font = font(20)
-            y += 8
+            msg_font = font(32)
+            y += 20
             for line in wrap_text(draw, message, msg_font, text_w, max_lines=3):
                 draw.text((text_x, y), line, font=msg_font, fill=MUTED)
-                y += 27
+                y += 42
         if website:
             site = urllib.parse.urlsplit(website).netloc or website
-            site_font = fit_text(draw, site, text_w, 17, 12)
-            draw.text((text_x, HEIGHT - 38), site, font=site_font, fill=BEARS_ORANGE)
+            site_font = fit_text(draw, site, text_w, 27, 18)
+            draw.text((text_x, HEIGHT - 142), site, font=site_font, fill=BEARS_ORANGE)
+        add_epic_logo(image)
         return image
 
-    # Text-only ads use the whole panel, including the current EPIC House Ad.
-    title_font = fit_text(draw, business, WIDTH - 70, 40, 22)
-    title_lines = wrap_text(draw, business, title_font, WIDTH - 70, max_lines=2)
-    line_h = int(getattr(title_font, "size", 32) * 1.15)
-    total_title_h = line_h * len(title_lines)
-    y = 58 if not message else max(42, 82 - total_title_h // 2)
+    # Text-only ads become complete broadcast creatives rather than sparse cards.
+    qr_size = 270
+    qr_destination = EPIC_MEDIA_URL if kind == "house" else website
+    qr = qr_for(qr_destination, qr_size)
+    text_right = WIDTH - 390 if qr is not None else WIDTH - 70
+    headline, event_date = house_event_parts(business) if kind == "house" else (business, "")
+    if kind == "house":
+        draw.text((64, 132), "JOIN US FOR", font=font(28, bold=True), fill=GOLD)
+    title_font = fit_text(draw, headline.upper(), text_right - 75, 72, 40)
+    title_lines = wrap_text(draw, headline.upper(), title_font, text_right - 75, max_lines=3)
+    line_h = int(getattr(title_font, "size", 52) * 1.12)
+    y = 178 if kind == "house" else 145
     for line in title_lines:
-        bbox = draw.textbbox((0, 0), line, font=title_font)
-        draw.text(((WIDTH - (bbox[2] - bbox[0])) / 2, y), line, font=title_font, fill=WHITE)
+        draw.text((62, y), line, font=title_font, fill=WHITE)
         y += line_h
 
+    if event_date:
+        y += 12
+        draw.text((64, y), event_date, font=font(42, bold=True), fill=BEARS_ORANGE)
+        y += 66
+
     if message:
-        msg_font = font(23)
-        y += 10
-        for line in wrap_text(draw, message, msg_font, WIDTH - 90, max_lines=2):
-            bbox = draw.textbbox((0, 0), line, font=msg_font)
-            draw.text(((WIDTH - (bbox[2] - bbox[0])) / 2, y), line, font=msg_font, fill=BEARS_ORANGE)
-            y += 30
+        msg_font = font(38, bold=True)
+        y += 18
+        for line in wrap_text(draw, message, msg_font, text_right - 90, max_lines=3):
+            draw.text((64, y), line.upper(), font=msg_font, fill=GOLD)
+            y += 48
 
     if website:
-        site = urllib.parse.urlsplit(website).netloc or website
-        site_font = fit_text(draw, site, WIDTH - 80, 17, 12)
-        draw_centered(draw, site, HEIGHT - 34, site_font, MUTED)
+        displayed_url = qr_destination or website
+        site = urllib.parse.urlsplit(displayed_url).netloc + urllib.parse.urlsplit(displayed_url).path if displayed_url else ""
+        site_font = fit_text(draw, site, text_right - 90, 28, 20)
+        draw.text((64, HEIGHT - 150), "VISIT", font=font(20, bold=True), fill=MUTED)
+        draw.text((64, HEIGHT - 118), site, font=site_font, fill=WHITE)
+    if qr is not None:
+        qr_x = WIDTH - qr_size - 65
+        qr_y = 170
+        draw.rounded_rectangle((qr_x - 16, qr_y - 16, qr_x + qr_size + 16, qr_y + qr_size + 82), radius=18, fill=WHITE)
+        image.paste(qr, (qr_x, qr_y))
+        cta = "SCAN TO LEARN MORE"
+        cta_font = fit_text(draw, cta, qr_size, 24, 18)
+        cta_box = draw.textbbox((0, 0), cta, font=cta_font)
+        draw.text((qr_x + (qr_size - (cta_box[2] - cta_box[0])) / 2, qr_y + qr_size + 26), cta, font=cta_font, fill=BEARS_BLUE)
+    add_epic_logo(image)
     return image
 
 
