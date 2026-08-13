@@ -1,0 +1,114 @@
+name: Diagnose FGBears Live
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-production-diagnostics
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    name: Read-only Oracle runtime report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Require Oracle access secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+
+      - name: Trust Oracle host key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Collect runtime diagnostics
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          sample=/srv/fgbears-live/logs/ffmpeg-health.sample
+
+          section() { printf '\n===== %s =====\n' "$1"; }
+
+          section 'Host and load'
+          date --iso-8601=seconds
+          uname -a
+          uptime
+          nproc
+          free -h
+          df -h / /srv/fgbears-live 2>/dev/null || df -h /
+
+          section 'Service state'
+          systemctl is-active fgbears-live.service || true
+          systemctl show fgbears-live.service \
+            --property=ActiveEnterTimestamp,ExecMainStartTimestamp,ExecMainPID,MainPID,NRestarts,Result \
+            --no-pager || true
+          systemctl status fgbears-live.service --no-pager --lines=20 || true
+
+          section 'Encoder process utilization'
+          ps -C ffmpeg -o pid,ppid,etimes,%cpu,%mem,rss,vsz,stat,comm --sort=-%cpu || true
+          ps -C python3 -o pid,ppid,etimes,%cpu,%mem,rss,vsz,stat,comm --sort=-%cpu || true
+
+          section 'FFmpeg progress snapshot'
+          if [[ -s "$progress" ]]; then
+            stat --format='updated=%y age_seconds=%Y size_bytes=%s' "$progress"
+            sed -n '/^frame=/p;/^fps=/p;/^out_time=/p;/^out_time_us=/p;/^bitrate=/p;/^speed=/p;/^progress=/p' "$progress"
+          else
+            echo 'No FFmpeg progress file found.'
+          fi
+
+          section '30-second measured encoder speed'
+          read_out_time_us() {
+            sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n 1
+          }
+          first_epoch=$(date +%s)
+          first_media=$(read_out_time_us)
+          sleep 30
+          second_epoch=$(date +%s)
+          second_media=$(read_out_time_us)
+          if [[ -n "$first_media" && -n "$second_media" && "$second_media" -ge "$first_media" ]]; then
+            awk -v start="$first_media" -v finish="$second_media" \
+              -v seconds="$((second_epoch - first_epoch))" \
+              'BEGIN { printf "interval_speed=%.3fx media_delta_us=%d wall_seconds=%d\n", (finish-start)/1000000/seconds, finish-start, seconds }'
+          else
+            echo 'Unable to calculate interval speed; progress was absent or reset during the sample.'
+          fi
+
+          section 'Health checker state'
+          if [[ -s "$sample" ]]; then
+            stat --format='updated=%y age_seconds=%Y size_bytes=%s' "$sample"
+            sed -n '1p' "$sample"
+          else
+            echo 'No health sample file found.'
+          fi
+          systemctl list-timers fgbears-live-health.timer --no-pager || true
+
+          section 'Recent stream and restart history'
+          sudo journalctl -u fgbears-live.service --since '2 hours ago' --no-pager -n 160 || true
+          sudo journalctl -t fgbears-live-health --since '24 hours ago' --no-pager -n 120 || true
+
+          section 'Kernel pressure and throttling clues'
+          vmstat 1 5 || true
+          sudo dmesg --ctime 2>/dev/null | grep -Ei 'oom|out of memory|thrott|thermal' | tail -n 30 || true
+          REMOTE

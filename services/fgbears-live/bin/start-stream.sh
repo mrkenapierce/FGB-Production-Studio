@@ -40,10 +40,6 @@ cleanup() {
     kill -INT "$FFMPEG_PID" 2>/dev/null || true
     wait "$FFMPEG_PID" 2>/dev/null || true
   fi
-  if [[ -n "${AD_MONITOR_PID:-}" ]] && kill -0 "$AD_MONITOR_PID" 2>/dev/null; then
-    kill "$AD_MONITOR_PID" 2>/dev/null || true
-    wait "$AD_MONITOR_PID" 2>/dev/null || true
-  fi
   if kill -0 "$OVERLAY_PID" 2>/dev/null; then
     kill "$OVERLAY_PID" 2>/dev/null || true
     wait "$OVERLAY_PID" 2>/dev/null || true
@@ -100,19 +96,6 @@ progress_sink() {
 }
 
 FFMPEG_PID=""
-AD_MONITOR_PID=""
-monitor_ad_frame() {
-  local initial current
-  initial=$(cat "${AD_FRAME_FILE%.jpg}.sha256" 2>/dev/null || true)
-  while sleep 10; do
-    current=$(cat "${AD_FRAME_FILE%.jpg}.sha256" 2>/dev/null || true)
-    if [[ -n "$initial" && -n "$current" && "$current" != "$initial" ]]; then
-      echo "Advertising creative changed; refreshing the locally clocked stream." >&2
-      kill -INT "$FFMPEG_PID" 2>/dev/null || true
-      return
-    fi
-  done
-}
 
 # The local advertising frame is the sole 30 fps video clock. Source video is
 # never decoded or displayed; the playlist supplies only the podcast audio.
@@ -132,12 +115,8 @@ ffmpeg \
   -f flv -flvflags no_duration_filesize \
   "${YOUTUBE_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}" 3> >(progress_sink) &
 FFMPEG_PID=$!
-monitor_ad_frame &
-AD_MONITOR_PID=$!
 set +e
 wait "$FFMPEG_PID"
 status=$?
 set -e
-kill "$AD_MONITOR_PID" 2>/dev/null || true
-wait "$AD_MONITOR_PID" 2>/dev/null || true
 exit "$status"
