@@ -186,19 +186,36 @@ def draw_centered(draw: ImageDraw.ImageDraw, text: str, y: int, f: ImageFont.Ima
     return bbox[3] - bbox[1]
 
 
-def draw_brand_frame(draw: ImageDraw.ImageDraw, disclosure: str) -> None:
-    """Draw the locked navy/orange FGBears full-screen frame."""
-    draw.rectangle((0, 0, WIDTH, 88), fill=BEARS_ORANGE)
+def draw_brand_frame(draw: ImageDraw.ImageDraw) -> None:
+    """Draw the locked three-part FGBears full-screen frame."""
+    draw.rectangle((0, 0, WIDTH, 96), fill=BEARS_ORANGE)
     draw.rectangle((0, HEIGHT - 82, WIDTH, HEIGHT), fill="#07101F")
-    draw.text((54, 24), "FOOTBALL'S GREATEST BEARS", font=font(32, bold=True), fill=WHITE)
-    badge = font(19, bold=True)
-    badge_box = draw.textbbox((0, 0), disclosure.upper(), font=badge)
-    badge_w = badge_box[2] - badge_box[0]
-    draw.rounded_rectangle((WIDTH - badge_w - 92, 22, WIDTH - 42, 67), radius=20, fill=BEARS_BLUE)
-    draw.text((WIDTH - badge_w - 67, 32), disclosure.upper(), font=badge, fill=WHITE)
+    title = "FOOTBALL'S GREATEST BEARS LIVE"
+    title_font = font(38, bold=True)
+    title_box = draw.textbbox((0, 0), title, font=title_font)
+    draw.text(((WIDTH - (title_box[2] - title_box[0])) / 2, 24), title, font=title_font, fill=WHITE)
+    draw.line((458, 116, 458, HEIGHT - 102), fill=BEARS_ORANGE, width=4)
     draw.text((112, HEIGHT - 56), "EPIC CONTENT CREATOR GRANTS", font=font(24, bold=True), fill=GOLD)
     draw.text((WIDTH - 430, HEIGHT - 54), "WE TURN CONTENT INTO OPPORTUNITY.", font=font(18, bold=True), fill=MUTED)
     draw.rectangle((18, 18, WIDTH - 19, HEIGHT - 19), outline=BEARS_ORANGE, width=4)
+
+
+def draw_epic_media_qr(image: Image.Image, draw: ImageDraw.ImageDraw) -> None:
+    """Render the fixed left-middle QR panel for EPIC Media."""
+    qr_size = 300
+    qr = qr_for(EPIC_MEDIA_URL, qr_size)
+    qr_x, qr_y = 80, 145
+    if qr is not None:
+        draw.rounded_rectangle((qr_x - 16, qr_y - 16, qr_x + qr_size + 16, qr_y + qr_size + 100), radius=20, fill=WHITE)
+        image.paste(qr, (qr_x, qr_y))
+        cta = "SCAN FOR EPIC MEDIA"
+        cta_font = font(22, bold=True)
+        cta_box = draw.textbbox((0, 0), cta, font=cta_font)
+        draw.text((qr_x + (qr_size - (cta_box[2] - cta_box[0])) / 2, qr_y + qr_size + 22), cta, font=cta_font, fill=BEARS_BLUE)
+        url = "epiccontentcreatorgrants.org/epic-media"
+        url_font = fit_text(draw, url, qr_size - 16, 16, 12)
+        url_box = draw.textbbox((0, 0), url, font=url_font)
+        draw.text((qr_x + (qr_size - (url_box[2] - url_box[0])) / 2, qr_y + qr_size + 60), url, font=url_font, fill=BEARS_ORANGE)
 
 
 def add_epic_logo(image: Image.Image) -> None:
@@ -242,11 +259,13 @@ def house_event_parts(title: str) -> tuple[str, str]:
 def render_placeholder(label: str) -> Image.Image:
     image = Image.new("RGB", (WIDTH, HEIGHT), BEARS_BLUE)
     draw = ImageDraw.Draw(image)
-    draw_brand_frame(draw, "Advertising")
-    title = fit_text(draw, label.upper(), WIDTH - 140, 88, 44)
-    draw_centered(draw, label.upper(), 265, title, BEARS_ORANGE)
-    draw_centered(draw, "Promote your business during the live broadcast", 390, font(32), WHITE)
-    draw_centered(draw, "epiccontentcreatorgrants.org/advertise/fgbears", 475, font(28, bold=True), MUTED)
+    draw_brand_frame(draw)
+    draw_epic_media_qr(image, draw)
+    draw.text((505, 128), "ADVERTISEMENT", font=font(21, bold=True), fill=BEARS_ORANGE)
+    title = fit_text(draw, label.upper(), 710, 74, 42)
+    draw.text((505, 225), label.upper(), font=title, fill=BEARS_ORANGE)
+    draw.text((505, 340), "Promote your business during the live broadcast", font=font(29), fill=WHITE)
+    draw.text((505, 430), "epiccontentcreatorgrants.org/advertise/fgbears", font=font(24, bold=True), fill=MUTED)
     add_epic_logo(image)
     return image
 
@@ -261,102 +280,74 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
     image_url = str(sponsor.get("imageUrl") or "").strip()
     creative = STATE.image_for(image_url) if image_url else None
     kind = STATE.snapshot()[0]
-    draw_brand_frame(draw, "EPIC House Ad" if kind == "house" else "Paid Sponsor")
+    draw_brand_frame(draw)
+    draw_epic_media_qr(image, draw)
+    draw.text((505, 112), "ADVERTISEMENT", font=font(20, bold=True), fill=BEARS_ORANGE)
 
     if creative is not None:
-        box = (54, 132, 540, HEIGHT - 122)
+        box = (505, 145, WIDTH - 48, 390)
         target_w = box[2] - box[0]
         target_h = box[3] - box[1]
         fitted = ImageOps.contain(creative, (target_w, target_h))
         canvas = Image.new("RGBA", (target_w, target_h), WHITE)
         canvas.alpha_composite(fitted, ((target_w - fitted.width) // 2, (target_h - fitted.height) // 2))
         image.paste(canvas.convert("RGB"), (box[0], box[1]))
-        text_x = 585
+        text_x = 505
         text_w = WIDTH - text_x - 60
         headline, event_date = house_event_parts(business) if kind == "house" else (business, "")
-        if kind == "house":
-            draw.text((text_x, 132), "JOIN US FOR", font=font(25, bold=True), fill=GOLD)
-        title_font = fit_text(draw, headline.upper(), text_w, 52, 30)
+        title_font = fit_text(draw, headline.upper(), text_w, 42, 27)
         title_lines = wrap_text(draw, headline.upper(), title_font, text_w, max_lines=2)
-        y = 178 if kind == "house" else 145
+        y = 408
         for line in title_lines:
             draw.text((text_x, y), line, font=title_font, fill=WHITE)
-            y += int(getattr(title_font, "size", 40) * 1.18)
+            y += int(getattr(title_font, "size", 34) * 1.12)
         if event_date:
-            y += 6
-            draw.text((text_x, y), event_date, font=font(34, bold=True), fill=BEARS_ORANGE)
-            y += 52
+            y += 2
+            draw.text((text_x, y), event_date, font=font(28, bold=True), fill=BEARS_ORANGE)
+            y += 39
         if message:
-            msg_font = font(29, bold=True)
-            y += 16
-            for line in wrap_text(draw, message, msg_font, text_w, max_lines=3):
+            msg_font = font(25, bold=True)
+            y += 8
+            for line in wrap_text(draw, message, msg_font, text_w, max_lines=2):
                 draw.text((text_x, y), line.upper(), font=msg_font, fill=GOLD)
-                y += 38
-        qr_destination = EPIC_MEDIA_URL if kind == "house" else website
-        qr_size = 190
-        qr = qr_for(qr_destination, qr_size)
-        if qr is not None:
-            qr_x = WIDTH - qr_size - 48
-            qr_y = 390
-            draw.rounded_rectangle((qr_x - 12, qr_y - 12, qr_x + qr_size + 12, qr_y + qr_size + 55), radius=15, fill=WHITE)
-            image.paste(qr, (qr_x, qr_y))
-            cta = "SCAN TO LEARN MORE"
-            cta_font = fit_text(draw, cta, qr_size, 18, 14)
-            cta_box = draw.textbbox((0, 0), cta, font=cta_font)
-            draw.text((qr_x + (qr_size - (cta_box[2] - cta_box[0])) / 2, qr_y + qr_size + 17), cta, font=cta_font, fill=BEARS_BLUE)
-        if qr_destination:
-            parsed = urllib.parse.urlsplit(qr_destination)
+                y += 32
+        if website:
+            parsed = urllib.parse.urlsplit(website)
             site = parsed.netloc + parsed.path
-            site_width = (WIDTH - qr_size - 85) - text_x if qr is not None else text_w
-            site_font = fit_text(draw, site, site_width, 23, 16)
-            draw.text((text_x, HEIGHT - 160), "VISIT", font=font(18, bold=True), fill=MUTED)
-            draw.text((text_x, HEIGHT - 130), site, font=site_font, fill=WHITE)
+            site_font = fit_text(draw, site, text_w, 20, 15)
+            draw.text((text_x, HEIGHT - 125), site, font=site_font, fill=MUTED)
         add_epic_logo(image)
         return image
 
     # Text-only ads become complete broadcast creatives rather than sparse cards.
-    qr_size = 270
-    qr_destination = EPIC_MEDIA_URL if kind == "house" else website
-    qr = qr_for(qr_destination, qr_size)
-    text_right = WIDTH - 390 if qr is not None else WIDTH - 70
+    text_x = 505
+    text_w = WIDTH - text_x - 60
     headline, event_date = house_event_parts(business) if kind == "house" else (business, "")
-    if kind == "house":
-        draw.text((64, 132), "JOIN US FOR", font=font(28, bold=True), fill=GOLD)
-    title_font = fit_text(draw, headline.upper(), text_right - 75, 72, 40)
-    title_lines = wrap_text(draw, headline.upper(), title_font, text_right - 75, max_lines=3)
+    title_font = fit_text(draw, headline.upper(), text_w, 66, 38)
+    title_lines = wrap_text(draw, headline.upper(), title_font, text_w, max_lines=3)
     line_h = int(getattr(title_font, "size", 52) * 1.12)
-    y = 178 if kind == "house" else 145
+    y = 190
     for line in title_lines:
-        draw.text((62, y), line, font=title_font, fill=WHITE)
+        draw.text((text_x, y), line, font=title_font, fill=WHITE)
         y += line_h
 
     if event_date:
         y += 12
-        draw.text((64, y), event_date, font=font(42, bold=True), fill=BEARS_ORANGE)
+        draw.text((text_x, y), event_date, font=font(38, bold=True), fill=BEARS_ORANGE)
         y += 66
 
     if message:
         msg_font = font(38, bold=True)
         y += 18
-        for line in wrap_text(draw, message, msg_font, text_right - 90, max_lines=3):
-            draw.text((64, y), line.upper(), font=msg_font, fill=GOLD)
+        for line in wrap_text(draw, message, msg_font, text_w, max_lines=3):
+            draw.text((text_x, y), line.upper(), font=msg_font, fill=GOLD)
             y += 48
 
     if website:
-        displayed_url = qr_destination or website
+        displayed_url = website
         site = urllib.parse.urlsplit(displayed_url).netloc + urllib.parse.urlsplit(displayed_url).path if displayed_url else ""
-        site_font = fit_text(draw, site, text_right - 90, 28, 20)
-        draw.text((64, HEIGHT - 150), "VISIT", font=font(20, bold=True), fill=MUTED)
-        draw.text((64, HEIGHT - 118), site, font=site_font, fill=WHITE)
-    if qr is not None:
-        qr_x = WIDTH - qr_size - 65
-        qr_y = 170
-        draw.rounded_rectangle((qr_x - 16, qr_y - 16, qr_x + qr_size + 16, qr_y + qr_size + 82), radius=18, fill=WHITE)
-        image.paste(qr, (qr_x, qr_y))
-        cta = "SCAN TO LEARN MORE"
-        cta_font = fit_text(draw, cta, qr_size, 24, 18)
-        cta_box = draw.textbbox((0, 0), cta, font=cta_font)
-        draw.text((qr_x + (qr_size - (cta_box[2] - cta_box[0])) / 2, qr_y + qr_size + 26), cta, font=cta_font, fill=BEARS_BLUE)
+        site_font = fit_text(draw, site, text_w, 24, 17)
+        draw.text((text_x, HEIGHT - 130), site, font=site_font, fill=MUTED)
     add_epic_logo(image)
     return image
 
