@@ -7,7 +7,8 @@ SOURCE_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
 
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
-apt-get install -y --no-install-recommends ffmpeg ca-certificates curl git jq rsync
+apt-get install -y --no-install-recommends \
+  ffmpeg ca-certificates curl git jq rsync python3 python3-pil fonts-dejavu-core
 
 if ! id fgbears >/dev/null 2>&1; then
   useradd --system --home-dir /srv/fgbears-live --shell /usr/sbin/nologin fgbears
@@ -36,4 +37,4 @@ fi
 systemctl daemon-reload
 systemctl enable --now fgbears-live-health.timer
 
-echo "Installed FGBears Live. The stream remains stopped until a real stream key and at least one normalized episode are present."
+echo "Installed FGBears Live with dynamic advertising. The stream remains stopped until a real stream key and at least one normalized episode are present."
