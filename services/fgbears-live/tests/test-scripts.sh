@@ -22,6 +22,7 @@ for script in "$ROOT"/bin/*.sh; do
 done
 python3 -m py_compile "$ROOT/bin/ad-overlay.py"
 python3 -m py_compile "$ROOT/bin/crawl-overlay.py"
+grep -q '^AD_OVERLAY_FPS=25$' "$ROOT/config/stream.env.example"
 
 grep -q 'REPLACE_WITH_YOUTUBE_STREAM_KEY' "$ROOT/config/stream.env.example"
 grep -Fq '[1:v]scale=1280:720[program]' "$ROOT/bin/start-stream.sh"

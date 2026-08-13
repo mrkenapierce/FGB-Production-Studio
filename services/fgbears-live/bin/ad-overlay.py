@@ -32,7 +32,9 @@ ROTATION_SECONDS = max(5, int(os.getenv("AD_ROTATION_SECONDS", "20")))
 PORT = int(os.getenv("AD_OVERLAY_PORT", "8787"))
 WIDTH = 1280
 HEIGHT = 720
-FPS = max(1, int(os.getenv("AD_OVERLAY_FPS", "2")))
+# FFmpeg's multipart JPEG demuxer timestamps this input at 25 fps. Feeding it
+# slower makes the complete broadcast timeline run behind real time.
+FPS = 25
 
 BEARS_BLUE = "#0B162A"
 BEARS_ORANGE = "#C83803"
@@ -145,6 +147,9 @@ class SponsorState:
 
 
 STATE = SponsorState()
+FRAME_CACHE_LOCK = threading.Lock()
+FRAME_CACHE_KEY: tuple[float, int] | None = None
+FRAME_CACHE_BYTES = b""
 
 
 def load_feed_payload() -> dict[str, Any]:
@@ -362,10 +367,19 @@ def current_frame() -> Image.Image:
 
 
 def jpeg_bytes() -> bytes:
-    frame = current_frame()
-    buf = io.BytesIO()
-    frame.save(buf, format="JPEG", quality=92, optimize=False)
-    return buf.getvalue()
+    global FRAME_CACHE_BYTES, FRAME_CACHE_KEY
+    _kind, _placeholder, sponsors, refreshed, _error = STATE.snapshot()
+    rotation = int(time.time() // ROTATION_SECONDS) if len(sponsors) > 1 else 0
+    key = (refreshed, rotation)
+    with FRAME_CACHE_LOCK:
+        if FRAME_CACHE_KEY == key and FRAME_CACHE_BYTES:
+            return FRAME_CACHE_BYTES
+        frame = current_frame()
+        buf = io.BytesIO()
+        frame.save(buf, format="JPEG", quality=92, optimize=False)
+        FRAME_CACHE_BYTES = buf.getvalue()
+        FRAME_CACHE_KEY = key
+        return FRAME_CACHE_BYTES
 
 
 class Handler(BaseHTTPRequestHandler):
