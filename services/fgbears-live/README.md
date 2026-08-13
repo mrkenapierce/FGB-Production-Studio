@@ -105,6 +105,12 @@ Standard relay format:
 - AAC stereo, 48 kHz, 128 kbps
 - keyframe interval: 2 seconds
 
+The live output applies a voice-forward podcast chain to every episode: low-rumble
+and light background-noise reduction, warm/presence EQ, de-essing, gentle speech
+compression, EBU R128 normalization to -16 LUFS, and a -1.5 dBTP ceiling. The
+processed output is AAC stereo at 48 kHz and 160 kbps. This happens at broadcast
+time, so existing and newly added episodes receive the same treatment.
+
 At approximately 4.13 Mbps total, continuous outbound transfer is roughly 1.34 TB per 30-day month, comfortably below a 10 TB allowance. Actual usage varies.
 
 ## Start the channel
@@ -147,3 +153,4 @@ A stream that runs longer than 12 hours may not be archived. That is intentional
 ## Cost boundary
 
 There is no software license charge. Oracle's Always Free resources can avoid a hosting bill only while the account, instance shape, storage, and transfer remain within Oracle's current free allowances. Registration normally requires a phone number and credit card, and availability is not guaranteed.
+

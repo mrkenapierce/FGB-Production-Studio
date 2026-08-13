@@ -15,6 +15,7 @@ source "$ENV_FILE"
 : "${CRAWL_OVERLAY_PORT:=8788}"
 : "${CRAWL_OVERLAY_SCRIPT:=/opt/fgbears-live/bin/crawl-overlay.py}"
 : "${CRAWL_OVERLAY_FPS:=15}"
+: "${PODCAST_AUDIO_FILTER:=highpass=f=70:poles=2,afftdn=nr=8:nf=-45:tn=1,equalizer=f=160:t=q:w=1:g=1.5,equalizer=f=320:t=q:w=1.1:g=-2,equalizer=f=3000:t=q:w=0.9:g=2,deesser=i=0.25:m=0.5:f=0.5,acompressor=threshold=0.125:ratio=3:attack=15:release=180:makeup=1.4:knee=3,loudnorm=I=-16:TP=-1.5:LRA=7,aresample=48000:async=1:first_pts=0}"
 
 [[ "$YOUTUBE_STREAM_KEY" != "REPLACE_WITH_YOUTUBE_STREAM_KEY" ]] || {
   echo "Replace the placeholder YouTube stream key in $ENV_FILE" >&2
@@ -70,8 +71,9 @@ curl --silent --fail --max-time 2 "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/health
   exit 70
 }
 
-# The three-part advertising screen is the permanent video output. The source
-# program remains connected only for its normalized AAC audio and never appears.
+# The three-part advertising screen is the permanent video output. Source video
+# never appears. Its voice-forward audio is cleaned, shaped, compressed, and
+# normalized to podcast loudness continuously across every playlist episode.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -re -stream_loop -1 -fflags +genpts \
@@ -83,6 +85,8 @@ ffmpeg \
   -c:v libx264 -preset superfast -tune zerolatency -profile:v high \
   -b:v 4000k -maxrate 4500k -bufsize 8000k \
   -g 60 -keyint_min 60 -sc_threshold 0 -r 30 -threads 2 \
-  -c:a copy \
+  -af "$PODCAST_AUDIO_FILTER" \
+  -c:a aac -b:a 160k -ar 48000 -ac 2 \
   -f flv -flvflags no_duration_filesize \
   "${YOUTUBE_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
+

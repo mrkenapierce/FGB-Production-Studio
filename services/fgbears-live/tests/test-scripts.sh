@@ -26,6 +26,13 @@ grep -q '^AD_OVERLAY_FPS=25$' "$ROOT/config/stream.env.example"
 
 grep -q 'REPLACE_WITH_YOUTUBE_STREAM_KEY' "$ROOT/config/stream.env.example"
 grep -Fq '[1:v]scale=1280:720[program]' "$ROOT/bin/start-stream.sh"
+grep -Fq 'loudnorm=I=-16:TP=-1.5:LRA=7' "$ROOT/bin/start-stream.sh"
+grep -Fq 'acompressor=threshold=0.125:ratio=3' "$ROOT/bin/start-stream.sh"
+grep -Fq -- '-c:a aac -b:a 160k -ar 48000 -ac 2' "$ROOT/bin/start-stream.sh"
+if grep -Fq -- '-c:a copy' "$ROOT/bin/start-stream.sh"; then
+  echo 'Podcast processing requires audio encoding, not AAC passthrough.' >&2
+  exit 1
+fi
 if grep -Eq "enable=.*mod\\(t" "$ROOT/bin/start-stream.sh"; then
   echo 'The permanent advertising screen must not use timed visibility.' >&2
   exit 1
@@ -89,3 +96,4 @@ MEDIA_DIR="$TMP/media" PLAYLIST_FILE="$TMP/playlist.ffconcat" bash "$ROOT/bin/re
 grep -q "episode-01.mp4" "$TMP/playlist.ffconcat"
 
 echo 'FGBears Live script tests passed.'
+
