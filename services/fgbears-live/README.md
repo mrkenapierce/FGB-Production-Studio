@@ -111,8 +111,8 @@ compression, EBU R128 normalization to -16 LUFS, and a -1.5 dBTP ceiling. The
 processed output is AAC stereo at 48 kHz and 160 kbps. This happens at broadcast
 time, so existing and newly added episodes receive the same treatment.
 
-The live encoder uses local, fixed-rate graphics rather than HTTP video feeds.
-The advertising frame is clocked locally at 30 fps, while the Lovable crawl is
+The live encoder uses one local, fixed-rate graphic rather than HTTP video feeds.
+The advertising frame is the sole video clock at 30 fps, while the Lovable crawl is
 drawn directly from reloadable text files. Graphics can no longer become the
 master clock or stall the broadcast. A five-minute watchdog also checks FFmpeg's
 real output progress and recovers the service if it stops advancing or falls

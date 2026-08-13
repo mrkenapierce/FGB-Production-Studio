@@ -26,8 +26,17 @@ grep -q '^AD_OVERLAY_FPS=25$' "$ROOT/config/stream.env.example"
 
 grep -q 'REPLACE_WITH_YOUTUBE_STREAM_KEY' "$ROOT/config/stream.env.example"
 grep -Fq -- '-i "$AD_FRAME_FILE"' "$ROOT/bin/start-stream.sh"
-grep -Fq '[0:v][ad]overlay=' "$ROOT/bin/start-stream.sh"
+grep -Fq -- '-re -loop 1 -framerate 30' "$ROOT/bin/start-stream.sh"
+grep -Fq -- '-progress pipe:3' "$ROOT/bin/start-stream.sh"
 grep -Fq 'drawtext=fontfile=' "$ROOT/bin/start-stream.sh"
+python3 - "$ROOT/bin/start-stream.sh" <<'PY'
+import sys
+text = open(sys.argv[1], encoding="utf-8").read()
+message = text.index("crawl-message.txt")
+mask = text.index("drawbox=x=0:y=585:w=275", message)
+label = text.index("crawl-label.txt", mask)
+assert message < mask < label, "crawl text must be masked before the fixed label is drawn"
+PY
 grep -Fq 'FFMPEG_PROGRESS_FILE' "$ROOT/bin/start-stream.sh"
 grep -Fq 'loudnorm=I=-16:TP=-1.5:LRA=7' "$ROOT/bin/start-stream.sh"
 grep -Fq 'acompressor=threshold=0.125:ratio=3' "$ROOT/bin/start-stream.sh"
@@ -108,8 +117,8 @@ cp "$TMP/frame.jpg" "$TMP/runtime/ad-frame.jpg"
 printf 'EPIC LIVE\n' > "$TMP/runtime/crawl-label.txt"
 printf 'TEST CRAWL MESSAGE\n' > "$TMP/runtime/crawl-message.txt"
 ffmpeg -hide_banner -loglevel error \
-  -i "$TMP/media/episode-01.mp4" -i "$TMP/runtime/ad-frame.jpg" \
-  -filter_complex "[1:v]scale=1280:720[ad];[0:v][ad]overlay=x=0:y=0:eof_action=repeat:shortest=0,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$TMP/runtime/crawl-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=31:x=w-mod(t*105\\,w+text_w+100):y=620,format=yuv420p[v]" \
+  -re -loop 1 -framerate 30 -i "$TMP/runtime/ad-frame.jpg" \
+  -filter_complex "[0:v]scale=1280:720,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$TMP/runtime/crawl-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=31:x=w-mod(t*105\\,w+text_w+100):y=620,format=yuv420p[v]" \
   -map '[v]' -t 0.4 -c:v libx264 -preset ultrafast -an -f null -
 
 echo 'FGBears Live script tests passed.'
