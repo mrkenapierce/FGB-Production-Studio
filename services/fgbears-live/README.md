@@ -153,6 +153,16 @@ sudo systemctl restart fgbears-live.service
 
 Systemd automatically restarts FFmpeg after a crash or connection failure. The timer performs a second recovery check every five minutes.
 
+### Stream supervision
+
+Production uses three independent safeguards:
+
+- `fgbears-live.service` permits at most three automatic failure restarts in 30 minutes, preventing an endless viewer-visible loop.
+- `fgbears-live-health.timer` checks local FFmpeg progress every five minutes. It can perform at most two guarded recoveries in 30 minutes and opens `/srv/fgbears-live/health/restart-breaker` instead of continuing to restart.
+- `Monitor FGBears Live` runs from GitHub every five minutes, independently measures output speed and freshness, archives a 14-day report, and opens one `stream-monitor` GitHub issue when the stream is unhealthy. It closes the issue after recovery and never restarts production itself.
+
+Run a detailed read-only report at any time from GitHub Actions with `Diagnose FGBears Live`. Slow encoding is reported for investigation but never used as an automatic restart trigger.
+
 ## YouTube archive behavior
 
 A stream that runs longer than 12 hours may not be archived. That is intentional for this linear replay channel because each source episode remains separately published. The persistent live event should not be treated as the archive of record.

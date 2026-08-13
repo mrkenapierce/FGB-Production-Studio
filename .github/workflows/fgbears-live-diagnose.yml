@@ -111,6 +111,10 @@ jobs:
             echo 'No health sample file found.'
           fi
           systemctl list-timers fgbears-live-health.timer --no-pager || true
+          printf '\nRestart history:\n'
+          sudo tail -n 20 /srv/fgbears-live/health/restart-history 2>/dev/null || echo 'No guarded restarts recorded.'
+          printf '\nRestart circuit breaker:\n'
+          sudo cat /srv/fgbears-live/health/restart-breaker 2>/dev/null || echo 'Closed.'
 
           section 'Recent stream and restart history'
           sudo journalctl -u fgbears-live.service --since '2 hours ago' --no-pager -n 160 || true

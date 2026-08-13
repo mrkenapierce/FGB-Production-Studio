@@ -5,11 +5,13 @@ on:
     paths:
       - 'services/fgbears-live/**'
       - '.github/workflows/fgbears-live-validate.yml'
+      - '.github/workflows/fgbears-live-monitor.yml'
   push:
     branches: [main]
     paths:
       - 'services/fgbears-live/**'
       - '.github/workflows/fgbears-live-validate.yml'
+      - '.github/workflows/fgbears-live-monitor.yml'
 
 permissions:
   contents: read

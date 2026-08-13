@@ -20,6 +20,7 @@ install -d -m 0755 /opt/fgbears-live/assets
 base64 --decode "$SOURCE_DIR/../../renderer/assets/epic-logo-for-qr.base64.txt" > /opt/fgbears-live/assets/epic-logo.png
 chmod 0644 /opt/fgbears-live/assets/epic-logo.png
 install -d -o fgbears -g fgbears -m 0755 /srv/fgbears-live /srv/fgbears-live/media /srv/fgbears-live/incoming /srv/fgbears-live/logs /srv/fgbears-live/runtime
+install -d -o root -g root -m 0755 /srv/fgbears-live/health
 install -d -o root -g fgbears -m 0750 /etc/fgbears-live
 
 install -m 0755 /opt/fgbears-live/bin/start-stream.sh /usr/local/bin/fgbears-start-stream
@@ -28,6 +29,7 @@ install -m 0755 /opt/fgbears-live/bin/validate-media.sh /usr/local/bin/fgbears-v
 install -m 0755 /opt/fgbears-live/bin/rebuild-playlist.sh /usr/local/bin/fgbears-rebuild-playlist
 install -m 0755 /opt/fgbears-live/bin/add-episode.sh /usr/local/bin/fgbears-add-episode
 install -m 0755 /opt/fgbears-live/bin/healthcheck.sh /usr/local/bin/fgbears-healthcheck
+install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-stream-status
 
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.service /etc/systemd/system/fgbears-live-health.service
@@ -41,4 +43,3 @@ systemctl daemon-reload
 systemctl enable --now fgbears-live-health.timer
 
 echo "Installed FGBears Live with dynamic advertising. The stream remains stopped until a real stream key and at least one normalized episode are present."
-

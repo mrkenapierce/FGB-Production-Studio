@@ -54,6 +54,7 @@ jobs:
             git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-live-deploy
             sudo bash /tmp/fgbears-live-deploy/services/fgbears-live/bin/install.sh
             sudo systemctl enable --now fgbears-live.service
+            sudo systemctl reset-failed fgbears-live.service
             sudo systemctl restart fgbears-live.service
             for i in $(seq 1 30); do
               if systemctl is-active --quiet fgbears-live.service && curl --silent --fail --max-time 1 http://127.0.0.1:8787/healthz >/tmp/fgbears-overlay-health.json; then
