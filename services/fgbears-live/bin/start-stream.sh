@@ -12,8 +12,6 @@ source "$ENV_FILE"
 : "${FFMPEG_LOGLEVEL:=warning}"
 : "${AD_OVERLAY_PORT:=8787}"
 : "${AD_OVERLAY_SCRIPT:=/opt/fgbears-live/bin/ad-overlay.py}"
-: "${AD_DISPLAY_SECONDS:=20}"
-: "${AD_CYCLE_SECONDS:=300}"
 : "${CRAWL_OVERLAY_PORT:=8788}"
 : "${CRAWL_OVERLAY_SCRIPT:=/opt/fgbears-live/bin/crawl-overlay.py}"
 : "${CRAWL_OVERLAY_FPS:=15}"
@@ -72,16 +70,15 @@ curl --silent --fail --max-time 2 "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/health
   exit 70
 }
 
-# Dynamic advertising requires video compositing, so video is re-encoded while
-# the already-normalized AAC audio remains a direct stream copy. Ads are true
-# full-screen interstitials for a configurable window, then programming resumes.
+# The three-part advertising screen is the permanent video output. The source
+# program remains connected only for its normalized AAC audio and never appears.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -re -stream_loop -1 -fflags +genpts \
   -f concat -safe 0 -i "$PLAYLIST_FILE" \
   -thread_queue_size 64 -f mpjpeg -i "http://127.0.0.1:${AD_OVERLAY_PORT}/overlay.mjpg" \
   -thread_queue_size 64 -f rawvideo -pixel_format rgba -video_size 1280x118 -framerate "$CRAWL_OVERLAY_FPS" -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.rgba" \
-  -filter_complex "[1:v]scale=1280:720[ad];[0:v][ad]overlay=x=0:y=0:eof_action=repeat:shortest=0:enable='lt(mod(t,${AD_CYCLE_SECONDS}),${AD_DISPLAY_SECONDS})'[program];[program][2:v]overlay=x=0:y=H-h-24:eof_action=repeat:shortest=0,format=yuv420p[v]" \
+  -filter_complex "[1:v]scale=1280:720[program];[program][2:v]overlay=x=0:y=H-h-24:eof_action=repeat:shortest=0,format=yuv420p[v]" \
   -map "[v]" -map 0:a:0 \
   -c:v libx264 -preset superfast -tune zerolatency -profile:v high \
   -b:v 4000k -maxrate 4500k -bufsize 8000k \

@@ -24,6 +24,11 @@ python3 -m py_compile "$ROOT/bin/ad-overlay.py"
 python3 -m py_compile "$ROOT/bin/crawl-overlay.py"
 
 grep -q 'REPLACE_WITH_YOUTUBE_STREAM_KEY' "$ROOT/config/stream.env.example"
+grep -Fq '[1:v]scale=1280:720[program]' "$ROOT/bin/start-stream.sh"
+if grep -Eq "enable=.*mod\\(t" "$ROOT/bin/start-stream.sh"; then
+  echo 'The permanent advertising screen must not use timed visibility.' >&2
+  exit 1
+fi
 if find "$ROOT" -type f -name 'stream.env' -print -quit | grep -q .; then
   echo 'A real stream.env file must never be committed.' >&2
   exit 1
