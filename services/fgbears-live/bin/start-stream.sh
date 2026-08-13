@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# The cleanup handler is invoked indirectly by traps.
+# shellcheck disable=SC2317
 set -Eeuo pipefail
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
@@ -139,4 +141,3 @@ set -e
 kill "$AD_MONITOR_PID" 2>/dev/null || true
 wait "$AD_MONITOR_PID" 2>/dev/null || true
 exit "$status"
-

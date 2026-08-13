@@ -23,10 +23,14 @@ done
 python3 -m py_compile "$ROOT/bin/ad-overlay.py"
 grep -Fq 'def fit_text_block(' "$ROOT/bin/ad-overlay.py"
 grep -Fq 'supplied_subtitle' "$ROOT/bin/ad-overlay.py"
+test "$(grep -Fc 'message.upper(), text_x, y, text_w' "$ROOT/bin/ad-overlay.py")" -eq 2
+test "$(grep -F 'message.upper(), text_x, y, text_w' "$ROOT/bin/ad-overlay.py" | grep -Fc '"#0B162A"')" -eq 2
 python3 -m py_compile "$ROOT/bin/crawl-overlay.py"
 grep -q '^AD_OVERLAY_FPS=25$' "$ROOT/config/stream.env.example"
 
 grep -q 'REPLACE_WITH_YOUTUBE_STREAM_KEY' "$ROOT/config/stream.env.example"
+# The dollar expression is intentionally literal: this verifies the script text.
+# shellcheck disable=SC2016
 grep -Fq -- '-i "$AD_FRAME_FILE"' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-loop 1 -framerate 30' "$ROOT/bin/start-stream.sh"
 if grep -Fq -- '-re -loop 1' "$ROOT/bin/start-stream.sh"; then
@@ -45,6 +49,8 @@ label = text.index("crawl-label.txt", mask)
 assert message < mask < label, "crawl text must be masked before the fixed label is drawn"
 PY
 grep -Fq 'FFMPEG_PROGRESS_FILE' "$ROOT/bin/start-stream.sh"
+grep -Fq 'FFMPEG_HEALTH_SAMPLE_FILE' "$ROOT/bin/healthcheck.sh"
+grep -Fq 'instant_speed=' "$ROOT/bin/healthcheck.sh"
 grep -Fq 'loudnorm=I=-16:TP=-1.5:LRA=7' "$ROOT/bin/start-stream.sh"
 grep -Fq 'acompressor=threshold=0.125:ratio=3' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-c:a aac -b:a 160k -ar 48000 -ac 2' "$ROOT/bin/start-stream.sh"
@@ -129,4 +135,3 @@ ffmpeg -hide_banner -loglevel error \
   -map '[v]' -t 0.4 -c:v libx264 -preset ultrafast -an -f null -
 
 echo 'FGBears Live script tests passed.'
-

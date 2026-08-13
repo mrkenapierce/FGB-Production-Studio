@@ -418,7 +418,7 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
         y += 3
         y = draw_fitted_block(draw, subtitle.upper(), text_x, y, text_w, 34, 27, 18, 1, BEARS_ORANGE)
         y += 4
-        draw_fitted_block(draw, message.upper(), text_x, y, text_w, 58, 25, 17, 2, BEARS_ORANGE)
+        draw_fitted_block(draw, message.upper(), text_x, y, text_w, 58, 25, 17, 2, "#0B162A")
         if website:
             parsed = urllib.parse.urlsplit(website)
             site = parsed.netloc + parsed.path
@@ -436,7 +436,7 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
     y += 8
     y = draw_fitted_block(draw, subtitle.upper(), text_x, y, text_w, 52, 36, 22, 2, BEARS_ORANGE)
     y += 10
-    draw_fitted_block(draw, message.upper(), text_x, y, text_w, 126, 36, 19, 4, BEARS_ORANGE)
+    draw_fitted_block(draw, message.upper(), text_x, y, text_w, 126, 36, 19, 4, "#0B162A")
 
     if website:
         displayed_url = website
@@ -569,4 +569,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
