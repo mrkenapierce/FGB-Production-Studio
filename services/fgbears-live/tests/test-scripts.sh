@@ -25,7 +25,10 @@ python3 -m py_compile "$ROOT/bin/crawl-overlay.py"
 grep -q '^AD_OVERLAY_FPS=25$' "$ROOT/config/stream.env.example"
 
 grep -q 'REPLACE_WITH_YOUTUBE_STREAM_KEY' "$ROOT/config/stream.env.example"
-grep -Fq '[1:v]scale=1280:720[program]' "$ROOT/bin/start-stream.sh"
+grep -Fq -- '-i "$AD_FRAME_FILE"' "$ROOT/bin/start-stream.sh"
+grep -Fq '[0:v][ad]overlay=' "$ROOT/bin/start-stream.sh"
+grep -Fq 'drawtext=fontfile=' "$ROOT/bin/start-stream.sh"
+grep -Fq 'FFMPEG_PROGRESS_FILE' "$ROOT/bin/start-stream.sh"
 grep -Fq 'loudnorm=I=-16:TP=-1.5:LRA=7' "$ROOT/bin/start-stream.sh"
 grep -Fq 'acompressor=threshold=0.125:ratio=3' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-c:a aac -b:a 160k -ar 48000 -ac 2' "$ROOT/bin/start-stream.sh"
@@ -45,7 +48,7 @@ fi
 cat > "$TMP/feed.json" <<'JSON'
 {"kind":"house","sponsors":[{"businessName":"Preseason Game One is 8/15/2026","imageUrl":null,"promoMessage":"Join us for trivia and giveaways!","website":"https://epiccontentcreatorgrants.org/epic-media"}]}
 JSON
-SPONSOR_FEED_FILE="$TMP/feed.json" AD_OVERLAY_PORT=18787 python3 "$ROOT/bin/ad-overlay.py" >"$TMP/ad-overlay.log" 2>&1 &
+SPONSOR_FEED_FILE="$TMP/feed.json" AD_FRAME_FILE="$TMP/runtime/ad-frame.jpg" AD_OVERLAY_PORT=18787 python3 "$ROOT/bin/ad-overlay.py" >"$TMP/ad-overlay.log" 2>&1 &
 OVERLAY_PID=$!
 for _ in {1..30}; do
   curl --silent --fail --max-time 1 http://127.0.0.1:18787/healthz >"$TMP/health.json" && break
@@ -59,6 +62,8 @@ from PIL import Image
 img = Image.open(sys.argv[1])
 assert img.size == (1280, 720), img.size
 PY
+test -s "$TMP/runtime/ad-frame.jpg"
+test -s "$TMP/runtime/ad-frame.sha256"
 kill "$OVERLAY_PID"
 wait "$OVERLAY_PID" 2>/dev/null || true
 OVERLAY_PID=""
@@ -66,7 +71,7 @@ OVERLAY_PID=""
 cat > "$TMP/crawl.json" <<'JSON'
 {"active":true,"label":"EPIC LIVE","message":"TRIVIA & GIVEAWAYS ARE LIVE — VISIT EPICCONTENTCREATORGRANTS.ORG/EPIC-MEDIA TO PARTICIPATE","speed":"normal","updatedAt":"2026-08-12T00:00:00Z"}
 JSON
-CRAWL_FEED_FILE="$TMP/crawl.json" CRAWL_OVERLAY_PORT=18788 CRAWL_OVERLAY_FPS=10 python3 "$ROOT/bin/crawl-overlay.py" >"$TMP/crawl-overlay.log" 2>&1 &
+CRAWL_FEED_FILE="$TMP/crawl.json" CRAWL_RUNTIME_DIR="$TMP/runtime" CRAWL_OVERLAY_PORT=18788 CRAWL_OVERLAY_FPS=10 python3 "$ROOT/bin/crawl-overlay.py" >"$TMP/crawl-overlay.log" 2>&1 &
 CRAWL_PID=$!
 for _ in {1..30}; do
   curl --silent --fail --max-time 1 http://127.0.0.1:18788/healthz >"$TMP/crawl-health.json" && break
@@ -81,6 +86,8 @@ img = Image.open(sys.argv[1])
 assert img.size == (1280, 118), img.size
 assert img.mode == "RGBA", img.mode
 PY
+grep -q '^EPIC LIVE$' "$TMP/runtime/crawl-label.txt"
+grep -q 'TRIVIA & GIVEAWAYS' "$TMP/runtime/crawl-message.txt"
 kill "$CRAWL_PID"
 wait "$CRAWL_PID" 2>/dev/null || true
 CRAWL_PID=""
@@ -94,6 +101,16 @@ MEDIA_DIR="$TMP/media" bash "$ROOT/bin/normalize-library.sh" "$TMP/source.mp4" "
 bash "$ROOT/bin/validate-media.sh" "$TMP/media"
 MEDIA_DIR="$TMP/media" PLAYLIST_FILE="$TMP/playlist.ffconcat" bash "$ROOT/bin/rebuild-playlist.sh"
 grep -q "episode-01.mp4" "$TMP/playlist.ffconcat"
+
+# Prove the permanent ad and reloadable crawl render over the source-owned clock.
+mkdir -p "$TMP/runtime"
+cp "$TMP/frame.jpg" "$TMP/runtime/ad-frame.jpg"
+printf 'EPIC LIVE\n' > "$TMP/runtime/crawl-label.txt"
+printf 'TEST CRAWL MESSAGE\n' > "$TMP/runtime/crawl-message.txt"
+ffmpeg -hide_banner -loglevel error \
+  -i "$TMP/media/episode-01.mp4" -i "$TMP/runtime/ad-frame.jpg" \
+  -filter_complex "[1:v]scale=1280:720[ad];[0:v][ad]overlay=x=0:y=0:eof_action=repeat:shortest=0,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$TMP/runtime/crawl-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=31:x=w-mod(t*105\\,w+text_w+100):y=620,format=yuv420p[v]" \
+  -map '[v]' -t 0.4 -c:v libx264 -preset ultrafast -an -f null -
 
 echo 'FGBears Live script tests passed.'
 

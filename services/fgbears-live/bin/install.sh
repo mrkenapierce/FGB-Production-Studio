@@ -19,7 +19,7 @@ rsync -a --delete "$SOURCE_DIR/" /opt/fgbears-live/
 install -d -m 0755 /opt/fgbears-live/assets
 base64 --decode "$SOURCE_DIR/../../renderer/assets/epic-logo-for-qr.base64.txt" > /opt/fgbears-live/assets/epic-logo.png
 chmod 0644 /opt/fgbears-live/assets/epic-logo.png
-install -d -o fgbears -g fgbears -m 0755 /srv/fgbears-live /srv/fgbears-live/media /srv/fgbears-live/incoming /srv/fgbears-live/logs
+install -d -o fgbears -g fgbears -m 0755 /srv/fgbears-live /srv/fgbears-live/media /srv/fgbears-live/incoming /srv/fgbears-live/logs /srv/fgbears-live/runtime
 install -d -o root -g fgbears -m 0750 /etc/fgbears-live
 
 install -m 0755 /opt/fgbears-live/bin/start-stream.sh /usr/local/bin/fgbears-start-stream
@@ -41,3 +41,4 @@ systemctl daemon-reload
 systemctl enable --now fgbears-live-health.timer
 
 echo "Installed FGBears Live with dynamic advertising. The stream remains stopped until a real stream key and at least one normalized episode are present."
+

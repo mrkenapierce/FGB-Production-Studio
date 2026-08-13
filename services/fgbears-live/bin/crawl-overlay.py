@@ -10,6 +10,7 @@ import time
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
+from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -21,6 +22,7 @@ FPS = max(10, int(os.getenv("CRAWL_OVERLAY_FPS", "15")))
 WIDTH, HEIGHT = 1280, 118
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+RUNTIME_DIR = Path(os.getenv("CRAWL_RUNTIME_DIR", "/srv/fgbears-live/runtime"))
 
 
 def font(size: int, bold: bool = False) -> ImageFont.ImageFont:
@@ -50,6 +52,7 @@ class State:
         with self.lock:
             self.value = value
             self.last_error = None
+        publish_text(value)
 
     def snapshot(self) -> tuple[dict[str, Any], str | None]:
         with self.lock:
@@ -58,6 +61,22 @@ class State:
 
 STATE = State()
 STARTED = time.monotonic()
+
+
+def atomic_text(path: Path, value: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".partial")
+    temporary.write_text(value + "\n", encoding="utf-8")
+    os.replace(temporary, path)
+
+
+def publish_text(value: dict[str, Any]) -> None:
+    active = bool(value["active"] and value["message"])
+    label = value["label"].upper() if active else ""
+    message = " ".join(value["message"].upper().split()) if active else ""
+    atomic_text(RUNTIME_DIR / "crawl-label.txt", label)
+    atomic_text(RUNTIME_DIR / "crawl-message.txt", message)
+    atomic_text(RUNTIME_DIR / "crawl-active", "1" if active else "0")
 
 
 def poll() -> None:
@@ -165,3 +184,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

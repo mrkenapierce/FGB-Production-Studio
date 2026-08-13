@@ -8,6 +8,7 @@ The feed already applies paid-ad -> House Ad -> placeholder priority.
 from __future__ import annotations
 
 import io
+import hashlib
 import json
 import os
 import re
@@ -46,6 +47,7 @@ EPIC_MEDIA_URL = "https://epiccontentcreatorgrants.org/epic-media"
 FONT_REGULAR = os.getenv("AD_FONT_REGULAR", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
 FONT_BOLD = os.getenv("AD_FONT_BOLD", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
 EPIC_LOGO_PATH = os.getenv("EPIC_LOGO_PATH", "/opt/fgbears-live/assets/epic-logo.png")
+PUBLISHED_FRAME = Path(os.getenv("AD_FRAME_FILE", "/srv/fgbears-live/runtime/ad-frame.jpg"))
 
 
 def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
@@ -209,6 +211,7 @@ def poll_feed() -> None:
     while True:
         try:
             STATE.update(load_feed_payload())
+            publish_frame()
         except Exception as exc:
             # Keep the last good ad during a transient network failure.
             STATE.error(exc)
@@ -415,6 +418,23 @@ def jpeg_bytes() -> bytes:
         return FRAME_CACHE_BYTES
 
 
+def publish_frame() -> None:
+    """Atomically publish the current creative for FFmpeg's local frame clock."""
+    body = jpeg_bytes()
+    digest = hashlib.sha256(body).hexdigest()
+    digest_file = PUBLISHED_FRAME.with_suffix(".sha256")
+    try:
+        if PUBLISHED_FRAME.is_file() and digest_file.read_text(encoding="ascii").strip() == digest:
+            return
+    except OSError:
+        pass
+    PUBLISHED_FRAME.parent.mkdir(parents=True, exist_ok=True)
+    temporary = PUBLISHED_FRAME.with_suffix(".partial.jpg")
+    temporary.write_bytes(body)
+    os.replace(temporary, PUBLISHED_FRAME)
+    digest_file.write_text(digest + "\n", encoding="ascii")
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "FGBearsAdOverlay/1.0"
 
@@ -489,6 +509,7 @@ def main() -> None:
         STATE.update(load_feed_payload())
     except Exception as exc:
         STATE.error(exc)
+    publish_frame()
     threading.Thread(target=poll_feed, name="sponsor-feed-poller", daemon=True).start()
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
 
