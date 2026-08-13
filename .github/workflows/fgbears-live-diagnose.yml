@@ -72,15 +72,19 @@ jobs:
 
           section 'FFmpeg progress snapshot'
           if [[ -s "$progress" ]]; then
-            stat --format='updated=%y age_seconds=%Y size_bytes=%s' "$progress"
-            sed -n '/^frame=/p;/^fps=/p;/^out_time=/p;/^out_time_us=/p;/^bitrate=/p;/^speed=/p;/^progress=/p' "$progress"
+            progress_updated=$(sudo stat -c %Y "$progress")
+            printf 'updated=%s age_seconds=%s size_bytes=%s\n' \
+              "$(sudo stat -c %y "$progress")" \
+              "$(( $(date +%s) - progress_updated ))" \
+              "$(sudo stat -c %s "$progress")"
+            sudo sed -n '/^frame=/p;/^fps=/p;/^out_time=/p;/^out_time_us=/p;/^bitrate=/p;/^speed=/p;/^progress=/p' "$progress"
           else
             echo 'No FFmpeg progress file found.'
           fi
 
           section '30-second measured encoder speed'
           read_out_time_us() {
-            sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n 1
+            sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n 1
           }
           first_epoch=$(date +%s)
           first_media=$(read_out_time_us)
@@ -97,8 +101,12 @@ jobs:
 
           section 'Health checker state'
           if [[ -s "$sample" ]]; then
-            stat --format='updated=%y age_seconds=%Y size_bytes=%s' "$sample"
-            sed -n '1p' "$sample"
+            sample_updated=$(sudo stat -c %Y "$sample")
+            printf 'updated=%s age_seconds=%s size_bytes=%s\n' \
+              "$(sudo stat -c %y "$sample")" \
+              "$(( $(date +%s) - sample_updated ))" \
+              "$(sudo stat -c %s "$sample")"
+            sudo sed -n '1p' "$sample"
           else
             echo 'No health sample file found.'
           fi
