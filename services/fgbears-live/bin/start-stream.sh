@@ -119,10 +119,10 @@ ffmpeg \
   -progress pipe:3 -stats_period 5 \
   -re -stream_loop -1 -fflags +genpts \
   -f concat -safe 0 -i "$PLAYLIST_FILE" \
-  -re -loop 1 -framerate 30 -i "$AD_FRAME_FILE" \
+  -loop 1 -framerate 30 -i "$AD_FRAME_FILE" \
   -filter_complex "[1:v]scale=1280:720,drawbox=x=0:y=578:w=1280:h=118:color=0x07101F@0.95:t=fill,drawbox=x=0:y=578:w=1280:h=7:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/crawl-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=31:x=w-mod(t*105\,w+text_w+100):y=620,drawbox=x=0:y=585:w=275:h=111:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/crawl-label.txt:reload=1:expansion=none:fontcolor=white:fontsize=29:x=(245-text_w)/2:y=620,format=yuv420p[v]" \
   -map "[v]" -map 0:a:0 \
-  -c:v libx264 -preset superfast -tune zerolatency -profile:v high \
+  -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
   -b:v 4000k -maxrate 4500k -bufsize 8000k \
   -g 60 -keyint_min 60 -sc_threshold 0 -r 30 -fps_mode cfr -threads 2 \
   -af "$PODCAST_AUDIO_FILTER" \

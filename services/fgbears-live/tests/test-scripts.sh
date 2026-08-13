@@ -21,12 +21,19 @@ for script in "$ROOT"/bin/*.sh; do
   bash -n "$script"
 done
 python3 -m py_compile "$ROOT/bin/ad-overlay.py"
+grep -Fq 'def fit_text_block(' "$ROOT/bin/ad-overlay.py"
+grep -Fq 'supplied_subtitle' "$ROOT/bin/ad-overlay.py"
 python3 -m py_compile "$ROOT/bin/crawl-overlay.py"
 grep -q '^AD_OVERLAY_FPS=25$' "$ROOT/config/stream.env.example"
 
 grep -q 'REPLACE_WITH_YOUTUBE_STREAM_KEY' "$ROOT/config/stream.env.example"
 grep -Fq -- '-i "$AD_FRAME_FILE"' "$ROOT/bin/start-stream.sh"
-grep -Fq -- '-re -loop 1 -framerate 30' "$ROOT/bin/start-stream.sh"
+grep -Fq -- '-loop 1 -framerate 30' "$ROOT/bin/start-stream.sh"
+if grep -Fq -- '-re -loop 1' "$ROOT/bin/start-stream.sh"; then
+  echo 'The still image must not have a second independent rate limiter.' >&2
+  exit 1
+fi
+grep -Fq -- '-preset ultrafast' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-progress pipe:3' "$ROOT/bin/start-stream.sh"
 grep -Fq 'drawtext=fontfile=' "$ROOT/bin/start-stream.sh"
 python3 - "$ROOT/bin/start-stream.sh" <<'PY'

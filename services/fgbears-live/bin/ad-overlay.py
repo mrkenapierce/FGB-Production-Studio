@@ -98,6 +98,80 @@ def wrap_text(draw: ImageDraw.ImageDraw, text: str, f: ImageFont.ImageFont, max_
     return lines[:max_lines]
 
 
+def wrap_all_text(draw: ImageDraw.ImageDraw, text: str, f: ImageFont.ImageFont, max_width: int) -> list[str]:
+    """Wrap without truncating so font fitting can consider the whole field."""
+    words = text.split()
+    if not words:
+        return []
+    lines: list[str] = []
+    current = words[0]
+    for word in words[1:]:
+        trial = f"{current} {word}"
+        if draw.textbbox((0, 0), trial, font=f)[2] <= max_width:
+            current = trial
+        else:
+            lines.append(current)
+            current = word
+    lines.append(current)
+    return lines
+
+
+def fit_text_block(
+    draw: ImageDraw.ImageDraw,
+    text: str,
+    max_width: int,
+    max_height: int,
+    start_size: int,
+    min_size: int,
+    max_lines: int,
+    bold: bool = True,
+) -> tuple[ImageFont.ImageFont, list[str], int]:
+    """Fit an entire title, subtitle, or message inside a bounded TV-safe box."""
+    normalized = " ".join(text.split())
+    for size in range(start_size, min_size - 1, -2):
+        fitted_font = font(size, bold=bold)
+        lines = wrap_all_text(draw, normalized, fitted_font, max_width)
+        line_height = max(size + 5, int(size * 1.16))
+        if len(lines) <= max_lines and len(lines) * line_height <= max_height:
+            return fitted_font, lines, line_height
+
+    fitted_font = font(min_size, bold=bold)
+    lines = wrap_all_text(draw, normalized, fitted_font, max_width)
+    line_height = max(min_size + 5, int(min_size * 1.16))
+    allowed = max(1, min(max_lines, max_height // line_height))
+    if len(lines) > allowed:
+        lines = lines[:allowed]
+        last = lines[-1].rstrip(" .") + "…"
+        while draw.textbbox((0, 0), last, font=fitted_font)[2] > max_width and len(last) > 2:
+            last = last[:-2].rstrip() + "…"
+        lines[-1] = last
+    return fitted_font, lines, line_height
+
+
+def draw_fitted_block(
+    draw: ImageDraw.ImageDraw,
+    text: str,
+    x: int,
+    y: int,
+    max_width: int,
+    max_height: int,
+    start_size: int,
+    min_size: int,
+    max_lines: int,
+    fill: str,
+    bold: bool = True,
+) -> int:
+    if not text.strip():
+        return y
+    fitted_font, lines, line_height = fit_text_block(
+        draw, text, max_width, max_height, start_size, min_size, max_lines, bold
+    )
+    for line in lines:
+        draw.text((x, y), line, font=fitted_font, fill=fill)
+        y += line_height
+    return y
+
+
 class SponsorState:
     def __init__(self) -> None:
         self._lock = threading.Lock()
@@ -317,6 +391,8 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
     draw = ImageDraw.Draw(image)
 
     business = str(sponsor.get("businessName") or "Advertisement").strip()
+    supplied_title = str(sponsor.get("title") or business).strip()
+    supplied_subtitle = str(sponsor.get("subtitle") or "").strip()
     message = str(sponsor.get("promoMessage") or "").strip()
     website = str(sponsor.get("website") or "").strip()
     image_url = str(sponsor.get("imageUrl") or "").strip()
@@ -327,7 +403,7 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
     draw.text((505, 112), "ADVERTISEMENT", font=font(20, bold=True), fill=BEARS_ORANGE)
 
     if creative is not None:
-        box = (505, 145, WIDTH - 48, 390)
+        box = (505, 145, WIDTH - 48, 330)
         target_w = box[2] - box[0]
         target_h = box[3] - box[1]
         fitted = ImageOps.contain(creative, (target_w, target_h)).convert("RGBA")
@@ -336,60 +412,37 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
         image.paste(canvas.convert("RGB"), (box[0], box[1]))
         text_x = 505
         text_w = WIDTH - text_x - 60
-        headline, event_date = house_event_parts(business) if kind == "house" else (business, "")
-        title_font = fit_text(draw, headline.upper(), text_w, 42, 27)
-        title_lines = wrap_text(draw, headline.upper(), title_font, text_w, max_lines=2)
-        y = 408
-        for line in title_lines:
-            draw.text((text_x, y), line, font=title_font, fill=BEARS_BLUE)
-            y += int(getattr(title_font, "size", 34) * 1.12)
-        if event_date:
-            y += 2
-            draw.text((text_x, y), event_date, font=font(28, bold=True), fill=BEARS_ORANGE)
-            y += 39
-        if message:
-            msg_font = font(25, bold=True)
-            y += 8
-            for line in wrap_text(draw, message, msg_font, text_w, max_lines=2):
-                draw.text((text_x, y), line.upper(), font=msg_font, fill=BEARS_ORANGE)
-                y += 32
+        headline, event_date = house_event_parts(supplied_title) if kind == "house" else (supplied_title, "")
+        subtitle = supplied_subtitle or event_date
+        y = draw_fitted_block(draw, headline.upper(), text_x, 348, text_w, 68, 40, 24, 2, BEARS_BLUE)
+        y += 3
+        y = draw_fitted_block(draw, subtitle.upper(), text_x, y, text_w, 34, 27, 18, 1, BEARS_ORANGE)
+        y += 4
+        draw_fitted_block(draw, message.upper(), text_x, y, text_w, 58, 25, 17, 2, BEARS_ORANGE)
         if website:
             parsed = urllib.parse.urlsplit(website)
             site = parsed.netloc + parsed.path
             site_font = fit_text(draw, site, text_w, 20, 15)
-            draw.text((text_x, HEIGHT - 125), site, font=site_font, fill=BEARS_BLUE)
+            draw.text((text_x, 548), site, font=site_font, fill=BEARS_BLUE)
         add_epic_logo(image)
         return image
 
     # Text-only ads become complete broadcast creatives rather than sparse cards.
     text_x = 505
     text_w = WIDTH - text_x - 60
-    headline, event_date = house_event_parts(business) if kind == "house" else (business, "")
-    title_font = fit_text(draw, headline.upper(), text_w, 66, 38)
-    title_lines = wrap_text(draw, headline.upper(), title_font, text_w, max_lines=3)
-    line_h = int(getattr(title_font, "size", 52) * 1.12)
-    y = 190
-    for line in title_lines:
-        draw.text((text_x, y), line, font=title_font, fill=BEARS_BLUE)
-        y += line_h
-
-    if event_date:
-        y += 12
-        draw.text((text_x, y), event_date, font=font(38, bold=True), fill=BEARS_ORANGE)
-        y += 66
-
-    if message:
-        msg_font = font(38, bold=True)
-        y += 18
-        for line in wrap_text(draw, message, msg_font, text_w, max_lines=3):
-            draw.text((text_x, y), line.upper(), font=msg_font, fill=BEARS_ORANGE)
-            y += 48
+    headline, event_date = house_event_parts(supplied_title) if kind == "house" else (supplied_title, "")
+    subtitle = supplied_subtitle or event_date
+    y = draw_fitted_block(draw, headline.upper(), text_x, 165, text_w, 142, 64, 34, 3, BEARS_BLUE)
+    y += 8
+    y = draw_fitted_block(draw, subtitle.upper(), text_x, y, text_w, 52, 36, 22, 2, BEARS_ORANGE)
+    y += 10
+    draw_fitted_block(draw, message.upper(), text_x, y, text_w, 126, 36, 19, 4, BEARS_ORANGE)
 
     if website:
         displayed_url = website
         site = urllib.parse.urlsplit(displayed_url).netloc + urllib.parse.urlsplit(displayed_url).path if displayed_url else ""
         site_font = fit_text(draw, site, text_w, 24, 17)
-        draw.text((text_x, HEIGHT - 130), site, font=site_font, fill=BEARS_BLUE)
+        draw.text((text_x, 548), site, font=site_font, fill=BEARS_BLUE)
     add_epic_logo(image)
     return image
 

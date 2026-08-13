@@ -26,7 +26,7 @@ speed=$(sed -n 's/^speed=\([0-9.]*\)x$/\1/p' "$PROGRESS_FILE" | tail -n 1)
 if (( age > 90 )); then
   logger -t fgbears-live-health "Encoder progress is ${age}s stale; restarting stream."
   systemctl restart fgbears-live.service
-elif [[ -n "$speed" ]] && ! awk -v value="$speed" 'BEGIN { exit !(value >= 0.90) }'; then
+elif [[ -n "$speed" ]] && ! awk -v value="$speed" 'BEGIN { exit !(value >= 0.98) }'; then
   logger -t fgbears-live-health "Encoder speed is ${speed}x; restarting stream."
   systemctl restart fgbears-live.service
 fi

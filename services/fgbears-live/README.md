@@ -116,7 +116,7 @@ The advertising frame is the sole video clock at 30 fps, while the Lovable crawl
 drawn directly from reloadable text files. Graphics can no longer become the
 master clock or stall the broadcast. A five-minute watchdog also checks FFmpeg's
 real output progress and recovers the service if it stops advancing or falls
-materially below real time.
+below 0.98x real time.
 
 At approximately 4.13 Mbps total, continuous outbound transfer is roughly 1.34 TB per 30-day month, comfortably below a 10 TB allowance. Actual usage varies.
 
