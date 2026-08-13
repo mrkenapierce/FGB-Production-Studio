@@ -10,10 +10,10 @@ STALE_SECONDS=${STREAM_STATUS_STALE_SECONDS:-90}
 if [[ ${1:-} == "--sample-seconds" ]]; then
   SAMPLE_SECONDS=${2:-}
 fi
-[[ "$SAMPLE_SECONDS" =~ ^[0-9]+$ ]] && (( SAMPLE_SECONDS >= 5 && SAMPLE_SECONDS <= 60 )) || {
+if [[ ! "$SAMPLE_SECONDS" =~ ^[0-9]+$ ]] || (( SAMPLE_SECONDS < 5 || SAMPLE_SECONDS > 60 )); then
   echo 'Sample duration must be between 5 and 60 seconds.' >&2
   exit 64
-}
+fi
 
 now=$(date +%s)
 service_active=$(systemctl is-active fgbears-live.service 2>/dev/null || true)

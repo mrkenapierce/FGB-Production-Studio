@@ -22,7 +22,23 @@ for script in "$ROOT"/bin/*.sh; do
 done
 python3 -m py_compile "$ROOT/bin/ad-overlay.py"
 grep -Fq 'def fit_text_block(' "$ROOT/bin/ad-overlay.py"
-grep -Fq 'supplied_subtitle' "$ROOT/bin/ad-overlay.py"
+grep -Fq 'def sponsor_text_parts(' "$ROOT/bin/ad-overlay.py"
+python3 - "$ROOT/bin/ad-overlay.py" <<'PY'
+import runpy
+import sys
+
+module = runpy.run_path(sys.argv[1])
+parts = module["sponsor_text_parts"](
+    {
+        "businessName": "Chicago Gameday Giveaway",
+        "title": "Chicago Gameday Giveaway",
+        "subtitle": "Log In and Watch",
+        "eventStartsAt": "2026-08-15T12:00:00+00:00",
+    },
+    "house",
+)
+assert parts == ("Chicago Gameday Giveaway", "Log In and Watch", "AUGUST 15, 2026"), parts
+PY
 test "$(grep -Fc 'message.upper(), text_x, y, text_w' "$ROOT/bin/ad-overlay.py")" -eq 2
 test "$(grep -F 'message.upper(), text_x, y, text_w' "$ROOT/bin/ad-overlay.py" | grep -Fc '"#0B162A"')" -eq 2
 python3 -m py_compile "$ROOT/bin/crawl-overlay.py"

@@ -372,6 +372,39 @@ def house_event_parts(title: str) -> tuple[str, str]:
     return headline, f"{months[month_number]} {int(day)}, {year}"
 
 
+def format_event_date(value: Any) -> str:
+    """Format a feed date for a dedicated, TV-safe overlay line."""
+    cleaned = str(value or "").strip()
+    if not cleaned:
+        return ""
+    iso_match = re.match(r"^(\d{4})-(\d{2})-(\d{2})(?:T|$)", cleaned)
+    slash_match = re.fullmatch(r"(\d{1,2})/(\d{1,2})/(\d{4})", cleaned)
+    if iso_match:
+        year, month, day = iso_match.groups()
+    elif slash_match:
+        month, day, year = slash_match.groups()
+    else:
+        return " ".join(cleaned.upper().split())[:48]
+    months = ["", "JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"]
+    month_number = int(month)
+    day_number = int(day)
+    if not 1 <= month_number <= 12 or not 1 <= day_number <= 31:
+        return " ".join(cleaned.upper().split())[:48]
+    return f"{months[month_number]} {day_number}, {year}"
+
+
+def sponsor_text_parts(sponsor: dict[str, Any], kind: str) -> tuple[str, str, str]:
+    business = str(sponsor.get("businessName") or "Advertisement").strip()
+    supplied_title = str(sponsor.get("title") or business).strip()
+    subtitle = str(sponsor.get("subtitle") or "").strip()
+    headline, embedded_date = house_event_parts(supplied_title) if kind == "house" else (supplied_title, "")
+    supplied_date = next(
+        (sponsor.get(key) for key in ("eventStartsAt", "eventDate", "date", "startsAt") if sponsor.get(key)),
+        "",
+    )
+    return headline, subtitle, format_event_date(supplied_date) or embedded_date
+
+
 def render_placeholder(label: str) -> Image.Image:
     image = Image.new("RGB", (WIDTH, HEIGHT), BEARS_BLUE)
     draw = ImageDraw.Draw(image)
@@ -390,14 +423,12 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
     image = Image.new("RGB", (WIDTH, HEIGHT), BEARS_BLUE)
     draw = ImageDraw.Draw(image)
 
-    business = str(sponsor.get("businessName") or "Advertisement").strip()
-    supplied_title = str(sponsor.get("title") or business).strip()
-    supplied_subtitle = str(sponsor.get("subtitle") or "").strip()
     message = str(sponsor.get("promoMessage") or "").strip()
     website = str(sponsor.get("website") or "").strip()
     image_url = str(sponsor.get("imageUrl") or "").strip()
     creative = STATE.image_for(image_url) if image_url else None
     kind = STATE.snapshot()[0]
+    headline, subtitle, event_date = sponsor_text_parts(sponsor, kind)
     draw_brand_frame(draw)
     draw_epic_media_qr(image, draw)
     draw.text((505, 112), "ADVERTISEMENT", font=font(20, bold=True), fill=BEARS_ORANGE)
@@ -412,13 +443,13 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
         image.paste(canvas.convert("RGB"), (box[0], box[1]))
         text_x = 505
         text_w = WIDTH - text_x - 60
-        headline, event_date = house_event_parts(supplied_title) if kind == "house" else (supplied_title, "")
-        subtitle = supplied_subtitle or event_date
-        y = draw_fitted_block(draw, headline.upper(), text_x, 348, text_w, 68, 40, 24, 2, BEARS_BLUE)
+        y = draw_fitted_block(draw, headline.upper(), text_x, 348, text_w, 58, 36, 22, 2, BEARS_BLUE)
         y += 3
-        y = draw_fitted_block(draw, subtitle.upper(), text_x, y, text_w, 34, 27, 18, 1, BEARS_ORANGE)
+        y = draw_fitted_block(draw, subtitle.upper(), text_x, y, text_w, 30, 25, 17, 1, BEARS_ORANGE)
+        y += 3
+        y = draw_fitted_block(draw, event_date, text_x, y, text_w, 30, 25, 17, 1, BEARS_ORANGE)
         y += 4
-        draw_fitted_block(draw, message.upper(), text_x, y, text_w, 58, 25, 17, 2, "#0B162A")
+        draw_fitted_block(draw, message.upper(), text_x, y, text_w, 44, 23, 16, 2, "#0B162A")
         if website:
             parsed = urllib.parse.urlsplit(website)
             site = parsed.netloc + parsed.path
@@ -430,13 +461,13 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
     # Text-only ads become complete broadcast creatives rather than sparse cards.
     text_x = 505
     text_w = WIDTH - text_x - 60
-    headline, event_date = house_event_parts(supplied_title) if kind == "house" else (supplied_title, "")
-    subtitle = supplied_subtitle or event_date
     y = draw_fitted_block(draw, headline.upper(), text_x, 165, text_w, 142, 64, 34, 3, BEARS_BLUE)
     y += 8
     y = draw_fitted_block(draw, subtitle.upper(), text_x, y, text_w, 52, 36, 22, 2, BEARS_ORANGE)
+    y += 6
+    y = draw_fitted_block(draw, event_date, text_x, y, text_w, 40, 32, 20, 1, BEARS_ORANGE)
     y += 10
-    draw_fitted_block(draw, message.upper(), text_x, y, text_w, 126, 36, 19, 4, "#0B162A")
+    draw_fitted_block(draw, message.upper(), text_x, y, text_w, 110, 34, 18, 4, "#0B162A")
 
     if website:
         displayed_url = website
