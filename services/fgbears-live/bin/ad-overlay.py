@@ -190,6 +190,7 @@ def draw_brand_frame(draw: ImageDraw.ImageDraw) -> None:
     """Draw the locked three-part FGBears full-screen frame."""
     draw.rectangle((0, 0, WIDTH, 96), fill=BEARS_ORANGE)
     draw.rectangle((0, HEIGHT - 82, WIDTH, HEIGHT), fill="#07101F")
+    draw.rectangle((462, 97, WIDTH - 20, HEIGHT - 83), fill=WHITE)
     title = "FOOTBALL'S GREATEST BEARS LIVE"
     title_font = font(38, bold=True)
     title_box = draw.textbbox((0, 0), title, font=title_font)
@@ -264,8 +265,8 @@ def render_placeholder(label: str) -> Image.Image:
     draw.text((505, 128), "ADVERTISEMENT", font=font(21, bold=True), fill=BEARS_ORANGE)
     title = fit_text(draw, label.upper(), 710, 74, 42)
     draw.text((505, 225), label.upper(), font=title, fill=BEARS_ORANGE)
-    draw.text((505, 340), "Promote your business during the live broadcast", font=font(29), fill=WHITE)
-    draw.text((505, 430), "epiccontentcreatorgrants.org/advertise/fgbears", font=font(24, bold=True), fill=MUTED)
+    draw.text((505, 340), "Promote your business during the live broadcast", font=font(29), fill=BEARS_BLUE)
+    draw.text((505, 430), "epiccontentcreatorgrants.org/advertise/fgbears", font=font(24, bold=True), fill=BEARS_BLUE)
     add_epic_logo(image)
     return image
 
@@ -299,7 +300,7 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
         title_lines = wrap_text(draw, headline.upper(), title_font, text_w, max_lines=2)
         y = 408
         for line in title_lines:
-            draw.text((text_x, y), line, font=title_font, fill=WHITE)
+            draw.text((text_x, y), line, font=title_font, fill=BEARS_BLUE)
             y += int(getattr(title_font, "size", 34) * 1.12)
         if event_date:
             y += 2
@@ -309,13 +310,13 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
             msg_font = font(25, bold=True)
             y += 8
             for line in wrap_text(draw, message, msg_font, text_w, max_lines=2):
-                draw.text((text_x, y), line.upper(), font=msg_font, fill=GOLD)
+                draw.text((text_x, y), line.upper(), font=msg_font, fill=BEARS_ORANGE)
                 y += 32
         if website:
             parsed = urllib.parse.urlsplit(website)
             site = parsed.netloc + parsed.path
             site_font = fit_text(draw, site, text_w, 20, 15)
-            draw.text((text_x, HEIGHT - 125), site, font=site_font, fill=MUTED)
+            draw.text((text_x, HEIGHT - 125), site, font=site_font, fill=BEARS_BLUE)
         add_epic_logo(image)
         return image
 
@@ -328,7 +329,7 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
     line_h = int(getattr(title_font, "size", 52) * 1.12)
     y = 190
     for line in title_lines:
-        draw.text((text_x, y), line, font=title_font, fill=WHITE)
+        draw.text((text_x, y), line, font=title_font, fill=BEARS_BLUE)
         y += line_h
 
     if event_date:
@@ -340,14 +341,14 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
         msg_font = font(38, bold=True)
         y += 18
         for line in wrap_text(draw, message, msg_font, text_w, max_lines=3):
-            draw.text((text_x, y), line.upper(), font=msg_font, fill=GOLD)
+            draw.text((text_x, y), line.upper(), font=msg_font, fill=BEARS_ORANGE)
             y += 48
 
     if website:
         displayed_url = website
         site = urllib.parse.urlsplit(displayed_url).netloc + urllib.parse.urlsplit(displayed_url).path if displayed_url else ""
         site_font = fit_text(draw, site, text_w, 24, 17)
-        draw.text((text_x, HEIGHT - 130), site, font=site_font, fill=MUTED)
+        draw.text((text_x, HEIGHT - 130), site, font=site_font, fill=BEARS_BLUE)
     add_epic_logo(image)
     return image
 
