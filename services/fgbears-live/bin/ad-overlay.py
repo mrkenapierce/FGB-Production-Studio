@@ -105,15 +105,45 @@ class SponsorState:
         self.last_good_refresh = 0.0
         self.last_error: str | None = None
         self._image_cache: dict[str, Image.Image] = {}
+        self.frame_revision = 0
+        self._visual_signature = ""
+
+    @staticmethod
+    def _stable_asset_url(url: str) -> str:
+        """Treat refreshed signed URLs for the same stored asset as identical."""
+        parsed = urllib.parse.urlsplit(url)
+        return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))
+
+    @classmethod
+    def _signature(cls, kind: str, placeholder: str, sponsors: list[dict[str, Any]]) -> str:
+        stable_sponsors: list[dict[str, Any]] = []
+        for sponsor in sponsors:
+            stable = dict(sponsor)
+            for key in ("imageUrl", "logoUrl"):
+                if stable.get(key):
+                    stable[key] = cls._stable_asset_url(str(stable[key]))
+            stable_sponsors.append(stable)
+        return json.dumps(
+            {"kind": kind, "placeholder": placeholder, "sponsors": stable_sponsors},
+            sort_keys=True,
+            separators=(",", ":"),
+        )
 
     def update(self, payload: dict[str, Any]) -> None:
         sponsors = payload.get("sponsors")
         if not isinstance(sponsors, list):
             raise ValueError("feed payload is missing sponsors[]")
+        kind = str(payload.get("kind") or ("placeholder" if not sponsors else "paid"))
+        placeholder = str(payload.get("placeholder") or "Your Ad Here")
+        valid_sponsors = [s for s in sponsors if isinstance(s, dict)]
+        signature = self._signature(kind, placeholder, valid_sponsors)
         with self._lock:
-            self.kind = str(payload.get("kind") or ("placeholder" if not sponsors else "paid"))
-            self.placeholder = str(payload.get("placeholder") or "Your Ad Here")
-            self.sponsors = [s for s in sponsors if isinstance(s, dict)]
+            self.kind = kind
+            self.placeholder = placeholder
+            self.sponsors = valid_sponsors
+            if signature != self._visual_signature:
+                self._visual_signature = signature
+                self.frame_revision += 1
             self.last_good_refresh = time.time()
             self.last_error = None
 
@@ -121,15 +151,16 @@ class SponsorState:
         with self._lock:
             self.last_error = str(exc)
 
-    def snapshot(self) -> tuple[str, str, list[dict[str, Any]], float, str | None]:
+    def snapshot(self) -> tuple[str, str, list[dict[str, Any]], float, str | None, int]:
         with self._lock:
-            return self.kind, self.placeholder, list(self.sponsors), self.last_good_refresh, self.last_error
+            return self.kind, self.placeholder, list(self.sponsors), self.last_good_refresh, self.last_error, self.frame_revision
 
     def image_for(self, url: str) -> Image.Image | None:
         if not url:
             return None
+        cache_key = self._stable_asset_url(url)
         with self._lock:
-            cached = self._image_cache.get(url)
+            cached = self._image_cache.get(cache_key)
             if cached is not None:
                 return cached.copy()
         try:
@@ -138,7 +169,7 @@ class SponsorState:
                 data = response.read(4_000_000)
             image = Image.open(io.BytesIO(data)).convert("RGBA")
             with self._lock:
-                self._image_cache[url] = image.copy()
+                self._image_cache[cache_key] = image.copy()
                 if len(self._image_cache) > 20:
                     self._image_cache.pop(next(iter(self._image_cache)))
             return image
@@ -148,7 +179,7 @@ class SponsorState:
 
 STATE = SponsorState()
 FRAME_CACHE_LOCK = threading.Lock()
-FRAME_CACHE_KEY: tuple[float, int] | None = None
+FRAME_CACHE_KEY: tuple[int, int] | None = None
 FRAME_CACHE_BYTES = b""
 
 
@@ -244,7 +275,9 @@ def qr_for(url: str, size: int) -> Image.Image | None:
             capture_output=True,
             timeout=5,
         ).stdout
-        return Image.open(io.BytesIO(encoded)).convert("RGB").resize((size, size), Image.Resampling.NEAREST)
+        # Promote palette transparency to a real alpha channel before flattening
+        # so Pillow does not warn during every creative refresh.
+        return Image.open(io.BytesIO(encoded)).convert("RGBA").convert("RGB").resize((size, size), Image.Resampling.NEAREST)
     except Exception:
         return None
 
@@ -294,7 +327,7 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
         box = (505, 145, WIDTH - 48, 390)
         target_w = box[2] - box[0]
         target_h = box[3] - box[1]
-        fitted = ImageOps.contain(creative, (target_w, target_h))
+        fitted = ImageOps.contain(creative, (target_w, target_h)).convert("RGBA")
         canvas = Image.new("RGBA", (target_w, target_h), WHITE)
         canvas.alpha_composite(fitted, ((target_w - fitted.width) // 2, (target_h - fitted.height) // 2))
         image.paste(canvas.convert("RGB"), (box[0], box[1]))
@@ -359,7 +392,7 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
 
 
 def current_frame() -> Image.Image:
-    _kind, placeholder, sponsors, _refreshed, _error = STATE.snapshot()
+    _kind, placeholder, sponsors, _refreshed, _error, _revision = STATE.snapshot()
     if not sponsors:
         return render_placeholder(placeholder)
     index = int(time.time() // ROTATION_SECONDS) % len(sponsors)
@@ -368,9 +401,9 @@ def current_frame() -> Image.Image:
 
 def jpeg_bytes() -> bytes:
     global FRAME_CACHE_BYTES, FRAME_CACHE_KEY
-    _kind, _placeholder, sponsors, refreshed, _error = STATE.snapshot()
+    _kind, _placeholder, sponsors, _refreshed, _error, revision = STATE.snapshot()
     rotation = int(time.time() // ROTATION_SECONDS) if len(sponsors) > 1 else 0
-    key = (refreshed, rotation)
+    key = (revision, rotation)
     with FRAME_CACHE_LOCK:
         if FRAME_CACHE_KEY == key and FRAME_CACHE_BYTES:
             return FRAME_CACHE_BYTES
@@ -391,7 +424,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802
         if self.path.startswith("/healthz"):
-            kind, _placeholder, sponsors, refreshed, error = STATE.snapshot()
+            kind, _placeholder, sponsors, refreshed, error, _revision = STATE.snapshot()
             body = json.dumps(
                 {
                     "ok": True,
@@ -429,6 +462,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "multipart/x-mixed-replace; boundary=frame")
         self.end_headers()
         interval = 1.0 / FPS
+        next_frame_at = time.monotonic()
         try:
             while True:
                 body = jpeg_bytes()
@@ -438,7 +472,14 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.write(body)
                 self.wfile.write(b"\r\n")
                 self.wfile.flush()
-                time.sleep(interval)
+                next_frame_at += interval
+                delay = next_frame_at - time.monotonic()
+                if delay > 0:
+                    time.sleep(delay)
+                elif delay < -interval:
+                    # Do not let a slow client or one expensive refresh create
+                    # permanent timing drift for the rest of the broadcast.
+                    next_frame_at = time.monotonic()
         except (BrokenPipeError, ConnectionResetError):
             return
 
@@ -454,3 +495,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
