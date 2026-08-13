@@ -1,0 +1,80 @@
+name: Deploy FGBears Live
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'services/fgbears-live/**'
+      - '.github/workflows/fgbears-live-deploy.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Require Oracle deployment secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_USER" || { echo 'Missing ORACLE_USER secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+
+      - name: Trust Oracle host key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Install production update and restart stream
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
+            set -Eeuo pipefail
+            rm -rf /tmp/fgbears-live-deploy
+            git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-live-deploy
+            sudo bash /tmp/fgbears-live-deploy/services/fgbears-live/bin/install.sh
+            sudo systemctl enable --now fgbears-live.service
+            sudo systemctl restart fgbears-live.service
+            for i in $(seq 1 30); do
+              if systemctl is-active --quiet fgbears-live.service && curl --silent --fail --max-time 1 http://127.0.0.1:8787/healthz >/tmp/fgbears-overlay-health.json; then
+                cat /tmp/fgbears-overlay-health.json
+                exit 0
+              fi
+              sleep 1
+            done
+            sudo systemctl status fgbears-live.service --no-pager || true
+            sudo journalctl -u fgbears-live.service -n 80 --no-pager || true
+            exit 1
+          '
+
+      - name: Confirm deployed overlay is receiving advertising
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
+            set -Eeuo pipefail
+            health=$(curl --silent --fail --max-time 2 http://127.0.0.1:8787/healthz)
+            printf "%s\n" "$health"
+            printf "%s" "$health" | jq -e ".ok == true" >/dev/null
+          '
