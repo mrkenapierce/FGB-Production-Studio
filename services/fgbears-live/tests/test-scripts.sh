@@ -2,17 +2,47 @@
 set -Eeuo pipefail
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 TMP=$(mktemp -d)
-trap 'rm -rf "$TMP"' EXIT
+OVERLAY_PID=""
+cleanup() {
+  if [[ -n "$OVERLAY_PID" ]] && kill -0 "$OVERLAY_PID" 2>/dev/null; then
+    kill "$OVERLAY_PID" 2>/dev/null || true
+    wait "$OVERLAY_PID" 2>/dev/null || true
+  fi
+  rm -rf "$TMP"
+}
+trap cleanup EXIT
 
 for script in "$ROOT"/bin/*.sh; do
   bash -n "$script"
 done
+python3 -m py_compile "$ROOT/bin/ad-overlay.py"
 
 grep -q 'REPLACE_WITH_YOUTUBE_STREAM_KEY' "$ROOT/config/stream.env.example"
 if find "$ROOT" -type f -name 'stream.env' -print -quit | grep -q .; then
   echo 'A real stream.env file must never be committed.' >&2
   exit 1
 fi
+
+cat > "$TMP/feed.json" <<'JSON'
+{"kind":"house","sponsors":[{"businessName":"Preseason Game One is 8/15/2026","imageUrl":null,"promoMessage":"Join us for trivia and giveaways!","website":"https://epiccontentcreatorgrants.org/epic-media"}]}
+JSON
+SPONSOR_FEED_FILE="$TMP/feed.json" AD_OVERLAY_PORT=18787 python3 "$ROOT/bin/ad-overlay.py" >"$TMP/ad-overlay.log" 2>&1 &
+OVERLAY_PID=$!
+for _ in {1..30}; do
+  curl --silent --fail --max-time 1 http://127.0.0.1:18787/healthz >"$TMP/health.json" && break
+  sleep 0.1
+done
+jq -e '.ok == true and .kind == "house" and .sponsorCount == 1' "$TMP/health.json" >/dev/null
+curl --silent --fail http://127.0.0.1:18787/frame.jpg -o "$TMP/frame.jpg"
+python3 - "$TMP/frame.jpg" <<'PY'
+import sys
+from PIL import Image
+img = Image.open(sys.argv[1])
+assert img.size == (640, 240), img.size
+PY
+kill "$OVERLAY_PID"
+wait "$OVERLAY_PID" 2>/dev/null || true
+OVERLAY_PID=""
 
 mkdir -p "$TMP/media"
 ffmpeg -hide_banner -loglevel error \
