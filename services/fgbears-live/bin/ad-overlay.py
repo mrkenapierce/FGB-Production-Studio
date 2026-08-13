@@ -273,22 +273,44 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
         image.paste(canvas.convert("RGB"), (box[0], box[1]))
         text_x = 585
         text_w = WIDTH - text_x - 60
-        title_font = fit_text(draw, business, text_w, 54, 30)
-        title_lines = wrap_text(draw, business, title_font, text_w, max_lines=2)
-        y = 145
+        headline, event_date = house_event_parts(business) if kind == "house" else (business, "")
+        if kind == "house":
+            draw.text((text_x, 132), "JOIN US FOR", font=font(25, bold=True), fill=GOLD)
+        title_font = fit_text(draw, headline.upper(), text_w, 52, 30)
+        title_lines = wrap_text(draw, headline.upper(), title_font, text_w, max_lines=2)
+        y = 178 if kind == "house" else 145
         for line in title_lines:
             draw.text((text_x, y), line, font=title_font, fill=WHITE)
             y += int(getattr(title_font, "size", 40) * 1.18)
+        if event_date:
+            y += 6
+            draw.text((text_x, y), event_date, font=font(34, bold=True), fill=BEARS_ORANGE)
+            y += 52
         if message:
-            msg_font = font(32)
-            y += 20
+            msg_font = font(29, bold=True)
+            y += 16
             for line in wrap_text(draw, message, msg_font, text_w, max_lines=3):
-                draw.text((text_x, y), line, font=msg_font, fill=MUTED)
-                y += 42
-        if website:
-            site = urllib.parse.urlsplit(website).netloc or website
-            site_font = fit_text(draw, site, text_w, 27, 18)
-            draw.text((text_x, HEIGHT - 142), site, font=site_font, fill=BEARS_ORANGE)
+                draw.text((text_x, y), line.upper(), font=msg_font, fill=GOLD)
+                y += 38
+        qr_destination = EPIC_MEDIA_URL if kind == "house" else website
+        qr_size = 190
+        qr = qr_for(qr_destination, qr_size)
+        if qr is not None:
+            qr_x = WIDTH - qr_size - 48
+            qr_y = 390
+            draw.rounded_rectangle((qr_x - 12, qr_y - 12, qr_x + qr_size + 12, qr_y + qr_size + 55), radius=15, fill=WHITE)
+            image.paste(qr, (qr_x, qr_y))
+            cta = "SCAN TO LEARN MORE"
+            cta_font = fit_text(draw, cta, qr_size, 18, 14)
+            cta_box = draw.textbbox((0, 0), cta, font=cta_font)
+            draw.text((qr_x + (qr_size - (cta_box[2] - cta_box[0])) / 2, qr_y + qr_size + 17), cta, font=cta_font, fill=BEARS_BLUE)
+        if qr_destination:
+            parsed = urllib.parse.urlsplit(qr_destination)
+            site = parsed.netloc + parsed.path
+            site_width = (WIDTH - qr_size - 85) - text_x if qr is not None else text_w
+            site_font = fit_text(draw, site, site_width, 23, 16)
+            draw.text((text_x, HEIGHT - 160), "VISIT", font=font(18, bold=True), fill=MUTED)
+            draw.text((text_x, HEIGHT - 130), site, font=site_font, fill=WHITE)
         add_epic_logo(image)
         return image
 
