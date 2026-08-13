@@ -50,7 +50,15 @@ assert message < mask < label, "crawl text must be masked before the fixed label
 PY
 grep -Fq 'FFMPEG_PROGRESS_FILE' "$ROOT/bin/start-stream.sh"
 grep -Fq 'FFMPEG_HEALTH_SAMPLE_FILE' "$ROOT/bin/healthcheck.sh"
-grep -Fq 'instant_speed=' "$ROOT/bin/healthcheck.sh"
+grep -Fq 'age > 90' "$ROOT/bin/healthcheck.sh"
+if grep -Fq 'Encoder interval speed' "$ROOT/bin/healthcheck.sh"; then
+  echo 'A slow encoder must not trigger a viewer-visible restart loop.' >&2
+  exit 1
+fi
+if grep -Fq 'Advertising creative changed' "$ROOT/bin/start-stream.sh"; then
+  echo 'An advertising update must not trigger a viewer-visible restart.' >&2
+  exit 1
+fi
 grep -Fq 'loudnorm=I=-16:TP=-1.5:LRA=7' "$ROOT/bin/start-stream.sh"
 grep -Fq 'acompressor=threshold=0.125:ratio=3' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-c:a aac -b:a 160k -ar 48000 -ac 2' "$ROOT/bin/start-stream.sh"

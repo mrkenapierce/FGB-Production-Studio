@@ -16,10 +16,10 @@ if ! systemctl is-active --quiet fgbears-live.service; then
   exit 0
 fi
 
-# A process can remain "active" while producing frames too slowly. Treat a
-# stale progress report or sustained real-time slowdown as unhealthy and
-# recover. Compare media progress between timer runs instead of trusting
-# FFmpeg's lifetime average, which is intentionally low during startup.
+# A process can remain "active" after output has stalled. Restart only when
+# FFmpeg stops reporting progress. A speed below real time indicates resource
+# pressure; restarting the same encoder cannot correct it and creates a viewer-
+# visible restart loop.
 [[ -s "$PROGRESS_FILE" ]] || exit 0
 now=$(date +%s)
 updated=$(stat -c %Y "$PROGRESS_FILE")
@@ -34,27 +34,5 @@ if (( age > 90 )); then
 fi
 
 [[ -n "$out_time_us" ]] || exit 0
-if [[ -s "$HEALTH_SAMPLE_FILE" ]]; then
-  read -r previous_epoch previous_out_time_us < "$HEALTH_SAMPLE_FILE" || true
-else
-  previous_epoch=""
-  previous_out_time_us=""
-fi
 printf '%s %s\n' "$now" "$out_time_us" > "${HEALTH_SAMPLE_FILE}.partial"
 mv -f "${HEALTH_SAMPLE_FILE}.partial" "$HEALTH_SAMPLE_FILE"
-
-# A lower media timestamp means the service restarted since the prior sample;
-# use this run as the new baseline rather than causing another restart.
-if [[ -z "$previous_epoch" || -z "$previous_out_time_us" ]] ||
-   (( now <= previous_epoch || out_time_us <= previous_out_time_us )); then
-  exit 0
-fi
-
-wall_delta=$((now - previous_epoch))
-media_delta_us=$((out_time_us - previous_out_time_us))
-instant_speed=$(awk -v media="$media_delta_us" -v wall="$wall_delta" 'BEGIN { printf "%.3f", media / 1000000 / wall }')
-if ! awk -v value="$instant_speed" 'BEGIN { exit !(value >= 0.98) }'; then
-  logger -t fgbears-live-health "Encoder interval speed is ${instant_speed}x; restarting stream."
-  systemctl restart fgbears-live.service
-  rm -f "$HEALTH_SAMPLE_FILE"
-fi

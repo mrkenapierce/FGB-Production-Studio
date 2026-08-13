@@ -114,9 +114,9 @@ time, so existing and newly added episodes receive the same treatment.
 The live encoder uses one local, fixed-rate graphic rather than HTTP video feeds.
 The advertising frame is the sole video clock at 30 fps, while the Lovable crawl is
 drawn directly from reloadable text files. Graphics can no longer become the
-master clock or stall the broadcast. A five-minute watchdog also checks FFmpeg's
-real output progress and recovers the service if it stops advancing or falls
-below 0.98x real time.
+master clock or stall the broadcast. A five-minute watchdog checks FFmpeg's real
+output progress and recovers the service only if output stops advancing; slow
+encoding and ordinary advertising updates do not restart the live video.
 
 At approximately 4.13 Mbps total, continuous outbound transfer is roughly 1.34 TB per 30-day month, comfortably below a 10 TB allowance. Actual usage varies.
 
