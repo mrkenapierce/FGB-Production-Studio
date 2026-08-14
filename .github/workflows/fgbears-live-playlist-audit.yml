@@ -1,0 +1,120 @@
+name: Audit FGBears Live Playlist
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-live-playlist-audit.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-playlist-audit
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  audit:
+    name: Read-only playlist inventory
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require Oracle access secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+
+      - name: Trust Oracle host key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Audit Oracle media and playlist
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MEDIA_DIR=/srv/fgbears-live/media
+          PLAYLIST_FILE=/srv/fgbears-live/playlist.ffconcat
+
+          [[ -d "$MEDIA_DIR" ]] || { echo "ERROR media directory missing"; exit 66; }
+          [[ -f "$PLAYLIST_FILE" ]] || { echo "ERROR playlist missing"; exit 66; }
+
+          duration_of() {
+            local file=$1 seconds
+            seconds=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "$file" 2>/dev/null || true)
+            if [[ -z "$seconds" ]]; then
+              printf 'unknown'
+            else
+              awk -v s="$seconds" 'BEGIN { h=int(s/3600); m=int((s-h*3600)/60); sec=int(s)%60; printf "%02d:%02d:%02d",h,m,sec }'
+            fi
+          }
+
+          mapfile -d '' media_files < <(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4' -print0 | sort -zV)
+          mapfile -t playlist_paths < <(sed -n "s/^file '\(.*\)'$/\1/p" "$PLAYLIST_FILE")
+
+          printf '===== FGBEARS PLAYLIST AUDIT =====\n'
+          printf 'media_count=%d\n' "${#media_files[@]}"
+          printf 'playlist_count=%d\n' "${#playlist_paths[@]}"
+
+          printf '\n===== PLAYLIST ORDER =====\n'
+          index=0
+          for file in "${playlist_paths[@]}"; do
+            index=$((index + 1))
+            if [[ -f "$file" ]]; then
+              printf '%02d\t%s\t%s\n' "$index" "$(basename "$file")" "$(duration_of "$file")"
+            else
+              printf '%02d\t%s\tMISSING_FILE\n' "$index" "$(basename "$file")"
+            fi
+          done
+
+          printf '\n===== MEDIA INVENTORY =====\n'
+          index=0
+          for file in "${media_files[@]}"; do
+            index=$((index + 1))
+            printf '%02d\t%s\t%s\n' "$index" "$(basename "$file")" "$(duration_of "$file")"
+          done
+
+          printf '\n===== DISCREPANCIES =====\n'
+          missing=0
+          for file in "${media_files[@]}"; do
+            found=0
+            for listed in "${playlist_paths[@]}"; do
+              [[ "$file" == "$listed" ]] && { found=1; break; }
+            done
+            if [[ $found -eq 0 ]]; then
+              printf 'MEDIA_NOT_IN_PLAYLIST\t%s\n' "$(basename "$file")"
+              missing=$((missing + 1))
+            fi
+          done
+
+          dangling=0
+          for listed in "${playlist_paths[@]}"; do
+            if [[ ! -f "$listed" ]]; then
+              printf 'PLAYLIST_FILE_MISSING\t%s\n' "$(basename "$listed")"
+              dangling=$((dangling + 1))
+            fi
+          done
+
+          if [[ $missing -eq 0 && $dangling -eq 0 && ${#media_files[@]} -eq ${#playlist_paths[@]} ]]; then
+            echo 'PLAYLIST_MATCHES_MEDIA=yes'
+          else
+            echo 'PLAYLIST_MATCHES_MEDIA=no'
+          fi
+          REMOTE
