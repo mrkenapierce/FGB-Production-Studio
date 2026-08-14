@@ -1,0 +1,58 @@
+name: Audit FGBears Stream Health
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fgbears-stream-health-audit.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require Oracle access secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+
+      - name: Trust Oracle host key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Measure live encoder and verify scheduled checks
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
+            set -Eeuo pipefail
+            printf "SERVICE=%s\n" "$(systemctl is-active fgbears-live.service)"
+            printf "HEALTH_TIMER_ENABLED=%s\n" "$(systemctl is-enabled fgbears-live-health.timer)"
+            printf "HEALTH_TIMER_ACTIVE=%s\n" "$(systemctl is-active fgbears-live-health.timer)"
+            printf "NEXT_HEALTH_RUN=%s\n" "$(systemctl list-timers fgbears-live-health.timer --no-legend 2>/dev/null | awk "{print \$1,\$2,\$3,\$4}" || true)"
+            echo "--- LIVE 20-SECOND ENCODER SAMPLE ---"
+            sudo env STREAM_STATUS_WARN_SPEED=0.95 /usr/local/bin/fgbears-stream-status --sample-seconds 20
+            echo "--- RECENT HEALTH TIMER LOG ---"
+            sudo journalctl -u fgbears-live-health.service -n 8 --no-pager || true
+            test "$(systemctl is-active fgbears-live.service)" = active
+            test "$(systemctl is-enabled fgbears-live-health.timer)" = enabled
+            test "$(systemctl is-active fgbears-live-health.timer)" = active
+          '
