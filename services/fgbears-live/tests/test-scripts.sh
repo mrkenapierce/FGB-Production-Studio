@@ -59,13 +59,18 @@ grep -Fq 'drawtext=fontfile=' "$ROOT/bin/start-stream.sh"
 python3 - "$ROOT/bin/start-stream.sh" <<'PY'
 import sys
 text = open(sys.argv[1], encoding="utf-8").read()
+
+# The crawl message must be rendered only on its cropped 990px lane, then
+# composited into the row between the two orange lane boundaries.
 message = text.index("crawl-message.txt")
-left = text.index("drawbox=x=262:y=589:w=20:h=108", message)
-right = text.index("drawbox=x=1237:y=589:w=20:h=108", left)
-mask = text.index("drawbox=x=18:y=584:w=244:h=118", right)
-separator = text.index("drawbox=x=257:y=589:w=5:h=108:color=0x0B162A", mask)
-label = text.index("crawl-label.txt", separator)
-assert message < left < right < mask < separator < label, "crawl text must enter and exit inside its own lane before the fixed label is drawn"
+crop = text.rfind("[crawl0]crop=w=990:h=108:x=267:y=589", 0, message)
+movement = text.index("x=990-mod(t*105\\,text_w+990)", message)
+overlay = text.index("[withnews][crawllane]overlay=x=267:y=589:shortest=1", movement)
+assert crop < message < movement < overlay, "crawl must be drawn and physically clipped inside its own 990px lane"
+
+left_orange = text.index("drawbox=x=262:y=589:w=5:h=108:color=0xC83803")
+right_orange = text.index("drawbox=x=1257:y=584:w=5:h=118:color=0xC83803")
+assert left_orange < overlay and right_orange < overlay, "orange lane boundaries must be part of the fixed base frame"
 PY
 grep -Fq 'FFMPEG_PROGRESS_FILE' "$ROOT/bin/start-stream.sh"
 grep -Fq 'FFMPEG_HEALTH_SAMPLE_FILE' "$ROOT/bin/healthcheck.sh"
