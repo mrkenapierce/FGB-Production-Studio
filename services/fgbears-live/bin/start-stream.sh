@@ -25,7 +25,7 @@ source "$ENV_FILE"
 : "${FFMPEG_PROGRESS_FILE:=/srv/fgbears-live/logs/ffmpeg-progress.log}"
 : "${AD_FRAME_FILE:=/srv/fgbears-live/runtime/ad-frame.jpg}"
 : "${CRAWL_RUNTIME_DIR:=/srv/fgbears-live/runtime}"
-: "${PODCAST_AUDIO_FILTER:=highpass=f=70:poles=2,afftdn=nr=8:nf=-45:tn=1,equalizer=f=160:t=q:w=1:g=1.5,equalizer=f=320:t=q:w=1.1:g=-2,equalizer=f=3000:t=q:w=0.9:g=2,deesser=i=0.25:m=0.5:f=0.5,acompressor=threshold=0.125:ratio=3:attack=15:release=180:makeup=1.4:knee=3,loudnorm=I=-16:TP=-1.5:LRA=7,aresample=48000:async=1:first_pts=0}"
+: "${PODCAST_AUDIO_FILTER:=highpass=f=85:poles=2,afftdn=nr=8:nf=-45:tn=1,equalizer=f=160:t=q:w=1:g=-2.5,equalizer=f=320:t=q:w=1.1:g=-1,equalizer=f=3000:t=q:w=0.9:g=1.5,deesser=i=0.25:m=0.5:f=0.5,acompressor=threshold=0.125:ratio=3:attack=15:release=180:makeup=1.4:knee=3,loudnorm=I=-16:TP=-1.5:LRA=7,aresample=48000:async=1:first_pts=0}"
 
 [[ "$YOUTUBE_STREAM_KEY" != "REPLACE_WITH_YOUTUBE_STREAM_KEY" ]] || {
   echo "Replace the placeholder YouTube stream key in $ENV_FILE" >&2
