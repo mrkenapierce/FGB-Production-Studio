@@ -60,9 +60,10 @@ python3 - "$ROOT/bin/start-stream.sh" <<'PY'
 import sys
 text = open(sys.argv[1], encoding="utf-8").read()
 message = text.index("crawl-message.txt")
-mask = text.index("drawbox=x=0:y=585:w=275", message)
-label = text.index("crawl-label.txt", mask)
-assert message < mask < label, "crawl text must be masked before the fixed label is drawn"
+mask = text.index("drawbox=x=18:y=578:w=244:h=118", message)
+separator = text.index("drawbox=x=257:y=583:w=5:h=108:color=0x0B162A", mask)
+label = text.index("crawl-label.txt", separator)
+assert message < mask < separator < label, "crawl text must be masked by the orange label before the blue divider and fixed label are drawn"
 PY
 grep -Fq 'FFMPEG_PROGRESS_FILE' "$ROOT/bin/start-stream.sh"
 grep -Fq 'FFMPEG_HEALTH_SAMPLE_FILE' "$ROOT/bin/healthcheck.sh"
