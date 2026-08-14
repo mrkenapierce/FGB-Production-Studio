@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import base64
-import io
 from pathlib import Path
 import runpy
 
@@ -33,15 +31,11 @@ assert image_only_creative({"imageUrl": "x", "layout": "full-bleed"}) is True
 assert image_only_creative({"imageUrl": "x"}) is True
 assert image_only_creative({"imageUrl": "x", "promoMessage": "Offer"}) is False
 
-asset_parts = [
-    root / "assets" / "chicago-green-bay-comparison.jpg.base64.txt",
-    root / "assets" / "chicago-green-bay-comparison.jpg.base64.part2.txt",
-]
-encoded = "".join(path.read_text(encoding="ascii") for path in asset_parts)
-decoded = base64.b64decode(encoded, validate=True)
-chart = Image.open(io.BytesIO(decoded))
+asset = root / "assets" / "chicago-green-bay-comparison.jpg"
+chart = Image.open(asset)
 assert chart.format == "JPEG", chart.format
 assert chart.size == (550, 324), chart.size
+chart.verify()
 
 source = renderer.read_text(encoding="utf-8")
 assert "ImageOps.fit(" in source, "image creatives must crop/fill instead of letterboxing"
@@ -51,8 +45,8 @@ assert "FRAME_PUBLISH_SECONDS" in source
 assert "render_house_interstitial" in source
 
 install = (root / "bin" / "install.sh").read_text(encoding="utf-8")
-assert "chicago-green-bay-comparison.jpg.base64.txt" in install
-assert "chicago-green-bay-comparison.jpg.base64.part2.txt" in install
-assert "> /opt/fgbears-live/assets/chicago-green-bay-comparison.jpg" in install
+assert '"$SOURCE_DIR/assets/chicago-green-bay-comparison.jpg"' in install
+assert "/opt/fgbears-live/assets/chicago-green-bay-comparison.jpg" in install
+assert ".base64.part2.txt" not in install
 
 print("Five-second house interstitial tests passed.")
