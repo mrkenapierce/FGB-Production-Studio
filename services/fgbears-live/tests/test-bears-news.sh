@@ -31,8 +31,11 @@ grep -q '^BEARS_NEWS_SCROLL_PPS=90$' "$ROOT/config/stream.env.example"
 grep -q '^OUTPUT_FPS=24$' "$ROOT/config/stream.env.example"
 grep -q '^VIDEO_GOP=48$' "$ROOT/config/stream.env.example"
 grep -q '^DRAWTEXT_RELOAD_FRAMES=24$' "$ROOT/config/stream.env.example"
+# shellcheck disable=SC2016
 grep -Fq -- '-loop 1 -framerate "$OUTPUT_FPS"' "$ROOT/bin/start-stream.sh"
+# shellcheck disable=SC2016
 grep -Fq -- '-g "$VIDEO_GOP" -keyint_min "$VIDEO_GOP"' "$ROOT/bin/start-stream.sh"
+# shellcheck disable=SC2016
 grep -Fq -- '-r "$OUTPUT_FPS" -fps_mode cfr -threads 0' "$ROOT/bin/start-stream.sh"
 if grep -Fq 'reload=1:' "$ROOT/bin/start-stream.sh"; then
   echo 'Dynamic drawtext must not reload files every video frame.' >&2
