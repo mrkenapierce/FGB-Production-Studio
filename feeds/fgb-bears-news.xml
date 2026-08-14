@@ -5,58 +5,58 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Original FGB-written Chicago Bears news briefs with source attribution for Football's Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 14 Aug 2026 16:58:00 -0500</lastBuildDate>
+    <lastBuildDate>Fri, 14 Aug 2026 17:08:00 -0500</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bagent gets the preseason start while key Bears starters sit</title>
-      <description>FGB brief: Tyson Bagent will open Saturday's preseason game at quarterback as Chicago rests Caleb Williams and several other first-team players.</description>
-      <link>https://www.windycitygridiron.com/chicago-bears-training-camp/120616/tyson-bagent-ends-practice-with-a-long-td-will-start-for-bears-on-saturday</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-14-001</guid>
-      <pubDate>Thu, 13 Aug 2026 17:00:00 -0500</pubDate>
-      <category>normal</category>
-      <source url="https://www.windycitygridiron.com/">Windy City Gridiron</source>
-    </item>
-
-    <item>
-      <title>Bears leadership says Hammond is now the stadium focus</title>
-      <description>FGB brief: George McCaskey and Kevin Warren say planning resources are centered on Hammond, Indiana, while the franchise would keep the Chicago Bears name wherever the stadium is built.</description>
-      <link>https://www.reuters.com/sports/bears-not-changing-name-hammond-ind-might-be-reality--flm-2026-08-13/</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-14-002</guid>
-      <pubDate>Thu, 13 Aug 2026 17:01:43 -0500</pubDate>
-      <category>major</category>
-      <source url="https://www.reuters.com/">Reuters</source>
-    </item>
-
-    <item>
-      <title>Bears host Browns Saturday in their 2026 preseason opener</title>
-      <description>FGB brief: Chicago opens the preseason at Soldier Field against Cleveland at noon Central, with the Bears Network carrying the game locally.</description>
+      <title>Bears open the 2026 preseason Saturday against Cleveland at Soldier Field with kickoff set for noon Central</title>
+      <description>FGB brief: Chicago's lone home preseason game is Saturday against the Browns before the Bears finish the exhibition schedule with two road games.</description>
       <link>https://www.chicagobears.com/schedule/2026/</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-14-003</guid>
-      <pubDate>Fri, 14 Aug 2026 09:00:00 -0500</pubDate>
+      <guid isPermaLink="false">fgb-bears-news-2026-08-14-101</guid>
+      <pubDate>Fri, 14 Aug 2026 17:08:00 -0500</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
-      <title>Optimistic Bears outlook hinges on health, young weapons and a Caleb leap</title>
-      <description>FGB opinion brief: One upbeat 2026 scenario has Chicago contending if the roster stabilizes physically, its young pass catchers break out, the defense improves and Caleb Williams reaches another level.</description>
-      <link>https://www.windycitygridiron.com/chicago-bears-discussion/120620/five-ways-it-could-all-go-right-for-the-chicago-bears-in-2026</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-14-004</guid>
-      <pubDate>Fri, 14 Aug 2026 07:30:00 -0500</pubDate>
-      <category>opinion</category>
-      <source url="https://www.windycitygridiron.com/">Windy City Gridiron</source>
+      <title>NFL schedule sends the Bears to joint practices in Cincinnati and Tennessee before their final two preseason games</title>
+      <description>FGB brief: Chicago is scheduled to practice with the Bengals on August 20 and the Titans on August 27 before playing each club on the road.</description>
+      <link>https://www.nfl.com/news/nfl-joint-practice-schedule-2026-preseason-dates-locations-teams</link>
+      <guid isPermaLink="false">fgb-bears-news-2026-08-14-102</guid>
+      <pubDate>Fri, 14 Aug 2026 17:08:00 -0500</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/">NFL.com</source>
     </item>
 
     <item>
-      <title>Opinion: Bears stadium push renews debate over teams leaving city centers</title>
-      <description>FGB opinion brief: The Bears' focus on Hammond is feeding a broader argument about whether new stadium economics are pulling historic NFL franchises away from the urban fan bases that built them.</description>
-      <link>https://talksport.com/nfl/4277070/roger-goodell-stadium-relocation-bears-browns-chiefs-fans/</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-14-005</guid>
-      <pubDate>Fri, 14 Aug 2026 05:52:49 -0500</pubDate>
-      <category>opinion</category>
-      <source url="https://talksport.com/">talkSPORT</source>
+      <title>Yahoo's camp calendar shows two more public Bears practices at Halas Hall after Saturday's Cleveland preseason opener</title>
+      <description>FGB brief: Chicago's remaining listed public training camp practices are August 18 and August 25, with road joint practices and preseason games in between.</description>
+      <link>https://sports.yahoo.com/nfl/article/nfl-training-camp-schedules-2026-report-dates-locations-joint-practices-preseason-games-and-more-for-all-32-teams-172324825.html</link>
+      <guid isPermaLink="false">fgb-bears-news-2026-08-14-103</guid>
+      <pubDate>Fri, 14 Aug 2026 17:08:00 -0500</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>CBS lists Cleveland first before Chicago finishes the preseason with road games against Cincinnati and Tennessee</title>
+      <description>FGB brief: CBS Sports lists the Browns at Soldier Field on August 15, followed by Bears road dates at Cincinnati on August 22 and Tennessee on August 29.</description>
+      <link>https://www.cbssports.com/nfl/teams/CHI/chicago-bears/</link>
+      <guid isPermaLink="false">fgb-bears-news-2026-08-14-104</guid>
+      <pubDate>Fri, 14 Aug 2026 17:08:00 -0500</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Sports Illustrated says Bears camp questions center on Caleb Williams' accuracy, pass rush and replacing veteran leadership</title>
+      <description>FGB analysis: Chicago enters the preseason evaluating whether offensive continuity, defensive pressure and younger players can answer several of the roster's biggest questions.</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-2026-training-camp-primer-the-true-challenge-defined</link>
+      <guid isPermaLink="false">fgb-bears-news-2026-08-14-105</guid>
+      <pubDate>Fri, 14 Aug 2026 17:08:00 -0500</pubDate>
+      <category>analysis</category>
+      <source url="https://www.si.com/nfl/bears/onsi">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
