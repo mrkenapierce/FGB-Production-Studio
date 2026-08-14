@@ -19,11 +19,9 @@ rsync -a --delete "$SOURCE_DIR/" /opt/fgbears-live/
 install -d -m 0755 /opt/fgbears-live/assets
 base64 --decode "$SOURCE_DIR/../../renderer/assets/epic-logo-for-qr.base64.txt" > /opt/fgbears-live/assets/epic-logo.png
 chmod 0644 /opt/fgbears-live/assets/epic-logo.png
-cat \
-  "$SOURCE_DIR/assets/chicago-green-bay-comparison.jpg.base64.txt" \
-  "$SOURCE_DIR/assets/chicago-green-bay-comparison.jpg.base64.part2.txt" \
-  | base64 --decode > /opt/fgbears-live/assets/chicago-green-bay-comparison.jpg
-chmod 0644 /opt/fgbears-live/assets/chicago-green-bay-comparison.jpg
+install -m 0644 \
+  "$SOURCE_DIR/assets/chicago-green-bay-comparison.jpg" \
+  /opt/fgbears-live/assets/chicago-green-bay-comparison.jpg
 install -d -o fgbears -g fgbears -m 0755 /srv/fgbears-live /srv/fgbears-live/media /srv/fgbears-live/incoming /srv/fgbears-live/logs /srv/fgbears-live/runtime
 install -d -o root -g root -m 0755 /srv/fgbears-live/health
 install -d -o root -g fgbears -m 0750 /etc/fgbears-live
