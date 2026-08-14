@@ -15,7 +15,7 @@ FEED_URL = os.getenv(
 )
 FEED_FILE = os.getenv("BEARS_NEWS_FEED_FILE")
 POLL_SECONDS = max(30, int(os.getenv("BEARS_NEWS_POLL_SECONDS", "300")))
-ROTATE_SECONDS = max(8, int(os.getenv("BEARS_NEWS_ROTATE_SECONDS", "18")))
+ROTATE_SECONDS = max(8, int(os.getenv("BEARS_NEWS_ROTATE_SECONDS", "30")))
 MAX_ITEMS = max(1, min(20, int(os.getenv("BEARS_NEWS_MAX_ITEMS", "8"))))
 RUNTIME_DIR = Path(os.getenv("CRAWL_RUNTIME_DIR", "/srv/fgbears-live/runtime"))
 
@@ -66,7 +66,10 @@ def load_items() -> list[dict[str, str]]:
     root = ET.fromstring(read_feed_bytes())
     items: list[dict[str, str]] = []
     for item in root.findall("./channel/item")[:MAX_ITEMS]:
-        title = shorten(item.findtext("title") or "", 66)
+        # Preserve normal news headlines instead of forcing them into the old
+        # lower-third width. The upper-third renderer decides whether to hold
+        # them static or scroll them when they exceed the available viewport.
+        title = shorten(item.findtext("title") or "", 140)
         if not title:
             continue
         category = normalize(item.findtext("category")).lower()

@@ -27,4 +27,6 @@ jobs:
       - name: ShellCheck
         run: shellcheck services/fgbears-live/bin/*.sh services/fgbears-live/tests/*.sh
       - name: Functional tests
-        run: bash services/fgbears-live/tests/test-scripts.sh
+        run: |
+          bash services/fgbears-live/tests/test-scripts.sh
+          bash services/fgbears-live/tests/test-bears-news.sh
