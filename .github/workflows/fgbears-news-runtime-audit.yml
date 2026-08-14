@@ -45,12 +45,16 @@ jobs:
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
             set -Eeuo pipefail
             runtime=/srv/fgbears-live/runtime
-            printf "service=%s\n" "$(systemctl is-active fgbears-live.service)"
-            printf "active=%s\n" "$(cat "$runtime/bears-news-active" 2>/dev/null || printf missing)"
-            printf "label=%s\n" "$(cat "$runtime/bears-news-label.txt" 2>/dev/null || printf missing)"
-            printf "headline=%s\n" "$(cat "$runtime/bears-news-message.txt" 2>/dev/null || printf missing)"
-            test "$(systemctl is-active fgbears-live.service)" = active
-            test -s "$runtime/bears-news-label.txt"
-            test -s "$runtime/bears-news-message.txt"
-            test "$(cat "$runtime/bears-news-active")" = 1
+            service=$(systemctl is-active fgbears-live.service)
+            active=$(sudo cat "$runtime/bears-news-active")
+            label=$(sudo cat "$runtime/bears-news-label.txt")
+            headline=$(sudo cat "$runtime/bears-news-message.txt")
+            printf "service=%s\n" "$service"
+            printf "active=%s\n" "$active"
+            printf "label=%s\n" "$label"
+            printf "headline=%s\n" "$headline"
+            test "$service" = active
+            test -n "$label"
+            test -n "$headline"
+            test "$active" = 1
           '
