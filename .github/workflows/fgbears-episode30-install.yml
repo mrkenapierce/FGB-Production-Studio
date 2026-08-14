@@ -31,17 +31,18 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          yt-dlp --flat-playlist --playlist-end 20 --print '%(id)s\t%(title)s' "$CHANNEL_URL" > /tmp/fgb-videos.tsv
-          cat /tmp/fgb-videos.tsv
-          video_id=$(awk -F '\t' '
+          yt-dlp --flat-playlist --playlist-end 20 --print '%(id)s|||%(title)s' "$CHANNEL_URL" > /tmp/fgb-videos.txt
+          cat /tmp/fgb-videos.txt
+          video_id=$(awk -F '\|\|\|' '
             BEGIN { IGNORECASE=1 }
             $2 ~ /Don.t Panic About the Bears/ { print $1; exit }
-            $2 ~ /Episode[[:space:]]*30/ { print $1; exit }
-          ' /tmp/fgb-videos.tsv)
+            $2 ~ /Episode[[:space:]]*0*30/ { print $1; exit }
+          ' /tmp/fgb-videos.txt)
           if [[ -z "$video_id" ]]; then
             echo 'Episode 30 was not found among the 20 most recent public channel videos.' >&2
             exit 1
           fi
+          printf 'Resolved Episode 30 video ID: %s\n' "$video_id"
           printf 'VIDEO_ID=%s\n' "$video_id" >> "$GITHUB_ENV"
 
       - name: Download Episode 30 audio
