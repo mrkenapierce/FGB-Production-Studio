@@ -1,0 +1,80 @@
+name: Validate FGBears News Integrity
+
+on:
+  push:
+    paths:
+      - 'feeds/fgb-bears-news.xml'
+      - 'services/fgbears-live/bin/bears-news-feed.py'
+      - '.github/workflows/fgbears-news-integrity.yml'
+  pull_request:
+    paths:
+      - 'feeds/fgb-bears-news.xml'
+      - 'services/fgbears-live/bin/bears-news-feed.py'
+      - '.github/workflows/fgbears-news-integrity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-full-text:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify every headline and source survives runtime processing intact
+        run: |
+          python3 - <<'PY'
+          import importlib.util
+          import os
+          import tempfile
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          repo = Path.cwd()
+          feed = repo / 'feeds/fgb-bears-news.xml'
+          script = repo / 'services/fgbears-live/bin/bears-news-feed.py'
+          runtime = Path(tempfile.mkdtemp(prefix='fgb-news-integrity-'))
+
+          os.environ['BEARS_NEWS_FEED_FILE'] = str(feed)
+          os.environ['CRAWL_RUNTIME_DIR'] = str(runtime)
+          os.environ['BEARS_NEWS_MAX_ITEMS'] = '20'
+
+          spec = importlib.util.spec_from_file_location('fgb_bears_news_feed', script)
+          module = importlib.util.module_from_spec(spec)
+          assert spec.loader is not None
+          spec.loader.exec_module(module)
+
+          message = module.load_message()
+          module.publish(message)
+          rendered = (runtime / 'bears-news-message.txt').read_text(encoding='utf-8').strip()
+
+          root = ET.parse(feed).getroot()
+          expected_segments = []
+          for item in root.findall('./channel/item')[:module.MAX_ITEMS]:
+              title = module.normalize(item.findtext('title'))
+              if not title:
+                  continue
+              category = module.normalize(item.findtext('category')).lower()
+              prefix = 'BREAKING: ' if category == 'breaking' else ''
+              source = module.source_name(item)
+              expected_segments.append(f'{prefix}{title}  •  SOURCE: {source}'.upper())
+
+          actual_segments = [segment.strip() for segment in rendered.split(module.SEPARATOR.strip()) if segment.strip()]
+          if actual_segments != expected_segments:
+              print('EXPECTED SEGMENTS:')
+              for segment in expected_segments:
+                  print(repr(segment))
+              print('ACTUAL SEGMENTS:')
+              for segment in actual_segments:
+                  print(repr(segment))
+              raise SystemExit('RSS runtime text mismatch: a headline/source was changed, truncated, or reordered.')
+
+          for item, segment in zip(root.findall('./channel/item')[:module.MAX_ITEMS], actual_segments):
+              source = module.source_name(item).upper()
+              if not segment.endswith(f'SOURCE: {source}'):
+                  raise SystemExit(f'Incomplete source attribution detected: expected full source {source!r}')
+
+          print(f'PASS: {len(expected_segments)} FGB news items preserve every headline and source character exactly.')
+          PY
