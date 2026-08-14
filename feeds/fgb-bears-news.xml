@@ -5,38 +5,58 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Original FGB-written Chicago Bears news briefs with source attribution for Football's Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 14 Aug 2026 14:48:00 -0500</lastBuildDate>
+    <lastBuildDate>Fri, 14 Aug 2026 16:58:00 -0500</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bagent to start Saturday as Bears rest several starters</title>
-      <description>FGB brief: Tyson Bagent is set to start against Cleveland while Caleb Williams and several Bears starters are expected to sit.</description>
-      <link>https://www.windycitygridiron.com/chicago-bears-news/120634/chicago-bears-news-tyson-bagent-to-start-many-first-teamers-resting-against-cleveland</link>
+      <title>Bagent gets the preseason start while key Bears starters sit</title>
+      <description>FGB brief: Tyson Bagent will open Saturday's preseason game at quarterback as Chicago rests Caleb Williams and several other first-team players.</description>
+      <link>https://www.windycitygridiron.com/chicago-bears-training-camp/120616/tyson-bagent-ends-practice-with-a-long-td-will-start-for-bears-on-saturday</link>
       <guid isPermaLink="false">fgb-bears-news-2026-08-14-001</guid>
-      <pubDate>Fri, 14 Aug 2026 10:30:00 -0500</pubDate>
+      <pubDate>Thu, 13 Aug 2026 17:00:00 -0500</pubDate>
       <category>normal</category>
       <source url="https://www.windycitygridiron.com/">Windy City Gridiron</source>
     </item>
 
     <item>
-      <title>Bears say stadium planning is focused on Hammond, Indiana</title>
-      <description>FGB brief: Bears leadership says current stadium planning is centered on Hammond while the franchise intends to remain the Chicago Bears.</description>
+      <title>Bears leadership says Hammond is now the stadium focus</title>
+      <description>FGB brief: George McCaskey and Kevin Warren say planning resources are centered on Hammond, Indiana, while the franchise would keep the Chicago Bears name wherever the stadium is built.</description>
       <link>https://www.reuters.com/sports/bears-not-changing-name-hammond-ind-might-be-reality--flm-2026-08-13/</link>
       <guid isPermaLink="false">fgb-bears-news-2026-08-14-002</guid>
-      <pubDate>Thu, 13 Aug 2026 17:01:00 -0500</pubDate>
+      <pubDate>Thu, 13 Aug 2026 17:01:43 -0500</pubDate>
       <category>major</category>
       <source url="https://www.reuters.com/">Reuters</source>
     </item>
 
     <item>
-      <title>Bears host Browns Saturday in 2026 preseason opener</title>
-      <description>FGB brief: Chicago opens its 2026 preseason schedule at Soldier Field against Cleveland on Saturday, August 15.</description>
+      <title>Bears host Browns Saturday in their 2026 preseason opener</title>
+      <description>FGB brief: Chicago opens the preseason at Soldier Field against Cleveland at noon Central, with the Bears Network carrying the game locally.</description>
       <link>https://www.chicagobears.com/schedule/2026/</link>
       <guid isPermaLink="false">fgb-bears-news-2026-08-14-003</guid>
       <pubDate>Fri, 14 Aug 2026 09:00:00 -0500</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Optimistic Bears outlook hinges on health, young weapons and a Caleb leap</title>
+      <description>FGB opinion brief: One upbeat 2026 scenario has Chicago contending if the roster stabilizes physically, its young pass catchers break out, the defense improves and Caleb Williams reaches another level.</description>
+      <link>https://www.windycitygridiron.com/chicago-bears-discussion/120620/five-ways-it-could-all-go-right-for-the-chicago-bears-in-2026</link>
+      <guid isPermaLink="false">fgb-bears-news-2026-08-14-004</guid>
+      <pubDate>Fri, 14 Aug 2026 07:30:00 -0500</pubDate>
+      <category>opinion</category>
+      <source url="https://www.windycitygridiron.com/">Windy City Gridiron</source>
+    </item>
+
+    <item>
+      <title>Opinion: Bears stadium push renews debate over teams leaving city centers</title>
+      <description>FGB opinion brief: The Bears' focus on Hammond is feeding a broader argument about whether new stadium economics are pulling historic NFL franchises away from the urban fan bases that built them.</description>
+      <link>https://talksport.com/nfl/4277070/roger-goodell-stadium-relocation-bears-browns-chiefs-fans/</link>
+      <guid isPermaLink="false">fgb-bears-news-2026-08-14-005</guid>
+      <pubDate>Fri, 14 Aug 2026 05:52:49 -0500</pubDate>
+      <category>opinion</category>
+      <source url="https://talksport.com/">talkSPORT</source>
     </item>
   </channel>
 </rss>
