@@ -117,14 +117,15 @@ FFMPEG_PID=""
 
 # The local advertising frame is the sole 30 fps video clock. Source video is
 # never decoded or displayed; the playlist supplies only the podcast audio.
-# Bears news is a separate static information band immediately above the crawl.
+# Bears news replaces the former upper-third title. Short headlines stay still;
+# long headlines scroll through the news viewport. The lower crawl is unchanged.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
   -re -stream_loop -1 -fflags +genpts \
   -f concat -safe 0 -i "$PLAYLIST_FILE" \
   -loop 1 -framerate 30 -i "$AD_FRAME_FILE" \
-  -filter_complex "[1:v]scale=1280:720,drawbox=x=0:y=500:w=1280:h=78:color=0x0B162A@0.97:t=fill,drawbox=x=0:y=500:w=1280:h=5:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/bears-news-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=24:x=238:y=526,drawbox=x=0:y=505:w=218:h=73:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/bears-news-label.txt:reload=1:expansion=none:fontcolor=white:fontsize=24:x=(218-text_w)/2:y=526,drawbox=x=0:y=578:w=1280:h=118:color=0x07101F@0.95:t=fill,drawbox=x=0:y=578:w=1280:h=7:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/crawl-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=31:x=w-mod(t*105\,w+text_w+100):y=620,drawbox=x=0:y=585:w=275:h=111:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/crawl-label.txt:reload=1:expansion=none:fontcolor=white:fontsize=29:x=(245-text_w)/2:y=620,format=yuv420p[v]" \
+  -filter_complex "[1:v]scale=1280:720,drawbox=x=18:y=18:w=1244:h=78:color=0x0B162A@0.98:t=fill,drawbox=x=18:y=18:w=1244:h=5:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/bears-news-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=24:x=if(lte(text_w\,974)\,268\,1262-mod(t*105\,text_w+994)):y=44,drawbox=x=18:y=23:w=250:h=73:color=0x0B162A@0.98:t=fill,drawbox=x=18:y=23:w=230:h=73:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/bears-news-label.txt:reload=1:expansion=none:fontcolor=white:fontsize=24:x=18+(230-text_w)/2:y=44,drawbox=x=0:y=578:w=1280:h=118:color=0x07101F@0.95:t=fill,drawbox=x=0:y=578:w=1280:h=7:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/crawl-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=31:x=w-mod(t*105\,w+text_w+100):y=620,drawbox=x=0:y=585:w=275:h=111:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/crawl-label.txt:reload=1:expansion=none:fontcolor=white:fontsize=29:x=(245-text_w)/2:y=620,format=yuv420p[v]" \
   -map "[v]" -map 0:a:0 \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
   -b:v 4000k -maxrate 4500k -bufsize 8000k \
