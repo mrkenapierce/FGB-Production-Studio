@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Dynamic FGBears full-screen advertising interstitial.
+"""Dynamic FGBears advertising panel renderer.
 
-Polls the public Lovable sponsor feed and serves a 1280x720 MJPEG creative that
-FFmpeg displays as a timed, full-screen interstitial in the live broadcast.
-The feed already applies paid-ad -> House Ad -> placeholder priority.
+Polls the public Lovable sponsor feed and publishes a 1280x720 frame that
+FFmpeg uses as the permanent visual source. Paid/house creatives rotate in the
+right-side ad panel while the locked FGBears frame, EPIC panel, News, and Crawl
+remain independent.
 """
 from __future__ import annotations
 
@@ -30,6 +31,8 @@ FEED_URL = os.getenv(
 FEED_FILE = os.getenv("SPONSOR_FEED_FILE", "").strip()
 POLL_SECONDS = max(5, int(os.getenv("SPONSOR_POLL_SECONDS", "10")))
 ROTATION_SECONDS = max(5, int(os.getenv("AD_ROTATION_SECONDS", "20")))
+HOUSE_INTERSTITIAL_SECONDS = max(1, int(os.getenv("HOUSE_INTERSTITIAL_SECONDS", "5")))
+FRAME_PUBLISH_SECONDS = max(0.25, float(os.getenv("AD_FRAME_PUBLISH_SECONDS", "0.5")))
 PORT = int(os.getenv("AD_OVERLAY_PORT", "8787"))
 WIDTH = 1280
 HEIGHT = 720
@@ -44,10 +47,21 @@ MUTED = "#D5D9E2"
 GOLD = "#F2B134"
 EPIC_MEDIA_URL = "https://epiccontentcreatorgrants.org/epic-media"
 
+# This is the entire editable advertising area that remains visible between
+# the News and Crawl bands. Image-only creatives fill it edge-to-edge.
+AD_PANEL_BOX = (462, 104, WIDTH - 20, 574)
+
 FONT_REGULAR = os.getenv("AD_FONT_REGULAR", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
 FONT_BOLD = os.getenv("AD_FONT_BOLD", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
 EPIC_LOGO_PATH = os.getenv("EPIC_LOGO_PATH", "/opt/fgbears-live/assets/epic-logo.png")
+HOUSE_INTERSTITIAL_PATH = Path(
+    os.getenv(
+        "HOUSE_INTERSTITIAL_PATH",
+        "/opt/fgbears-live/assets/chicago-green-bay-comparison.jpg",
+    )
+)
 PUBLISHED_FRAME = Path(os.getenv("AD_FRAME_FILE", "/srv/fgbears-live/runtime/ad-frame.jpg"))
+ROTATION_EPOCH = time.time()
 
 
 def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
@@ -255,8 +269,10 @@ class SponsorState:
 
 STATE = SponsorState()
 FRAME_CACHE_LOCK = threading.Lock()
-FRAME_CACHE_KEY: tuple[int, int] | None = None
+FRAME_CACHE_KEY: tuple[int, int, int] | None = None
 FRAME_CACHE_BYTES = b""
+HOUSE_IMAGE_LOCK = threading.Lock()
+HOUSE_IMAGE_CACHE: Image.Image | None = None
 
 
 def load_feed_payload() -> dict[str, Any]:
@@ -285,11 +301,20 @@ def poll_feed() -> None:
     while True:
         try:
             STATE.update(load_feed_payload())
-            publish_frame()
         except Exception as exc:
             # Keep the last good ad during a transient network failure.
             STATE.error(exc)
         time.sleep(POLL_SECONDS)
+
+
+def publish_frames() -> None:
+    """Refresh the local still often enough to honor a five-second slot."""
+    while True:
+        try:
+            publish_frame()
+        except Exception as exc:
+            STATE.error(exc)
+        time.sleep(FRAME_PUBLISH_SECONDS)
 
 
 def draw_centered(draw: ImageDraw.ImageDraw, text: str, y: int, f: ImageFont.ImageFont, fill: str) -> int:
@@ -393,10 +418,19 @@ def format_event_date(value: Any) -> str:
     return f"{months[month_number]} {day_number}, {year}"
 
 
+def _house_copy(value: Any, kind: str) -> str:
+    """Remove legacy generic ad copy from house posts in every text position."""
+    cleaned = str(value or "").strip()
+    if kind == "house" and cleaned.casefold() in {"advertisement", "advertising", "ad"}:
+        return ""
+    return cleaned
+
+
 def sponsor_text_parts(sponsor: dict[str, Any], kind: str) -> tuple[str, str, str]:
-    business = str(sponsor.get("businessName") or "Advertisement").strip()
-    supplied_title = str(sponsor.get("title") or business).strip()
-    subtitle = str(sponsor.get("subtitle") or "").strip()
+    fallback = "" if kind == "house" else "Advertisement"
+    business = _house_copy(sponsor.get("businessName") or fallback, kind)
+    supplied_title = _house_copy(sponsor.get("title") or business, kind)
+    subtitle = _house_copy(sponsor.get("subtitle") or "", kind)
     headline, embedded_date = house_event_parts(supplied_title) if kind == "house" else (supplied_title, "")
     supplied_date = next(
         (sponsor.get(key) for key in ("eventStartsAt", "eventDate", "date", "startsAt") if sponsor.get(key)),
@@ -408,6 +442,78 @@ def sponsor_text_parts(sponsor: dict[str, Any], kind: str) -> tuple[str, str, st
 def show_advertisement_label(kind: str) -> bool:
     """House posts are owned programming, not paid advertising disclosures."""
     return kind != "house"
+
+
+def image_only_creative(sponsor: dict[str, Any]) -> bool:
+    """Detect a requested/full-bleed image post without relying on one feed schema."""
+    for key in ("fullScreen", "fullscreen", "fullBleed", "imageOnly"):
+        value = sponsor.get(key)
+        if value is True or str(value or "").strip().casefold() in {"1", "true", "yes", "on"}:
+            return True
+    for key in ("displayMode", "layout", "imageLayout", "creativeLayout", "creativeType"):
+        value = str(sponsor.get(key) or "").strip().casefold().replace("_", "-")
+        if value in {"full", "fullscreen", "full-screen", "full-bleed", "image", "image-only"}:
+            return True
+    # Image posts with no supporting copy are treated as full-panel creatives.
+    supporting = [
+        sponsor.get("subtitle"),
+        sponsor.get("promoMessage"),
+        sponsor.get("website"),
+        sponsor.get("eventStartsAt"),
+        sponsor.get("eventDate"),
+        sponsor.get("date"),
+        sponsor.get("startsAt"),
+    ]
+    return not any(str(value or "").strip() for value in supporting)
+
+
+def paste_image_fill(image: Image.Image, creative: Image.Image, box: tuple[int, int, int, int]) -> None:
+    """Fill a box with image pixels only: no white/colored image background."""
+    x1, y1, x2, y2 = box
+    target_w = x2 - x1
+    target_h = y2 - y1
+    fitted = ImageOps.fit(
+        creative.convert("RGB"),
+        (target_w, target_h),
+        method=Image.Resampling.LANCZOS,
+        centering=(0.5, 0.5),
+    )
+    image.paste(fitted, (x1, y1))
+
+
+def load_house_interstitial() -> Image.Image | None:
+    global HOUSE_IMAGE_CACHE
+    with HOUSE_IMAGE_LOCK:
+        if HOUSE_IMAGE_CACHE is not None:
+            return HOUSE_IMAGE_CACHE.copy()
+        try:
+            HOUSE_IMAGE_CACHE = Image.open(HOUSE_INTERSTITIAL_PATH).convert("RGB")
+            return HOUSE_IMAGE_CACHE.copy()
+        except OSError:
+            return None
+
+
+def rotation_slot(
+    now: float,
+    sponsors: list[dict[str, Any]],
+    interstitial_available: bool | None = None,
+    epoch: float | None = None,
+) -> tuple[int, bool]:
+    """Return sponsor index and whether its following five-second house card is active."""
+    if not sponsors:
+        return 0, False
+    if interstitial_available is None:
+        interstitial_available = HOUSE_INTERSTITIAL_PATH.is_file()
+    if not interstitial_available:
+        index = int(max(0.0, now - (ROTATION_EPOCH if epoch is None else epoch)) // ROTATION_SECONDS) % len(sponsors)
+        return index, False
+
+    elapsed = max(0.0, now - (ROTATION_EPOCH if epoch is None else epoch))
+    segment = ROTATION_SECONDS + HOUSE_INTERSTITIAL_SECONDS
+    cycle_position = elapsed % (segment * len(sponsors))
+    index = int(cycle_position // segment)
+    within_segment = cycle_position - index * segment
+    return index, within_segment >= ROTATION_SECONDS
 
 
 def render_placeholder(label: str) -> Image.Image:
@@ -424,29 +530,47 @@ def render_placeholder(label: str) -> Image.Image:
     return image
 
 
+def render_house_interstitial() -> Image.Image | None:
+    creative = load_house_interstitial()
+    if creative is None:
+        return None
+    image = Image.new("RGB", (WIDTH, HEIGHT), BEARS_BLUE)
+    draw = ImageDraw.Draw(image)
+    draw_brand_frame(draw)
+    draw_epic_media_qr(image, draw)
+    paste_image_fill(image, creative, AD_PANEL_BOX)
+    add_epic_logo(image)
+    return image
+
+
 def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
     image = Image.new("RGB", (WIDTH, HEIGHT), BEARS_BLUE)
     draw = ImageDraw.Draw(image)
 
-    message = str(sponsor.get("promoMessage") or "").strip()
+    kind = STATE.snapshot()[0]
+    message = _house_copy(sponsor.get("promoMessage") or "", kind)
     website = str(sponsor.get("website") or "").strip()
     image_url = str(sponsor.get("imageUrl") or "").strip()
     creative = STATE.image_for(image_url) if image_url else None
-    kind = STATE.snapshot()[0]
     headline, subtitle, event_date = sponsor_text_parts(sponsor, kind)
     draw_brand_frame(draw)
     draw_epic_media_qr(image, draw)
+
+    if creative is not None and image_only_creative(sponsor):
+        paste_image_fill(image, creative, AD_PANEL_BOX)
+        if show_advertisement_label(kind):
+            # Paid full-panel images retain disclosure; house images never do.
+            draw.rectangle((478, 112, 684, 145), fill=BEARS_BLUE)
+            draw.text((489, 116), "ADVERTISEMENT", font=font(18, bold=True), fill=BEARS_ORANGE)
+        add_epic_logo(image)
+        return image
+
     if show_advertisement_label(kind):
         draw.text((505, 112), "ADVERTISEMENT", font=font(20, bold=True), fill=BEARS_ORANGE)
 
     if creative is not None:
         box = (505, 145, WIDTH - 48, 330)
-        target_w = box[2] - box[0]
-        target_h = box[3] - box[1]
-        fitted = ImageOps.contain(creative, (target_w, target_h)).convert("RGBA")
-        canvas = Image.new("RGBA", (target_w, target_h), WHITE)
-        canvas.alpha_composite(fitted, ((target_w - fitted.width) // 2, (target_h - fitted.height) // 2))
-        image.paste(canvas.convert("RGB"), (box[0], box[1]))
+        paste_image_fill(image, creative, box)
         text_x = 505
         text_w = WIDTH - text_x - 60
         y = draw_fitted_block(draw, headline.upper(), text_x, 348, text_w, 58, 36, 22, 2, BEARS_BLUE)
@@ -484,23 +608,32 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
     return image
 
 
-def current_frame() -> Image.Image:
+def current_frame(now: float | None = None) -> Image.Image:
     _kind, placeholder, sponsors, _refreshed, _error, _revision = STATE.snapshot()
     if not sponsors:
         return render_placeholder(placeholder)
-    index = int(time.time() // ROTATION_SECONDS) % len(sponsors)
+    current_time = time.time() if now is None else now
+    index, show_house = rotation_slot(current_time, sponsors)
+    if show_house:
+        interstitial = render_house_interstitial()
+        if interstitial is not None:
+            return interstitial
     return render_sponsor(sponsors[index])
 
 
 def jpeg_bytes() -> bytes:
     global FRAME_CACHE_BYTES, FRAME_CACHE_KEY
     _kind, _placeholder, sponsors, _refreshed, _error, revision = STATE.snapshot()
-    rotation = int(time.time() // ROTATION_SECONDS) if len(sponsors) > 1 else 0
-    key = (revision, rotation)
+    now = time.time()
+    if sponsors:
+        index, show_house = rotation_slot(now, sponsors)
+        key = (revision, index, int(show_house))
+    else:
+        key = (revision, -1, 0)
     with FRAME_CACHE_LOCK:
         if FRAME_CACHE_KEY == key and FRAME_CACHE_BYTES:
             return FRAME_CACHE_BYTES
-        frame = current_frame()
+        frame = current_frame(now)
         buf = io.BytesIO()
         frame.save(buf, format="JPEG", quality=92, optimize=False)
         FRAME_CACHE_BYTES = buf.getvalue()
@@ -535,11 +668,16 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         if self.path.startswith("/healthz"):
             kind, _placeholder, sponsors, refreshed, error, _revision = STATE.snapshot()
+            index, is_interstitial = rotation_slot(time.time(), sponsors) if sponsors else (0, False)
             body = json.dumps(
                 {
                     "ok": True,
                     "kind": kind,
                     "sponsorCount": len(sponsors),
+                    "rotationIndex": index,
+                    "houseInterstitial": is_interstitial,
+                    "houseInterstitialSeconds": HOUSE_INTERSTITIAL_SECONDS,
+                    "houseInterstitialAvailable": HOUSE_INTERSTITIAL_PATH.is_file(),
                     "lastGoodRefresh": refreshed,
                     "lastError": error,
                 }
@@ -601,6 +739,7 @@ def main() -> None:
         STATE.error(exc)
     publish_frame()
     threading.Thread(target=poll_feed, name="sponsor-feed-poller", daemon=True).start()
+    threading.Thread(target=publish_frames, name="ad-frame-publisher", daemon=True).start()
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
 
 
