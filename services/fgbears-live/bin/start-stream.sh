@@ -18,6 +18,8 @@ source "$ENV_FILE"
 : "${CRAWL_OVERLAY_SCRIPT:=/opt/fgbears-live/bin/crawl-overlay.py}"
 : "${CRAWL_OVERLAY_FPS:=15}"
 : "${BEARS_NEWS_SCRIPT:=/opt/fgbears-live/bin/bears-news-feed.py}"
+: "${BEARS_NEWS_OVERLAY_PORT:=8789}"
+: "${BEARS_NEWS_OVERLAY_FPS:=15}"
 : "${FFMPEG_PROGRESS_FILE:=/srv/fgbears-live/logs/ffmpeg-progress.log}"
 : "${AD_FRAME_FILE:=/srv/fgbears-live/runtime/ad-frame.jpg}"
 : "${CRAWL_RUNTIME_DIR:=/srv/fgbears-live/runtime}"
@@ -30,7 +32,7 @@ source "$ENV_FILE"
 [[ -s "$PLAYLIST_FILE" ]] || { echo "Playlist is missing or empty: $PLAYLIST_FILE" >&2; exit 66; }
 [[ -r "$AD_OVERLAY_SCRIPT" ]] || { echo "Ad overlay renderer is missing: $AD_OVERLAY_SCRIPT" >&2; exit 66; }
 [[ -r "$CRAWL_OVERLAY_SCRIPT" ]] || { echo "Crawl overlay renderer is missing: $CRAWL_OVERLAY_SCRIPT" >&2; exit 66; }
-[[ -r "$BEARS_NEWS_SCRIPT" ]] || { echo "Bears news feed poller is missing: $BEARS_NEWS_SCRIPT" >&2; exit 66; }
+[[ -r "$BEARS_NEWS_SCRIPT" ]] || { echo "Bears news feed renderer is missing: $BEARS_NEWS_SCRIPT" >&2; exit 66; }
 
 python3 "$AD_OVERLAY_SCRIPT" &
 OVERLAY_PID=$!
@@ -73,6 +75,7 @@ curl --silent --fail --max-time 2 "http://127.0.0.1:${AD_OVERLAY_PORT}/healthz" 
   echo "Ad overlay renderer did not become healthy." >&2
   exit 70
 }
+
 for _ in {1..30}; do
   if curl --silent --fail --max-time 1 "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/healthz" >/dev/null; then
     break
@@ -87,16 +90,22 @@ curl --silent --fail --max-time 2 "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/health
   echo "Crawl overlay renderer did not become healthy." >&2
   exit 70
 }
-for _ in {1..50}; do
-  if [[ -e "$CRAWL_RUNTIME_DIR/bears-news-label.txt" && -e "$CRAWL_RUNTIME_DIR/bears-news-message.txt" ]]; then
+
+for _ in {1..30}; do
+  if curl --silent --fail --max-time 1 "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/healthz" >/dev/null; then
     break
   fi
   if ! kill -0 "$NEWS_PID" 2>/dev/null; then
-    echo "Bears news feed poller exited before publishing runtime text." >&2
+    echo "Bears news renderer exited before becoming healthy." >&2
     exit 70
   fi
   sleep 0.2
 done
+curl --silent --fail --max-time 2 "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/healthz" >/dev/null || {
+  echo "Bears news renderer did not become healthy." >&2
+  exit 70
+}
+
 for runtime_file in "$AD_FRAME_FILE" "$CRAWL_RUNTIME_DIR/crawl-label.txt" "$CRAWL_RUNTIME_DIR/crawl-message.txt" "$CRAWL_RUNTIME_DIR/bears-news-label.txt" "$CRAWL_RUNTIME_DIR/bears-news-message.txt"; do
   [[ -e "$runtime_file" ]] || { echo "Runtime overlay file is missing: $runtime_file" >&2; exit 70; }
 done
@@ -115,17 +124,18 @@ progress_sink() {
 
 FFMPEG_PID=""
 
-# The local advertising frame is the sole 30 fps video clock. Source video is
-# never decoded or displayed; the playlist supplies only the podcast audio.
-# Bears news replaces the former upper-third title. Short headlines stay still;
-# long headlines scroll through the news viewport. The lower crawl is unchanged.
+# The advertising frame remains the 30 fps video clock. Bears news is rendered
+# as a dedicated clipped RGBA overlay in the former upper-third title position.
+# This gives each RSS item its own animation clock and complete pass through the
+# viewport. The lower crawl remains unchanged.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
   -re -stream_loop -1 -fflags +genpts \
   -f concat -safe 0 -i "$PLAYLIST_FILE" \
   -loop 1 -framerate 30 -i "$AD_FRAME_FILE" \
-  -filter_complex "[1:v]scale=1280:720,drawbox=x=18:y=18:w=1244:h=78:color=0x0B162A@0.98:t=fill,drawbox=x=18:y=18:w=1244:h=5:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/bears-news-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=24:x=if(lte(text_w\,974)\,268\,1262-mod(t*105\,text_w+994)):y=44,drawbox=x=18:y=23:w=250:h=73:color=0x0B162A@0.98:t=fill,drawbox=x=18:y=23:w=230:h=73:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/bears-news-label.txt:reload=1:expansion=none:fontcolor=white:fontsize=24:x=18+(230-text_w)/2:y=44,drawbox=x=0:y=578:w=1280:h=118:color=0x07101F@0.95:t=fill,drawbox=x=0:y=578:w=1280:h=7:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/crawl-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=31:x=w-mod(t*105\,w+text_w+100):y=620,drawbox=x=0:y=585:w=275:h=111:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/crawl-label.txt:reload=1:expansion=none:fontcolor=white:fontsize=29:x=(245-text_w)/2:y=620,format=yuv420p[v]" \
+  -f rawvideo -pixel_format rgba -video_size 1244x78 -framerate "$BEARS_NEWS_OVERLAY_FPS" -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.rgba" \
+  -filter_complex "[1:v]scale=1280:720[base];[base][2:v]overlay=x=18:y=18:format=auto[withnews];[withnews]drawbox=x=0:y=578:w=1280:h=118:color=0x07101F@0.95:t=fill,drawbox=x=0:y=578:w=1280:h=7:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/crawl-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=31:x=w-mod(t*105\,w+text_w+100):y=620,drawbox=x=0:y=585:w=275:h=111:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/crawl-label.txt:reload=1:expansion=none:fontcolor=white:fontsize=29:x=(245-text_w)/2:y=620,format=yuv420p[v]" \
   -map "[v]" -map 0:a:0 \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
   -b:v 4000k -maxrate 4500k -bufsize 8000k \

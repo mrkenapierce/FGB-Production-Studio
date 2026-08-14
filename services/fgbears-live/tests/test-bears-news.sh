@@ -14,50 +14,78 @@ trap cleanup EXIT
 
 python3 -m py_compile "$ROOT/bin/bears-news-feed.py"
 bash -n "$ROOT/bin/start-stream.sh"
-grep -Fq 'bears-news-message.txt' "$ROOT/bin/start-stream.sh"
-grep -Fq 'drawbox=x=18:y=18:w=1244:h=78' "$ROOT/bin/start-stream.sh"
-grep -Fq 'x=if(lte(text_w\,974)\,268\,1262-mod(t*105\,text_w+994))' "$ROOT/bin/start-stream.sh"
+grep -Fq 'BEARS_NEWS_OVERLAY_PORT' "$ROOT/bin/start-stream.sh"
+grep -Fq 'video_size 1244x78' "$ROOT/bin/start-stream.sh"
+grep -Fq 'overlay=x=18:y=18' "$ROOT/bin/start-stream.sh"
 grep -Fq 'drawbox=x=0:y=578:w=1280:h=118' "$ROOT/bin/start-stream.sh"
-grep -Fq 'former upper-third title' "$ROOT/bin/start-stream.sh"
-grep -q '^BEARS_NEWS_FEED_URL=' "$ROOT/config/stream.env.example"
-grep -q '^BEARS_NEWS_ROTATE_SECONDS=30$' "$ROOT/config/stream.env.example"
+grep -q '^BEARS_NEWS_OVERLAY_PORT=8789$' "$ROOT/config/stream.env.example"
+grep -q '^BEARS_NEWS_SCROLL_PPS=90$' "$ROOT/config/stream.env.example"
 
 cat > "$TMP/feed.xml" <<'XML'
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel><title>Test</title>
-<item><title>Bagent to start Saturday as Bears rest several starters</title><source url="https://example.com">Test Source</source><category>normal</category></item>
+<item>
+  <title>This is a deliberately long Chicago Bears headline that must scroll completely through the upper third without clipping the final source characters</title>
+  <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+  <category>normal</category>
+</item>
 <item><title>Major Bears update</title><source url="https://example.com">Second Source</source><category>breaking</category></item>
 </channel></rss>
 XML
 
 BEARS_NEWS_FEED_FILE="$TMP/feed.xml" \
 CRAWL_RUNTIME_DIR="$TMP/runtime" \
+BEARS_NEWS_OVERLAY_PORT=18789 \
+BEARS_NEWS_OVERLAY_FPS=15 \
 BEARS_NEWS_POLL_SECONDS=30 \
-BEARS_NEWS_ROTATE_SECONDS=8 \
+BEARS_NEWS_STATIC_SECONDS=8 \
+BEARS_NEWS_SCROLL_PPS=300 \
 python3 "$ROOT/bin/bears-news-feed.py" >"$TMP/news.log" 2>&1 &
 PID=$!
-for _ in {1..30}; do
-  [[ -s "$TMP/runtime/bears-news-message.txt" ]] && break
+for _ in {1..50}; do
+  curl --silent --fail --max-time 1 http://127.0.0.1:18789/healthz >"$TMP/health.json" && break
   sleep 0.1
 done
+jq -e '.ok == true and .active == true' "$TMP/health.json" >/dev/null
+
 grep -q '^BEARS NEWS$' "$TMP/runtime/bears-news-label.txt"
-grep -q 'BAGENT TO START SATURDAY' "$TMP/runtime/bears-news-message.txt"
-grep -q 'SOURCE: TEST SOURCE' "$TMP/runtime/bears-news-message.txt"
+grep -q 'CHICAGOBEARS.COM$' "$TMP/runtime/bears-news-message.txt"
+grep -q 'FINAL SOURCE CHARACTERS' "$TMP/runtime/bears-news-message.txt"
 grep -q '^1$' "$TMP/runtime/bears-news-active"
 
-# Verify the production filter graph parses for both the static-fit and scrolling
-# paths without disturbing the existing lower crawl.
-printf 'BEARS NEWS\n' > "$TMP/runtime/bears-news-label.txt"
-printf 'THIS IS A LONG CHICAGO BEARS HEADLINE THAT SHOULD SCROLL THROUGH THE UPPER THIRD WHEN IT DOES NOT FIT ON SCREEN SOURCE REUTERS\n' > "$TMP/runtime/bears-news-message.txt"
-printf 'EPIC LIVE\n' > "$TMP/runtime/crawl-label.txt"
-printf 'TEST CRAWL\n' > "$TMP/runtime/crawl-message.txt"
+curl --silent --fail http://127.0.0.1:18789/frame.png -o "$TMP/news.png"
+python3 - "$TMP/news.png" "$ROOT/bin/bears-news-feed.py" <<'PY'
+import runpy
+import sys
+from PIL import Image
+
+img = Image.open(sys.argv[1]).convert("RGBA")
+assert img.size == (1244, 78), img.size
+orange = (200, 56, 3, 255)
+# Orange border must be present on all four sides.
+for point in ((2, 2), (1241, 2), (2, 75), (1241, 75), (620, 2), (620, 75)):
+    assert img.getpixel(point) == orange, (point, img.getpixel(point))
+
+module = runpy.run_path(sys.argv[2])
+message = "THIS IS A VERY LONG BEARS HEADLINE " * 8 + "SOURCE: CHICAGOBEARS.COM"
+_, width, height = module["text_metrics"](message)
+assert height < module["HEIGHT"], (height, module["HEIGHT"])
+assert width > module["VIEWPORT_WIDTH"], (width, module["VIEWPORT_WIDTH"])
+duration = module["display_duration"](message)
+minimum = (module["VIEWPORT_WIDTH"] + width + 80) / module["SCROLL_PPS"] + 1.5
+assert duration >= minimum, (duration, minimum)
+PY
+
+# Prove FFmpeg can consume the renderer's raw RGBA stream and composite it into
+# the exact upper-third position used by production.
 ffmpeg -hide_banner -loglevel error \
-  -f lavfi -i color=c=black:s=1280x720:r=30:d=0.2 \
-  -filter_complex "[0:v]drawbox=x=18:y=18:w=1244:h=78:color=0x0B162A@0.98:t=fill,drawbox=x=18:y=18:w=1244:h=5:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$TMP/runtime/bears-news-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=24:x=if(lte(text_w\,974)\,268\,1262-mod(t*105\,text_w+994)):y=44,drawbox=x=18:y=23:w=250:h=73:color=0x0B162A@0.98:t=fill,drawbox=x=18:y=23:w=230:h=73:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$TMP/runtime/bears-news-label.txt:reload=1:expansion=none:fontcolor=white:fontsize=24:x=18+(230-text_w)/2:y=44,drawbox=x=0:y=578:w=1280:h=118:color=0x07101F@0.95:t=fill,drawbox=x=0:y=578:w=1280:h=7:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$TMP/runtime/crawl-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=31:x=w-mod(t*105\,w+text_w+100):y=620,drawbox=x=0:y=585:w=275:h=111:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$TMP/runtime/crawl-label.txt:reload=1:expansion=none:fontcolor=white:fontsize=29:x=(245-text_w)/2:y=620,format=yuv420p[v]" \
-  -map '[v]' -t 0.2 -f null -
+  -f lavfi -i color=c=black:s=1280x720:r=30:d=0.3 \
+  -f rawvideo -pixel_format rgba -video_size 1244x78 -framerate 15 -i http://127.0.0.1:18789/overlay.rgba \
+  -filter_complex '[0:v][1:v]overlay=x=18:y=18:format=auto,format=yuv420p[v]' \
+  -map '[v]' -t 0.3 -f null -
 
 kill "$PID"
 wait "$PID" 2>/dev/null || true
 PID=""
 
-echo 'Bears news strip tests passed.'
+echo 'Bears news clipping and completeness tests passed.'
