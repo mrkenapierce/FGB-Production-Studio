@@ -20,6 +20,10 @@ grep -Fq 'overlay=x=18:y=18' "$ROOT/bin/start-stream.sh"
 grep -Fq 'drawbox=x=0:y=578:w=1280:h=118' "$ROOT/bin/start-stream.sh"
 grep -q '^BEARS_NEWS_OVERLAY_PORT=8789$' "$ROOT/config/stream.env.example"
 grep -q '^BEARS_NEWS_SCROLL_PPS=90$' "$ROOT/config/stream.env.example"
+if grep -Fq 'LABEL_GAP' "$ROOT/bin/bears-news-feed.py"; then
+  echo 'Bears news must not leave a blue gap before the orange label.' >&2
+  exit 1
+fi
 
 cat > "$TMP/feed.xml" <<'XML'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -60,20 +64,54 @@ import sys
 from PIL import Image
 
 img = Image.open(sys.argv[1]).convert("RGBA")
-assert img.size == (1244, 78), img.size
-orange = (200, 56, 3, 255)
-# Orange border must be present on all four sides.
-for point in ((2, 2), (1241, 2), (2, 75), (1241, 75), (620, 2), (620, 75)):
-    assert img.getpixel(point) == orange, (point, img.getpixel(point))
-
 module = runpy.run_path(sys.argv[2])
+assert img.size == (module["WIDTH"], module["HEIGHT"]), img.size
+orange = module["BEARS_ORANGE"]
+border = module["OUTER_BORDER"]
+width = module["WIDTH"]
+height = module["HEIGHT"]
+
+# Every pixel of every outer side must be the same exact Bears Orange thickness.
+for y in range(border):
+    for x in range(width):
+        assert img.getpixel((x, y)) == orange, ("top", x, y, img.getpixel((x, y)))
+for y in range(height - border, height):
+    for x in range(width):
+        assert img.getpixel((x, y)) == orange, ("bottom", x, y, img.getpixel((x, y)))
+for x in range(border):
+    for y in range(height):
+        assert img.getpixel((x, y)) == orange, ("left", x, y, img.getpixel((x, y)))
+for x in range(width - border, width):
+    for y in range(height):
+        assert img.getpixel((x, y)) == orange, ("right", x, y, img.getpixel((x, y)))
+
+# The visible headline region begins immediately after the orange label. There
+# may not be an intermediate blue spacer where moving text can vanish early.
+assert module["VIEWPORT_START"] == module["LABEL_RIGHT"] + 1
+safe_y = border + 2
+assert img.getpixel((module["LABEL_RIGHT"], safe_y)) == orange
+
 message = "THIS IS A VERY LONG BEARS HEADLINE " * 8 + "SOURCE: CHICAGOBEARS.COM"
-_, width, height = module["text_metrics"](message)
-assert height < module["HEIGHT"], (height, module["HEIGHT"])
-assert width > module["VIEWPORT_WIDTH"], (width, module["VIEWPORT_WIDTH"])
+_, text_width, text_height = module["text_metrics"](message)
+assert text_height < height - 2 * border, (text_height, height, border)
+assert text_width > module["VIEWPORT_WIDTH"], (text_width, module["VIEWPORT_WIDTH"])
+
+# At the end of the calculated travel, the final character is fully underneath
+# the orange label. Rotation is not allowed until an additional trailing hold.
+travel = module["scroll_travel"](text_width)
+end_elapsed = travel / module["SCROLL_PPS"]
+end_x = module["headline_x"](text_width, end_elapsed)
+assert end_x + text_width <= module["VIEWPORT_START"], (
+    end_x,
+    text_width,
+    module["VIEWPORT_START"],
+)
 duration = module["display_duration"](message)
-minimum = (module["VIEWPORT_WIDTH"] + width + 80) / module["SCROLL_PPS"] + 1.5
-assert duration >= minimum, (duration, minimum)
+assert duration >= end_elapsed + module["SCROLL_END_HOLD"], (
+    duration,
+    end_elapsed,
+    module["SCROLL_END_HOLD"],
+)
 PY
 
 # Prove FFmpeg can consume the renderer's raw RGBA stream and composite it into
@@ -88,4 +126,4 @@ kill "$PID"
 wait "$PID" 2>/dev/null || true
 PID=""
 
-echo 'Bears news clipping and completeness tests passed.'
+echo 'Bears news frame, mask, and completeness tests passed.'
