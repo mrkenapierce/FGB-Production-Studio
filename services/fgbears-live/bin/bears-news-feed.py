@@ -27,15 +27,16 @@ PORT = int(os.getenv("BEARS_NEWS_OVERLAY_PORT", "8789"))
 FPS = max(10, int(os.getenv("BEARS_NEWS_OVERLAY_FPS", "15")))
 STATIC_SECONDS = max(8, int(os.getenv("BEARS_NEWS_STATIC_SECONDS", "18")))
 SCROLL_PPS = max(50, int(os.getenv("BEARS_NEWS_SCROLL_PPS", "90")))
+SCROLL_END_HOLD = 1.5
 RUNTIME_DIR = Path(os.getenv("CRAWL_RUNTIME_DIR", "/srv/fgbears-live/runtime"))
 
 WIDTH, HEIGHT = 1244, 78
-OUTER_BORDER = 4
-LABEL_WIDTH = 230
-LABEL_GAP = 18
-VIEWPORT_START = LABEL_WIDTH + LABEL_GAP
-VIEWPORT_RIGHT_PAD = 12
-VIEWPORT_WIDTH = WIDTH - VIEWPORT_START - VIEWPORT_RIGHT_PAD
+OUTER_BORDER = 5
+LABEL_RIGHT = 230
+VIEWPORT_START = LABEL_RIGHT + 1
+VIEWPORT_RIGHT = WIDTH - OUTER_BORDER - 1
+VIEWPORT_WIDTH = VIEWPORT_RIGHT - VIEWPORT_START + 1
+TEXT_PAD = 12
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 BEARS_BLUE = (11, 22, 42, 250)
@@ -78,7 +79,7 @@ def read_feed_bytes() -> bytes:
         headers={
             "Accept": "application/rss+xml, application/xml, text/xml",
             "Cache-Control": "no-cache",
-            "User-Agent": "FGBears-Live-News/2.0",
+            "User-Agent": "FGBears-Live-News/2.1",
         },
     )
     with urllib.request.urlopen(request, timeout=10) as response:
@@ -96,7 +97,7 @@ def load_items() -> list[dict[str, str]]:
         label = "BREAKING BEARS" if category == "breaking" else "BEARS NEWS"
         source = source_name(item)
         # Preserve the full FGB headline and complete source string. The renderer
-        # clips and scrolls the viewport instead of truncating editorial text.
+        # masks the moving text behind the orange label instead of truncating it.
         items.append({"label": label, "message": f"{title}  •  SOURCE: {source}"})
     return items
 
@@ -183,22 +184,51 @@ def poll() -> None:
         time.sleep(POLL_SECONDS)
 
 
+def text_bbox(message: str, message_font: ImageFont.ImageFont) -> tuple[int, int, int, int]:
+    probe = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
+    return ImageDraw.Draw(probe).textbbox((0, 0), message, font=message_font)
+
+
 def text_metrics(message: str) -> tuple[ImageFont.ImageFont, int, int]:
     message_font = font(25, bold=True)
-    probe = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(probe)
-    bbox = draw.textbbox((0, 0), message, font=message_font)
+    bbox = text_bbox(message, message_font)
     return message_font, bbox[2] - bbox[0], bbox[3] - bbox[1]
+
+
+def centered_text_y(message: str, message_font: ImageFont.ImageFont) -> float:
+    bbox = text_bbox(message, message_font)
+    text_height = bbox[3] - bbox[1]
+    return (HEIGHT - text_height) / 2 - bbox[1]
+
+
+def scroll_travel(text_width: int) -> float:
+    # Text starts just behind the orange right border and continues until the
+    # final character is fully hidden beneath the orange BEARS NEWS label.
+    return float(VIEWPORT_WIDTH + text_width)
 
 
 def display_duration(message: str) -> float:
     _, text_width, _ = text_metrics(message)
-    if text_width <= VIEWPORT_WIDTH - 8:
+    if text_width <= VIEWPORT_WIDTH - 2 * TEXT_PAD:
         return float(STATIC_SECONDS)
-    # One complete pass: enter from the right, cross the viewport, and fully
-    # disappear behind the left clipping edge before the next item can begin.
-    travel = VIEWPORT_WIDTH + text_width + 80
-    return max(float(STATIC_SECONDS), travel / SCROLL_PPS + 1.5)
+    return max(float(STATIC_SECONDS), scroll_travel(text_width) / SCROLL_PPS + SCROLL_END_HOLD)
+
+
+def headline_x(text_width: int, elapsed: float) -> float:
+    if text_width <= VIEWPORT_WIDTH - 2 * TEXT_PAD:
+        return float(VIEWPORT_START + TEXT_PAD)
+    # Each RSS item starts outside the right interior edge. It then passes
+    # continuously behind the fixed orange label; there is no blue clipping gap.
+    return float(WIDTH - OUTER_BORDER) - max(0.0, elapsed) * SCROLL_PPS
+
+
+def draw_outer_border(draw: ImageDraw.ImageDraw) -> None:
+    # Paint four exact-width rectangles rather than a stroked outline so every
+    # side is the same Chicago Bears Orange thickness in the encoded stream.
+    draw.rectangle((0, 0, WIDTH - 1, OUTER_BORDER - 1), fill=BEARS_ORANGE)
+    draw.rectangle((0, HEIGHT - OUTER_BORDER, WIDTH - 1, HEIGHT - 1), fill=BEARS_ORANGE)
+    draw.rectangle((0, 0, OUTER_BORDER - 1, HEIGHT - 1), fill=BEARS_ORANGE)
+    draw.rectangle((WIDTH - OUTER_BORDER, 0, WIDTH - 1, HEIGHT - 1), fill=BEARS_ORANGE)
 
 
 def frame() -> Image.Image:
@@ -214,41 +244,42 @@ def frame() -> Image.Image:
         return image
     message = item["message"].upper()
 
+    # Build a true orange frame first, then fill only its interior blue.
     draw = ImageDraw.Draw(image)
-    draw.rectangle((0, 0, WIDTH - 1, HEIGHT - 1), fill=BEARS_BLUE)
-    # Chicago Bears Orange border on all four sides.
+    draw.rectangle((0, 0, WIDTH - 1, HEIGHT - 1), fill=BEARS_ORANGE)
     draw.rectangle(
-        (OUTER_BORDER // 2, OUTER_BORDER // 2, WIDTH - 1 - OUTER_BORDER // 2, HEIGHT - 1 - OUTER_BORDER // 2),
-        outline=BEARS_ORANGE,
-        width=OUTER_BORDER,
+        (OUTER_BORDER, OUTER_BORDER, WIDTH - 1 - OUTER_BORDER, HEIGHT - 1 - OUTER_BORDER),
+        fill=BEARS_BLUE,
     )
 
-    # Fixed label panel remains separate from the clipped headline viewport.
-    draw.rectangle((OUTER_BORDER, OUTER_BORDER, LABEL_WIDTH, HEIGHT - 1 - OUTER_BORDER), fill=BEARS_ORANGE)
+    message_font, text_width, _ = text_metrics(message)
+    text_y = centered_text_y(message, message_font)
+    elapsed = max(0.0, time.monotonic() - started)
+
+    # Draw the entire moving headline first. The fixed orange label is painted
+    # afterward, so the headline visibly disappears underneath orange—not at a
+    # blue clipping line. The outer border is also repainted last.
+    ticker = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
+    ticker_draw = ImageDraw.Draw(ticker)
+    ticker_draw.text((headline_x(text_width, elapsed), text_y), message, font=message_font, fill=WHITE)
+    image.alpha_composite(ticker)
+
+    draw = ImageDraw.Draw(image)
+    draw.rectangle(
+        (OUTER_BORDER, OUTER_BORDER, LABEL_RIGHT, HEIGHT - 1 - OUTER_BORDER),
+        fill=BEARS_ORANGE,
+    )
+
     label_font = font(24, bold=True)
     label = item["label"].upper()
     label_bbox = draw.textbbox((0, 0), label, font=label_font)
     label_w = label_bbox[2] - label_bbox[0]
     label_h = label_bbox[3] - label_bbox[1]
     label_y = (HEIGHT - label_h) / 2 - label_bbox[1]
-    draw.text(((LABEL_WIDTH - label_w) / 2, label_y), label, font=label_font, fill=WHITE)
+    label_center = (OUTER_BORDER + LABEL_RIGHT) / 2
+    draw.text((label_center - label_w / 2, label_y), label, font=label_font, fill=WHITE)
 
-    message_font, text_width, text_height = text_metrics(message)
-    text_y = (HEIGHT - text_height) / 2
-    elapsed = max(0.0, time.monotonic() - started)
-
-    ticker = Image.new("RGBA", (VIEWPORT_WIDTH, HEIGHT), (0, 0, 0, 0))
-    ticker_draw = ImageDraw.Draw(ticker)
-    if text_width <= VIEWPORT_WIDTH - 8:
-        x = 4
-    else:
-        # Reset for every RSS item. Start at the right edge, scroll the complete
-        # string through, then fully disappear at the left edge.
-        x = VIEWPORT_WIDTH - elapsed * SCROLL_PPS
-    ticker_draw.text((x, text_y), message, font=message_font, fill=WHITE)
-    # alpha_composite clips anything outside ticker, reproducing the crawl's
-    # clean disappear-into-frame behavior at both horizontal edges.
-    image.alpha_composite(ticker, (VIEWPORT_START, 0))
+    draw_outer_border(draw)
     return image
 
 
