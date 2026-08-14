@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Football's Greatest Bears News</title>
+    <link>https://www.youtube.com/@FootballsGreatestBears</link>
+    <description>Original FGB-written Chicago Bears news briefs with source attribution for Football's Greatest Bears live programming.</description>
+    <language>en-us</language>
+    <lastBuildDate>Fri, 14 Aug 2026 14:48:00 -0500</lastBuildDate>
+    <ttl>5</ttl>
+    <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bagent to start Saturday as Bears rest several starters</title>
+      <description>FGB brief: Tyson Bagent is set to start against Cleveland while Caleb Williams and several Bears starters are expected to sit.</description>
+      <link>https://www.windycitygridiron.com/chicago-bears-news/120634/chicago-bears-news-tyson-bagent-to-start-many-first-teamers-resting-against-cleveland</link>
+      <guid isPermaLink="false">fgb-bears-news-2026-08-14-001</guid>
+      <pubDate>Fri, 14 Aug 2026 10:30:00 -0500</pubDate>
+      <category>normal</category>
+      <source url="https://www.windycitygridiron.com/">Windy City Gridiron</source>
+    </item>
+
+    <item>
+      <title>Bears say stadium planning is focused on Hammond, Indiana</title>
+      <description>FGB brief: Bears leadership says current stadium planning is centered on Hammond while the franchise intends to remain the Chicago Bears.</description>
+      <link>https://www.reuters.com/sports/bears-not-changing-name-hammond-ind-might-be-reality--flm-2026-08-13/</link>
+      <guid isPermaLink="false">fgb-bears-news-2026-08-14-002</guid>
+      <pubDate>Thu, 13 Aug 2026 17:01:00 -0500</pubDate>
+      <category>major</category>
+      <source url="https://www.reuters.com/">Reuters</source>
+    </item>
+
+    <item>
+      <title>Bears host Browns Saturday in 2026 preseason opener</title>
+      <description>FGB brief: Chicago opens its 2026 preseason schedule at Soldier Field against Cleveland on Saturday, August 15.</description>
+      <link>https://www.chicagobears.com/schedule/2026/</link>
+      <guid isPermaLink="false">fgb-bears-news-2026-08-14-003</guid>
+      <pubDate>Fri, 14 Aug 2026 09:00:00 -0500</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+  </channel>
+</rss>
