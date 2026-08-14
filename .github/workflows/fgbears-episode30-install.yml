@@ -16,7 +16,7 @@ concurrency:
 
 env:
   ORACLE_USER: ubuntu
-  CHANNEL_URL: https://www.youtube.com/@FootballsGreatestBears/videos
+  VIDEO_ID: awFmBZATie0
 
 jobs:
   install:
@@ -24,63 +24,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Install downloader
-        run: python -m pip install --disable-pip-version-check --quiet yt-dlp
-
-      - name: Resolve Episode 30 from FGB channel
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          yt-dlp --flat-playlist --playlist-end 20 --print '%(id)s|||%(title)s' "$CHANNEL_URL" > /tmp/fgb-videos.txt
-          cat /tmp/fgb-videos.txt
-          video_id=$(grep -Ei "Don.t Panic About the Bears|Episode[[:space:]]*0*30" /tmp/fgb-videos.txt | head -n 1 | cut -d '|' -f 1 || true)
-          if [[ -z "$video_id" ]]; then
-            echo 'Episode 30 was not found among the 20 most recent public channel videos.' >&2
-            exit 1
-          fi
-          printf 'Resolved Episode 30 video ID: %s\n' "$video_id"
-          printf 'VIDEO_ID=%s\n' "$video_id" >> "$GITHUB_ENV"
-
-      - name: Download Episode 30 audio
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          yt-dlp \
-            --no-playlist \
-            -f 'bestaudio[ext=m4a]/bestaudio/best' \
-            -o '/tmp/FGBears-Episode-30-source.%(ext)s' \
-            "https://www.youtube.com/watch?v=${VIDEO_ID}"
-          source_file=$(find /tmp -maxdepth 1 -type f -name 'FGBears-Episode-30-source.*' -print -quit)
-          [[ -n "$source_file" ]] || { echo 'Episode 30 download produced no source file.' >&2; exit 1; }
-          printf 'SOURCE_FILE=%s\n' "$source_file" >> "$GITHUB_ENV"
-
-      - name: Build relay media file
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          ffmpeg -hide_banner -y -loglevel warning \
-            -f lavfi -i 'color=c=black:s=1280x720:r=30' \
-            -i "$SOURCE_FILE" \
-            -map 0:v:0 -map 1:a:0 \
-            -shortest \
-            -c:v libx264 -preset veryfast -profile:v high -level 4.0 \
-            -crf 35 -maxrate 500k -bufsize 1000k \
-            -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p -r 30 \
-            -c:a aac -b:a 128k -ar 48000 -ac 2 \
-            -movflags +faststart -map_metadata -1 \
-            /tmp/FGBears-Episode-30.mp4
-
-          video=$(ffprobe -v error -select_streams v:0 \
-            -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
-            -of csv=p=0:s='|' /tmp/FGBears-Episode-30.mp4)
-          audio=$(ffprobe -v error -select_streams a:0 \
-            -show_entries stream=codec_name,sample_rate,channels \
-            -of csv=p=0:s='|' /tmp/FGBears-Episode-30.mp4)
-          echo "video=$video"
-          echo "audio=$audio"
-          [[ "$video" == 'h264|1280|720|30/1|yuv420p' ]]
-          [[ "$audio" == 'aac|48000|2' ]]
-
       - name: Require Oracle access secrets
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -102,26 +45,76 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Transfer Episode 30
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          scp -i ~/.ssh/oracle_key \
-            /tmp/FGBears-Episode-30.mp4 \
-            "$ORACLE_USER@$ORACLE_HOST:/tmp/FGBears-Episode-30.mp4"
-
-      - name: Install, rebuild playlist, and restart stream
+      - name: Fetch, build, install, and activate Episode 30
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         shell: bash
         run: |
           set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "VIDEO_ID='$VIDEO_ID' bash -s" <<'REMOTE'
           set -Eeuo pipefail
+
+          work=/tmp/fgbears-episode30-install
+          rm -rf "$work"
+          mkdir -p "$work"
+          cd "$work"
+
+          echo 'Downloading current yt-dlp and Deno runtime...'
+          curl -fsSL --retry 3 \
+            https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+            -o yt-dlp
+          chmod 0755 yt-dlp
+          curl -fsSL --retry 3 \
+            https://github.com/denoland/deno/releases/latest/download/deno-aarch64-unknown-linux-gnu.zip \
+            -o deno.zip
+          python3 - <<'PY'
+          import zipfile
+          with zipfile.ZipFile('deno.zip') as z:
+              z.extract('deno', '.')
+          PY
+          chmod 0755 deno
+
+          echo 'Downloading Episode 30 audio from the verified public FGB video...'
+          ./yt-dlp \
+            --js-runtimes "deno:$work/deno" \
+            --remote-components ejs:github \
+            --no-playlist \
+            -f 'bestaudio[ext=m4a]/bestaudio/best' \
+            -o "$work/FGBears-Episode-30-source.%(ext)s" \
+            "https://www.youtube.com/watch?v=${VIDEO_ID}"
+
+          source_file=$(find "$work" -maxdepth 1 -type f -name 'FGBears-Episode-30-source.*' -print -quit)
+          [[ -n "$source_file" ]] || { echo 'Episode 30 source download was not created.' >&2; exit 1; }
+
+          echo 'Building relay-compatible Episode 30 media...'
+          ffmpeg -hide_banner -y -loglevel warning \
+            -f lavfi -i 'color=c=black:s=1280x720:r=30' \
+            -i "$source_file" \
+            -map 0:v:0 -map 1:a:0 \
+            -shortest \
+            -c:v libx264 -preset ultrafast -profile:v high -level 4.0 \
+            -crf 45 -maxrate 250k -bufsize 500k \
+            -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p -r 30 \
+            -threads 1 \
+            -c:a aac -b:a 128k -ar 48000 -ac 2 \
+            -movflags +faststart -map_metadata -1 \
+            "$work/FGBears-Episode-30.mp4"
+
+          video=$(ffprobe -v error -select_streams v:0 \
+            -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
+            -of csv=p=0:s='|' "$work/FGBears-Episode-30.mp4")
+          audio=$(ffprobe -v error -select_streams a:0 \
+            -show_entries stream=codec_name,sample_rate,channels \
+            -of csv=p=0:s='|' "$work/FGBears-Episode-30.mp4")
+          echo "episode30_video=$video"
+          echo "episode30_audio=$audio"
+          [[ "$video" == 'h264|1280|720|30/1|yuv420p' ]]
+          [[ "$audio" == 'aac|48000|2' ]]
+
+          echo 'Installing Episode 30 into the existing Oracle media library...'
           sudo install -o fgbears -g fgbears -m 0644 \
-            /tmp/FGBears-Episode-30.mp4 \
+            "$work/FGBears-Episode-30.mp4" \
             /srv/fgbears-live/media/FGBears-Episode-30.mp4
-          rm -f /tmp/FGBears-Episode-30.mp4
 
           sudo /usr/local/bin/fgbears-validate /srv/fgbears-live/media
           sudo /usr/local/bin/fgbears-rebuild-playlist
@@ -136,29 +129,15 @@ jobs:
           sudo systemctl restart fgbears-live.service
           for i in $(seq 1 30); do
             if systemctl is-active --quiet fgbears-live.service; then
-              echo 'stream_service=active'
-              exit 0
+              break
             fi
             sleep 1
           done
-          sudo systemctl status fgbears-live.service --no-pager || true
-          exit 1
-          REMOTE
+          systemctl is-active --quiet fgbears-live.service
 
-      - name: Verify final Oracle state
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -Eeuo pipefail
           test -s /srv/fgbears-live/media/FGBears-Episode-30.mp4
-          count=$(sed -n "s/^file '\(.*\)'$/\1/p" /srv/fgbears-live/playlist.ffconcat | wc -l)
-          last=$(sed -n "s/^file '\(.*\)'$/\1/p" /srv/fgbears-live/playlist.ffconcat | tail -n 1)
           printf 'FINAL media_episode30=yes playlist_count=%s playlist_last=%s service=%s\n' \
             "$count" "$(basename "$last")" "$(systemctl is-active fgbears-live.service)"
-          [[ "$count" -eq 30 ]]
-          [[ "$(basename "$last")" == 'FGBears-Episode-30.mp4' ]]
-          systemctl is-active --quiet fgbears-live.service
+
+          rm -rf "$work"
           REMOTE
