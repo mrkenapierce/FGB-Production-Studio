@@ -31,5 +31,6 @@ jobs:
       - name: Functional tests
         run: |
           bash services/fgbears-live/tests/test-scripts.sh
+          python3 services/fgbears-live/tests/test-house-label.py
           bash services/fgbears-live/tests/test-bears-news.sh
           bash services/fgbears-live/tests/test-health-monitor.sh
