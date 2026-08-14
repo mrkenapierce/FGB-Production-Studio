@@ -35,7 +35,7 @@ for spec in \
   grep -Fq "$spec" "$ROOT/bin/start-stream.sh"
 done
 
-# Explicit Bears-blue gutters separate both dynamic ribbons from the outer frame.
+# Bears-blue gutters separate both dynamic ribbons from the outer orange frame.
 grep -Fq 'drawbox=x=7:y=7:w=1266:h=97:color=0x0B162A' "$ROOT/bin/start-stream.sh"
 grep -Fq 'drawbox=x=7:y=574:w=1266:h=139:color=0x0B162A' "$ROOT/bin/start-stream.sh"
 
@@ -52,46 +52,35 @@ for spec in \
   grep -Fq "$spec" "$ROOT/bin/start-stream.sh"
 done
 
-# Each moving ribbon has its own entry/exit lane. The dark masks are inside the
-# message panel and are symmetric at x=262..282 and x=1237..1257.
-for spec in \
-  'drawbox=x=262:y=23:w=20:h=68:color=0x07101F' \
-  'drawbox=x=1237:y=23:w=20:h=68:color=0x07101F' \
-  'drawbox=x=262:y=589:w=20:h=108:color=0x07101F' \
-  'drawbox=x=1237:y=589:w=20:h=108:color=0x07101F'; do
-  grep -Fq "$spec" "$ROOT/bin/start-stream.sh"
-done
-
-# Internal divider lines remain Bears blue.
+# Blue divider, then an orange left lane boundary. The row's orange right border
+# is the other lane boundary. This makes the visible message lane x=267..1256.
 grep -Fq 'drawbox=x=257:y=23:w=5:h=68:color=0x0B162A' "$ROOT/bin/start-stream.sh"
+grep -Fq 'drawbox=x=262:y=23:w=5:h=68:color=0xC83803' "$ROOT/bin/start-stream.sh"
 grep -Fq 'drawbox=x=257:y=589:w=5:h=108:color=0x0B162A' "$ROOT/bin/start-stream.sh"
+grep -Fq 'drawbox=x=262:y=589:w=5:h=108:color=0xC83803' "$ROOT/bin/start-stream.sh"
 
-# Exact movement math: both long ribbons begin at the right lane edge (1237)
-# and traverse exactly 955 pixels plus their own text width to clear at x=282.
+# True clipping: moving words are rendered on cropped 990px sub-canvases, not
+# on the full frame with painted masks. They are composited only into x=267..1256.
+grep -Fq 'split=3[base0][news0][crawl0]' "$ROOT/bin/start-stream.sh"
+grep -Fq '[news0]crop=w=990:h=68:x=267:y=23' "$ROOT/bin/start-stream.sh"
+grep -Fq '[crawl0]crop=w=990:h=108:x=267:y=589' "$ROOT/bin/start-stream.sh"
+grep -Fq '[base][newslane]overlay=x=267:y=23:shortest=1' "$ROOT/bin/start-stream.sh"
+grep -Fq '[withnews][crawllane]overlay=x=267:y=589:shortest=1' "$ROOT/bin/start-stream.sh"
+
+if grep -Fq 'drawbox=x=262:y=23:w=20' "$ROOT/bin/start-stream.sh" || \
+   grep -Fq 'drawbox=x=1237:y=23:w=20' "$ROOT/bin/start-stream.sh" || \
+   grep -Fq 'drawbox=x=262:y=589:w=20' "$ROOT/bin/start-stream.sh" || \
+   grep -Fq 'drawbox=x=1237:y=589:w=20' "$ROOT/bin/start-stream.sh"; then
+  echo 'Painted edge masks must not be used; the lanes must be physically clipped.' >&2
+  exit 1
+fi
+
+# Each ribbon starts completely beyond the right interior orange line at local
+# x=990, traverses exactly its own 990px lane plus text width, and therefore
+# fully disappears at the left interior orange line before the cycle repeats.
 # shellcheck disable=SC2016
-grep -Fq '1237-mod(t*$BEARS_NEWS_SCROLL_PPS\,text_w+955)' "$ROOT/bin/start-stream.sh"
-grep -Fq 'x=1237-mod(t*105\,text_w+955)' "$ROOT/bin/start-stream.sh"
-
-# Ordering matters: moving text first, then edge masks, then fixed label/frame.
-python3 - "$ROOT/bin/start-stream.sh" <<'PY'
-import sys
-text = open(sys.argv[1], encoding='utf-8').read()
-
-news = text.index('bears-news-message.txt')
-news_left = text.index('drawbox=x=262:y=23:w=20:h=68', news)
-news_right = text.index('drawbox=x=1237:y=23:w=20:h=68', news_left)
-news_label_box = text.index('drawbox=x=18:y=18:w=244:h=78', news_right)
-news_label = text.index('bears-news-label.txt', news_label_box)
-assert news < news_left < news_right < news_label_box < news_label
-
-crawl = text.index('crawl-message.txt')
-crawl_left = text.index('drawbox=x=262:y=589:w=20:h=108', crawl)
-crawl_right = text.index('drawbox=x=1237:y=589:w=20:h=108', crawl_left)
-crawl_label_box = text.index('drawbox=x=18:y=584:w=244:h=118', crawl_right)
-crawl_label = text.index('crawl-label.txt', crawl_label_box)
-outer = text.index('drawbox=x=0:y=0:w=1280:h=7', crawl_label)
-assert crawl < crawl_left < crawl_right < crawl_label_box < crawl_label < outer
-PY
+grep -Fq 'x=990-mod(t*$BEARS_NEWS_SCROLL_PPS\,text_w+990)' "$ROOT/bin/start-stream.sh"
+grep -Fq 'x=990-mod(t*105\,text_w+990)' "$ROOT/bin/start-stream.sh"
 
 cat > "$TMP/feed.xml" <<'XML'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -127,10 +116,10 @@ grep -q '◆' "$TMP/runtime/bears-news-message.txt"
 grep -q '^1$' "$TMP/runtime/bears-news-active"
 
 printf 'EPIC LIVE\n' > "$TMP/runtime/crawl-label.txt"
-printf 'TEST CRAWL\n' > "$TMP/runtime/crawl-message.txt"
+printf 'TEST CRAWL MESSAGE THAT MUST ENTER AND EXIT ONLY INSIDE ITS OWN ORANGE LINES\n' > "$TMP/runtime/crawl-message.txt"
 
-# Parse the production filter graph itself so the test cannot drift from the
-# real FFmpeg composition.
+# Parse the exact production filter graph. This validates split/crop/drawtext/
+# overlay geometry together on a single source clock.
 python3 - "$ROOT/bin/start-stream.sh" "$TMP/runtime" <<'PY'
 import re
 import subprocess
@@ -155,4 +144,4 @@ kill "$PID"
 wait "$PID" 2>/dev/null || true
 PID=""
 
-echo 'Blue gutters, dedicated news/crawl lanes, full orange frame, and A/V-safe tests passed.'
+echo 'True orange-line news/crawl clipping, blue gutters, and A/V-safe tests passed.'
