@@ -14,116 +14,89 @@ trap cleanup EXIT
 
 python3 -m py_compile "$ROOT/bin/bears-news-feed.py"
 bash -n "$ROOT/bin/start-stream.sh"
-grep -Fq 'BEARS_NEWS_OVERLAY_PORT' "$ROOT/bin/start-stream.sh"
-grep -Fq 'video_size 1244x78' "$ROOT/bin/start-stream.sh"
-grep -Fq 'overlay=x=18:y=18' "$ROOT/bin/start-stream.sh"
-grep -Fq 'drawbox=x=0:y=578:w=1280:h=118' "$ROOT/bin/start-stream.sh"
-grep -q '^BEARS_NEWS_OVERLAY_PORT=8789$' "$ROOT/config/stream.env.example"
-grep -q '^BEARS_NEWS_SCROLL_PPS=90$' "$ROOT/config/stream.env.example"
-if grep -Fq 'LABEL_GAP' "$ROOT/bin/bears-news-feed.py"; then
-  echo 'Bears news must not leave a blue gap before the orange label.' >&2
+
+# The news layer must not add another live video clock/input to FFmpeg.
+if grep -Fq -- '-f rawvideo' "$ROOT/bin/start-stream.sh"; then
+  echo 'Bears news must not use a rawvideo input; it can cause A/V pacing lag.' >&2
   exit 1
 fi
+if grep -Fq 'BEARS_NEWS_OVERLAY_PORT' "$ROOT/bin/start-stream.sh"; then
+  echo 'The retired Bears news HTTP overlay must not be referenced.' >&2
+  exit 1
+fi
+
+grep -q '^BEARS_NEWS_SCROLL_PPS=90$' "$ROOT/config/stream.env.example"
+if grep -q '^BEARS_NEWS_OVERLAY_' "$ROOT/config/stream.env.example"; then
+  echo 'Retired Bears news overlay settings must not remain in the example config.' >&2
+  exit 1
+fi
+
+# Exact Chicago Bears Orange perimeter and boundary geometry.
+grep -Fq 'drawbox=x=18:y=18:w=1244:h=5:color=0xC83803' "$ROOT/bin/start-stream.sh"
+grep -Fq 'drawbox=x=18:y=91:w=1244:h=5:color=0xC83803' "$ROOT/bin/start-stream.sh"
+grep -Fq 'drawbox=x=18:y=18:w=5:h=78:color=0xC83803' "$ROOT/bin/start-stream.sh"
+grep -Fq 'drawbox=x=1257:y=18:w=5:h=78:color=0xC83803' "$ROOT/bin/start-stream.sh"
+grep -Fq 'drawbox=x=257:y=22:w=5:h=70:color=0xC83803' "$ROOT/bin/start-stream.sh"
+grep -Fq 'drawbox=x=18:y=96:w=1244:h=4:color=0xC83803' "$ROOT/bin/start-stream.sh"
+grep -Fq '1257-mod(t*$BEARS_NEWS_SCROLL_PPS\,text_w+1000)' "$ROOT/bin/start-stream.sh"
+grep -Fq 'drawbox=x=0:y=578:w=1280:h=118' "$ROOT/bin/start-stream.sh"
+
+# The moving text must be drawn before the orange masks/label so it disappears
+# underneath orange rather than at a blue clipping edge.
+python3 - "$ROOT/bin/start-stream.sh" <<'PY'
+import sys
+text = open(sys.argv[1], encoding='utf-8').read()
+message = text.index('bears-news-message.txt')
+left_mask = text.index('drawbox=x=0:y=18:w=262:h=78', message)
+separator = text.index('drawbox=x=257:y=22:w=5:h=70', left_mask)
+label = text.index('bears-news-label.txt', separator)
+assert message < left_mask < separator < label
+PY
 
 cat > "$TMP/feed.xml" <<'XML'
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel><title>Test</title>
 <item>
-  <title>This is a deliberately long Chicago Bears headline that must scroll completely through the upper third without clipping the final source characters</title>
+  <title>This is a deliberately long Chicago Bears headline that must remain complete through the source</title>
   <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
   <category>normal</category>
 </item>
-<item><title>Major Bears update</title><source url="https://example.com">Second Source</source><category>breaking</category></item>
+<item>
+  <title>Major Bears update</title>
+  <source url="https://example.com">Second Source</source>
+  <category>breaking</category>
+</item>
 </channel></rss>
 XML
 
 BEARS_NEWS_FEED_FILE="$TMP/feed.xml" \
 CRAWL_RUNTIME_DIR="$TMP/runtime" \
-BEARS_NEWS_OVERLAY_PORT=18789 \
-BEARS_NEWS_OVERLAY_FPS=15 \
 BEARS_NEWS_POLL_SECONDS=30 \
-BEARS_NEWS_STATIC_SECONDS=8 \
-BEARS_NEWS_SCROLL_PPS=300 \
 python3 "$ROOT/bin/bears-news-feed.py" >"$TMP/news.log" 2>&1 &
 PID=$!
 for _ in {1..50}; do
-  curl --silent --fail --max-time 1 http://127.0.0.1:18789/healthz >"$TMP/health.json" && break
+  [[ -s "$TMP/runtime/bears-news-message.txt" ]] && break
   sleep 0.1
 done
-jq -e '.ok == true and .active == true' "$TMP/health.json" >/dev/null
 
 grep -q '^BEARS NEWS$' "$TMP/runtime/bears-news-label.txt"
-grep -q 'CHICAGOBEARS.COM$' "$TMP/runtime/bears-news-message.txt"
-grep -q 'FINAL SOURCE CHARACTERS' "$TMP/runtime/bears-news-message.txt"
+grep -q 'CHICAGOBEARS.COM' "$TMP/runtime/bears-news-message.txt"
+grep -q 'BREAKING: MAJOR BEARS UPDATE' "$TMP/runtime/bears-news-message.txt"
+grep -q 'SOURCE: SECOND SOURCE' "$TMP/runtime/bears-news-message.txt"
+grep -q '◆' "$TMP/runtime/bears-news-message.txt"
 grep -q '^1$' "$TMP/runtime/bears-news-active"
 
-curl --silent --fail http://127.0.0.1:18789/frame.png -o "$TMP/news.png"
-python3 - "$TMP/news.png" "$ROOT/bin/bears-news-feed.py" <<'PY'
-import runpy
-import sys
-from PIL import Image
+printf 'EPIC LIVE\n' > "$TMP/runtime/crawl-label.txt"
+printf 'TEST CRAWL\n' > "$TMP/runtime/crawl-message.txt"
 
-img = Image.open(sys.argv[1]).convert("RGBA")
-module = runpy.run_path(sys.argv[2])
-assert img.size == (module["WIDTH"], module["HEIGHT"]), img.size
-orange = module["BEARS_ORANGE"]
-border = module["OUTER_BORDER"]
-width = module["WIDTH"]
-height = module["HEIGHT"]
-
-# Every pixel of every outer side must be the same exact Bears Orange thickness.
-for y in range(border):
-    for x in range(width):
-        assert img.getpixel((x, y)) == orange, ("top", x, y, img.getpixel((x, y)))
-for y in range(height - border, height):
-    for x in range(width):
-        assert img.getpixel((x, y)) == orange, ("bottom", x, y, img.getpixel((x, y)))
-for x in range(border):
-    for y in range(height):
-        assert img.getpixel((x, y)) == orange, ("left", x, y, img.getpixel((x, y)))
-for x in range(width - border, width):
-    for y in range(height):
-        assert img.getpixel((x, y)) == orange, ("right", x, y, img.getpixel((x, y)))
-
-# The visible headline region begins immediately after the orange label. There
-# may not be an intermediate blue spacer where moving text can vanish early.
-assert module["VIEWPORT_START"] == module["LABEL_RIGHT"] + 1
-safe_y = border + 2
-assert img.getpixel((module["LABEL_RIGHT"], safe_y)) == orange
-
-message = "THIS IS A VERY LONG BEARS HEADLINE " * 8 + "SOURCE: CHICAGOBEARS.COM"
-_, text_width, text_height = module["text_metrics"](message)
-assert text_height < height - 2 * border, (text_height, height, border)
-assert text_width > module["VIEWPORT_WIDTH"], (text_width, module["VIEWPORT_WIDTH"])
-
-# At the end of the calculated travel, the final character is fully underneath
-# the orange label. Rotation is not allowed until an additional trailing hold.
-travel = module["scroll_travel"](text_width)
-end_elapsed = travel / module["SCROLL_PPS"]
-end_x = module["headline_x"](text_width, end_elapsed)
-assert end_x + text_width <= module["VIEWPORT_START"], (
-    end_x,
-    text_width,
-    module["VIEWPORT_START"],
-)
-duration = module["display_duration"](message)
-assert duration >= end_elapsed + module["SCROLL_END_HOLD"], (
-    duration,
-    end_elapsed,
-    module["SCROLL_END_HOLD"],
-)
-PY
-
-# Prove FFmpeg can consume the renderer's raw RGBA stream and composite it into
-# the exact upper-third position used by production.
+# Parse the production-style single-clock filter graph with real text files.
 ffmpeg -hide_banner -loglevel error \
   -f lavfi -i color=c=black:s=1280x720:r=30:d=0.3 \
-  -f rawvideo -pixel_format rgba -video_size 1244x78 -framerate 15 -i http://127.0.0.1:18789/overlay.rgba \
-  -filter_complex '[0:v][1:v]overlay=x=18:y=18:format=auto,format=yuv420p[v]' \
+  -filter_complex "[0:v]drawbox=x=22:y=22:w=1235:h=70:color=0x0B162A@0.98:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$TMP/runtime/bears-news-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=25:x=1257-mod(t*90\,text_w+1000):y=44,drawbox=x=0:y=18:w=262:h=78:color=0xC83803:t=fill,drawbox=x=1257:y=18:w=23:h=78:color=0xC83803:t=fill,drawbox=x=18:y=18:w=1244:h=5:color=0xC83803:t=fill,drawbox=x=18:y=91:w=1244:h=5:color=0xC83803:t=fill,drawbox=x=18:y=18:w=5:h=78:color=0xC83803:t=fill,drawbox=x=1257:y=18:w=5:h=78:color=0xC83803:t=fill,drawbox=x=257:y=22:w=5:h=70:color=0xC83803:t=fill,drawbox=x=18:y=96:w=1244:h=4:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$TMP/runtime/bears-news-label.txt:reload=1:expansion=none:fontcolor=white:fontsize=24:x=(257-text_w)/2:y=44,format=yuv420p[v]" \
   -map '[v]' -t 0.3 -f null -
 
 kill "$PID"
 wait "$PID" 2>/dev/null || true
 PID=""
 
-echo 'Bears news frame, mask, and completeness tests passed.'
+echo 'Bears news single-clock, completeness, and orange-boundary tests passed.'
