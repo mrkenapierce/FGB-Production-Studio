@@ -405,6 +405,11 @@ def sponsor_text_parts(sponsor: dict[str, Any], kind: str) -> tuple[str, str, st
     return headline, subtitle, format_event_date(supplied_date) or embedded_date
 
 
+def show_advertisement_label(kind: str) -> bool:
+    """House posts are owned programming, not paid advertising disclosures."""
+    return kind != "house"
+
+
 def render_placeholder(label: str) -> Image.Image:
     image = Image.new("RGB", (WIDTH, HEIGHT), BEARS_BLUE)
     draw = ImageDraw.Draw(image)
@@ -431,7 +436,8 @@ def render_sponsor(sponsor: dict[str, Any]) -> Image.Image:
     headline, subtitle, event_date = sponsor_text_parts(sponsor, kind)
     draw_brand_frame(draw)
     draw_epic_media_qr(image, draw)
-    draw.text((505, 112), "ADVERTISEMENT", font=font(20, bold=True), fill=BEARS_ORANGE)
+    if show_advertisement_label(kind):
+        draw.text((505, 112), "ADVERTISEMENT", font=font(20, bold=True), fill=BEARS_ORANGE)
 
     if creative is not None:
         box = (505, 145, WIDTH - 48, 330)
