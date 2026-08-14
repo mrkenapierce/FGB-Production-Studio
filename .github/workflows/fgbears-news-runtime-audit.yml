@@ -1,0 +1,56 @@
+name: Audit FGBears News Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/fgbears-news-runtime-audit.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require Oracle access secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+
+      - name: Trust Oracle host key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Report safe Bears news state
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
+            set -Eeuo pipefail
+            runtime=/srv/fgbears-live/runtime
+            printf "service=%s\n" "$(systemctl is-active fgbears-live.service)"
+            printf "active=%s\n" "$(cat "$runtime/bears-news-active" 2>/dev/null || printf missing)"
+            printf "label=%s\n" "$(cat "$runtime/bears-news-label.txt" 2>/dev/null || printf missing)"
+            printf "headline=%s\n" "$(cat "$runtime/bears-news-message.txt" 2>/dev/null || printf missing)"
+            test "$(systemctl is-active fgbears-live.service)" = active
+            test -s "$runtime/bears-news-label.txt"
+            test -s "$runtime/bears-news-message.txt"
+            test "$(cat "$runtime/bears-news-active")" = 1
+          '
