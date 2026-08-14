@@ -38,6 +38,8 @@ grep -Fq 'drawbox=x=18:y=18:w=5:h=78:color=0xC83803' "$ROOT/bin/start-stream.sh"
 grep -Fq 'drawbox=x=1257:y=18:w=5:h=78:color=0xC83803' "$ROOT/bin/start-stream.sh"
 grep -Fq 'drawbox=x=257:y=22:w=5:h=70:color=0xC83803' "$ROOT/bin/start-stream.sh"
 grep -Fq 'drawbox=x=18:y=96:w=1244:h=4:color=0xC83803' "$ROOT/bin/start-stream.sh"
+# The dollar expression is intentionally literal: verify the production script text.
+# shellcheck disable=SC2016
 grep -Fq '1257-mod(t*$BEARS_NEWS_SCROLL_PPS\,text_w+1000)' "$ROOT/bin/start-stream.sh"
 grep -Fq 'drawbox=x=0:y=578:w=1280:h=118' "$ROOT/bin/start-stream.sh"
 
