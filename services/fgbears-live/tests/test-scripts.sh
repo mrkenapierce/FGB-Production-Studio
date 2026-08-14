@@ -45,10 +45,11 @@ python3 -m py_compile "$ROOT/bin/crawl-overlay.py"
 grep -q '^AD_OVERLAY_FPS=25$' "$ROOT/config/stream.env.example"
 
 grep -q 'REPLACE_WITH_YOUTUBE_STREAM_KEY' "$ROOT/config/stream.env.example"
-# The dollar expression is intentionally literal: this verifies the script text.
+# The dollar expressions are intentionally literal: these verify script text.
 # shellcheck disable=SC2016
 grep -Fq -- '-i "$AD_FRAME_FILE"' "$ROOT/bin/start-stream.sh"
-grep -Fq -- '-loop 1 -framerate 30' "$ROOT/bin/start-stream.sh"
+# shellcheck disable=SC2016
+grep -Fq -- '-loop 1 -framerate "$OUTPUT_FPS"' "$ROOT/bin/start-stream.sh"
 if grep -Fq -- '-re -loop 1' "$ROOT/bin/start-stream.sh"; then
   echo 'The still image must not have a second independent rate limiter.' >&2
   exit 1
@@ -162,14 +163,14 @@ bash "$ROOT/bin/validate-media.sh" "$TMP/media"
 MEDIA_DIR="$TMP/media" PLAYLIST_FILE="$TMP/playlist.ffconcat" bash "$ROOT/bin/rebuild-playlist.sh"
 grep -q "episode-01.mp4" "$TMP/playlist.ffconcat"
 
-# Prove the permanent ad and reloadable crawl render over the source-owned clock.
+# Prove the permanent ad and reloadable crawl render at the reduced 24fps clock.
 mkdir -p "$TMP/runtime"
 cp "$TMP/frame.jpg" "$TMP/runtime/ad-frame.jpg"
 printf 'EPIC LIVE\n' > "$TMP/runtime/crawl-label.txt"
 printf 'TEST CRAWL MESSAGE\n' > "$TMP/runtime/crawl-message.txt"
 ffmpeg -hide_banner -loglevel error \
-  -re -loop 1 -framerate 30 -i "$TMP/runtime/ad-frame.jpg" \
-  -filter_complex "[0:v]scale=1280:720,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$TMP/runtime/crawl-message.txt:reload=1:expansion=none:fontcolor=white:fontsize=31:x=w-mod(t*105\\,w+text_w+100):y=620,format=yuv420p[v]" \
+  -loop 1 -framerate 24 -i "$TMP/runtime/ad-frame.jpg" \
+  -filter_complex "[0:v]drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$TMP/runtime/crawl-message.txt:reload=24:expansion=none:fontcolor=white:fontsize=31:x=w-mod(t*105\\,w+text_w+100):y=620,format=yuv420p[v]" \
   -map '[v]' -t 0.4 -c:v libx264 -preset ultrafast -an -f null -
 
 echo 'FGBears Live script tests passed.'
