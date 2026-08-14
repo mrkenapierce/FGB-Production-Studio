@@ -26,6 +26,25 @@ if grep -Fq 'BEARS_NEWS_OVERLAY_PORT' "$ROOT/bin/start-stream.sh"; then
 fi
 grep -q '^BEARS_NEWS_SCROLL_PPS=90$' "$ROOT/config/stream.env.example"
 
+# Keep enough encoder headroom for uninterrupted audio: 24 fps output, two-
+# second GOP, automatic x264 threading, and dynamic text reload once per second.
+grep -q '^OUTPUT_FPS=24$' "$ROOT/config/stream.env.example"
+grep -q '^VIDEO_GOP=48$' "$ROOT/config/stream.env.example"
+grep -q '^DRAWTEXT_RELOAD_FRAMES=24$' "$ROOT/config/stream.env.example"
+grep -Fq -- '-loop 1 -framerate "$OUTPUT_FPS"' "$ROOT/bin/start-stream.sh"
+grep -Fq -- '-g "$VIDEO_GOP" -keyint_min "$VIDEO_GOP"' "$ROOT/bin/start-stream.sh"
+grep -Fq -- '-r "$OUTPUT_FPS" -fps_mode cfr -threads 0' "$ROOT/bin/start-stream.sh"
+if grep -Fq 'reload=1:' "$ROOT/bin/start-stream.sh"; then
+  echo 'Dynamic drawtext must not reload files every video frame.' >&2
+  exit 1
+fi
+# shellcheck disable=SC2016
+reload_count=$(grep -oF 'reload=$DRAWTEXT_RELOAD_FRAMES' "$ROOT/bin/start-stream.sh" | wc -l)
+[[ "$reload_count" -eq 4 ]] || {
+  echo "Expected four one-second drawtext reload controls, found $reload_count." >&2
+  exit 1
+}
+
 # Full-overlay outer perimeter stays Chicago Bears Orange.
 for spec in \
   'drawbox=x=0:y=0:w=1280:h=7:color=0xC83803' \
@@ -118,8 +137,8 @@ grep -q '^1$' "$TMP/runtime/bears-news-active"
 printf 'EPIC LIVE\n' > "$TMP/runtime/crawl-label.txt"
 printf 'TEST CRAWL MESSAGE THAT MUST ENTER AND EXIT ONLY INSIDE ITS OWN ORANGE LINES\n' > "$TMP/runtime/crawl-message.txt"
 
-# Parse the exact production filter graph. This validates split/crop/drawtext/
-# overlay geometry together on a single source clock.
+# Parse the exact production filter graph at the reduced 24 fps clock. This
+# validates split/crop/drawtext/overlay geometry and reload controls together.
 python3 - "$ROOT/bin/start-stream.sh" "$TMP/runtime" <<'PY'
 import re
 import subprocess
@@ -133,10 +152,11 @@ graph = match.group(1)
 graph = graph.replace('[1:v]', '[0:v]', 1)
 graph = graph.replace('$CRAWL_RUNTIME_DIR', runtime)
 graph = graph.replace('$BEARS_NEWS_SCROLL_PPS', '90')
+graph = graph.replace('$DRAWTEXT_RELOAD_FRAMES', '24')
 subprocess.run([
     'ffmpeg', '-hide_banner', '-loglevel', 'error',
-    '-f', 'lavfi', '-i', 'color=c=black:s=1280x720:r=30:d=0.3',
-    '-filter_complex', graph, '-map', '[v]', '-t', '0.3', '-f', 'null', '-'
+    '-f', 'lavfi', '-i', 'color=c=black:s=1280x720:r=24:d=0.4',
+    '-filter_complex', graph, '-map', '[v]', '-t', '0.4', '-f', 'null', '-'
 ], check=True)
 PY
 
@@ -144,4 +164,4 @@ kill "$PID"
 wait "$PID" 2>/dev/null || true
 PID=""
 
-echo 'True orange-line news/crawl clipping, blue gutters, and A/V-safe tests passed.'
+echo 'Reduced-load 24 fps news/crawl clipping and A/V-safe tests passed.'
