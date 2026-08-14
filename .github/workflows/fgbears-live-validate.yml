@@ -6,12 +6,14 @@ on:
       - 'services/fgbears-live/**'
       - '.github/workflows/fgbears-live-validate.yml'
       - '.github/workflows/fgbears-live-monitor.yml'
+      - '.github/workflows/fgbears-stream-health-audit.yml'
   push:
     branches: [main]
     paths:
       - 'services/fgbears-live/**'
       - '.github/workflows/fgbears-live-validate.yml'
       - '.github/workflows/fgbears-live-monitor.yml'
+      - '.github/workflows/fgbears-stream-health-audit.yml'
 
 permissions:
   contents: read
@@ -30,3 +32,4 @@ jobs:
         run: |
           bash services/fgbears-live/tests/test-scripts.sh
           bash services/fgbears-live/tests/test-bears-news.sh
+          bash services/fgbears-live/tests/test-health-monitor.sh
