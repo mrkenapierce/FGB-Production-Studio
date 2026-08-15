@@ -33,7 +33,7 @@ jobs:
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
             set -Eeuo pipefail
             test "$(systemctl is-active fgbears-live.service)" = active
-            asset=/opt/fgbears-live/assets/chicago-green-bay-comparison.jpg
+            asset=/opt/fgbears-live/assets/fgb-epic-default-interstitial.jpg
             echo "--- DEPLOYED INTERSTITIAL ASSET ---"
             stat --printf="bytes=%s mode=%a\n" "$asset"
             sha256sum "$asset" | awk "{print \"asset_sha=\" \$1}"

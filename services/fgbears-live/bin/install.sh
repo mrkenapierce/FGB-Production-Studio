@@ -28,17 +28,12 @@ install -d -m 0755 /opt/fgbears-live/assets
 base64 --decode "$SOURCE_DIR/../../renderer/assets/epic-logo-for-qr.base64.txt" > /opt/fgbears-live/assets/epic-logo.png
 chmod 0644 /opt/fgbears-live/assets/epic-logo.png
 
-# Store the comparison card in small text chunks so transport cannot silently
-# truncate a large binary/text payload. Reassemble the exact JPEG at deploy
-# time and fail the install unless Pillow can fully decode every scan.
-cat \
-  "$SOURCE_DIR/assets/chicago-green-bay-comparison.clean.part1.txt" \
-  "$SOURCE_DIR/assets/chicago-green-bay-comparison.clean.part2.txt" \
-  "$SOURCE_DIR/assets/chicago-green-bay-comparison.clean.part3.txt" \
-  "$SOURCE_DIR/assets/chicago-green-bay-comparison.clean.part4.txt" \
-  | base64 --decode > /opt/fgbears-live/assets/chicago-green-bay-comparison.jpg
-python3 -c 'from PIL import Image; p="/opt/fgbears-live/assets/chicago-green-bay-comparison.jpg"; im=Image.open(p); im.load(); assert im.size == (798, 470)'
-chmod 0644 /opt/fgbears-live/assets/chicago-green-bay-comparison.jpg
+# Install the approved FGB/EPIC card shown between sponsor advertisements and
+# fail the deployment unless Pillow can fully decode the broadcast-sized file.
+install -m 0644 \
+  "$SOURCE_DIR/assets/fgb-epic-default-interstitial.jpg" \
+  /opt/fgbears-live/assets/fgb-epic-default-interstitial.jpg
+python3 -c 'from PIL import Image; p="/opt/fgbears-live/assets/fgb-epic-default-interstitial.jpg"; im=Image.open(p); im.load(); assert im.format == "JPEG"; assert im.size == (798, 470)'
 
 install -d -o fgbears -g fgbears -m 0755 /srv/fgbears-live /srv/fgbears-live/media /srv/fgbears-live/incoming /srv/fgbears-live/logs /srv/fgbears-live/runtime
 install -d -o root -g root -m 0755 /srv/fgbears-live/health

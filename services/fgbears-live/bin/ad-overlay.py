@@ -57,7 +57,7 @@ EPIC_LOGO_PATH = os.getenv("EPIC_LOGO_PATH", "/opt/fgbears-live/assets/epic-logo
 HOUSE_INTERSTITIAL_PATH = Path(
     os.getenv(
         "HOUSE_INTERSTITIAL_PATH",
-        "/opt/fgbears-live/assets/chicago-green-bay-comparison.jpg",
+        "/opt/fgbears-live/assets/fgb-epic-default-interstitial.jpg",
     )
 )
 PUBLISHED_FRAME = Path(os.getenv("AD_FRAME_FILE", "/srv/fgbears-live/runtime/ad-frame.jpg"))

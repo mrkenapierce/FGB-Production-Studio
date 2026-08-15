@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
-import base64
 import hashlib
-import io
 import runpy
 
 from PIL import Image
@@ -33,19 +31,15 @@ assert image_only_creative({"imageUrl": "x", "layout": "full-bleed"}) is True
 assert image_only_creative({"imageUrl": "x"}) is True
 assert image_only_creative({"imageUrl": "x", "promoMessage": "Offer"}) is False
 
-# Reassemble exactly what production will deploy. Full load is deliberately
+# Validate exactly what production will deploy. Full load is deliberately
 # required: Image.verify() alone can accept a truncated JPEG scan.
-parts = [
-    root / "assets" / f"chicago-green-bay-comparison.clean.part{i}.txt"
-    for i in range(1, 5)
-]
-encoded = "".join(part.read_text(encoding="ascii").strip() for part in parts)
-decoded = base64.b64decode(encoded, validate=True)
-assert hashlib.sha256(decoded).hexdigest() == "47352b16aa2cee60baabdd190ab8f74d356d5b718d449cd8c73820fddda0f810"
-chart = Image.open(io.BytesIO(decoded))
-assert chart.format == "JPEG", chart.format
-assert chart.size == (798, 470), chart.size
-chart.load()
+asset = root / "assets" / "fgb-epic-default-interstitial.jpg"
+decoded = asset.read_bytes()
+assert hashlib.sha256(decoded).hexdigest() == "2e38173471f44dc3bf8fc8d09feea697d6bb77109ae812db9157e8e86a39bb51"
+interstitial = Image.open(asset)
+assert interstitial.format == "JPEG", interstitial.format
+assert interstitial.size == (798, 470), interstitial.size
+interstitial.load()
 
 source = renderer.read_text(encoding="utf-8")
 assert "ImageOps.fit(" in source, "image creatives must crop/fill instead of letterboxing"
@@ -55,10 +49,9 @@ assert "FRAME_PUBLISH_SECONDS" in source
 assert "render_house_interstitial" in source
 
 install = (root / "bin" / "install.sh").read_text(encoding="utf-8")
-for i in range(1, 5):
-    assert f'chicago-green-bay-comparison.clean.part{i}.txt' in install
-assert "base64 --decode" in install
-assert "/opt/fgbears-live/assets/chicago-green-bay-comparison.jpg" in install
+assert "fgb-epic-default-interstitial.jpg" in install
+assert "install -m 0644" in install
+assert "/opt/fgbears-live/assets/fgb-epic-default-interstitial.jpg" in install
 assert "Image.open" in install and "im.load()" in install
 assert 'im.size == (798, 470)' in install
 
