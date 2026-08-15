@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Original FGB-written Chicago Bears news briefs with source attribution for Football's Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 14 Aug 2026 23:01:00 -0500</lastBuildDate>
+    <lastBuildDate>Sat, 15 Aug 2026 02:03:00 -0500</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -50,11 +50,11 @@
     </item>
 
     <item>
-      <title>NFL game center shows the Bears entering Saturday's Cleveland preseason opener at Soldier Field with no active injuries listed</title>
-      <description>FGB brief: NFL.com's game page currently lists no active Bears injuries ahead of the preseason opener, with Chicago hosting Cleveland at Soldier Field on Saturday.</description>
+      <title>NFL game center lists Bears-Browns preseason opener at Soldier Field today while official injury reports remain unavailable</title>
+      <description>FGB brief: Chicago hosts Cleveland at Soldier Field in its preseason opener, while NFL.com currently shows both teams' injury reports as unavailable rather than listing active injuries.</description>
       <link>https://www.nfl.com/games/browns-at-bears-2026-pre-1</link>
       <guid isPermaLink="false">fgb-bears-news-2026-08-14-207</guid>
-      <pubDate>Fri, 14 Aug 2026 00:00:00 -0500</pubDate>
+      <pubDate>Sat, 15 Aug 2026 00:00:00 -0500</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/">NFL.com</source>
     </item>
