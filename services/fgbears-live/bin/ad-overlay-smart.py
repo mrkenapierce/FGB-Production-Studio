@@ -3,8 +3,9 @@
 
 Every uploaded image fills the complete 798x470 ad panel edge-to-edge without
 stretching. Images are scaled proportionally until they cover the panel, then
-only the excess outside the panel aspect ratio is center-cropped. There are no
-letterbox bars, background extensions, or tiny centered images.
+only the excess outside the panel aspect ratio is center-cropped. Any creative
+that contains an image is treated as a full-panel image creative so it cannot
+fall back to the legacy small mixed-image card layout.
 """
 from __future__ import annotations
 
@@ -53,10 +54,16 @@ def paste_image_fill(
     image.paste(fitted, (x1, y1))
 
 
-# Replace the base renderer helper globally. Every existing image path—house
-# cards, image-only ads, and mixed image creatives—now receives identical
-# edge-to-edge cover behavior.
+def image_creative_uses_full_panel(_sponsor: dict[str, Any]) -> bool:
+    """Route every successfully loaded image through the 798x470 panel path."""
+    return True
+
+
+# Replace both legacy helpers globally. The base renderer only calls the image
+# layout predicate after an image has loaded successfully, so returning True here
+# means every photo uses AD_PANEL_BOX instead of the old 727x185 mixed-card box.
 BASE.paste_image_fill = paste_image_fill
+BASE.image_only_creative = image_creative_uses_full_panel
 
 
 def main() -> None:
