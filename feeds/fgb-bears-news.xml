@@ -5,13 +5,23 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Original FGB-written Chicago Bears news briefs with source attribution for Football's Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 15 Aug 2026 02:03:00 -0500</lastBuildDate>
+    <lastBuildDate>Sat, 15 Aug 2026 16:03:00 -0500</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Tyson Bagent and five Bears reserves get major evaluation opportunities Saturday while Caleb Williams and most starters sit</title>
-      <description>FGB brief: Chicago will rest most starters against Cleveland, putting Bagent, Jahdae Walker, Salvon Ahmed, Austin Booker, Malik Muhammad II and Ruben Hyppolite II under a brighter preseason spotlight.</description>
+      <title>Bears score 34 unanswered points to beat Cleveland 34-10 as Case Keenum posts a perfect passer rating</title>
+      <description>FGB brief: Chicago erased an early 10-0 deficit in its preseason opener, with Keenum completing 9 of 10 passes for 151 yards and two touchdowns while Tyson Bagent added 169 yards and a score.</description>
+      <link>https://www.cbssports.com/nfl/gametracker/preview/NFL_20260815_CLE%40CHI/</link>
+      <guid isPermaLink="false">fgb-bears-news-2026-08-15-208</guid>
+      <pubDate>Sat, 15 Aug 2026 12:00:00 -0500</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Tyson Bagent and five Bears reserves get major evaluation opportunities while Caleb Williams and most starters sit</title>
+      <description>FGB brief: Chicago used the Cleveland preseason opener to evaluate Bagent, Jahdae Walker, Salvon Ahmed, Austin Booker, Malik Muhammad II and Ruben Hyppolite II with most established starters held out.</description>
       <link>https://www.chicagobears.com/news/6-bears-players-to-watch-in-preseason-opener-vs-browns</link>
       <guid isPermaLink="false">fgb-bears-news-2026-08-14-201</guid>
       <pubDate>Fri, 14 Aug 2026 14:53:00 -0500</pubDate>
@@ -50,13 +60,13 @@
     </item>
 
     <item>
-      <title>NFL game center lists Bears-Browns preseason opener at Soldier Field today while official injury reports remain unavailable</title>
-      <description>FGB brief: Chicago hosts Cleveland at Soldier Field in its preseason opener, while NFL.com currently shows both teams' injury reports as unavailable rather than listing active injuries.</description>
-      <link>https://www.nfl.com/games/browns-at-bears-2026-pre-1</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-14-207</guid>
-      <pubDate>Sat, 15 Aug 2026 00:00:00 -0500</pubDate>
+      <title>Bears head to Cincinnati next week for a joint practice before their second preseason game against the Bengals</title>
+      <description>FGB brief: Yahoo Sports' training-camp schedule lists Chicago's next major checkpoint as an Aug. 20 joint practice in Cincinnati, followed by the Aug. 22 preseason matchup with the Bengals.</description>
+      <link>https://sports.yahoo.com/nfl/article/nfl-training-camp-schedules-2026-report-dates-locations-joint-practices-preseason-games-and-more-for-all-32-teams-172324825.html</link>
+      <guid isPermaLink="false">fgb-bears-news-2026-07-22-205</guid>
+      <pubDate>Wed, 22 Jul 2026 09:22:00 -0500</pubDate>
       <category>normal</category>
-      <source url="https://www.nfl.com/">NFL.com</source>
+      <source url="https://sports.yahoo.com/">Yahoo Sports</source>
     </item>
 
     <item>
