@@ -20,13 +20,16 @@ install -d -m 0755 /opt/fgbears-live/assets
 base64 --decode "$SOURCE_DIR/../../renderer/assets/epic-logo-for-qr.base64.txt" > /opt/fgbears-live/assets/epic-logo.png
 chmod 0644 /opt/fgbears-live/assets/epic-logo.png
 
-# The comparison interstitial is stored as base64 text so GitHub transports the
-# exact user-supplied JPEG bytes without binary corruption. Decode it during
-# deployment, then fail the install if Pillow cannot fully read the result.
-base64 --decode \
-  "$SOURCE_DIR/assets/chicago-green-bay-comparison.base64.txt" \
-  > /opt/fgbears-live/assets/chicago-green-bay-comparison.jpg
-python3 -c 'from PIL import Image; p="/opt/fgbears-live/assets/chicago-green-bay-comparison.jpg"; im=Image.open(p); im.load(); assert im.width > 0 and im.height > 0' 
+# Store the comparison card in small text chunks so transport cannot silently
+# truncate a large binary/text payload. Reassemble the exact JPEG at deploy
+# time and fail the install unless Pillow can fully decode every scan.
+cat \
+  "$SOURCE_DIR/assets/chicago-green-bay-comparison.clean.part1.txt" \
+  "$SOURCE_DIR/assets/chicago-green-bay-comparison.clean.part2.txt" \
+  "$SOURCE_DIR/assets/chicago-green-bay-comparison.clean.part3.txt" \
+  "$SOURCE_DIR/assets/chicago-green-bay-comparison.clean.part4.txt" \
+  | base64 --decode > /opt/fgbears-live/assets/chicago-green-bay-comparison.jpg
+python3 -c 'from PIL import Image; p="/opt/fgbears-live/assets/chicago-green-bay-comparison.jpg"; im=Image.open(p); im.load(); assert im.size == (798, 470)'
 chmod 0644 /opt/fgbears-live/assets/chicago-green-bay-comparison.jpg
 
 install -d -o fgbears -g fgbears -m 0755 /srv/fgbears-live /srv/fgbears-live/media /srv/fgbears-live/incoming /srv/fgbears-live/logs /srv/fgbears-live/runtime
