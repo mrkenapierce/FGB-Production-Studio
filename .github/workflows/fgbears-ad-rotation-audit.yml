@@ -1,0 +1,59 @@
+name: Audit FGBears Ad Rotation
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/fgbears-ad-rotation-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    env:
+      ORACLE_USER: ubuntu
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Require Oracle access secrets
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+      - name: Configure SSH
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+      - name: Trust Oracle host key
+        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Observe a complete live ad transition
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
+            set -Eeuo pipefail
+            test "$(systemctl is-active fgbears-live.service)" = active
+            echo "--- FFMPEG LOCAL AD FEED CONNECTION ---"
+            sudo ss -tnp 2>/dev/null | grep -E "127\.0\.0\.1:8787" | sed -E "s/users:\(.*\)/users:(ffmpeg)/" || true
+            echo "--- LIVE ROTATION SAMPLES ---"
+            seen_interstitial=0
+            previous_hash=""
+            unique_changes=0
+            for i in $(seq 0 19); do
+              health=$(curl --silent --fail --max-time 2 http://127.0.0.1:8787/healthz)
+              frame_hash=$(curl --silent --fail --max-time 2 http://127.0.0.1:8787/frame.jpg | sha256sum | awk "{print \$1}")
+              index=$(printf "%s" "$health" | jq -r .rotationIndex)
+              interstitial=$(printf "%s" "$health" | jq -r .houseInterstitial)
+              seconds=$(printf "%s" "$health" | jq -r .houseInterstitialSeconds)
+              available=$(printf "%s" "$health" | jq -r .houseInterstitialAvailable)
+              printf "sample=%02d index=%s interstitial=%s duration=%ss available=%s frame_sha=%s\n" "$i" "$index" "$interstitial" "$seconds" "$available" "$frame_hash"
+              if [ "$interstitial" = true ]; then seen_interstitial=1; fi
+              if [ -n "$previous_hash" ] && [ "$frame_hash" != "$previous_hash" ]; then unique_changes=$((unique_changes + 1)); fi
+              previous_hash=$frame_hash
+              sleep 2
+            done
+            echo "SEEN_INTERSTITIAL=$seen_interstitial"
+            echo "FRAME_CHANGES=$unique_changes"
+            test "$seen_interstitial" -eq 1
+            test "$unique_changes" -ge 2
+          '
