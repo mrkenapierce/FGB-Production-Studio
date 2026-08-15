@@ -33,6 +33,22 @@ jobs:
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
             set -Eeuo pipefail
             test "$(systemctl is-active fgbears-live.service)" = active
+            asset=/opt/fgbears-live/assets/chicago-green-bay-comparison.jpg
+            echo "--- DEPLOYED INTERSTITIAL ASSET ---"
+            stat --printf="bytes=%s mode=%a\n" "$asset"
+            sha256sum "$asset" | awk "{print \"asset_sha=\" \$1}"
+            python3 - "$asset" <<"PY"
+from PIL import Image
+import sys
+path = sys.argv[1]
+try:
+    image = Image.open(path)
+    image.load()
+    print(f"pillow_decode=OK format={image.format} size={image.size} mode={image.mode}")
+except Exception as exc:
+    print(f"pillow_decode=FAIL error={type(exc).__name__}:{exc}")
+    raise
+PY
             echo "--- FFMPEG LOCAL AD FEED CONNECTION ---"
             sudo ss -tnp 2>/dev/null | grep -E "127\.0\.0\.1:8787" | sed -E "s/users:\(.*\)/users:(ffmpeg)/" || true
             echo "--- LIVE ROTATION SAMPLES ---"
