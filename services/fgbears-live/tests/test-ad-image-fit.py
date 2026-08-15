@@ -7,6 +7,7 @@ from PIL import Image, ImageOps
 root = Path(__file__).resolve().parents[1]
 smart = runpy.run_path(str(root / "bin" / "ad-overlay-smart.py"))
 fit_image_to_panel = smart["fit_image_to_panel"]
+base = smart["BASE"]
 
 TARGET = (798, 470)
 
@@ -49,6 +50,18 @@ tall_out = fit_image_to_panel(tall, TARGET)
 assert tall_out.size == TARGET
 assert tall_out.tobytes() == tall_expected.tobytes()
 
+# Any creative that successfully loads an image must use the full-panel route,
+# even when the feed also contains promo copy, a website, event date, or other
+# fields that previously forced the legacy 727x185 mixed-card layout.
+for sponsor in (
+    {"imageUrl": "x"},
+    {"imageUrl": "x", "promoMessage": "Offer"},
+    {"imageUrl": "x", "website": "https://example.com"},
+    {"imageUrl": "x", "eventDate": "2026-08-15"},
+    {"imageUrl": "x", "subtitle": "Supporting copy"},
+):
+    assert base.image_only_creative(sponsor) is True
+
 # Invalid panel geometry must fail rather than silently creating a broken frame.
 try:
     fit_image_to_panel(exact, (0, 470))
@@ -61,10 +74,11 @@ source = (root / "bin" / "ad-overlay-smart.py").read_text(encoding="utf-8")
 assert "ImageOps.fit(" in source
 assert "ImageOps.contain(" not in source
 assert "edge-to-edge" in source
+assert "BASE.image_only_creative = image_creative_uses_full_panel" in source
 
 install = (root / "bin" / "install.sh").read_text(encoding="utf-8")
 assert "ad-overlay-base.py" in install
 assert "ad-overlay-smart.py" in install
 assert "ad-overlay.py" in install
 
-print("Edge-to-edge ad image cover tests passed.")
+print("Edge-to-edge full-panel ad image tests passed.")
