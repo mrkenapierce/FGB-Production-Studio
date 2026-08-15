@@ -16,6 +16,14 @@ fi
 
 install -d -m 0755 /opt/fgbears-live
 rsync -a --delete "$SOURCE_DIR/" /opt/fgbears-live/
+
+# Keep the mature renderer implementation as the base module and install the
+# aspect-safe entry point at the path start-stream already launches. This makes
+# every photo use the same no-crop/no-stretch fitting rule without changing the
+# live stream's video-clock architecture.
+mv /opt/fgbears-live/bin/ad-overlay.py /opt/fgbears-live/bin/ad-overlay-base.py
+install -m 0755 /opt/fgbears-live/bin/ad-overlay-smart.py /opt/fgbears-live/bin/ad-overlay.py
+
 install -d -m 0755 /opt/fgbears-live/assets
 base64 --decode "$SOURCE_DIR/../../renderer/assets/epic-logo-for-qr.base64.txt" > /opt/fgbears-live/assets/epic-logo.png
 chmod 0644 /opt/fgbears-live/assets/epic-logo.png

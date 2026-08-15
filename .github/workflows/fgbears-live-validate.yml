@@ -33,5 +33,6 @@ jobs:
           bash services/fgbears-live/tests/test-scripts.sh
           python3 services/fgbears-live/tests/test-house-label.py
           python3 services/fgbears-live/tests/test-ad-interstitial.py
+          python3 services/fgbears-live/tests/test-ad-image-fit.py
           bash services/fgbears-live/tests/test-bears-news.sh
           bash services/fgbears-live/tests/test-health-monitor.sh
