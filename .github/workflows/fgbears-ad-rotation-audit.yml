@@ -37,18 +37,7 @@ jobs:
             echo "--- DEPLOYED INTERSTITIAL ASSET ---"
             stat --printf="bytes=%s mode=%a\n" "$asset"
             sha256sum "$asset" | awk "{print \"asset_sha=\" \$1}"
-            python3 - "$asset" <<"PY"
-from PIL import Image
-import sys
-path = sys.argv[1]
-try:
-    image = Image.open(path)
-    image.load()
-    print(f"pillow_decode=OK format={image.format} size={image.size} mode={image.mode}")
-except Exception as exc:
-    print(f"pillow_decode=FAIL error={type(exc).__name__}:{exc}")
-    raise
-PY
+            python3 -c "from PIL import Image; import sys; p=sys.argv[1]; im=Image.open(p); im.load(); print(\"pillow_decode=OK format=%s size=%s mode=%s\" % (im.format, im.size, im.mode))" "$asset"
             echo "--- FFMPEG LOCAL AD FEED CONNECTION ---"
             sudo ss -tnp 2>/dev/null | grep -E "127\.0\.0\.1:8787" | sed -E "s/users:\(.*\)/users:(ffmpeg)/" || true
             echo "--- LIVE ROTATION SAMPLES ---"
