@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import base64
+import io
 import runpy
 
 from PIL import Image
@@ -31,11 +33,14 @@ assert image_only_creative({"imageUrl": "x", "layout": "full-bleed"}) is True
 assert image_only_creative({"imageUrl": "x"}) is True
 assert image_only_creative({"imageUrl": "x", "promoMessage": "Offer"}) is False
 
-asset = root / "assets" / "chicago-green-bay-comparison.jpg"
-chart = Image.open(asset)
+# Validate the exact source format used in production deployment. A successful
+# Image.verify() is not enough for truncated JPEGs, so force a complete load.
+asset_source = root / "assets" / "chicago-green-bay-comparison.base64.txt"
+decoded = base64.b64decode(asset_source.read_text(encoding="ascii").strip(), validate=True)
+chart = Image.open(io.BytesIO(decoded))
 assert chart.format == "JPEG", chart.format
-assert chart.size == (550, 324), chart.size
-chart.verify()
+assert chart.size == (798, 470), chart.size
+chart.load()
 
 source = renderer.read_text(encoding="utf-8")
 assert "ImageOps.fit(" in source, "image creatives must crop/fill instead of letterboxing"
@@ -45,8 +50,10 @@ assert "FRAME_PUBLISH_SECONDS" in source
 assert "render_house_interstitial" in source
 
 install = (root / "bin" / "install.sh").read_text(encoding="utf-8")
-assert '"$SOURCE_DIR/assets/chicago-green-bay-comparison.jpg"' in install
+assert '"$SOURCE_DIR/assets/chicago-green-bay-comparison.base64.txt"' in install
+assert "base64 --decode" in install
 assert "/opt/fgbears-live/assets/chicago-green-bay-comparison.jpg" in install
-assert ".base64.part2.txt" not in install
+assert "Image.open" in install and "im.load()" in install
+assert '"$SOURCE_DIR/assets/chicago-green-bay-comparison.jpg"' not in install
 
 print("Five-second house interstitial tests passed.")
