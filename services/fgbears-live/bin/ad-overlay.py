@@ -49,6 +49,7 @@ EPIC_MEDIA_URL = "https://epiccontentcreatorgrants.org/epic-media"
 
 # This is the entire editable advertising area that remains visible between
 # the News and Crawl bands. Image-only creatives fill it edge-to-edge.
+AD_PANEL_BACKGROUND_BOX = (462, 97, WIDTH - 20, HEIGHT - 83)
 AD_PANEL_BOX = (462, 104, WIDTH - 20, 574)
 
 FONT_REGULAR = os.getenv("AD_FONT_REGULAR", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
@@ -328,7 +329,7 @@ def draw_brand_frame(draw: ImageDraw.ImageDraw) -> None:
     """Draw the locked three-part FGBears full-screen frame."""
     draw.rectangle((0, 0, WIDTH, 96), fill=BEARS_ORANGE)
     draw.rectangle((0, HEIGHT - 82, WIDTH, HEIGHT), fill="#07101F")
-    draw.rectangle((462, 97, WIDTH - 20, HEIGHT - 83), fill=WHITE)
+    draw.rectangle(AD_PANEL_BACKGROUND_BOX, fill=WHITE)
     title = "FOOTBALL'S GREATEST BEARS LIVE"
     title_font = font(38, bold=True)
     title_box = draw.textbbox((0, 0), title, font=title_font)

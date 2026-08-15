@@ -42,23 +42,37 @@ jobs:
             sudo ss -tnp 2>/dev/null | grep -E "127\.0\.0\.1:8787" | sed -E "s/users:\(.*\)/users:(ffmpeg)/" || true
             echo "--- LIVE ROTATION SAMPLES ---"
             seen_interstitial=0
+            seen_sponsor=0
             previous_hash=""
             unique_changes=0
+            frame=/tmp/fgbears-audit-frame.jpg
+            sponsor_frame=/tmp/fgbears-audit-sponsor.jpg
+            interstitial_frame=/tmp/fgbears-audit-interstitial.jpg
             for i in $(seq 0 19); do
               health=$(curl --silent --fail --max-time 2 http://127.0.0.1:8787/healthz)
-              frame_hash=$(curl --silent --fail --max-time 2 http://127.0.0.1:8787/frame.jpg | sha256sum | awk "{print \$1}")
+              curl --silent --fail --max-time 2 http://127.0.0.1:8787/frame.jpg --output "$frame"
+              frame_hash=$(sha256sum "$frame" | awk "{print \$1}")
               index=$(printf "%s" "$health" | jq -r .rotationIndex)
               interstitial=$(printf "%s" "$health" | jq -r .houseInterstitial)
               seconds=$(printf "%s" "$health" | jq -r .houseInterstitialSeconds)
               available=$(printf "%s" "$health" | jq -r .houseInterstitialAvailable)
               printf "sample=%02d index=%s interstitial=%s duration=%ss available=%s frame_sha=%s\n" "$i" "$index" "$interstitial" "$seconds" "$available" "$frame_hash"
-              if [ "$interstitial" = true ]; then seen_interstitial=1; fi
+              if [ "$interstitial" = true ]; then
+                seen_interstitial=1
+                cp "$frame" "$interstitial_frame"
+              else
+                seen_sponsor=1
+                cp "$frame" "$sponsor_frame"
+              fi
               if [ -n "$previous_hash" ] && [ "$frame_hash" != "$previous_hash" ]; then unique_changes=$((unique_changes + 1)); fi
               previous_hash=$frame_hash
               sleep 2
             done
             echo "SEEN_INTERSTITIAL=$seen_interstitial"
+            echo "SEEN_SPONSOR=$seen_sponsor"
             echo "FRAME_CHANGES=$unique_changes"
             test "$seen_interstitial" -eq 1
+            test "$seen_sponsor" -eq 1
             test "$unique_changes" -ge 2
+            python3 -c "from PIL import Image; import sys; expected=(11,22,42); images=[(p,Image.open(p).convert(\"RGB\")) for p in sys.argv[1:]]; [im.load() for _,im in images]; assert all(im.size == (1280,720) for _,im in images); pixels=[(p,im.getpixel((462,100))) for p,im in images]; assert all(max(abs(px[i]-expected[i]) for i in range(3)) <= 12 for _,px in pixels); print(chr(10).join(f\"photo_blend=OK path={p} margin_pixel={px}\" for p,px in pixels))" "$sponsor_frame" "$interstitial_frame"
           '
