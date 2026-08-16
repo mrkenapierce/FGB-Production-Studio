@@ -5,17 +5,17 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Original FGB-written Chicago Bears news briefs with source attribution for Football's Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 15 Aug 2026 17:57:00 -0500</lastBuildDate>
+    <lastBuildDate>Sun, 16 Aug 2026 07:01:51 -0500</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears erase a 10-point deficit and score 34 straight to beat Cleveland 34-10 in their preseason opener</title>
-      <description>FGB brief: NFL.com records Chicago trailing 10-0 before scoring 10 points in the second quarter, 14 in the third and 10 in the fourth to finish a 34-10 Soldier Field win.</description>
-      <link>https://www.nfl.com/games/browns-at-bears-2026-pre-1</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-15-209</guid>
-      <pubDate>Sat, 15 Aug 2026 12:00:00 -0500</pubDate>
-      <category>normal</category>
+      <title>Ben Johnson's reserve offense rolls as Tyson Bagent and Case Keenum combine for 320 yards and three touchdowns</title>
+      <description>FGB analysis: NFL.com says Chicago's offense stayed productive without its starters, with Bagent and Keenum combining for 320 passing yards and three touchdowns while several reserve skill players strengthened roster cases.</description>
+      <link>https://www.nfl.com/news/2026-nfl-preseason-week-1-what-we-learned-from-saturday-s-games</link>
+      <guid isPermaLink="false">fgb-bears-news-2026-08-16-210</guid>
+      <pubDate>Sun, 16 Aug 2026 00:00:00 -0500</pubDate>
+      <category>analysis</category>
       <source url="https://www.nfl.com/">NFL.com</source>
     </item>
 
