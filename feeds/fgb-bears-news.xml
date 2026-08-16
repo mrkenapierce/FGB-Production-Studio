@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Original FGB-written Chicago Bears news briefs with source attribution for Football's Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 16 Aug 2026 07:01:51 -0500</lastBuildDate>
+    <lastBuildDate>Sun, 16 Aug 2026 09:03:15 -0500</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -20,21 +20,21 @@
     </item>
 
     <item>
-      <title>Tyson Bagent and five Bears reserves get major evaluation opportunities while Caleb Williams and most starters sit</title>
-      <description>FGB brief: Chicago used the Cleveland preseason opener to evaluate Bagent, Jahdae Walker, Salvon Ahmed, Austin Booker, Malik Muhammad II and Ruben Hyppolite II with most established starters held out.</description>
-      <link>https://www.chicagobears.com/news/6-bears-players-to-watch-in-preseason-opener-vs-browns</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-14-201</guid>
-      <pubDate>Fri, 14 Aug 2026 14:53:00 -0500</pubDate>
-      <category>normal</category>
+      <title>Six Bears reserves strengthen roster cases as Kaden Davis, Jamree Kromah and Beanie Bishop headline Cleveland win</title>
+      <description>FGB brief: ChicagoBears.com highlighted Davis' 88 receiving yards, Kromah's two sacks and Bishop's two interceptions among six reserve performances that stood out in the 34-10 preseason victory.</description>
+      <link>https://www.chicagobears.com/news/6-players-that-stood-out-in-bears-first-preseason-game</link>
+      <guid isPermaLink="false">fgb-bears-news-2026-08-16-211</guid>
+      <pubDate>Sat, 15 Aug 2026 18:56:00 -0500</pubDate>
+      <category>analysis</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
-      <title>Bears list three first-team left tackles as Braxton Jones, Jedrick Wills Jr. and Kiran Amegadjie remain in competition</title>
-      <description>FGB analysis: Chicago's first unofficial depth chart keeps the left-tackle race wide open, with CBS Sports identifying Jones as the probable favorite while all three remain listed first string.</description>
-      <link>https://www.cbssports.com/nfl/news/one-takeaway-from-each-nfl-teams-first-depth-chart/</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-14-202</guid>
-      <pubDate>Fri, 14 Aug 2026 08:04:00 -0500</pubDate>
+      <title>Antwaan Randle El sparks 24-point second half after Ben Johnson hands him Bears play-calling duties</title>
+      <description>FGB analysis: CBS Sports reports Chicago scored 24 second-half points after receivers coach Antwaan Randle El took over play calling, earning strong praise from Johnson for his future coaching potential.</description>
+      <link>https://www.cbssports.com/nfl/news/antwaan-randle-el-takes-over-play-calling-duties-and-bears-offense-comes-to-life-in-preseason-win-over-browns/</link>
+      <guid isPermaLink="false">fgb-bears-news-2026-08-16-212</guid>
+      <pubDate>Sat, 15 Aug 2026 21:07:00 -0500</pubDate>
       <category>analysis</category>
       <source url="https://www.cbssports.com/">CBS Sports</source>
     </item>
