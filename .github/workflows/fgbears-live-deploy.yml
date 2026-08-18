@@ -9,7 +9,7 @@ on:
       - '.github/workflows/fgbears-live-deploy.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: fgbears-live-production-deploy
@@ -23,6 +23,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Require Oracle deployment secrets
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -56,16 +61,34 @@ jobs:
             sudo systemctl enable --now fgbears-live.service
             sudo systemctl reset-failed fgbears-live.service
             sudo systemctl restart fgbears-live.service
-            for i in $(seq 1 30); do
-              if systemctl is-active --quiet fgbears-live.service && curl --silent --fail --max-time 1 http://127.0.0.1:8787/healthz >/tmp/fgbears-overlay-health.json; then
+            for i in $(seq 1 45); do
+              if systemctl is-active --quiet fgbears-live.service && curl --silent --fail --max-time 1 http://127.0.0.1:8787/healthz >/tmp/fgbears-overlay-health.json && curl --silent --fail --max-time 1 http://127.0.0.1:8788/healthz >/tmp/fgbears-crawl-health.json; then
                 cat /tmp/fgbears-overlay-health.json
+                cat /tmp/fgbears-crawl-health.json
                 exit 0
               fi
               sleep 1
             done
             sudo systemctl status fgbears-live.service --no-pager || true
-            sudo journalctl -u fgbears-live.service -n 80 --no-pager || true
+            sudo journalctl -u fgbears-live.service -n 120 --no-pager || true
             exit 1
+          '
+
+      - name: Verify emoji crawl pipeline on Oracle
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
+            set -Eeuo pipefail
+            test "$(systemctl is-active fgbears-live.service)" = "active"
+            crawl_health=$(curl --silent --fail --max-time 3 http://127.0.0.1:8788/healthz)
+            printf "%s\n" "$crawl_health"
+            printf "%s" "$crawl_health" | jq -e ".ok == true and .emojiRenderer == \"twemoji-png\"" >/dev/null
+            python3 -c "import importlib.util; p=\"/opt/fgbears-live/bin/crawl-overlay.py\"; s=importlib.util.spec_from_file_location(\"fgb_crawl\",p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); icons=[\"🐻\",\"🏈\",\"🔥\",\"⬇️\",\"💙\",\"🧡\"]; missing=[e for e in icons if m.emoji_image(e,35) is None]; print(\"emoji self-test:\", \" \".join(icons), \"missing=\", missing); assert not missing, missing"
+            pgrep -af ffmpeg | grep -F "http://127.0.0.1:8788/overlay.mjpg" >/dev/null
+            curl --silent --fail --max-time 3 http://127.0.0.1:8788/frame.jpg -o /tmp/fgbears-crawl-frame.jpg
+            test -s /tmp/fgbears-crawl-frame.jpg
+            python3 -c "from PIL import Image; im=Image.open(\"/tmp/fgbears-crawl-frame.jpg\"); im.load(); assert im.size == (1280,139), im.size; print(\"crawl frame:\", im.size, im.format)"
           '
 
       - name: Confirm deployed overlay is receiving advertising
@@ -78,3 +101,22 @@ jobs:
             printf "%s\n" "$health"
             printf "%s" "$health" | jq -e ".ok == true" >/dev/null
           '
+
+      - name: Record successful production deployment
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          jq -n \
+            --arg deployedSha "$GITHUB_SHA" \
+            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{ok:true,deployedSha:$deployedSha,checkedAt:$checkedAt,service:"fgbears-live.service",serviceState:"active",crawlHealth:"ok",emojiRenderer:"twemoji-png",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg"}' \
+            > .github/deployment-status/fgbears-live.json
+          git config user.name "FGBears Deploy Bot"
+          git config user.email "actions@github.com"
+          git add .github/deployment-status/fgbears-live.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Record successful FGBears Oracle deployment [skip ci]"
+          git push origin main
