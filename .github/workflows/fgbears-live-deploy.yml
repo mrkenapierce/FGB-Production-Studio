@@ -75,8 +75,9 @@ jobs:
             exit 1
           '
 
-      - id: emoji_verify
-        name: Verify emoji crawl pipeline on Oracle
+      - id: crawl_health
+        name: Verify emoji renderer health on Oracle
+        if: always() && steps.install.outcome == 'success'
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -86,8 +87,39 @@ jobs:
             crawl_health=$(curl --silent --fail --max-time 3 http://127.0.0.1:8788/healthz)
             printf "%s\n" "$crawl_health"
             printf "%s" "$crawl_health" | jq -e ".ok == true and .emojiRenderer == \"twemoji-png\"" >/dev/null
+          '
+
+      - id: emoji_assets
+        name: Render six emoji assets on Oracle
+        if: always() && steps.install.outcome == 'success'
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
+            set -Eeuo pipefail
             python3 -c "import importlib.util; p=\"/opt/fgbears-live/bin/crawl-overlay.py\"; s=importlib.util.spec_from_file_location(\"fgb_crawl\",p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); icons=[\"🐻\",\"🏈\",\"🔥\",\"⬇️\",\"💙\",\"🧡\"]; missing=[e for e in icons if m.emoji_image(e,35) is None]; print(\"emoji self-test:\", \" \".join(icons), \"missing=\", missing); assert not missing, missing"
+          '
+
+      - id: ffmpeg_crawl
+        name: Verify FFmpeg consumes rendered crawl on Oracle
+        if: always() && steps.install.outcome == 'success'
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
+            set -Eeuo pipefail
+            pgrep -af ffmpeg
             pgrep -af ffmpeg | grep -F "http://127.0.0.1:8788/overlay.mjpg" >/dev/null
+          '
+
+      - id: crawl_frame
+        name: Decode live rendered crawl frame on Oracle
+        if: always() && steps.install.outcome == 'success'
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
+            set -Eeuo pipefail
             curl --silent --fail --max-time 3 http://127.0.0.1:8788/frame.jpg -o /tmp/fgbears-crawl-frame.jpg
             test -s /tmp/fgbears-crawl-frame.jpg
             python3 -c "from PIL import Image; im=Image.open(\"/tmp/fgbears-crawl-frame.jpg\"); im.load(); assert im.size == (1280,139), im.size; print(\"crawl frame:\", im.size, im.format)"
@@ -95,6 +127,7 @@ jobs:
 
       - id: ads_verify
         name: Confirm deployed overlay is receiving advertising
+        if: always() && steps.install.outcome == 'success'
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -109,7 +142,10 @@ jobs:
         if: always()
         env:
           INSTALL_OUTCOME: ${{ steps.install.outcome }}
-          EMOJI_OUTCOME: ${{ steps.emoji_verify.outcome }}
+          CRAWL_HEALTH_OUTCOME: ${{ steps.crawl_health.outcome }}
+          EMOJI_ASSETS_OUTCOME: ${{ steps.emoji_assets.outcome }}
+          FFMPEG_CRAWL_OUTCOME: ${{ steps.ffmpeg_crawl.outcome }}
+          CRAWL_FRAME_OUTCOME: ${{ steps.crawl_frame.outcome }}
           ADS_OUTCOME: ${{ steps.ads_verify.outcome }}
           JOB_STATUS: ${{ job.status }}
         run: |
@@ -117,18 +153,22 @@ jobs:
           git checkout -B main origin/main
           mkdir -p .github/deployment-status
           ok=false
-          if [[ "$INSTALL_OUTCOME" == "success" && "$EMOJI_OUTCOME" == "success" && "$ADS_OUTCOME" == "success" ]]; then
+          if [[ "$INSTALL_OUTCOME" == "success" && "$CRAWL_HEALTH_OUTCOME" == "success" && "$EMOJI_ASSETS_OUTCOME" == "success" && "$FFMPEG_CRAWL_OUTCOME" == "success" && "$CRAWL_FRAME_OUTCOME" == "success" && "$ADS_OUTCOME" == "success" ]]; then
             ok=true
           fi
           jq -n \
             --argjson ok "$ok" \
             --arg deployedSha "$GITHUB_SHA" \
+            --arg runId "$GITHUB_RUN_ID" \
             --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --arg jobStatus "$JOB_STATUS" \
             --arg installOutcome "$INSTALL_OUTCOME" \
-            --arg emojiOutcome "$EMOJI_OUTCOME" \
+            --arg crawlHealthOutcome "$CRAWL_HEALTH_OUTCOME" \
+            --arg emojiAssetsOutcome "$EMOJI_ASSETS_OUTCOME" \
+            --arg ffmpegCrawlOutcome "$FFMPEG_CRAWL_OUTCOME" \
+            --arg crawlFrameOutcome "$CRAWL_FRAME_OUTCOME" \
             --arg adsOutcome "$ADS_OUTCOME" \
-            '{ok:$ok,deployedSha:$deployedSha,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,emojiOutcome:$emojiOutcome,adsOutcome:$adsOutcome,service:"fgbears-live.service",expectedServiceState:"active",emojiRenderer:"twemoji-png",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg"}' \
+            '{ok:$ok,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,crawlHealthOutcome:$crawlHealthOutcome,emojiAssetsOutcome:$emojiAssetsOutcome,ffmpegCrawlOutcome:$ffmpegCrawlOutcome,crawlFrameOutcome:$crawlFrameOutcome,adsOutcome:$adsOutcome,service:"fgbears-live.service",expectedServiceState:"active",emojiRenderer:"twemoji-png",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg"}' \
             > .github/deployment-status/fgbears-live.json
           git config user.name "FGBears Deploy Bot"
           git config user.email "actions@github.com"
