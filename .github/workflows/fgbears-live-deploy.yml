@@ -49,7 +49,8 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Install production update and restart stream
+      - id: install
+        name: Install production update and restart stream
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -74,7 +75,8 @@ jobs:
             exit 1
           '
 
-      - name: Verify emoji crawl pipeline on Oracle
+      - id: emoji_verify
+        name: Verify emoji crawl pipeline on Oracle
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -91,7 +93,8 @@ jobs:
             python3 -c "from PIL import Image; im=Image.open(\"/tmp/fgbears-crawl-frame.jpg\"); im.load(); assert im.size == (1280,139), im.size; print(\"crawl frame:\", im.size, im.format)"
           '
 
-      - name: Confirm deployed overlay is receiving advertising
+      - id: ads_verify
+        name: Confirm deployed overlay is receiving advertising
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -102,15 +105,30 @@ jobs:
             printf "%s" "$health" | jq -e ".ok == true" >/dev/null
           '
 
-      - name: Record successful production deployment
+      - name: Record production deployment result
+        if: always()
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          EMOJI_OUTCOME: ${{ steps.emoji_verify.outcome }}
+          ADS_OUTCOME: ${{ steps.ads_verify.outcome }}
+          JOB_STATUS: ${{ job.status }}
         run: |
           git fetch origin main
           git checkout -B main origin/main
           mkdir -p .github/deployment-status
+          ok=false
+          if [[ "$INSTALL_OUTCOME" == "success" && "$EMOJI_OUTCOME" == "success" && "$ADS_OUTCOME" == "success" ]]; then
+            ok=true
+          fi
           jq -n \
+            --argjson ok "$ok" \
             --arg deployedSha "$GITHUB_SHA" \
             --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            '{ok:true,deployedSha:$deployedSha,checkedAt:$checkedAt,service:"fgbears-live.service",serviceState:"active",crawlHealth:"ok",emojiRenderer:"twemoji-png",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg"}' \
+            --arg jobStatus "$JOB_STATUS" \
+            --arg installOutcome "$INSTALL_OUTCOME" \
+            --arg emojiOutcome "$EMOJI_OUTCOME" \
+            --arg adsOutcome "$ADS_OUTCOME" \
+            '{ok:$ok,deployedSha:$deployedSha,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,emojiOutcome:$emojiOutcome,adsOutcome:$adsOutcome,service:"fgbears-live.service",expectedServiceState:"active",emojiRenderer:"twemoji-png",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg"}' \
             > .github/deployment-status/fgbears-live.json
           git config user.name "FGBears Deploy Bot"
           git config user.email "actions@github.com"
@@ -118,5 +136,5 @@ jobs:
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m "Record successful FGBears Oracle deployment [skip ci]"
+          git commit -m "Record FGBears Oracle deployment result [skip ci]"
           git push origin main
