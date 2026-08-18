@@ -43,68 +43,40 @@ jobs:
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > /tmp/fgbears-restart-report.json <<'REMOTE'
-          set -u
-          playlist=/srv/fgbears-live/playlist.ffconcat
-          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
-          history=/srv/fgbears-live/health/restart-history
-          breaker=/srv/fgbears-live/health/restart-breaker
-
-          active=$(systemctl is-active fgbears-live.service 2>/dev/null || true)
-          nrestarts=$(systemctl show fgbears-live.service -p NRestarts --value 2>/dev/null || echo 0)
-          active_since=$(systemctl show fgbears-live.service -p ActiveEnterTimestamp --value 2>/dev/null || true)
-          main_pid=$(systemctl show fgbears-live.service -p MainPID --value 2>/dev/null || echo 0)
-          playlist_count=$(grep -c "^file '" "$playlist" 2>/dev/null || echo 0)
-          playlist_items=$(python3 - "$playlist" <<'PY'
-import json, os, re, sys
-items=[]
-try:
-    with open(sys.argv[1], encoding='utf-8') as f:
-        for line in f:
-            m=re.match(r"file '(.*)'$", line.rstrip('\n'))
-            if m:
-                items.append(os.path.basename(m.group(1)))
-except OSError:
-    pass
-print(json.dumps(items))
-PY
-          )
-
-          progress_age=-1
-          out_time_us=""
-          if [[ -s "$progress" ]]; then
-            progress_mtime=$(sudo stat -c %Y "$progress" 2>/dev/null || echo 0)
-            progress_age=$(( $(date +%s) - progress_mtime ))
-            out_time_us=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n1)
+          set +e
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > /tmp/fgbears-restarts.txt 2> /tmp/fgbears-restarts.err <<'REMOTE'
+          set +e
+          echo "CHECKED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "SERVICE_STATE=$(systemctl is-active fgbears-live.service 2>/dev/null)"
+          echo "NRESTARTS=$(systemctl show fgbears-live.service -p NRestarts --value 2>/dev/null)"
+          echo "ACTIVE_SINCE=$(systemctl show fgbears-live.service -p ActiveEnterTimestamp --value 2>/dev/null)"
+          echo "MAIN_PID=$(systemctl show fgbears-live.service -p MainPID --value 2>/dev/null)"
+          echo
+          echo "===== PLAYLIST ====="
+          grep -c "^file '" /srv/fgbears-live/playlist.ffconcat 2>/dev/null | sed 's/^/PLAYLIST_COUNT=/'
+          sed -n "s/^file '\(.*\)'$/\1/p" /srv/fgbears-live/playlist.ffconcat 2>/dev/null
+          echo
+          echo "===== FFMPEG PROGRESS ====="
+          if [[ -s /srv/fgbears-live/logs/ffmpeg-progress.log ]]; then
+            echo "PROGRESS_MTIME=$(sudo stat -c %Y /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null)"
+            sudo sed -n '/^frame=/p;/^fps=/p;/^out_time=/p;/^out_time_us=/p;/^bitrate=/p;/^speed=/p;/^progress=/p' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null
+          else
+            echo "NO_PROGRESS_FILE"
           fi
-
-          guarded_restart_count=0
-          if sudo test -s "$history" 2>/dev/null; then
-            guarded_restart_count=$(sudo awk 'END {print NR+0}' "$history" 2>/dev/null || echo 0)
-          fi
-          restart_history=$(sudo tail -n 20 "$history" 2>/dev/null | jq -R -s 'split("\n") | map(select(length>0))')
-          circuit_breaker=$(sudo cat "$breaker" 2>/dev/null || true)
-          health_logs=$(sudo journalctl -t fgbears-live-health --since '6 hours ago' --no-pager -o cat 2>/dev/null | tail -n 80 | jq -R -s 'split("\n") | map(select(length>0))')
-          service_logs=$({ sudo journalctl -u fgbears-live.service --since '6 hours ago' --no-pager -o cat 2>/dev/null | grep -E 'Started|Stopping|Stopped|Main process exited|Failed with result|Scheduled restart job|ffmpeg|Error|error|Connection|Broken pipe|Server returned|Conversion failed' || true; } | tail -n 120 | jq -R -s 'split("\n") | map(select(length>0))')
-
-          jq -n \
-            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --arg serviceState "$active" \
-            --arg nRestarts "$nrestarts" \
-            --arg activeSince "$active_since" \
-            --arg mainPid "$main_pid" \
-            --arg playlistCount "$playlist_count" \
-            --argjson playlistItems "$playlist_items" \
-            --arg progressAgeSeconds "$progress_age" \
-            --arg outTimeUs "$out_time_us" \
-            --arg guardedRestartCount "$guarded_restart_count" \
-            --argjson restartHistory "$restart_history" \
-            --arg circuitBreaker "$circuit_breaker" \
-            --argjson healthLogs "$health_logs" \
-            --argjson serviceLogs "$service_logs" \
-            '{checkedAt:$checkedAt,serviceState:$serviceState,nRestarts:($nRestarts|tonumber? // 0),activeSince:$activeSince,mainPid:($mainPid|tonumber? // 0),playlistCount:($playlistCount|tonumber? // 0),playlistItems:$playlistItems,progressAgeSeconds:($progressAgeSeconds|tonumber? // -1),outTimeUs:($outTimeUs|tonumber? // null),guardedRestartCount:($guardedRestartCount|tonumber? // 0),restartHistory:$restartHistory,circuitBreaker:$circuitBreaker,healthLogs:$healthLogs,serviceLogs:$serviceLogs}'
+          echo
+          echo "===== GUARDED RESTART HISTORY ====="
+          sudo cat /srv/fgbears-live/health/restart-history 2>/dev/null || echo "NO_GUARDED_RESTART_HISTORY"
+          echo
+          echo "===== RESTART CIRCUIT BREAKER ====="
+          sudo cat /srv/fgbears-live/health/restart-breaker 2>/dev/null || echo "CLOSED"
+          echo
+          echo "===== HEALTH LOGS (6H) ====="
+          sudo journalctl -t fgbears-live-health --since '6 hours ago' --no-pager -o short-iso 2>/dev/null | tail -n 100
+          echo
+          echo "===== SERVICE LOGS (6H) ====="
+          sudo journalctl -u fgbears-live.service --since '6 hours ago' --no-pager -o short-iso 2>/dev/null | tail -n 220
           REMOTE
-          jq . /tmp/fgbears-restart-report.json
+          exit 0
 
       - name: Persist restart diagnostic report
         if: always()
@@ -112,14 +84,21 @@ PY
           git fetch origin main
           git checkout -B main origin/main
           mkdir -p .github/diagnostic-status
-          if [[ -s /tmp/fgbears-restart-report.json ]]; then
-            cp /tmp/fgbears-restart-report.json .github/diagnostic-status/fgbears-restarts.json
-          else
-            jq -n --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '{checkedAt:$checkedAt,error:"diagnostic collection failed"}' > .github/diagnostic-status/fgbears-restarts.json
-          fi
+          {
+            echo '# FGBears Restart Diagnostic'
+            echo
+            echo '```text'
+            cat /tmp/fgbears-restarts.txt 2>/dev/null || true
+            if [[ -s /tmp/fgbears-restarts.err ]]; then
+              echo
+              echo '===== SSH/DIAGNOSTIC STDERR ====='
+              cat /tmp/fgbears-restarts.err
+            fi
+            echo '```'
+          } > .github/diagnostic-status/fgbears-restarts.md
           git config user.name "FGBears Diagnostic Bot"
           git config user.email "actions@github.com"
-          git add .github/diagnostic-status/fgbears-restarts.json
+          git add .github/diagnostic-status/fgbears-restarts.md
           if git diff --cached --quiet; then exit 0; fi
           git commit -m "Record FGBears restart diagnostics [skip ci]"
           git push origin main
