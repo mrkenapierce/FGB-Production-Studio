@@ -348,7 +348,7 @@ def draw_epic_media_qr(image: Image.Image, draw: ImageDraw.ImageDraw) -> None:
     if qr is not None:
         draw.rounded_rectangle((qr_x - 16, qr_y - 16, qr_x + qr_size + 16, qr_y + qr_size + 100), radius=20, fill=WHITE)
         image.paste(qr, (qr_x, qr_y))
-        cta = "SCAN FOR EPIC MEDIA"
+        cta = "PLACE YOUR AD"
         cta_font = font(22, bold=True)
         cta_box = draw.textbbox((0, 0), cta, font=cta_font)
         draw.text((qr_x + (qr_size - (cta_box[2] - cta_box[0])) / 2, qr_y + qr_size + 22), cta, font=cta_font, fill=BEARS_BLUE)
