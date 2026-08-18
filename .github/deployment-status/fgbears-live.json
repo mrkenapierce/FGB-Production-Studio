@@ -1,0 +1,21 @@
+{
+  "ok": false,
+  "deployedSha": "c7c0f8074fcbf11d0acd4bf173e8a3d74268aff2",
+  "checkedAt": "2026-08-18T04:46:28Z",
+  "jobStatus": "failure",
+  "installOutcome": "success",
+  "emojiOutcome": "failure",
+  "adsOutcome": "skipped",
+  "service": "fgbears-live.service",
+  "expectedServiceState": "active",
+  "emojiRenderer": "twemoji-png",
+  "emojiSelfTest": [
+    "🐻",
+    "🏈",
+    "🔥",
+    "⬇️",
+    "💙",
+    "🧡"
+  ],
+  "ffmpegCrawlInput": "http://127.0.0.1:8788/overlay.mjpg"
+}
