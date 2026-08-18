@@ -45,6 +45,25 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
+      - name: Check out verified Episode 31 transport
+        uses: actions/checkout@v4
+
+      - name: Reconstruct and transfer verified Episode 31 audio
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          cat ops/episode31-transport/chunk-* > /tmp/FGBears-Episode-31-source.b64
+          base64 --decode /tmp/FGBears-Episode-31-source.b64 > /tmp/FGBears-Episode-31-source.ogg
+          printf '76fd99dd7686de3f1bf94b25c612e69c5539425d5a1f1218df86e0361cfa1b66  %s\n' /tmp/FGBears-Episode-31-source.ogg | sha256sum --check -
+          duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 /tmp/FGBears-Episode-31-source.ogg)
+          printf 'transport_duration=%s\n' "$duration"
+          awk -v d="$duration" 'BEGIN { exit !(d > 869 && d < 870) }'
+          scp -i ~/.ssh/oracle_key /tmp/FGBears-Episode-31-source.ogg \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/FGBears-Episode-31-source.ogg"
+          rm -f /tmp/FGBears-Episode-31-source.b64 /tmp/FGBears-Episode-31-source.ogg
+
       - name: Fetch, build, install, and activate Episode 31
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -59,32 +78,11 @@ jobs:
           mkdir -p "$work"
           cd "$work"
 
-          echo 'Downloading current yt-dlp and Deno runtime...'
-          curl -fsSL --retry 3 \
-            https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
-            -o yt-dlp
-          chmod 0755 yt-dlp
-          curl -fsSL --retry 3 \
-            https://github.com/denoland/deno/releases/latest/download/deno-aarch64-unknown-linux-gnu.zip \
-            -o deno.zip
-          python3 - <<'PY'
-          import zipfile
-          with zipfile.ZipFile('deno.zip') as z:
-              z.extract('deno', '.')
-          PY
-          chmod 0755 deno
-
-          echo 'Downloading Episode 31 audio from the verified public FGB video...'
-          ./yt-dlp \
-            --js-runtimes "deno:$work/deno" \
-            --remote-components ejs:github \
-            --no-playlist \
-            -f 'bestaudio[ext=m4a]/bestaudio/best' \
-            -o "$work/FGBears-Episode-31-source.%(ext)s" \
-            "https://www.youtube.com/watch?v=${VIDEO_ID}"
-
-          source_file=$(find "$work" -maxdepth 1 -type f -name 'FGBears-Episode-31-source.*' -print -quit)
-          [[ -n "$source_file" ]] || { echo 'Episode 31 source download was not created.' >&2; exit 1; }
+          source_file=/tmp/FGBears-Episode-31-source.ogg
+          [[ -s "$source_file" ]] || { echo 'Episode 31 transport source is missing.' >&2; exit 1; }
+          transport_sha=$(sha256sum "$source_file" | awk '{print $1}')
+          printf 'transport_sha256=%s\n' "$transport_sha"
+          [[ "$transport_sha" == '76fd99dd7686de3f1bf94b25c612e69c5539425d5a1f1218df86e0361cfa1b66' ]]
 
           echo 'Building relay-compatible Episode 31 media...'
           ffmpeg -hide_banner -y -loglevel warning \
