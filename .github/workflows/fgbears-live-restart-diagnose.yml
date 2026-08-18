@@ -1,3 +1,4 @@
+# Diagnostic-only workflow. This file does not deploy or restart the live service.
 name: Diagnose FGBears Restart Cause
 
 on:
