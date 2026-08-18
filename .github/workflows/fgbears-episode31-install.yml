@@ -85,7 +85,7 @@ jobs:
           awk -v d="$transport_duration" 'BEGIN { exit !(d > 869 && d < 870) }'
 
           echo 'Building relay-compatible Episode 31 media...'
-          ffmpeg -hide_banner -y -loglevel warning \
+          ffmpeg -nostdin -hide_banner -y -loglevel warning \
             -f lavfi -i 'color=c=black:s=1280x720:r=30' \
             -i "$source_file" \
             -map 0:v:0 -map 1:a:0 \
