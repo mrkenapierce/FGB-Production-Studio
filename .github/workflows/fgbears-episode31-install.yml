@@ -57,9 +57,6 @@ jobs:
           cat ops/episode31-transport/chunk-* > /tmp/FGBears-Episode-31-source.b64
           base64 --decode /tmp/FGBears-Episode-31-source.b64 > /tmp/FGBears-Episode-31-source.ogg
           printf '76fd99dd7686de3f1bf94b25c612e69c5539425d5a1f1218df86e0361cfa1b66  %s\n' /tmp/FGBears-Episode-31-source.ogg | sha256sum --check -
-          duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 /tmp/FGBears-Episode-31-source.ogg)
-          printf 'transport_duration=%s\n' "$duration"
-          awk -v d="$duration" 'BEGIN { exit !(d > 869 && d < 870) }'
           scp -i ~/.ssh/oracle_key /tmp/FGBears-Episode-31-source.ogg \
             "$ORACLE_USER@$ORACLE_HOST:/tmp/FGBears-Episode-31-source.ogg"
           rm -f /tmp/FGBears-Episode-31-source.b64 /tmp/FGBears-Episode-31-source.ogg
@@ -83,6 +80,9 @@ jobs:
           transport_sha=$(sha256sum "$source_file" | awk '{print $1}')
           printf 'transport_sha256=%s\n' "$transport_sha"
           [[ "$transport_sha" == '76fd99dd7686de3f1bf94b25c612e69c5539425d5a1f1218df86e0361cfa1b66' ]]
+          transport_duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$source_file")
+          printf 'transport_duration=%s\n' "$transport_duration"
+          awk -v d="$transport_duration" 'BEGIN { exit !(d > 869 && d < 870) }'
 
           echo 'Building relay-compatible Episode 31 media...'
           ffmpeg -hide_banner -y -loglevel warning \
