@@ -1,4 +1,4 @@
-name: Install FGBears Episode 31
+name: Restore FGBears Episode 30 and activate Episode 31
 
 on:
   push:
@@ -16,11 +16,10 @@ concurrency:
 
 env:
   ORACLE_USER: ubuntu
-  VIDEO_ID: XDezv_5C4Ms
 
 jobs:
   install:
-    name: Install Episode 31 and verify playlist
+    name: Restore Episode 30 and verify Episode 31 sequence
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -45,46 +44,46 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Check out verified Episode 31 transport
+      - name: Check out verified Episode 30 recovery transport
         uses: actions/checkout@v4
 
-      - name: Reconstruct and transfer verified Episode 31 audio
+      - name: Reconstruct and transfer verified Episode 30 audio
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         shell: bash
         run: |
           set -Eeuo pipefail
-          cat ops/episode31-transport/chunk-* > /tmp/FGBears-Episode-31-source.b64
-          base64 --decode /tmp/FGBears-Episode-31-source.b64 > /tmp/FGBears-Episode-31-source.ogg
-          printf '88ba00f71b66d475c279d5a6423b9342966dbb9082a87e60417facc3a617dd3f  %s\n' /tmp/FGBears-Episode-31-source.ogg | sha256sum --check -
-          scp -i ~/.ssh/oracle_key /tmp/FGBears-Episode-31-source.ogg \
-            "$ORACLE_USER@$ORACLE_HOST:/tmp/FGBears-Episode-31-source.ogg"
-          rm -f /tmp/FGBears-Episode-31-source.b64 /tmp/FGBears-Episode-31-source.ogg
+          cat ops/episode30-transport/chunk-* > /tmp/FGBears-Episode-30-source.b64
+          base64 --decode /tmp/FGBears-Episode-30-source.b64 > /tmp/FGBears-Episode-30-source.ogg
+          printf '4b6b900bfa8148506d223fe16d77e7347fad48c3f7b681cff1571c777d134cf5  %s\n' /tmp/FGBears-Episode-30-source.ogg | sha256sum --check -
+          scp -i ~/.ssh/oracle_key /tmp/FGBears-Episode-30-source.ogg \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/FGBears-Episode-30-source.ogg"
+          rm -f /tmp/FGBears-Episode-30-source.b64 /tmp/FGBears-Episode-30-source.ogg
 
-      - name: Fetch, build, install, and activate Episode 31
+      - name: Restore Episode 30 and activate the 30 to 31 sequence
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         shell: bash
         run: |
           set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "VIDEO_ID='$VIDEO_ID' bash -s" <<'REMOTE'
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
 
-          work=/tmp/fgbears-episode31-install
+          work=/tmp/fgbears-episode30-recovery
           rm -rf "$work"
           mkdir -p "$work"
           cd "$work"
 
-          source_file=/tmp/FGBears-Episode-31-source.ogg
-          [[ -s "$source_file" ]] || { echo 'Episode 31 transport source is missing.' >&2; exit 1; }
+          source_file=/tmp/FGBears-Episode-30-source.ogg
+          [[ -s "$source_file" ]] || { echo 'Episode 30 recovery source is missing.' >&2; exit 1; }
           transport_sha=$(sha256sum "$source_file" | awk '{print $1}')
-          printf 'transport_sha256=%s\n' "$transport_sha"
-          [[ "$transport_sha" == '88ba00f71b66d475c279d5a6423b9342966dbb9082a87e60417facc3a617dd3f' ]]
+          printf 'episode30_transport_sha256=%s\n' "$transport_sha"
+          [[ "$transport_sha" == '4b6b900bfa8148506d223fe16d77e7347fad48c3f7b681cff1571c777d134cf5' ]]
           transport_duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$source_file")
-          printf 'transport_duration=%s\n' "$transport_duration"
-          awk -v d="$transport_duration" 'BEGIN { exit !(d > 869 && d < 870) }'
+          printf 'episode30_transport_duration=%s\n' "$transport_duration"
+          awk -v d="$transport_duration" 'BEGIN { exit !(d > 849 && d < 851) }'
 
-          echo 'Building relay-compatible Episode 31 media...'
+          echo 'Building relay-compatible Episode 30 media...'
           ffmpeg -nostdin -hide_banner -y -loglevel warning \
             -f lavfi -i 'color=c=black:s=1280x720:r=30' \
             -i "$source_file" \
@@ -96,25 +95,29 @@ jobs:
             -threads 1 \
             -c:a aac -b:a 128k -ar 48000 -ac 2 \
             -movflags +faststart -map_metadata -1 \
-            "$work/FGBears-Episode-31.mp4"
+            "$work/FGBears-Episode-30.mp4"
 
-          echo 'Validating relay-compatible Episode 31 media before installation...'
+          echo 'Validating recovered Episode 30 before installation...'
           sudo /usr/local/bin/fgbears-validate "$work"
 
-          echo 'Installing Episode 31 into the existing Oracle media library...'
+          echo 'Restoring Episode 30 beside the validated Episode 31 media...'
           sudo install -o fgbears -g fgbears -m 0644 \
-            "$work/FGBears-Episode-31.mp4" \
-            /srv/fgbears-live/media/FGBears-Episode-31.mp4
+            "$work/FGBears-Episode-30.mp4" \
+            /srv/fgbears-live/media/FGBears-Episode-30.mp4
+          test -s /srv/fgbears-live/media/FGBears-Episode-31.mp4
 
           sudo /usr/local/bin/fgbears-validate /srv/fgbears-live/media
           sudo /usr/local/bin/fgbears-rebuild-playlist
 
-          count=$(sudo sed -n "s/^file '\(.*\)'$/\1/p" /srv/fgbears-live/playlist.ffconcat | wc -l)
-          last=$(sudo sed -n "s/^file '\(.*\)'$/\1/p" /srv/fgbears-live/playlist.ffconcat | tail -n 1)
+          count=$(sudo sed -n "s/^file '\\(.*\\)'$/\\1/p" /srv/fgbears-live/playlist.ffconcat | wc -l)
+          item30=$(sudo sed -n "s/^file '\\(.*\\)'$/\\1/p" /srv/fgbears-live/playlist.ffconcat | sed -n '30p')
+          item31=$(sudo sed -n "s/^file '\\(.*\\)'$/\\1/p" /srv/fgbears-live/playlist.ffconcat | sed -n '31p')
           printf 'playlist_count=%s\n' "$count"
-          printf 'playlist_last=%s\n' "$(basename "$last")"
+          printf 'playlist_item30=%s\n' "$(basename "$item30")"
+          printf 'playlist_item31=%s\n' "$(basename "$item31")"
           [[ "$count" -eq 31 ]]
-          [[ "$(basename "$last")" == 'FGBears-Episode-31.mp4' ]]
+          [[ "$(basename "$item30")" == 'FGBears-Episode-30.mp4' ]]
+          [[ "$(basename "$item31")" == 'FGBears-Episode-31.mp4' ]]
 
           sudo systemctl restart fgbears-live.service
           for i in $(seq 1 30); do
@@ -125,9 +128,10 @@ jobs:
           done
           systemctl is-active --quiet fgbears-live.service
 
+          test -s /srv/fgbears-live/media/FGBears-Episode-30.mp4
           test -s /srv/fgbears-live/media/FGBears-Episode-31.mp4
-          printf 'FINAL media_episode31=yes playlist_count=%s playlist_last=%s service=%s\n' \
-            "$count" "$(basename "$last")" "$(systemctl is-active fgbears-live.service)"
+          printf 'FINAL media_episode30=yes media_episode31=yes playlist_count=%s item30=%s item31=%s service=%s\n' \
+            "$count" "$(basename "$item30")" "$(basename "$item31")" "$(systemctl is-active fgbears-live.service)"
 
           rm -rf "$work"
           REMOTE
