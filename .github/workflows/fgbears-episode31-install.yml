@@ -56,7 +56,7 @@ jobs:
           set -Eeuo pipefail
           cat ops/episode31-transport/chunk-* > /tmp/FGBears-Episode-31-source.b64
           base64 --decode /tmp/FGBears-Episode-31-source.b64 > /tmp/FGBears-Episode-31-source.ogg
-          printf '76fd99dd7686de3f1bf94b25c612e69c5539425d5a1f1218df86e0361cfa1b66  %s\n' /tmp/FGBears-Episode-31-source.ogg | sha256sum --check -
+          printf '88ba00f71b66d475c279d5a6423b9342966dbb9082a87e60417facc3a617dd3f  %s\n' /tmp/FGBears-Episode-31-source.ogg | sha256sum --check -
           scp -i ~/.ssh/oracle_key /tmp/FGBears-Episode-31-source.ogg \
             "$ORACLE_USER@$ORACLE_HOST:/tmp/FGBears-Episode-31-source.ogg"
           rm -f /tmp/FGBears-Episode-31-source.b64 /tmp/FGBears-Episode-31-source.ogg
@@ -79,7 +79,7 @@ jobs:
           [[ -s "$source_file" ]] || { echo 'Episode 31 transport source is missing.' >&2; exit 1; }
           transport_sha=$(sha256sum "$source_file" | awk '{print $1}')
           printf 'transport_sha256=%s\n' "$transport_sha"
-          [[ "$transport_sha" == '76fd99dd7686de3f1bf94b25c612e69c5539425d5a1f1218df86e0361cfa1b66' ]]
+          [[ "$transport_sha" == '88ba00f71b66d475c279d5a6423b9342966dbb9082a87e60417facc3a617dd3f' ]]
           transport_duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$source_file")
           printf 'transport_duration=%s\n' "$transport_duration"
           awk -v d="$transport_duration" 'BEGIN { exit !(d > 869 && d < 870) }'
@@ -98,16 +98,8 @@ jobs:
             -movflags +faststart -map_metadata -1 \
             "$work/FGBears-Episode-31.mp4"
 
-          video=$(ffprobe -v error -select_streams v:0 \
-            -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
-            -of csv=p=0:s='|' "$work/FGBears-Episode-31.mp4")
-          audio=$(ffprobe -v error -select_streams a:0 \
-            -show_entries stream=codec_name,sample_rate,channels \
-            -of csv=p=0:s='|' "$work/FGBears-Episode-31.mp4")
-          echo "episode31_video=$video"
-          echo "episode31_audio=$audio"
-          [[ "$video" == 'h264|1280|720|30/1|yuv420p' ]]
-          [[ "$audio" == 'aac|48000|2' ]]
+          echo 'Validating relay-compatible Episode 31 media before installation...'
+          sudo /usr/local/bin/fgbears-validate "$work"
 
           echo 'Installing Episode 31 into the existing Oracle media library...'
           sudo install -o fgbears -g fgbears -m 0644 \
