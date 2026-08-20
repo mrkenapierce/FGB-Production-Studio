@@ -1,0 +1,2 @@
+Reconnect FGB YouTube broadcast to the currently active Oracle ingest.
+Requested: 2026-08-19 22:52 America/Chicago
