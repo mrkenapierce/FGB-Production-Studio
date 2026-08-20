@@ -1,8 +1,8 @@
 [Unit]
-Description=Stop FGBears Facebook simulcast daily at 3:25 PM Central
+Description=Stop FGBears Facebook simulcast daily at 5:00 PM Central
 
 [Timer]
-OnCalendar=*-*-* 15:25:00 America/Chicago
+OnCalendar=*-*-* 17:00:00 America/Chicago
 Persistent=true
 AccuracySec=1s
 RandomizedDelaySec=0
