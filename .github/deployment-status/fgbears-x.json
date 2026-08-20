@@ -1,12 +1,14 @@
 {
   "xSimulcastActive": true,
   "xAccountHandle": "@epic501c3",
-  "xRtmpBase": "rtmps://ca.pscp.tv:443/x",
-  "service": "fgbears-live.service",
-  "deployedSha": "d01376895fcc27bf4fefc9ff355dc62f4968342a",
-  "runId": "32321726097",
-  "checkedAt": "2026-08-20T03:41:11Z",
-  "jobStatus": "success",
-  "activateOutcome": "success",
-  "verifyOutcome": "success"
+  "scheduleTimezone": "America/Chicago",
+  "scheduleStart": "09:00",
+  "scheduleStop": "17:00",
+  "transport": "primary-udp-mirror+isolated-copy-remux-sidecar",
+  "youtubePage": "https://www.youtube.com/watch?v=QxmLpaargj0",
+  "youtubePreserved": true,
+  "facebookPreserved": true,
+  "runId": "32410641868",
+  "checkedAt": "2026-08-20T19:49:24Z",
+  "jobStatus": "success"
 }
