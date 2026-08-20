@@ -1,0 +1,80 @@
+name: Activate Scheduled FGBears Instagram Simulcast
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-instagram-activate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-production-deploy
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare protected connection
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          IG_URL: ${{ secrets.FGB_INSTAGRAM_STREAM_URL }}
+          IG_KEY: ${{ secrets.FGB_INSTAGRAM_STREAM_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY" && test -n "$IG_URL" && test -n "$IG_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Install Instagram relay only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/instagram-relay.sh services/fgbears-live/bin/configure-instagram.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/systemd/fgbears-instagram-* "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          sudo install -m 0755 /tmp/instagram-relay.sh /usr/local/bin/fgbears-instagram-relay
+          sudo install -m 0755 /tmp/configure-instagram.sh /usr/local/bin/fgbears-configure-instagram
+          sudo install -m 0644 /tmp/fgbears-instagram-*.service /tmp/fgbears-instagram-*.timer /etc/systemd/system/
+          sudo systemctl daemon-reload
+          REMOTE
+      - name: Configure Instagram 9-to-5 schedule
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          IG_URL: ${{ secrets.FGB_INSTAGRAM_STREAM_URL }}
+          IG_KEY: ${{ secrets.FGB_INSTAGRAM_STREAM_KEY }}
+        run: |
+          { printf '%s\n' "$IG_URL"; printf '%s\n' "$IG_KEY"; } |
+            ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo fgbears-configure-instagram'
+      - name: Verify Instagram without touching other platforms
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          systemctl is-active --quiet fgbears-x-relay.service
+          systemctl is-active --quiet fgbears-facebook-relay.service
+          systemctl is-active --quiet fgbears-instagram-relay.service
+          test "$(systemctl is-enabled fgbears-instagram-start.timer)" = enabled
+          test "$(systemctl is-enabled fgbears-instagram-stop.timer)" = enabled
+          for _ in $(seq 1 45); do
+            pid=$(systemctl show -p MainPID --value fgbears-instagram-relay.service)
+            sockets=$(sudo ss -ntpH state established || true)
+            grep "pid=$pid" <<<"$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && exit 0
+            sleep 2
+          done
+          echo 'Instagram relay did not establish; other destinations remain untouched.' >&2
+          exit 1
+          REMOTE
