@@ -79,14 +79,23 @@ jobs:
             sudo grep -Fxq "X_RTMP_BASE=rtmps://ca.pscp.tv:443/x" "$env_file"
             key_length=$(sudo awk -F= '\''/^X_STREAM_KEY=/{print length(substr($0,index($0,"=")+1))}'\'' "$env_file")
             test "${key_length:-0}" -gt 0
-            ffmpeg_pid=$(pgrep -o -x ffmpeg)
-            test -n "$ffmpeg_pid"
-            args=$(mktemp)
-            trap "rm -f $args" EXIT
-            sudo tr "\0" "\n" < "/proc/$ffmpeg_pid/cmdline" > "$args"
-            grep -Fxq "tee" "$args"
-            grep -Fq "rtmps://ca.pscp.tv:443/x" "$args"
-            echo "X simulcast verified for @epic501c3: service active, protected credentials installed, FFmpeg X output present."
+
+            for _ in $(seq 1 45); do
+              for ffmpeg_pid in $(pgrep -x ffmpeg 2>/dev/null || true); do
+                args=$(mktemp)
+                sudo tr "\0" "\n" < "/proc/$ffmpeg_pid/cmdline" > "$args" 2>/dev/null || true
+                if grep -Fxq "tee" "$args" && grep -Fq "rtmps://ca.pscp.tv:443/x" "$args"; then
+                  rm -f "$args"
+                  echo "X simulcast verified for @epic501c3: service active, protected credentials installed, FFmpeg X output present."
+                  exit 0
+                fi
+                rm -f "$args"
+              done
+              sleep 1
+            done
+
+            echo "FGBears service is active but the FFmpeg X output was not observed within the startup window." >&2
+            exit 1
           '
 
       - name: Record X activation result
