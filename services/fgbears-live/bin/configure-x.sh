@@ -2,17 +2,19 @@
 set -Eeuo pipefail
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
-[[ $EUID -eq 0 ]] || { echo "Run as root: sudo bash /opt/fgbears-live/bin/configure-x.sh" >&2; exit 77; }
+TARGET_X_ACCOUNT='@epic501c3'
+[[ $EUID -eq 0 ]] || { echo "Run as root: sudo fgbears-configure-x" >&2; exit 77; }
 [[ -f "$ENV_FILE" ]] || { echo "Missing stream configuration: $ENV_FILE" >&2; exit 66; }
 
 if [[ ${1:-} == "--disable" ]]; then
-  python3 - "$ENV_FILE" <<'PY'
+  python3 - "$ENV_FILE" "$TARGET_X_ACCOUNT" <<'PY'
 from pathlib import Path
 import sys
 
 path = Path(sys.argv[1])
+account = sys.argv[2]
 text = path.read_text(encoding="utf-8")
-updates = {"X_STREAM_ENABLED": "0"}
+updates = {"X_ACCOUNT_HANDLE": account, "X_STREAM_ENABLED": "0"}
 lines = text.splitlines()
 seen = set()
 out = []
@@ -31,10 +33,12 @@ PY
   chown root:fgbears "$ENV_FILE"
   chmod 640 "$ENV_FILE"
   systemctl restart fgbears-live.service
-  echo "X simulcast disabled. YouTube remains the primary output."
+  echo "X simulcast disabled for $TARGET_X_ACCOUNT. YouTube remains the primary output."
   exit 0
 fi
 
+printf 'Configuring Football\x27s Greatest Bears X destination: %s\n' "$TARGET_X_ACCOUNT"
+printf 'Use a Live Studio Source created while signed in to %s.\n' "$TARGET_X_ACCOUNT"
 printf 'X Live Studio RTMP/RTMPS URL: '
 IFS= read -r x_rtmp_base
 [[ "$x_rtmp_base" == rtmp://* || "$x_rtmp_base" == rtmps://* ]] || {
@@ -47,7 +51,7 @@ printf '\n'
 [[ -n "$x_stream_key" ]] || { echo "The X stream key cannot be empty." >&2; exit 64; }
 [[ "$x_rtmp_base$x_stream_key" != *"|"* ]] || { echo "Unsupported | character in X source credentials." >&2; exit 64; }
 
-X_RTMP_BASE_VALUE="$x_rtmp_base" X_STREAM_KEY_VALUE="$x_stream_key" python3 - "$ENV_FILE" <<'PY'
+X_RTMP_BASE_VALUE="$x_rtmp_base" X_STREAM_KEY_VALUE="$x_stream_key" X_ACCOUNT_VALUE="$TARGET_X_ACCOUNT" python3 - "$ENV_FILE" <<'PY'
 from pathlib import Path
 import os
 import sys
@@ -55,6 +59,7 @@ import sys
 path = Path(sys.argv[1])
 text = path.read_text(encoding="utf-8")
 updates = {
+    "X_ACCOUNT_HANDLE": os.environ["X_ACCOUNT_VALUE"],
     "X_STREAM_ENABLED": "1",
     "X_RTMP_BASE": os.environ["X_RTMP_BASE_VALUE"],
     "X_STREAM_KEY": os.environ["X_STREAM_KEY_VALUE"],
@@ -75,7 +80,7 @@ for key, value in updates.items():
 path.write_text("\n".join(out) + "\n", encoding="utf-8")
 PY
 
-unset x_stream_key X_STREAM_KEY_VALUE
+unset x_stream_key X_STREAM_KEY_VALUE X_RTMP_BASE_VALUE
 chown root:fgbears "$ENV_FILE"
 chmod 640 "$ENV_FILE"
 systemctl restart fgbears-live.service
@@ -84,4 +89,4 @@ systemctl is-active --quiet fgbears-live.service || {
   systemctl status fgbears-live.service --no-pager --lines=40 >&2 || true
   exit 1
 }
-echo "X simulcast enabled. The FGB program is now encoded once and distributed to YouTube and X."
+echo "X simulcast enabled for $TARGET_X_ACCOUNT. The FGB program is encoded once and distributed to YouTube and X."

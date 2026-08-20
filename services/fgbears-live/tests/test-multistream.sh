@@ -6,10 +6,17 @@ trap 'rm -rf "$TMP"' EXIT
 
 bash -n "$ROOT/bin/start-stream.sh"
 bash -n "$ROOT/bin/configure-x.sh"
+bash -n "$ROOT/bin/install.sh"
 
+grep -q '^X_ACCOUNT_HANDLE=@epic501c3$' "$ROOT/config/stream.env.example"
 grep -q '^X_STREAM_ENABLED=0$' "$ROOT/config/stream.env.example"
 grep -q '^X_RTMP_BASE=$' "$ROOT/config/stream.env.example"
 grep -q '^X_STREAM_KEY=$' "$ROOT/config/stream.env.example"
+grep -Fq "TARGET_X_ACCOUNT='@epic501c3'" "$ROOT/bin/configure-x.sh"
+grep -Fq 'fgbears-configure-x' "$ROOT/bin/install.sh"
+grep -Fq 'missing_packages=()' "$ROOT/bin/install.sh"
+grep -Fq 'skipping apt' "$ROOT/bin/install.sh"
+grep -Fq 'Acquire::Retries=3' "$ROOT/bin/install.sh"
 grep -Fq -- '-c:a aac -b:a 128k -ar 48000 -ac 2' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-f tee -use_fifo 1' "$ROOT/bin/start-stream.sh"
 grep -Fq 'onfail=abort' "$ROOT/bin/start-stream.sh"
