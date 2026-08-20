@@ -1,0 +1,12 @@
+{
+  "relayActive": true,
+  "mainActive": true,
+  "relayListening": false,
+  "localEstablished": true,
+  "primaryLocalEstablished": true,
+  "relayLocalEstablished": true,
+  "youtubeEstablished": false,
+  "relayFailureClass": "output-open-or-io-failure",
+  "checkedAt": "2026-08-20T08:47:31Z",
+  "runId": "32350545946"
+}
