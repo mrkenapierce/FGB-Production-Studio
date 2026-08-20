@@ -1,0 +1,9 @@
+{
+  "checkedAt": "2026-08-20T08:20:26Z",
+  "runId": "32348301172",
+  "jobStatus": "success",
+  "restartOutcome": "success",
+  "verifyOutcome": "success",
+  "service": "fgbears-live.service",
+  "facebookTouched": false
+}
