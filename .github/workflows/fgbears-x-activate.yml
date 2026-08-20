@@ -1,0 +1,123 @@
+name: Activate FGBears X Simulcast
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-x-activate.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fgbears-x-production-activation
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+  X_RTMP_BASE: rtmps://ca.pscp.tv:443/x
+  X_ACCOUNT_HANDLE: '@epic501c3'
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require production secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          FGB_X_STREAM_KEY: ${{ secrets.FGB_X_STREAM_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+          test -n "$FGB_X_STREAM_KEY" || { echo 'Missing FGB_X_STREAM_KEY secret'; exit 1; }
+
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+
+      - name: Trust Oracle host key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - id: activate_x
+        name: Install X credentials on Oracle and enable simulcast
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          FGB_X_STREAM_KEY: ${{ secrets.FGB_X_STREAM_KEY }}
+        run: |
+          set -Eeuo pipefail
+          {
+            printf '%s\n' "$X_RTMP_BASE"
+            printf '%s\n' "$FGB_X_STREAM_KEY"
+          } | ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo fgbears-configure-x'
+
+      - id: verify_x
+        name: Verify X is active without exposing credentials
+        if: always() && steps.activate_x.outcome == 'success'
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
+            set -Eeuo pipefail
+            env_file=/etc/fgbears-live/stream.env
+            test "$(systemctl is-active fgbears-live.service)" = "active"
+            sudo grep -Fxq "X_ACCOUNT_HANDLE=@epic501c3" "$env_file"
+            sudo grep -Fxq "X_STREAM_ENABLED=1" "$env_file"
+            sudo grep -Fxq "X_RTMP_BASE=rtmps://ca.pscp.tv:443/x" "$env_file"
+            key_length=$(sudo awk -F= '\''/^X_STREAM_KEY=/{print length(substr($0,index($0,"=")+1))}'\'' "$env_file")
+            test "${key_length:-0}" -gt 0
+            ffmpeg_pid=$(pgrep -o -x ffmpeg)
+            test -n "$ffmpeg_pid"
+            args=$(mktemp)
+            trap "rm -f $args" EXIT
+            sudo tr "\0" "\n" < "/proc/$ffmpeg_pid/cmdline" > "$args"
+            grep -Fxq "tee" "$args"
+            grep -Fq "rtmps://ca.pscp.tv:443/x" "$args"
+            echo "X simulcast verified for @epic501c3: service active, protected credentials installed, FFmpeg X output present."
+          '
+
+      - name: Record X activation result
+        if: always()
+        env:
+          ACTIVATE_OUTCOME: ${{ steps.activate_x.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify_x.outcome }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          active=false
+          if [[ "$ACTIVATE_OUTCOME" == "success" && "$VERIFY_OUTCOME" == "success" ]]; then
+            active=true
+          fi
+          jq -n \
+            --argjson active "$active" \
+            --arg deployedSha "$GITHUB_SHA" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg jobStatus "$JOB_STATUS" \
+            --arg activateOutcome "$ACTIVATE_OUTCOME" \
+            --arg verifyOutcome "$VERIFY_OUTCOME" \
+            '{xSimulcastActive:$active,xAccountHandle:"@epic501c3",xRtmpBase:"rtmps://ca.pscp.tv:443/x",service:"fgbears-live.service",deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,activateOutcome:$activateOutcome,verifyOutcome:$verifyOutcome}' \
+            > .github/deployment-status/fgbears-x.json
+          git config user.name "FGBears Deploy Bot"
+          git config user.email "actions@github.com"
+          git add -- .github/deployment-status/fgbears-x.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Record FGBears X activation result [skip ci]"
+          git push origin main
