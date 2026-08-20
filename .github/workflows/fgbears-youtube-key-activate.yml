@@ -56,9 +56,19 @@ jobs:
           FGB_YOUTUBE_STREAM_KEY: ${{ secrets.FGB_YOUTUBE_STREAM_KEY }}
         run: |
           set -Eeuo pipefail
-          printf '%s\n' "$FGB_YOUTUBE_STREAM_KEY" | ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+
+          # Transfer the secret only over SSH stdin into a root-owned temporary file.
+          # The key is never printed and is removed after installation.
+          printf '%s\n' "$FGB_YOUTUBE_STREAM_KEY" | \
+            ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
+              'sudo tee /run/fgbears-youtube-key >/dev/null && sudo chmod 600 /run/fgbears-youtube-key'
+
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          IFS= read -r key
+          key_file=/run/fgbears-youtube-key
+          trap 'rm -f "$key_file"' EXIT
+          [[ -s "$key_file" ]] || { echo 'Protected YouTube key transfer was empty.' >&2; exit 64; }
+          key=$(cat "$key_file")
           [[ -n "$key" ]] || { echo 'Protected YouTube key was empty.' >&2; exit 64; }
           [[ "$key" != *'|'* ]] || { echo 'Unsupported character in YouTube key.' >&2; exit 64; }
           env_file=/etc/fgbears-live/stream.env
