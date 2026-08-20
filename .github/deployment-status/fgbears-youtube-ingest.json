@@ -4,9 +4,9 @@
   "youtubeConfigured": true,
   "youtubeSocketEstablished": false,
   "xEnabled": true,
-  "xSocketEstablished": false,
+  "xSocketEstablished": true,
   "youtubePrimaryFailureRecent": true,
-  "ffmpegEstablishedSocketCount": 2,
-  "checkedAt": "2026-08-20T06:58:43Z",
+  "ffmpegEstablishedSocketCount": 3,
+  "checkedAt": "2026-08-20T07:01:34Z",
   "runId": "32326505362"
 }
