@@ -60,3 +60,5 @@ jobs:
           git diff --cached --quiet && exit 0
           git commit -m 'Record FGB YouTube public status [skip ci]'
           git push origin main
+
+# manual status trigger 2026-08-20T15:50Z
