@@ -1,0 +1,146 @@
+name: Activate FGBears Facebook Simulcast
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/fgbears-live/**'
+      - '.github/workflows/fgbears-facebook-activate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fgbears-live-production-deploy
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+  FACEBOOK_RTMP_BASE: rtmps://live-api-s.facebook.com:443/rtmp/
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require production secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          FGB_FACEBOOK_STREAM_KEY: ${{ secrets.FGB_FACEBOOK_STREAM_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+          test -n "$FGB_FACEBOOK_STREAM_KEY" || { echo 'Missing FGB_FACEBOOK_STREAM_KEY secret'; exit 1; }
+
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+
+      - name: Trust Oracle host key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - id: install
+        name: Install Facebook-capable production code
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
+            set -Eeuo pipefail
+            rm -rf /tmp/fgbears-facebook-deploy
+            git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-facebook-deploy
+            sudo bash /tmp/fgbears-facebook-deploy/services/fgbears-live/bin/install.sh
+          '
+
+      - id: activate_facebook
+        name: Install Facebook credentials on Oracle and enable simulcast
+        if: steps.install.outcome == 'success'
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          FGB_FACEBOOK_STREAM_KEY: ${{ secrets.FGB_FACEBOOK_STREAM_KEY }}
+        run: |
+          set -Eeuo pipefail
+          {
+            printf '%s\n' "$FACEBOOK_RTMP_BASE"
+            printf '%s\n' "$FGB_FACEBOOK_STREAM_KEY"
+          } | ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo fgbears-configure-facebook'
+
+      - id: verify_facebook
+        name: Verify Facebook output without exposing credentials
+        if: always() && steps.activate_facebook.outcome == 'success'
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
+            set -Eeuo pipefail
+            env_file=/etc/fgbears-live/stream.env
+            sudo grep -Fxq "FACEBOOK_STREAM_ENABLED=1" "$env_file"
+            sudo grep -Fxq "FACEBOOK_RTMP_BASE=rtmps://live-api-s.facebook.com:443/rtmp/" "$env_file"
+            key_length=$(sudo awk -F= '\''/^FACEBOOK_STREAM_KEY=/{print length(substr($0,index($0,"=")+1))}'\'' "$env_file")
+            test "${key_length:-0}" -gt 0
+            for i in $(seq 1 60); do
+              if systemctl is-active --quiet fgbears-live.service; then
+                ffmpeg_pid=$(pgrep -o -x ffmpeg || true)
+                if [[ -n "$ffmpeg_pid" ]]; then
+                  args=$(mktemp)
+                  sudo tr "\0" "\n" < "/proc/$ffmpeg_pid/cmdline" > "$args"
+                  if grep -Fxq "tee" "$args" && grep -Fq "rtmps://ca.pscp.tv:443/x" "$args" && grep -Fq "rtmps://live-api-s.facebook.com:443/rtmp" "$args"; then
+                    rm -f "$args"
+                    echo "Three-platform transport verified: YouTube primary + X + Facebook."
+                    exit 0
+                  fi
+                  rm -f "$args"
+                fi
+              fi
+              sleep 1
+            done
+            echo "Facebook output did not appear in the live FFmpeg transport within 60 seconds." >&2
+            exit 1
+          '
+
+      - name: Record Facebook activation result
+        if: always()
+        env:
+          INSTALL_OUTCOME: ${{ steps.install.outcome }}
+          ACTIVATE_OUTCOME: ${{ steps.activate_facebook.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify_facebook.outcome }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          active=false
+          if [[ "$INSTALL_OUTCOME" == "success" && "$ACTIVATE_OUTCOME" == "success" && "$VERIFY_OUTCOME" == "success" ]]; then
+            active=true
+          fi
+          jq -n \
+            --argjson active "$active" \
+            --arg deployedSha "$GITHUB_SHA" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg jobStatus "$JOB_STATUS" \
+            --arg installOutcome "$INSTALL_OUTCOME" \
+            --arg activateOutcome "$ACTIVATE_OUTCOME" \
+            --arg verifyOutcome "$VERIFY_OUTCOME" \
+            '{facebookSimulcastActive:$active,facebookRtmpBase:"rtmps://live-api-s.facebook.com:443/rtmp/",service:"fgbears-live.service",transport:"ffmpeg-tee",youtubePrimary:true,xPreserved:true,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,activateOutcome:$activateOutcome,verifyOutcome:$verifyOutcome}' \
+            > .github/deployment-status/fgbears-facebook.json
+          git config user.name "FGBears Deploy Bot"
+          git config user.email "actions@github.com"
+          git add -- .github/deployment-status/fgbears-facebook.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Record FGBears Facebook activation result [skip ci]"
+          git push origin main
