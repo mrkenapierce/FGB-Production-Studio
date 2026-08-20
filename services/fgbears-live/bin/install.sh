@@ -66,6 +66,7 @@ install -d -o root -g fgbears -m 0750 /etc/fgbears-live
 
 install -m 0755 /opt/fgbears-live/bin/start-stream.sh /usr/local/bin/fgbears-start-stream
 install -m 0755 /opt/fgbears-live/bin/youtube-relay.sh /usr/local/bin/fgbears-youtube-relay
+install -m 0755 /opt/fgbears-live/bin/facebook-relay.sh /usr/local/bin/fgbears-facebook-relay
 install -m 0755 /opt/fgbears-live/bin/configure-x.sh /usr/local/bin/fgbears-configure-x
 install -m 0755 /opt/fgbears-live/bin/configure-facebook.sh /usr/local/bin/fgbears-configure-facebook
 install -m 0755 /opt/fgbears-live/bin/normalize-library.sh /usr/local/bin/fgbears-normalize
@@ -77,6 +78,7 @@ install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-st
 
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-relay.service /etc/systemd/system/fgbears-youtube-relay.service
+install -m 0644 /opt/fgbears-live/systemd/fgbears-facebook-relay.service /etc/systemd/system/fgbears-facebook-relay.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.service /etc/systemd/system/fgbears-live-health.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.timer /etc/systemd/system/fgbears-live-health.timer
 
@@ -85,9 +87,9 @@ if [[ ! -e "$ENV_PATH" ]]; then
   install -o root -g fgbears -m 0640 /opt/fgbears-live/config/stream.env.example "$ENV_PATH"
 fi
 
-# Migrate existing production installs from direct YouTube-through-tee output to
-# a local RTMP hop. Preserve the existing external YouTube base as the relay's
-# upstream and never print or alter the protected stream key.
+# Preserve the local YouTube hop and migrate any legacy direct Facebook enablement
+# into the isolated sidecar. The primary encoder's Facebook flag is always forced
+# off so Facebook TLS can never re-enter the primary FFmpeg process.
 python3 - "$ENV_PATH" <<'PY'
 from pathlib import Path
 import sys
@@ -109,10 +111,20 @@ if not upstream:
     else:
         upstream = "rtmps://a.rtmps.youtube.com/live2"
 
+def truthy(value):
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+relay_enabled = values.get("FACEBOOK_RELAY_ENABLED")
+if relay_enabled is None:
+    relay_enabled = "1" if truthy(values.get("FACEBOOK_STREAM_ENABLED", "0")) else "0"
+
 updates = {
     "YOUTUBE_RTMP_BASE": local_base,
     "YOUTUBE_LOCAL_RTMP_BASE": local_base,
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
+    "FACEBOOK_STREAM_ENABLED": "0",
+    "FACEBOOK_RELAY_ENABLED": relay_enabled,
+    "FACEBOOK_LOCAL_RTMP_BASE": values.get("FACEBOOK_LOCAL_RTMP_BASE") or "rtmp://127.0.0.1:1936/live",
 }
 seen = set()
 out = []
@@ -135,7 +147,19 @@ chmod 0640 "$ENV_PATH"
 
 systemctl daemon-reload
 systemctl enable fgbears-youtube-relay.service
+
+if grep -Eq '^FACEBOOK_RELAY_ENABLED=(1|true|yes|on)$' "$ENV_PATH" && \
+   grep -Eq '^FACEBOOK_RTMP_BASE=rtmps?://.+' "$ENV_PATH" && \
+   awk -F= '/^FACEBOOK_STREAM_KEY=/{if(length(substr($0,index($0,"=")+1))>0) ok=1} END{exit ok?0:1}' "$ENV_PATH"; then
+  systemctl enable fgbears-facebook-relay.service
+  systemctl reset-failed fgbears-facebook-relay.service || true
+  systemctl restart fgbears-facebook-relay.service
+else
+  systemctl disable --now fgbears-facebook-relay.service >/dev/null 2>&1 || true
+fi
+
+# Start/restart the local listeners before the primary encoder reconnects to them.
 systemctl restart fgbears-youtube-relay.service
 systemctl enable --now fgbears-live-health.timer
 
-echo "Installed FGBears Live with single-encode output, local YouTube copy-remux relay, and isolated X/Facebook simulcast capability."
+echo "Installed FGBears Live with one primary encode, isolated YouTube copy-remux relay, X output, and an optional isolated Facebook copy-remux sidecar."

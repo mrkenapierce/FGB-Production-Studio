@@ -1,22 +1,20 @@
 [Unit]
-Description=FGBears TV 24/7 YouTube replay stream
-After=network-online.target fgbears-youtube-relay.service
-Wants=network-online.target fgbears-youtube-relay.service
+Description=FGBears Facebook RTMP copy-remux relay
+After=network-online.target
+Wants=network-online.target
 StartLimitIntervalSec=30min
-StartLimitBurst=3
+StartLimitBurst=20
 
 [Service]
 Type=simple
 User=fgbears
 Group=fgbears
 EnvironmentFile=/etc/fgbears-live/stream.env
-# Safety invariant: Facebook is never allowed back into the primary FFmpeg tee.
-ExecStartPre=/usr/bin/bash -c '! grep -Eq "^FACEBOOK_STREAM_ENABLED=(1|true|yes|on)$" /etc/fgbears-live/stream.env'
-ExecStart=/usr/local/bin/fgbears-start-stream
+ExecStart=/usr/local/bin/fgbears-facebook-relay
 Restart=on-failure
-RestartSec=15
+RestartSec=10
 SuccessExitStatus=130 143
-TimeoutStopSec=20
+TimeoutStopSec=15
 KillSignal=SIGINT
 UMask=0077
 NoNewPrivileges=true
