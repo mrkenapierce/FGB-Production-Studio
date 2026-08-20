@@ -1,8 +1,8 @@
 [Unit]
-Description=Start FGBears Facebook simulcast daily at 12:00 PM Central
+Description=Start FGBears Facebook simulcast daily at 9:00 AM Central
 
 [Timer]
-OnCalendar=*-*-* 12:00:00 America/Chicago
+OnCalendar=*-*-* 09:00:00 America/Chicago
 Persistent=true
 AccuracySec=1s
 RandomizedDelaySec=0
