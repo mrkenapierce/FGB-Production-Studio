@@ -1,11 +1,11 @@
 {
   "ok": false,
   "primaryActive": true,
-  "youtubeRelayActive": false,
-  "primaryPidUnchanged": true,
-  "youtubeEstablished": false,
-  "xEstablished": false,
+  "youtubeRelayActive": true,
+  "primaryPidUnchanged": false,
+  "youtubeEstablished": true,
+  "xEstablished": true,
   "facebookEnabled": false,
-  "relayResult": "exit-code",
-  "checkedAt": "2026-08-20T18:05:46Z"
+  "relayResult": "success",
+  "checkedAt": "2026-08-20T19:17:50Z"
 }
