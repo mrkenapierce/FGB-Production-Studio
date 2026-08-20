@@ -2,7 +2,7 @@
 set -Eeuo pipefail
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
-[[ $EUID -eq 0 ]] || { echo "Run as root: sudo fgbears-configure-x" >&2; exit 77; }
+[[ $EUID -eq 0 ]] || { echo "Run as root: sudo bash /opt/fgbears-live/bin/configure-x.sh" >&2; exit 77; }
 [[ -f "$ENV_FILE" ]] || { echo "Missing stream configuration: $ENV_FILE" >&2; exit 66; }
 
 if [[ ${1:-} == "--disable" ]]; then
