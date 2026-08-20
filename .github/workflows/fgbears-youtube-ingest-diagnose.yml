@@ -36,7 +36,7 @@ jobs:
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
       - id: diagnose
-        name: Check live YouTube and X ingest sockets safely
+        name: Check live YouTube and X sockets by owning process
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -51,8 +51,11 @@ jobs:
           youtube_socket_established=false
           x_enabled=false
           x_socket_established=false
+          local_relay_handoff=false
           youtube_primary_failure_recent=false
           ffmpeg_socket_count=0
+          primary_external_443_count=0
+          relay_external_443_count=0
           failure_class=none
 
           systemctl is-active --quiet fgbears-live.service && service_active=true || true
@@ -69,51 +72,64 @@ jobs:
           fi
           sudo grep -Eq '^X_STREAM_ENABLED=(1|true|yes|on)$' "$env_file" && x_enabled=true || true
 
-          : > /tmp/fgbears-ffmpeg-sockets.txt
+          main_pid=$(systemctl show -p MainPID --value fgbears-live.service 2>/dev/null || echo 0)
+          relay_pid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service 2>/dev/null || echo 0)
+          primary_pid=''
+          if [[ "$main_pid" =~ ^[1-9][0-9]*$ ]]; then
+            primary_pid=$(pgrep -P "$main_pid" -x ffmpeg | head -1 || true)
+          fi
+
+          sudo ss -ntpH state established > /tmp/fgbears-all-sockets.txt || true
+          : > /tmp/fgbears-primary-sockets.txt
+          : > /tmp/fgbears-relay-sockets.txt
+
+          if [[ -n "$primary_pid" ]]; then
+            ffmpeg_active=true
+            grep "pid=$primary_pid" /tmp/fgbears-all-sockets.txt > /tmp/fgbears-primary-sockets.txt || true
+            primary_external_443_count=$(grep -c ':443' /tmp/fgbears-primary-sockets.txt || true)
+            if (( primary_external_443_count > 0 )); then
+              x_socket_established=true
+            fi
+          fi
+
+          if [[ "$relay_pid" =~ ^[1-9][0-9]*$ ]]; then
+            grep "pid=$relay_pid" /tmp/fgbears-all-sockets.txt > /tmp/fgbears-relay-sockets.txt || true
+            relay_external_443_count=$(grep -c ':443' /tmp/fgbears-relay-sockets.txt || true)
+            if (( relay_external_443_count > 0 )); then
+              youtube_socket_established=true
+            fi
+          fi
+
+          if grep -Eq '127\.0\.0\.1:1935|\[::1\]:1935' /tmp/fgbears-primary-sockets.txt && grep -Eq '127\.0\.0\.1:1935|\[::1\]:1935' /tmp/fgbears-relay-sockets.txt; then
+            local_relay_handoff=true
+          fi
+
           ffmpeg_pids=$(pgrep -x ffmpeg || true)
           if [[ -n "$ffmpeg_pids" ]]; then
             ffmpeg_active=true
-            sudo ss -ntpH state established > /tmp/fgbears-all-sockets.txt || true
+            : > /tmp/fgbears-ffmpeg-sockets.txt
             while IFS= read -r pid; do
               [[ -n "$pid" ]] || continue
               grep "pid=$pid" /tmp/fgbears-all-sockets.txt >> /tmp/fgbears-ffmpeg-sockets.txt || true
             done <<< "$ffmpeg_pids"
             sort -u /tmp/fgbears-ffmpeg-sockets.txt -o /tmp/fgbears-ffmpeg-sockets.txt
             ffmpeg_socket_count=$(wc -l < /tmp/fgbears-ffmpeg-sockets.txt | tr -d ' ')
-
-            getent ahostsv4 a.rtmps.youtube.com | awk '{print $1}' | sort -u > /tmp/fgbears-youtube-ips.txt
-            while IFS= read -r ip; do
-              [[ -n "$ip" ]] || continue
-              if grep -Fq "$ip:443" /tmp/fgbears-ffmpeg-sockets.txt; then
-                youtube_socket_established=true
-                break
-              fi
-            done < /tmp/fgbears-youtube-ips.txt
-
-            getent ahostsv4 ca.pscp.tv | awk '{print $1}' | sort -u > /tmp/fgbears-x-ips.txt || true
-            while IFS= read -r ip; do
-              [[ -n "$ip" ]] || continue
-              if grep -Fq "$ip:443" /tmp/fgbears-ffmpeg-sockets.txt; then
-                x_socket_established=true
-                break
-              fi
-            done < /tmp/fgbears-x-ips.txt
           fi
 
           sudo journalctl -u fgbears-live.service -u fgbears-youtube-relay.service --since '20 minutes ago' --no-pager > /tmp/fgbears-youtube-journal.txt
           if grep -Eq 'a\.rtmps\.youtube\.com.*(failed|error|refused|timed out)|YouTube.*(failed|error)|Error opening output' /tmp/fgbears-youtube-journal.txt; then
             youtube_primary_failure_recent=true
           fi
-          if grep -Ei 'connection refused' /tmp/fgbears-youtube-journal.txt | grep -Fq '127.0.0.1'; then
-            failure_class=local-relay-connection-refused
-          elif grep -Eiq 'broken pipe|connection reset by peer' /tmp/fgbears-youtube-journal.txt; then
-            failure_class=connection-reset-or-broken-pipe
-          elif grep -Eiq 'error opening output|slave muxer.*failed|input/output error|i/o error' /tmp/fgbears-youtube-journal.txt; then
-            failure_class=ffmpeg-output-open-or-io-failure
-          elif [[ "$service_active" != true ]]; then
-            failure_class=primary-service-inactive-unclassified
+          if [[ "$service_active" != true ]]; then
+            failure_class=primary-service-inactive
           elif [[ "$youtube_relay_active" != true ]]; then
-            failure_class=youtube-relay-inactive-unclassified
+            failure_class=youtube-relay-inactive
+          elif [[ "$local_relay_handoff" != true ]]; then
+            failure_class=local-relay-handoff-absent
+          elif [[ "$youtube_socket_established" != true ]]; then
+            failure_class=youtube-external-socket-absent
+          elif [[ "$x_enabled" == true && "$x_socket_established" != true ]]; then
+            failure_class=x-external-socket-absent
           fi
 
           printf 'SERVICE_ACTIVE=%s\n' "$service_active"
@@ -123,8 +139,11 @@ jobs:
           printf 'YOUTUBE_SOCKET_ESTABLISHED=%s\n' "$youtube_socket_established"
           printf 'X_ENABLED=%s\n' "$x_enabled"
           printf 'X_SOCKET_ESTABLISHED=%s\n' "$x_socket_established"
+          printf 'LOCAL_RELAY_HANDOFF=%s\n' "$local_relay_handoff"
           printf 'YOUTUBE_PRIMARY_FAILURE_RECENT=%s\n' "$youtube_primary_failure_recent"
           printf 'FFMPEG_SOCKET_COUNT=%s\n' "$ffmpeg_socket_count"
+          printf 'PRIMARY_EXTERNAL_443_COUNT=%s\n' "$primary_external_443_count"
+          printf 'RELAY_EXTERNAL_443_COUNT=%s\n' "$relay_external_443_count"
           printf 'SERVICE_RESULT=%s\n' "${service_result:-unknown}"
           printf 'SERVICE_EXEC_STATUS=%s\n' "${service_exec_status:-unknown}"
           printf 'SERVICE_RESTARTS=%s\n' "${service_restarts:-unknown}"
@@ -133,7 +152,7 @@ jobs:
           printf 'RELAY_RESTARTS=%s\n' "${relay_restarts:-unknown}"
           printf 'FAILURE_CLASS=%s\n' "$failure_class"
 
-          rm -f /tmp/fgbears-all-sockets.txt /tmp/fgbears-ffmpeg-sockets.txt /tmp/fgbears-youtube-ips.txt /tmp/fgbears-x-ips.txt /tmp/fgbears-youtube-journal.txt
+          rm -f /tmp/fgbears-all-sockets.txt /tmp/fgbears-primary-sockets.txt /tmp/fgbears-relay-sockets.txt /tmp/fgbears-ffmpeg-sockets.txt /tmp/fgbears-youtube-journal.txt
           REMOTE
           cat /tmp/youtube-ingest.env
 
@@ -151,8 +170,11 @@ jobs:
           youtube_socket_established=false
           x_enabled=false
           x_socket_established=false
+          local_relay_handoff=false
           youtube_primary_failure_recent=false
           ffmpeg_socket_count=0
+          primary_external_443_count=0
+          relay_external_443_count=0
           service_result=unknown
           service_exec_status=unknown
           service_restarts=unknown
@@ -170,8 +192,11 @@ jobs:
                 YOUTUBE_SOCKET_ESTABLISHED) youtube_socket_established="$value" ;;
                 X_ENABLED) x_enabled="$value" ;;
                 X_SOCKET_ESTABLISHED) x_socket_established="$value" ;;
+                LOCAL_RELAY_HANDOFF) local_relay_handoff="$value" ;;
                 YOUTUBE_PRIMARY_FAILURE_RECENT) youtube_primary_failure_recent="$value" ;;
                 FFMPEG_SOCKET_COUNT) ffmpeg_socket_count="$value" ;;
+                PRIMARY_EXTERNAL_443_COUNT) primary_external_443_count="$value" ;;
+                RELAY_EXTERNAL_443_COUNT) relay_external_443_count="$value" ;;
                 SERVICE_RESULT) service_result="$value" ;;
                 SERVICE_EXEC_STATUS) service_exec_status="$value" ;;
                 SERVICE_RESTARTS) service_restarts="$value" ;;
@@ -190,8 +215,11 @@ jobs:
             --argjson youtubeSocketEstablished "$youtube_socket_established" \
             --argjson xEnabled "$x_enabled" \
             --argjson xSocketEstablished "$x_socket_established" \
+            --argjson localRelayHandoff "$local_relay_handoff" \
             --argjson youtubePrimaryFailureRecent "$youtube_primary_failure_recent" \
             --argjson ffmpegSocketCount "$ffmpeg_socket_count" \
+            --argjson primaryExternal443Count "$primary_external_443_count" \
+            --argjson relayExternal443Count "$relay_external_443_count" \
             --arg serviceResult "$service_result" \
             --arg serviceExecStatus "$service_exec_status" \
             --arg serviceRestarts "$service_restarts" \
@@ -201,7 +229,7 @@ jobs:
             --arg failureClass "$failure_class" \
             --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --arg runId "$GITHUB_RUN_ID" \
-            '{serviceActive:$serviceActive,youtubeRelayActive:$youtubeRelayActive,ffmpegActive:$ffmpegActive,youtubeConfigured:$youtubeConfigured,youtubeSocketEstablished:$youtubeSocketEstablished,xEnabled:$xEnabled,xSocketEstablished:$xSocketEstablished,youtubePrimaryFailureRecent:$youtubePrimaryFailureRecent,ffmpegEstablishedSocketCount:$ffmpegSocketCount,serviceResult:$serviceResult,serviceExecStatus:$serviceExecStatus,serviceRestarts:$serviceRestarts,relayResult:$relayResult,relayExecStatus:$relayExecStatus,relayRestarts:$relayRestarts,failureClass:$failureClass,checkedAt:$checkedAt,runId:$runId,transport:"youtube-copy-remux-relay"}' \
+            '{serviceActive:$serviceActive,youtubeRelayActive:$youtubeRelayActive,ffmpegActive:$ffmpegActive,youtubeConfigured:$youtubeConfigured,youtubeSocketEstablished:$youtubeSocketEstablished,xEnabled:$xEnabled,xSocketEstablished:$xSocketEstablished,localRelayHandoff:$localRelayHandoff,youtubePrimaryFailureRecent:$youtubePrimaryFailureRecent,ffmpegEstablishedSocketCount:$ffmpegSocketCount,primaryExternal443Count:$primaryExternal443Count,relayExternal443Count:$relayExternal443Count,serviceResult:$serviceResult,serviceExecStatus:$serviceExecStatus,serviceRestarts:$serviceRestarts,relayResult:$relayResult,relayExecStatus:$relayExecStatus,relayRestarts:$relayRestarts,failureClass:$failureClass,checkedAt:$checkedAt,runId:$runId,transport:"youtube-copy-remux-relay",detectionMethod:"process-role-external-443"}' \
             > .github/deployment-status/fgbears-youtube-ingest.json
           git config user.name 'FGBears Deploy Bot'
           git config user.email 'actions@github.com'
