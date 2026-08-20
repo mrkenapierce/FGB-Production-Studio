@@ -9,12 +9,11 @@ that broadcast to live when YouTube allows the transition.
 from __future__ import annotations
 
 import importlib.util
-import os
 from pathlib import Path
 import sys
 import time
 
-PREFERRED_BROADCAST_ID = "FxeMSzEB0_w"
+PREFERRED_BROADCAST_ID = "QxmLpaargj0"
 CONTROLLER_PATH = Path("services/fgbears-live/bin/youtube-broadcast-control.py")
 
 
@@ -59,7 +58,6 @@ def main() -> int:
             state = c.lifecycle(broadcast)
 
         if state != "live":
-            # Give auto-start a short opportunity first.
             for _ in range(6):
                 time.sleep(2)
                 broadcast = c.get_broadcast(yt, PREFERRED_BROADCAST_ID)
