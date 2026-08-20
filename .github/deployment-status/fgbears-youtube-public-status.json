@@ -3,11 +3,11 @@
   "httpOk": true,
   "isLiveNow": false,
   "isLive": true,
-  "isUpcoming": true,
-  "playabilityStatus": "LIVE_STREAM_OFFLINE",
+  "isUpcoming": false,
+  "playabilityStatus": "LOGIN_REQUIRED",
   "publicWatchUrl": "https://www.youtube.com/watch?v=QxmLpaargj0",
-  "hasLiveBroadcastDetails": true,
+  "hasLiveBroadcastDetails": false,
   "pageMentionsOfflineSlate": false,
-  "checkedAt": "2026-08-20T16:33:47Z",
+  "checkedAt": "2026-08-20T17:46:54Z",
   "runId": "32351853952"
 }
