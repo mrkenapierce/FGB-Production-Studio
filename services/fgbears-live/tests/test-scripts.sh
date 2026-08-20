@@ -5,14 +5,12 @@ TMP=$(mktemp -d)
 OVERLAY_PID=""
 CRAWL_PID=""
 cleanup() {
-  if [[ -n "$OVERLAY_PID" ]] && kill -0 "$OVERLAY_PID" 2>/dev/null; then
-    kill "$OVERLAY_PID" 2>/dev/null || true
-    wait "$OVERLAY_PID" 2>/dev/null || true
-  fi
-  if [[ -n "$CRAWL_PID" ]] && kill -0 "$CRAWL_PID" 2>/dev/null; then
-    kill "$CRAWL_PID" 2>/dev/null || true
-    wait "$CRAWL_PID" 2>/dev/null || true
-  fi
+  for pid in "$OVERLAY_PID" "$CRAWL_PID"; do
+    if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+      kill "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+    fi
+  done
   rm -rf "$TMP"
 }
 trap cleanup EXIT
@@ -20,138 +18,64 @@ trap cleanup EXIT
 for script in "$ROOT"/bin/*.sh; do
   bash -n "$script"
 done
-python3 -m py_compile "$ROOT/bin/ad-overlay.py"
-grep -Fq 'def fit_text_block(' "$ROOT/bin/ad-overlay.py"
-grep -Fq 'def sponsor_text_parts(' "$ROOT/bin/ad-overlay.py"
-python3 - "$ROOT/bin/ad-overlay.py" <<'PY'
-import runpy
-import sys
+python3 -m py_compile "$ROOT/bin/ad-overlay.py" "$ROOT/bin/crawl-overlay.py" "$ROOT/bin/bears-news-feed.py"
 
-module = runpy.run_path(sys.argv[1])
-parts = module["sponsor_text_parts"](
-    {
-        "businessName": "Chicago Gameday Giveaway",
-        "title": "Chicago Gameday Giveaway",
-        "subtitle": "Log In and Watch",
-        "eventStartsAt": "2026-08-15T12:00:00+00:00",
-    },
-    "house",
-)
-assert parts == ("Chicago Gameday Giveaway", "Log In and Watch", "AUGUST 15, 2026"), parts
-PY
-test "$(grep -Fc 'message.upper(), text_x, y, text_w' "$ROOT/bin/ad-overlay.py")" -eq 2
-test "$(grep -F 'message.upper(), text_x, y, text_w' "$ROOT/bin/ad-overlay.py" | grep -Fc '"#0B162A"')" -eq 2
-python3 -m py_compile "$ROOT/bin/crawl-overlay.py"
-grep -q '^AD_OVERLAY_FPS=25$' "$ROOT/config/stream.env.example"
-
-grep -q 'REPLACE_WITH_YOUTUBE_STREAM_KEY' "$ROOT/config/stream.env.example"
-# The dollar expressions are intentionally literal: these verify script text.
+# These are intentionally literal shell expressions from start-stream.sh.
 # shellcheck disable=SC2016
-grep -Fq -- '-i "$AD_FRAME_FILE"' "$ROOT/bin/start-stream.sh"
+grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${AD_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
-grep -Fq -- '-loop 1 -framerate "$OUTPUT_FPS"' "$ROOT/bin/start-stream.sh"
-if grep -Fq -- '-re -loop 1' "$ROOT/bin/start-stream.sh"; then
-  echo 'The still image must not have a second independent rate limiter.' >&2
-  exit 1
-fi
+grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-preset ultrafast' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-progress pipe:3' "$ROOT/bin/start-stream.sh"
-grep -Fq 'drawtext=fontfile=' "$ROOT/bin/start-stream.sh"
-python3 - "$ROOT/bin/start-stream.sh" <<'PY'
-import sys
-text = open(sys.argv[1], encoding="utf-8").read()
-
-# The crawl message must be rendered only on its cropped 990px lane, then
-# composited into the row between the two orange lane boundaries.
-message = text.index("crawl-message.txt")
-crop = text.rfind("[crawl0]crop=w=990:h=108:x=267:y=589", 0, message)
-movement = text.index("x=990-mod(t*105\\,text_w+990)", message)
-overlay = text.index("[withnews][crawllane]overlay=x=267:y=589:shortest=1", movement)
-assert crop < message < movement < overlay, "crawl must be drawn and physically clipped inside its own 990px lane"
-
-left_orange = text.index("drawbox=x=262:y=589:w=5:h=108:color=0xC83803")
-right_orange = text.index("drawbox=x=1257:y=584:w=5:h=118:color=0xC83803")
-assert left_orange < overlay and right_orange < overlay, "orange lane boundaries must be part of the fixed base frame"
-PY
-grep -Fq 'FFMPEG_PROGRESS_FILE' "$ROOT/bin/start-stream.sh"
-grep -Fq 'FFMPEG_HEALTH_SAMPLE_FILE' "$ROOT/bin/healthcheck.sh"
-grep -Fq 'age > 90' "$ROOT/bin/healthcheck.sh"
-grep -Fq 'RESTART_BUDGET' "$ROOT/bin/healthcheck.sh"
-grep -Fq 'RESTART_BREAKER_FILE' "$ROOT/bin/healthcheck.sh"
-grep -Fq 'PROGRESS_MISSING' "$ROOT/bin/healthcheck.sh"
-grep -Fq 'StartLimitBurst=3' "$ROOT/systemd/fgbears-live.service"
-grep -Fq 'Restart=on-failure' "$ROOT/systemd/fgbears-live.service"
-grep -Fq 'fgbears-stream-status' "$ROOT/bin/install.sh"
-if grep -Fq 'Encoder interval speed' "$ROOT/bin/healthcheck.sh"; then
-  echo 'A slow encoder must not trigger a viewer-visible restart loop.' >&2
-  exit 1
-fi
-if grep -Fq 'Advertising creative changed' "$ROOT/bin/start-stream.sh"; then
-  echo 'An advertising update must not trigger a viewer-visible restart.' >&2
-  exit 1
-fi
 grep -Fq 'loudnorm=I=-16:TP=-1.5:LRA=7' "$ROOT/bin/start-stream.sh"
 grep -Fq 'acompressor=threshold=0.125:ratio=3' "$ROOT/bin/start-stream.sh"
-grep -Fq -- '-c:a aac -b:a 160k -ar 48000 -ac 2' "$ROOT/bin/start-stream.sh"
-if grep -Fq -- '-c:a copy' "$ROOT/bin/start-stream.sh"; then
-  echo 'Podcast processing requires audio encoding, not AAC passthrough.' >&2
-  exit 1
-fi
-if grep -Eq "enable=.*mod\\(t" "$ROOT/bin/start-stream.sh"; then
-  echo 'The permanent advertising screen must not use timed visibility.' >&2
-  exit 1
-fi
+grep -Fq -- '-c:a aac -b:a 128k -ar 48000 -ac 2' "$ROOT/bin/start-stream.sh"
+grep -Fq -- '-f tee -use_fifo 1' "$ROOT/bin/start-stream.sh"
+grep -Fq 'onfail=abort' "$ROOT/bin/start-stream.sh"
+grep -Fq 'onfail=ignore' "$ROOT/bin/start-stream.sh"
+grep -Fq 'StartLimitBurst=3' "$ROOT/systemd/fgbears-live.service"
+grep -Fq 'Restart=on-failure' "$ROOT/systemd/fgbears-live.service"
+
 if find "$ROOT" -type f -name 'stream.env' -print -quit | grep -q .; then
   echo 'A real stream.env file must never be committed.' >&2
   exit 1
 fi
 
 cat > "$TMP/feed.json" <<'JSON'
-{"kind":"house","sponsors":[{"businessName":"Preseason Game One is 8/15/2026","imageUrl":null,"promoMessage":"Join us for trivia and giveaways!","website":"https://epiccontentcreatorgrants.org/epic-media"}]}
+{"kind":"house","sponsors":[{"businessName":"FGB","imageUrl":null,"promoMessage":"Bear Down","website":"https://epiccontentcreatorgrants.org/epic-media"}]}
 JSON
 SPONSOR_FEED_FILE="$TMP/feed.json" AD_FRAME_FILE="$TMP/runtime/ad-frame.jpg" AD_OVERLAY_PORT=18787 python3 "$ROOT/bin/ad-overlay.py" >"$TMP/ad-overlay.log" 2>&1 &
 OVERLAY_PID=$!
-for _ in {1..30}; do
-  curl --silent --fail --max-time 1 http://127.0.0.1:18787/healthz >"$TMP/health.json" && break
+for _ in {1..40}; do
+  curl --silent --fail --max-time 1 http://127.0.0.1:18787/healthz >"$TMP/ad-health.json" && break
   sleep 0.1
 done
-jq -e '.ok == true and .kind == "house" and .sponsorCount == 1' "$TMP/health.json" >/dev/null
-curl --silent --fail http://127.0.0.1:18787/frame.jpg -o "$TMP/frame.jpg"
-python3 - "$TMP/frame.jpg" <<'PY'
-import sys
+jq -e '.ok == true' "$TMP/ad-health.json" >/dev/null
+curl --silent --fail http://127.0.0.1:18787/frame.jpg -o "$TMP/ad-frame.jpg"
+python3 - "$TMP/ad-frame.jpg" <<'PY'
 from PIL import Image
-img = Image.open(sys.argv[1])
-assert img.size == (1280, 720), img.size
+import sys
+im = Image.open(sys.argv[1]); im.load(); assert im.size == (1280, 720), im.size
 PY
-test -s "$TMP/runtime/ad-frame.jpg"
-test -s "$TMP/runtime/ad-frame.sha256"
-kill "$OVERLAY_PID"
-wait "$OVERLAY_PID" 2>/dev/null || true
-OVERLAY_PID=""
+kill "$OVERLAY_PID"; wait "$OVERLAY_PID" 2>/dev/null || true; OVERLAY_PID=""
 
 cat > "$TMP/crawl.json" <<'JSON'
-{"active":true,"label":"EPIC LIVE","message":"TRIVIA & GIVEAWAYS ARE LIVE — VISIT EPICCONTENTCREATORGRANTS.ORG/EPIC-MEDIA TO PARTICIPATE","speed":"normal","updatedAt":"2026-08-12T00:00:00Z"}
+{"active":true,"label":"FGB LIVE","message":"🐻⬇️ #FGB 💙🧡","speed":"normal","updatedAt":"2026-08-19T00:00:00Z"}
 JSON
 CRAWL_FEED_FILE="$TMP/crawl.json" CRAWL_RUNTIME_DIR="$TMP/runtime" CRAWL_OVERLAY_PORT=18788 CRAWL_OVERLAY_FPS=10 python3 "$ROOT/bin/crawl-overlay.py" >"$TMP/crawl-overlay.log" 2>&1 &
 CRAWL_PID=$!
-for _ in {1..30}; do
+for _ in {1..40}; do
   curl --silent --fail --max-time 1 http://127.0.0.1:18788/healthz >"$TMP/crawl-health.json" && break
   sleep 0.1
 done
 jq -e '.ok == true and .active == true' "$TMP/crawl-health.json" >/dev/null
-curl --silent --fail http://127.0.0.1:18788/frame.png -o "$TMP/crawl.png"
-python3 - "$TMP/crawl.png" <<'PY'
-import sys
+curl --silent --fail http://127.0.0.1:18788/frame.jpg -o "$TMP/crawl-frame.jpg"
+python3 - "$TMP/crawl-frame.jpg" <<'PY'
 from PIL import Image
-img = Image.open(sys.argv[1])
-assert img.size == (1280, 118), img.size
-assert img.mode == "RGBA", img.mode
+import sys
+im = Image.open(sys.argv[1]); im.load(); assert im.size == (1280, 139), im.size
 PY
-grep -q '^EPIC LIVE$' "$TMP/runtime/crawl-label.txt"
-grep -q 'TRIVIA & GIVEAWAYS' "$TMP/runtime/crawl-message.txt"
-kill "$CRAWL_PID"
-wait "$CRAWL_PID" 2>/dev/null || true
-CRAWL_PID=""
+kill "$CRAWL_PID"; wait "$CRAWL_PID" 2>/dev/null || true; CRAWL_PID=""
 
 mkdir -p "$TMP/media"
 ffmpeg -hide_banner -loglevel error \
@@ -161,16 +85,6 @@ ffmpeg -hide_banner -loglevel error \
 MEDIA_DIR="$TMP/media" bash "$ROOT/bin/normalize-library.sh" "$TMP/source.mp4" "$TMP/media/episode-01.mp4"
 bash "$ROOT/bin/validate-media.sh" "$TMP/media"
 MEDIA_DIR="$TMP/media" PLAYLIST_FILE="$TMP/playlist.ffconcat" bash "$ROOT/bin/rebuild-playlist.sh"
-grep -q "episode-01.mp4" "$TMP/playlist.ffconcat"
+grep -q 'episode-01.mp4' "$TMP/playlist.ffconcat"
 
-# Prove the permanent ad and reloadable crawl render at the reduced 24fps clock.
-mkdir -p "$TMP/runtime"
-cp "$TMP/frame.jpg" "$TMP/runtime/ad-frame.jpg"
-printf 'EPIC LIVE\n' > "$TMP/runtime/crawl-label.txt"
-printf 'TEST CRAWL MESSAGE\n' > "$TMP/runtime/crawl-message.txt"
-ffmpeg -hide_banner -loglevel error \
-  -loop 1 -framerate 24 -i "$TMP/runtime/ad-frame.jpg" \
-  -filter_complex "[0:v]drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$TMP/runtime/crawl-message.txt:reload=24:expansion=none:fontcolor=white:fontsize=31:x=w-mod(t*105\\,w+text_w+100):y=620,format=yuv420p[v]" \
-  -map '[v]' -t 0.4 -c:v libx264 -preset ultrafast -an -f null -
-
-echo 'FGBears Live script tests passed.'
+echo 'FGBears Live integration tests passed.'

@@ -15,7 +15,8 @@ trap cleanup EXIT
 python3 -m py_compile "$ROOT/bin/bears-news-feed.py"
 bash -n "$ROOT/bin/start-stream.sh"
 
-# Preserve the single-clock A/V-safe design.
+# Preserve the single-program-clock design. Bears news remains native drawtext
+# over the advertising frame; the emoji-capable crawl arrives as one MJPEG lane.
 if grep -Fq -- '-f rawvideo' "$ROOT/bin/start-stream.sh"; then
   echo 'Bears news must not use a rawvideo input; it can cause A/V pacing lag.' >&2
   exit 1
@@ -25,26 +26,25 @@ if grep -Fq 'BEARS_NEWS_OVERLAY_PORT' "$ROOT/bin/start-stream.sh"; then
   exit 1
 fi
 grep -q '^BEARS_NEWS_SCROLL_PPS=90$' "$ROOT/config/stream.env.example"
-
-# Keep enough encoder headroom for uninterrupted audio: 24 fps output, two-
-# second GOP, automatic x264 threading, and dynamic text reload once per second.
 grep -q '^OUTPUT_FPS=24$' "$ROOT/config/stream.env.example"
 grep -q '^VIDEO_GOP=48$' "$ROOT/config/stream.env.example"
 grep -q '^DRAWTEXT_RELOAD_FRAMES=24$' "$ROOT/config/stream.env.example"
-# shellcheck disable=SC2016
-grep -Fq -- '-loop 1 -framerate "$OUTPUT_FPS"' "$ROOT/bin/start-stream.sh"
+
 # shellcheck disable=SC2016
 grep -Fq -- '-g "$VIDEO_GOP" -keyint_min "$VIDEO_GOP"' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
 grep -Fq -- '-r "$OUTPUT_FPS" -fps_mode cfr -threads 0' "$ROOT/bin/start-stream.sh"
+# shellcheck disable=SC2016
+grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
 if grep -Fq 'reload=1:' "$ROOT/bin/start-stream.sh"; then
   echo 'Dynamic drawtext must not reload files every video frame.' >&2
   exit 1
 fi
+# The crawl is rendered outside drawtext, so only news message + label reload.
 # shellcheck disable=SC2016
 reload_count=$(grep -oF 'reload=$DRAWTEXT_RELOAD_FRAMES' "$ROOT/bin/start-stream.sh" | wc -l)
-[[ "$reload_count" -eq 4 ]] || {
-  echo "Expected four one-second drawtext reload controls, found $reload_count." >&2
+[[ "$reload_count" -eq 2 ]] || {
+  echo "Expected two one-second news drawtext reload controls, found $reload_count." >&2
   exit 1
 }
 
@@ -74,35 +74,14 @@ for spec in \
   grep -Fq "$spec" "$ROOT/bin/start-stream.sh"
 done
 
-# Blue divider, then an orange left lane boundary. The row's orange right border
-# is the other lane boundary. This makes the visible message lane x=267..1256.
-grep -Fq 'drawbox=x=257:y=23:w=5:h=68:color=0x0B162A' "$ROOT/bin/start-stream.sh"
-grep -Fq 'drawbox=x=262:y=23:w=5:h=68:color=0xC83803' "$ROOT/bin/start-stream.sh"
-grep -Fq 'drawbox=x=257:y=589:w=5:h=108:color=0x0B162A' "$ROOT/bin/start-stream.sh"
-grep -Fq 'drawbox=x=262:y=589:w=5:h=108:color=0xC83803' "$ROOT/bin/start-stream.sh"
-
-# True clipping: moving words are rendered on cropped 990px sub-canvases, not
-# on the full frame with painted masks. They are composited only into x=267..1256.
-grep -Fq 'split=3[base0][news0][crawl0]' "$ROOT/bin/start-stream.sh"
+# News text is physically cropped to the 990px message lane. The crawl renderer
+# supplies its own complete 1280x139 lane and is composited at y=574.
+grep -Fq 'split=2[base0][news0]' "$ROOT/bin/start-stream.sh"
 grep -Fq '[news0]crop=w=990:h=68:x=267:y=23' "$ROOT/bin/start-stream.sh"
-grep -Fq '[crawl0]crop=w=990:h=108:x=267:y=589' "$ROOT/bin/start-stream.sh"
 grep -Fq '[base][newslane]overlay=x=267:y=23:shortest=1' "$ROOT/bin/start-stream.sh"
-grep -Fq '[withnews][crawllane]overlay=x=267:y=589:shortest=1' "$ROOT/bin/start-stream.sh"
-
-if grep -Fq 'drawbox=x=262:y=23:w=20' "$ROOT/bin/start-stream.sh" || \
-   grep -Fq 'drawbox=x=1237:y=23:w=20' "$ROOT/bin/start-stream.sh" || \
-   grep -Fq 'drawbox=x=262:y=589:w=20' "$ROOT/bin/start-stream.sh" || \
-   grep -Fq 'drawbox=x=1237:y=589:w=20' "$ROOT/bin/start-stream.sh"; then
-  echo 'Painted edge masks must not be used; the lanes must be physically clipped.' >&2
-  exit 1
-fi
-
-# Each ribbon starts completely beyond the right interior orange line at local
-# x=990, traverses exactly its own 990px lane plus text width, and therefore
-# fully disappears at the left interior orange line before the cycle repeats.
+grep -Fq '[withnews][2:v]overlay=x=0:y=574:shortest=1' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
 grep -Fq 'x=990-mod(t*$BEARS_NEWS_SCROLL_PPS\,text_w+990)' "$ROOT/bin/start-stream.sh"
-grep -Fq 'x=990-mod(t*105\,text_w+990)' "$ROOT/bin/start-stream.sh"
 
 cat > "$TMP/feed.xml" <<'XML'
 <?xml version="1.0" encoding="UTF-8"?>
@@ -137,11 +116,8 @@ grep -q 'SOURCE: SECOND SOURCE' "$TMP/runtime/bears-news-message.txt"
 grep -q '◆' "$TMP/runtime/bears-news-message.txt"
 grep -q '^1$' "$TMP/runtime/bears-news-active"
 
-printf 'EPIC LIVE\n' > "$TMP/runtime/crawl-label.txt"
-printf 'TEST CRAWL MESSAGE THAT MUST ENTER AND EXIT ONLY INSIDE ITS OWN ORANGE LINES\n' > "$TMP/runtime/crawl-message.txt"
-
-# Parse the exact production filter graph at the reduced 24 fps clock. This
-# validates split/crop/drawtext/overlay geometry and reload controls together.
+# Parse and execute the exact production filter graph with synthetic base and
+# crawl inputs. This validates the news crop plus external crawl composition.
 python3 - "$ROOT/bin/start-stream.sh" "$TMP/runtime" <<'PY'
 import re
 import subprocess
@@ -152,13 +128,16 @@ runtime = sys.argv[2]
 match = re.search(r'-filter_complex "(.*?)" \\\n', script, re.S)
 assert match, 'production filter graph not found'
 graph = match.group(1)
-graph = graph.replace('[1:v]', '[0:v]', 1)
+graph = graph.replace('[1:v]', '[BASE:v]', 1)
+graph = graph.replace('[2:v]', '[1:v]')
+graph = graph.replace('[BASE:v]', '[0:v]')
 graph = graph.replace('$CRAWL_RUNTIME_DIR', runtime)
 graph = graph.replace('$BEARS_NEWS_SCROLL_PPS', '90')
 graph = graph.replace('$DRAWTEXT_RELOAD_FRAMES', '24')
 subprocess.run([
     'ffmpeg', '-hide_banner', '-loglevel', 'error',
     '-f', 'lavfi', '-i', 'color=c=black:s=1280x720:r=24:d=0.4',
+    '-f', 'lavfi', '-i', 'color=c=black:s=1280x139:r=15:d=0.4',
     '-filter_complex', graph, '-map', '[v]', '-t', '0.4', '-f', 'null', '-'
 ], check=True)
 PY
@@ -167,4 +146,4 @@ kill "$PID"
 wait "$PID" 2>/dev/null || true
 PID=""
 
-echo 'Reduced-load 24 fps news/crawl clipping and A/V-safe tests passed.'
+echo 'Bears news and emoji-crawl composition tests passed.'

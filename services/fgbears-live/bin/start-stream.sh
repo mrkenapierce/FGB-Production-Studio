@@ -10,6 +10,9 @@ source "$ENV_FILE"
 
 : "${YOUTUBE_STREAM_KEY:?YOUTUBE_STREAM_KEY is required}"
 : "${YOUTUBE_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"
+: "${X_STREAM_ENABLED:=0}"
+: "${X_RTMP_BASE:=}"
+: "${X_STREAM_KEY:=}"
 : "${PLAYLIST_FILE:=/srv/fgbears-live/playlist.ffconcat}"
 : "${FFMPEG_LOGLEVEL:=warning}"
 : "${OUTPUT_FPS:=24}"
@@ -27,6 +30,7 @@ source "$ENV_FILE"
 : "${AD_FRAME_FILE:=/srv/fgbears-live/runtime/ad-frame.jpg}"
 : "${CRAWL_RUNTIME_DIR:=/srv/fgbears-live/runtime}"
 : "${PODCAST_AUDIO_FILTER:=highpass=f=85:poles=2,afftdn=nr=8:nf=-45:tn=1,equalizer=f=160:t=q:w=1:g=-2.5,equalizer=f=320:t=q:w=1.1:g=-1,equalizer=f=3000:t=q:w=0.9:g=1.5,deesser=i=0.25:m=0.5:f=0.5,acompressor=threshold=0.125:ratio=3:attack=15:release=180:makeup=1.4:knee=3,loudnorm=I=-16:TP=-1.5:LRA=7,aresample=48000:async=1:first_pts=0}"
+: "${TEE_FIFO_OPTIONS:=attempt_recovery=1:recover_any_error=1:recovery_wait_time=5}"
 
 [[ "$YOUTUBE_STREAM_KEY" != "REPLACE_WITH_YOUTUBE_STREAM_KEY" ]] || {
   echo "Replace the placeholder YouTube stream key in $ENV_FILE" >&2
@@ -36,6 +40,41 @@ source "$ENV_FILE"
 [[ -r "$AD_OVERLAY_SCRIPT" ]] || { echo "Ad overlay renderer is missing: $AD_OVERLAY_SCRIPT" >&2; exit 66; }
 [[ -r "$CRAWL_OVERLAY_SCRIPT" ]] || { echo "Crawl overlay renderer is missing: $CRAWL_OVERLAY_SCRIPT" >&2; exit 66; }
 [[ -r "$BEARS_NEWS_SCRIPT" ]] || { echo "Bears news feed poller is missing: $BEARS_NEWS_SCRIPT" >&2; exit 66; }
+
+case "${X_STREAM_ENABLED,,}" in
+  1|true|yes|on)
+    X_STREAM_ACTIVE=1
+    ;;
+  0|false|no|off|"")
+    X_STREAM_ACTIVE=0
+    ;;
+  *)
+    echo "X_STREAM_ENABLED must be 0/1, false/true, no/yes, or off/on." >&2
+    exit 64
+    ;;
+esac
+
+YOUTUBE_TARGET="${YOUTUBE_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
+TEE_TARGETS="[f=flv:flvflags=no_duration_filesize:onfail=abort]${YOUTUBE_TARGET}"
+if (( X_STREAM_ACTIVE )); then
+  [[ -n "$X_RTMP_BASE" ]] || { echo "X_RTMP_BASE is required when X streaming is enabled." >&2; exit 78; }
+  [[ -n "$X_STREAM_KEY" ]] || { echo "X_STREAM_KEY is required when X streaming is enabled." >&2; exit 78; }
+  [[ "$X_RTMP_BASE" == rtmp://* || "$X_RTMP_BASE" == rtmps://* ]] || {
+    echo "X_RTMP_BASE must be an RTMP or RTMPS URL from X Live Studio." >&2
+    exit 78
+  }
+  [[ "$X_RTMP_BASE$X_STREAM_KEY" != *"|"* ]] || {
+    echo "X RTMP URL/key contains an unsupported tee delimiter." >&2
+    exit 78
+  }
+  X_TARGET="${X_RTMP_BASE%/}/${X_STREAM_KEY}"
+  # X is deliberately onfail=ignore. A failed X session must never terminate
+  # the primary YouTube broadcast.
+  TEE_TARGETS+="|[f=flv:flvflags=no_duration_filesize:onfail=ignore]${X_TARGET}"
+  echo "FGBears Live output: YouTube primary + X Live Studio optional simulcast."
+else
+  echo "FGBears Live output: YouTube primary. X simulcast is disabled."
+fi
 
 python3 "$AD_OVERLAY_SCRIPT" &
 OVERLAY_PID=$!
@@ -125,7 +164,9 @@ FFMPEG_PID=""
 
 # Keep one primary live video clock from the ad renderer. The crawl renderer is
 # consumed as its own small MJPEG lane so emoji can be composited as images
-# instead of being redrawn by FFmpeg's single-font drawtext filter.
+# instead of being redrawn by FFmpeg's single-font drawtext filter. The finished
+# program is encoded once and the tee muxer distributes identical packets to
+# YouTube and, when configured, X Live Studio.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
@@ -139,9 +180,9 @@ ffmpeg \
   -b:v 4000k -maxrate 4500k -bufsize 8000k \
   -g "$VIDEO_GOP" -keyint_min "$VIDEO_GOP" -sc_threshold 0 -r "$OUTPUT_FPS" -fps_mode cfr -threads 0 \
   -af "$PODCAST_AUDIO_FILTER" \
-  -c:a aac -b:a 160k -ar 48000 -ac 2 \
-  -f flv -flvflags no_duration_filesize \
-  "${YOUTUBE_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}" 3> >(progress_sink) &
+  -c:a aac -b:a 128k -ar 48000 -ac 2 \
+  -f tee -use_fifo 1 -fifo_options "$TEE_FIFO_OPTIONS" \
+  "$TEE_TARGETS" 3> >(progress_sink) &
 FFMPEG_PID=$!
 set +e
 wait "$FFMPEG_PID"
