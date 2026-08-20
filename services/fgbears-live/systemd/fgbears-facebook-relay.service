@@ -1,0 +1,31 @@
+[Unit]
+Description=FGBears Facebook RTMP copy-remux relay
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=30min
+StartLimitBurst=20
+
+[Service]
+Type=simple
+User=fgbears
+Group=fgbears
+EnvironmentFile=/etc/fgbears-live/stream.env
+ExecStart=/usr/local/bin/fgbears-facebook-relay
+Restart=on-failure
+RestartSec=10
+SuccessExitStatus=130 143
+TimeoutStopSec=15
+KillSignal=SIGINT
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/opt/fgbears-live /etc/fgbears-live
+ReadWritePaths=/srv/fgbears-live
+RestrictSUIDSGID=true
+LockPersonality=true
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
