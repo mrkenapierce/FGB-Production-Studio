@@ -53,9 +53,17 @@ jobs:
           x_socket_established=false
           youtube_primary_failure_recent=false
           ffmpeg_socket_count=0
+          failure_class=none
 
           systemctl is-active --quiet fgbears-live.service && service_active=true || true
           systemctl is-active --quiet fgbears-youtube-relay.service && youtube_relay_active=true || true
+          service_result=$(systemctl show fgbears-live.service -p Result --value 2>/dev/null || true)
+          service_exec_status=$(systemctl show fgbears-live.service -p ExecMainStatus --value 2>/dev/null || true)
+          service_restarts=$(systemctl show fgbears-live.service -p NRestarts --value 2>/dev/null || true)
+          relay_result=$(systemctl show fgbears-youtube-relay.service -p Result --value 2>/dev/null || true)
+          relay_exec_status=$(systemctl show fgbears-youtube-relay.service -p ExecMainStatus --value 2>/dev/null || true)
+          relay_restarts=$(systemctl show fgbears-youtube-relay.service -p NRestarts --value 2>/dev/null || true)
+
           if sudo awk -F= '/^YOUTUBE_STREAM_KEY=/{if(length(substr($0,index($0,"=")+1))>0) ok=1} END{exit ok?0:1}' "$env_file"; then
             youtube_configured=true
           fi
@@ -92,9 +100,20 @@ jobs:
             done < /tmp/fgbears-x-ips.txt
           fi
 
-          sudo journalctl -u fgbears-live.service -u fgbears-youtube-relay.service -n 600 --no-pager > /tmp/fgbears-youtube-journal.txt
+          sudo journalctl -u fgbears-live.service -u fgbears-youtube-relay.service --since '20 minutes ago' --no-pager > /tmp/fgbears-youtube-journal.txt
           if grep -Eq 'a\.rtmps\.youtube\.com.*(failed|error|refused|timed out)|YouTube.*(failed|error)|Error opening output' /tmp/fgbears-youtube-journal.txt; then
             youtube_primary_failure_recent=true
+          fi
+          if grep -Ei 'connection refused' /tmp/fgbears-youtube-journal.txt | grep -Fq '127.0.0.1'; then
+            failure_class=local-relay-connection-refused
+          elif grep -Eiq 'broken pipe|connection reset by peer' /tmp/fgbears-youtube-journal.txt; then
+            failure_class=connection-reset-or-broken-pipe
+          elif grep -Eiq 'error opening output|slave muxer.*failed|input/output error|i/o error' /tmp/fgbears-youtube-journal.txt; then
+            failure_class=ffmpeg-output-open-or-io-failure
+          elif [[ "$service_active" != true ]]; then
+            failure_class=primary-service-inactive-unclassified
+          elif [[ "$youtube_relay_active" != true ]]; then
+            failure_class=youtube-relay-inactive-unclassified
           fi
 
           printf 'SERVICE_ACTIVE=%s\n' "$service_active"
@@ -106,6 +125,13 @@ jobs:
           printf 'X_SOCKET_ESTABLISHED=%s\n' "$x_socket_established"
           printf 'YOUTUBE_PRIMARY_FAILURE_RECENT=%s\n' "$youtube_primary_failure_recent"
           printf 'FFMPEG_SOCKET_COUNT=%s\n' "$ffmpeg_socket_count"
+          printf 'SERVICE_RESULT=%s\n' "${service_result:-unknown}"
+          printf 'SERVICE_EXEC_STATUS=%s\n' "${service_exec_status:-unknown}"
+          printf 'SERVICE_RESTARTS=%s\n' "${service_restarts:-unknown}"
+          printf 'RELAY_RESULT=%s\n' "${relay_result:-unknown}"
+          printf 'RELAY_EXEC_STATUS=%s\n' "${relay_exec_status:-unknown}"
+          printf 'RELAY_RESTARTS=%s\n' "${relay_restarts:-unknown}"
+          printf 'FAILURE_CLASS=%s\n' "$failure_class"
 
           rm -f /tmp/fgbears-all-sockets.txt /tmp/fgbears-ffmpeg-sockets.txt /tmp/fgbears-youtube-ips.txt /tmp/fgbears-x-ips.txt /tmp/fgbears-youtube-journal.txt
           REMOTE
@@ -127,6 +153,13 @@ jobs:
           x_socket_established=false
           youtube_primary_failure_recent=false
           ffmpeg_socket_count=0
+          service_result=unknown
+          service_exec_status=unknown
+          service_restarts=unknown
+          relay_result=unknown
+          relay_exec_status=unknown
+          relay_restarts=unknown
+          failure_class=unknown
           if [[ -f /tmp/youtube-ingest.env ]]; then
             while IFS='=' read -r key value; do
               case "$key" in
@@ -139,6 +172,13 @@ jobs:
                 X_SOCKET_ESTABLISHED) x_socket_established="$value" ;;
                 YOUTUBE_PRIMARY_FAILURE_RECENT) youtube_primary_failure_recent="$value" ;;
                 FFMPEG_SOCKET_COUNT) ffmpeg_socket_count="$value" ;;
+                SERVICE_RESULT) service_result="$value" ;;
+                SERVICE_EXEC_STATUS) service_exec_status="$value" ;;
+                SERVICE_RESTARTS) service_restarts="$value" ;;
+                RELAY_RESULT) relay_result="$value" ;;
+                RELAY_EXEC_STATUS) relay_exec_status="$value" ;;
+                RELAY_RESTARTS) relay_restarts="$value" ;;
+                FAILURE_CLASS) failure_class="$value" ;;
               esac
             done < /tmp/youtube-ingest.env
           fi
@@ -152,9 +192,16 @@ jobs:
             --argjson xSocketEstablished "$x_socket_established" \
             --argjson youtubePrimaryFailureRecent "$youtube_primary_failure_recent" \
             --argjson ffmpegSocketCount "$ffmpeg_socket_count" \
+            --arg serviceResult "$service_result" \
+            --arg serviceExecStatus "$service_exec_status" \
+            --arg serviceRestarts "$service_restarts" \
+            --arg relayResult "$relay_result" \
+            --arg relayExecStatus "$relay_exec_status" \
+            --arg relayRestarts "$relay_restarts" \
+            --arg failureClass "$failure_class" \
             --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --arg runId "$GITHUB_RUN_ID" \
-            '{serviceActive:$serviceActive,youtubeRelayActive:$youtubeRelayActive,ffmpegActive:$ffmpegActive,youtubeConfigured:$youtubeConfigured,youtubeSocketEstablished:$youtubeSocketEstablished,xEnabled:$xEnabled,xSocketEstablished:$xSocketEstablished,youtubePrimaryFailureRecent:$youtubePrimaryFailureRecent,ffmpegEstablishedSocketCount:$ffmpegSocketCount,checkedAt:$checkedAt,runId:$runId,transport:"youtube-copy-remux-relay"}' \
+            '{serviceActive:$serviceActive,youtubeRelayActive:$youtubeRelayActive,ffmpegActive:$ffmpegActive,youtubeConfigured:$youtubeConfigured,youtubeSocketEstablished:$youtubeSocketEstablished,xEnabled:$xEnabled,xSocketEstablished:$xSocketEstablished,youtubePrimaryFailureRecent:$youtubePrimaryFailureRecent,ffmpegEstablishedSocketCount:$ffmpegSocketCount,serviceResult:$serviceResult,serviceExecStatus:$serviceExecStatus,serviceRestarts:$serviceRestarts,relayResult:$relayResult,relayExecStatus:$relayExecStatus,relayRestarts:$relayRestarts,failureClass:$failureClass,checkedAt:$checkedAt,runId:$runId,transport:"youtube-copy-remux-relay"}' \
             > .github/deployment-status/fgbears-youtube-ingest.json
           git config user.name 'FGBears Deploy Bot'
           git config user.email 'actions@github.com'
