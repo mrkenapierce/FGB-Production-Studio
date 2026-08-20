@@ -1,0 +1,80 @@
+name: Diagnose FGBears Facebook Ingest
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Require Oracle access secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+
+      - name: Trust Oracle host key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Diagnose live Facebook RTMPS ingest
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          env_file=/etc/fgbears-live/stream.env
+          test "$(systemctl is-active fgbears-live.service)" = "active"
+          ffmpeg_pid=$(pgrep -o -x ffmpeg)
+          test -n "$ffmpeg_pid"
+
+          echo '--- Facebook config state (no credentials) ---'
+          sudo grep -E '^(FACEBOOK_STREAM_ENABLED|FACEBOOK_RTMP_BASE)=' "$env_file"
+
+          echo '--- FFmpeg established TCP sockets ---'
+          sudo ss -ntpH state established | grep "pid=$ffmpeg_pid" || true
+
+          echo '--- Facebook DNS addresses ---'
+          getent ahosts live-api-s.facebook.com | awk '{print $1}' | sort -u
+
+          echo '--- Redacted recent stream warnings/errors ---'
+          sudo journalctl -u fgbears-live.service -n 250 --no-pager > /tmp/fgbears-facebook-journal.txt
+          sudo python3 - "$env_file" /tmp/fgbears-facebook-journal.txt <<'PY'
+          from pathlib import Path
+          import sys
+          env_path = Path(sys.argv[1])
+          log_path = Path(sys.argv[2])
+          secrets = []
+          for line in env_path.read_text(encoding='utf-8').splitlines():
+              if '=' not in line or line.lstrip().startswith('#'):
+                  continue
+              key, value = line.split('=', 1)
+              if key.endswith('STREAM_KEY') and value:
+                  secrets.append(value)
+          text = log_path.read_text(encoding='utf-8', errors='replace')
+          for secret in secrets:
+              text = text.replace(secret, '[REDACTED]')
+          needles = ('facebook', 'live-api-s', 'rtmp', 'tee', 'flv', 'tls', 'ssl', 'error', 'failed', 'broken pipe', 'connection')
+          selected = [line for line in text.splitlines() if any(n in line.lower() for n in needles)]
+          print('\n'.join(selected[-120:]) if selected else 'No matching warnings/errors in recent service log.')
+          PY
+          rm -f /tmp/fgbears-facebook-journal.txt
+          REMOTE
