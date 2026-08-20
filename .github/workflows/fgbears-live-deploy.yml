@@ -100,16 +100,23 @@ jobs:
             python3 -c "import importlib.util; p=\"/opt/fgbears-live/bin/crawl-overlay.py\"; s=importlib.util.spec_from_file_location(\"fgb_crawl\",p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); icons=[\"🐻\",\"🏈\",\"🔥\",\"⬇️\",\"💙\",\"🧡\"]; missing=[e for e in icons if m.emoji_image(e,35) is None]; print(\"emoji self-test:\", \" \".join(icons), \"missing=\", missing); assert not missing, missing"
           '
 
-      - id: ffmpeg_crawl
-        name: Verify FFmpeg consumes rendered crawl on Oracle
+      - id: ffmpeg_transport
+        name: Verify FFmpeg transport without exposing stream keys
         if: always() && steps.install.outcome == 'success'
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
             set -Eeuo pipefail
-            pgrep -af ffmpeg
-            pgrep -af ffmpeg | grep -F "http://127.0.0.1:8788/overlay.mjpg" >/dev/null
+            ffmpeg_pid=$(pgrep -o -x ffmpeg)
+            test -n "$ffmpeg_pid"
+            args=$(mktemp)
+            trap "rm -f $args" EXIT
+            sudo tr "\0" "\n" < "/proc/$ffmpeg_pid/cmdline" > "$args"
+            grep -Fq "http://127.0.0.1:8788/overlay.mjpg" "$args"
+            grep -Fxq "tee" "$args"
+            grep -Fxq "128k" "$args"
+            echo "FFmpeg transport verified: crawl input present, tee muxer active, AAC 128k configured."
           '
 
       - id: crawl_frame
@@ -144,7 +151,7 @@ jobs:
           INSTALL_OUTCOME: ${{ steps.install.outcome }}
           CRAWL_HEALTH_OUTCOME: ${{ steps.crawl_health.outcome }}
           EMOJI_ASSETS_OUTCOME: ${{ steps.emoji_assets.outcome }}
-          FFMPEG_CRAWL_OUTCOME: ${{ steps.ffmpeg_crawl.outcome }}
+          FFMPEG_TRANSPORT_OUTCOME: ${{ steps.ffmpeg_transport.outcome }}
           CRAWL_FRAME_OUTCOME: ${{ steps.crawl_frame.outcome }}
           ADS_OUTCOME: ${{ steps.ads_verify.outcome }}
           JOB_STATUS: ${{ job.status }}
@@ -153,7 +160,7 @@ jobs:
           git checkout -B main origin/main
           mkdir -p .github/deployment-status
           ok=false
-          if [[ "$INSTALL_OUTCOME" == "success" && "$CRAWL_HEALTH_OUTCOME" == "success" && "$EMOJI_ASSETS_OUTCOME" == "success" && "$FFMPEG_CRAWL_OUTCOME" == "success" && "$CRAWL_FRAME_OUTCOME" == "success" && "$ADS_OUTCOME" == "success" ]]; then
+          if [[ "$INSTALL_OUTCOME" == "success" && "$CRAWL_HEALTH_OUTCOME" == "success" && "$EMOJI_ASSETS_OUTCOME" == "success" && "$FFMPEG_TRANSPORT_OUTCOME" == "success" && "$CRAWL_FRAME_OUTCOME" == "success" && "$ADS_OUTCOME" == "success" ]]; then
             ok=true
           fi
           jq -n \
@@ -165,10 +172,10 @@ jobs:
             --arg installOutcome "$INSTALL_OUTCOME" \
             --arg crawlHealthOutcome "$CRAWL_HEALTH_OUTCOME" \
             --arg emojiAssetsOutcome "$EMOJI_ASSETS_OUTCOME" \
-            --arg ffmpegCrawlOutcome "$FFMPEG_CRAWL_OUTCOME" \
+            --arg ffmpegTransportOutcome "$FFMPEG_TRANSPORT_OUTCOME" \
             --arg crawlFrameOutcome "$CRAWL_FRAME_OUTCOME" \
             --arg adsOutcome "$ADS_OUTCOME" \
-            '{ok:$ok,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,crawlHealthOutcome:$crawlHealthOutcome,emojiAssetsOutcome:$emojiAssetsOutcome,ffmpegCrawlOutcome:$ffmpegCrawlOutcome,crawlFrameOutcome:$crawlFrameOutcome,adsOutcome:$adsOutcome,service:"fgbears-live.service",expectedServiceState:"active",emojiRenderer:"twemoji-png",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg"}' \
+            '{ok:$ok,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,crawlHealthOutcome:$crawlHealthOutcome,emojiAssetsOutcome:$emojiAssetsOutcome,ffmpegTransportOutcome:$ffmpegTransportOutcome,crawlFrameOutcome:$crawlFrameOutcome,adsOutcome:$adsOutcome,service:"fgbears-live.service",expectedServiceState:"active",emojiRenderer:"twemoji-png",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg",transport:"ffmpeg-tee",audioBitrateKbps:128,xSimulcastCapable:true}' \
             > .github/deployment-status/fgbears-live.json
           git config user.name "FGBears Deploy Bot"
           git config user.email "actions@github.com"
