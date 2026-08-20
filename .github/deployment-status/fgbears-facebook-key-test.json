@@ -1,7 +1,7 @@
 {
-  "facebookKeyAccepted": true,
-  "probeOutcome": "success",
+  "facebookKeyAccepted": false,
+  "probeOutcome": "failure",
   "primaryStreamUntouched": true,
-  "checkedAt": "2026-08-20T02:39:34Z",
-  "runId": "32325395549"
+  "checkedAt": "2026-08-20T19:27:46Z",
+  "runId": "32408776648"
 }
