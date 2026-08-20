@@ -90,11 +90,16 @@ jobs:
           trap 'rm -f "$args"' EXIT
           sudo tr '\0' '\n' < "/proc/$ffmpeg_pid/cmdline" > "$args"
           if grep -Fq 'udp://127.0.0.1:1936?pkt_size=1316' "$args"; then
-            echo 'Primary encoder already contains the isolated Facebook UDP mirror; no restart required.'
-            exit 0
+            echo 'Primary encoder already contains the isolated Facebook UDP mirror.'
+          else
+            echo 'Primary encoder needs a restart to load the isolated Facebook UDP mirror.'
           fi
-          echo 'Loading the localhost Facebook mirror with one controlled primary restart.'
-          sudo systemctl reset-failed fgbears-live.service || true
+          # Copy-remux relays must be listening before the primary encoder emits
+          # fresh H.264/AAC headers. Restart YouTube first, leave the configured
+          # Facebook sidecar listening, then restart the primary encoder once.
+          # This is the ordering proven by the production reconnect workflow.
+          sudo systemctl reset-failed fgbears-youtube-relay.service fgbears-live.service || true
+          sudo systemctl restart fgbears-youtube-relay.service
           sudo systemctl restart fgbears-live.service
           for _ in $(seq 1 60); do
             if systemctl is-active --quiet fgbears-live.service; then
