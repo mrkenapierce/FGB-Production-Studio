@@ -2,9 +2,13 @@ name: Diagnose FGBears Facebook Ingest
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-facebook-ingest-diagnose.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   ORACLE_USER: ubuntu
@@ -14,6 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Require Oracle access secrets
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -35,46 +44,102 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Diagnose live Facebook RTMPS ingest
+      - id: diagnose
+        name: Diagnose live Facebook RTMPS ingest
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > /tmp/facebook-ingest.env <<'REMOTE'
           set -Eeuo pipefail
           env_file=/etc/fgbears-live/stream.env
-          test "$(systemctl is-active fgbears-live.service)" = "active"
-          ffmpeg_pid=$(pgrep -o -x ffmpeg)
-          test -n "$ffmpeg_pid"
 
-          echo '--- Facebook config state (no credentials) ---'
-          sudo grep -E '^(FACEBOOK_STREAM_ENABLED|FACEBOOK_RTMP_BASE)=' "$env_file"
+          service_active=false
+          facebook_enabled=false
+          ffmpeg_active=false
+          facebook_socket_established=false
+          facebook_slave_failure_recent=false
+          ffmpeg_socket_count=0
 
-          echo '--- FFmpeg established TCP sockets ---'
-          sudo ss -ntpH state established | grep "pid=$ffmpeg_pid" || true
+          if systemctl is-active --quiet fgbears-live.service; then
+            service_active=true
+          fi
+          if sudo grep -Fxq 'FACEBOOK_STREAM_ENABLED=1' "$env_file"; then
+            facebook_enabled=true
+          fi
 
-          echo '--- Facebook DNS addresses ---'
-          getent ahosts live-api-s.facebook.com | awk '{print $1}' | sort -u
+          ffmpeg_pid=$(pgrep -o -x ffmpeg || true)
+          if [[ -n "$ffmpeg_pid" ]]; then
+            ffmpeg_active=true
+            sudo ss -ntpH state established | grep "pid=$ffmpeg_pid" > /tmp/fgbears-ffmpeg-sockets.txt || true
+            ffmpeg_socket_count=$(wc -l < /tmp/fgbears-ffmpeg-sockets.txt | tr -d ' ')
+            getent ahostsv4 live-api-s.facebook.com | awk '{print $1}' | sort -u > /tmp/fgbears-facebook-ips.txt
+            while IFS= read -r ip; do
+              [[ -n "$ip" ]] || continue
+              if grep -Fq "$ip:443" /tmp/fgbears-ffmpeg-sockets.txt; then
+                facebook_socket_established=true
+                break
+              fi
+            done < /tmp/fgbears-facebook-ips.txt
+          fi
 
-          echo '--- Redacted recent stream warnings/errors ---'
-          sudo journalctl -u fgbears-live.service -n 250 --no-pager > /tmp/fgbears-facebook-journal.txt
-          sudo python3 - "$env_file" /tmp/fgbears-facebook-journal.txt <<'PY'
-          from pathlib import Path
-          import sys
-          env_path = Path(sys.argv[1])
-          log_path = Path(sys.argv[2])
-          secrets = []
-          for line in env_path.read_text(encoding='utf-8').splitlines():
-              if '=' not in line or line.lstrip().startswith('#'):
-                  continue
-              key, value = line.split('=', 1)
-              if key.endswith('STREAM_KEY') and value:
-                  secrets.append(value)
-          text = log_path.read_text(encoding='utf-8', errors='replace')
-          for secret in secrets:
-              text = text.replace(secret, '[REDACTED]')
-          needles = ('facebook', 'live-api-s', 'rtmp', 'tee', 'flv', 'tls', 'ssl', 'error', 'failed', 'broken pipe', 'connection')
-          selected = [line for line in text.splitlines() if any(n in line.lower() for n in needles)]
-          print('\n'.join(selected[-120:]) if selected else 'No matching warnings/errors in recent service log.')
-          PY
-          rm -f /tmp/fgbears-facebook-journal.txt
+          sudo journalctl -u fgbears-live.service -n 400 --no-pager > /tmp/fgbears-facebook-journal.txt
+          if grep -Fq 'Slave muxer #2 failed' /tmp/fgbears-facebook-journal.txt; then
+            facebook_slave_failure_recent=true
+          fi
+
+          printf 'SERVICE_ACTIVE=%s\n' "$service_active"
+          printf 'FACEBOOK_ENABLED=%s\n' "$facebook_enabled"
+          printf 'FFMPEG_ACTIVE=%s\n' "$ffmpeg_active"
+          printf 'FACEBOOK_SOCKET_ESTABLISHED=%s\n' "$facebook_socket_established"
+          printf 'FACEBOOK_SLAVE_FAILURE_RECENT=%s\n' "$facebook_slave_failure_recent"
+          printf 'FFMPEG_SOCKET_COUNT=%s\n' "$ffmpeg_socket_count"
+
+          rm -f /tmp/fgbears-ffmpeg-sockets.txt /tmp/fgbears-facebook-ips.txt /tmp/fgbears-facebook-journal.txt
           REMOTE
+          cat /tmp/facebook-ingest.env
+
+      - name: Record safe Facebook ingest diagnostic
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          service_active=false
+          facebook_enabled=false
+          ffmpeg_active=false
+          facebook_socket_established=false
+          facebook_slave_failure_recent=false
+          ffmpeg_socket_count=0
+          if [[ -f /tmp/facebook-ingest.env ]]; then
+            while IFS='=' read -r key value; do
+              case "$key" in
+                SERVICE_ACTIVE) service_active="$value" ;;
+                FACEBOOK_ENABLED) facebook_enabled="$value" ;;
+                FFMPEG_ACTIVE) ffmpeg_active="$value" ;;
+                FACEBOOK_SOCKET_ESTABLISHED) facebook_socket_established="$value" ;;
+                FACEBOOK_SLAVE_FAILURE_RECENT) facebook_slave_failure_recent="$value" ;;
+                FFMPEG_SOCKET_COUNT) ffmpeg_socket_count="$value" ;;
+              esac
+            done < /tmp/facebook-ingest.env
+          fi
+          jq -n \
+            --argjson serviceActive "$service_active" \
+            --argjson facebookEnabled "$facebook_enabled" \
+            --argjson ffmpegActive "$ffmpeg_active" \
+            --argjson facebookSocketEstablished "$facebook_socket_established" \
+            --argjson facebookSlaveFailureRecent "$facebook_slave_failure_recent" \
+            --argjson ffmpegSocketCount "$ffmpeg_socket_count" \
+            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg runId "$GITHUB_RUN_ID" \
+            '{serviceActive:$serviceActive,facebookEnabled:$facebookEnabled,ffmpegActive:$ffmpegActive,facebookSocketEstablished:$facebookSocketEstablished,facebookSlaveFailureRecent:$facebookSlaveFailureRecent,ffmpegEstablishedSocketCount:$ffmpegSocketCount,checkedAt:$checkedAt,runId:$runId}' \
+            > .github/deployment-status/fgbears-facebook-ingest.json
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add -- .github/deployment-status/fgbears-facebook-ingest.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'Record Facebook ingest diagnostic [skip ci]'
+          git push origin main
