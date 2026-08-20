@@ -30,6 +30,7 @@ grep -Fq -- '-c:a aac -b:a 128k -ar 48000 -ac 2' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-f tee -use_fifo 1' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
 grep -Fq 'TEE_TARGETS="[f=flv:flvflags=no_duration_filesize:onfail=ignore]${YOUTUBE_TARGET}"' "$ROOT/bin/start-stream.sh"
+# shellcheck disable=SC2016
 if grep -Fq 'onfail=abort]${YOUTUBE_TARGET}' "$ROOT/bin/start-stream.sh"; then
   echo 'The YouTube relay leg must recover independently of the primary encoder.' >&2
   exit 1
