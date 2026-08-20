@@ -1,12 +1,12 @@
 {
-  "ok": false,
-  "deployedSha": "9cb90b895a08f0d055c88847f5ee3f381e53bdfe",
-  "runId": "32318077107",
-  "checkedAt": "2026-08-20T00:38:59Z",
-  "jobStatus": "failure",
+  "ok": true,
+  "deployedSha": "f6018f537a91ea1b277abf96729b7b31407167dc",
+  "runId": "32318144779",
+  "checkedAt": "2026-08-20T00:40:04Z",
+  "jobStatus": "success",
   "installOutcome": "success",
   "crawlHealthOutcome": "success",
-  "emojiAssetsOutcome": "failure",
+  "emojiAssetsOutcome": "success",
   "ffmpegTransportOutcome": "success",
   "crawlFrameOutcome": "success",
   "adsOutcome": "success",
@@ -24,5 +24,6 @@
   "ffmpegCrawlInput": "http://127.0.0.1:8788/overlay.mjpg",
   "transport": "ffmpeg-tee",
   "audioBitrateKbps": 128,
-  "xSimulcastCapable": true
+  "xSimulcastCapable": true,
+  "xAccountHandle": "@epic501c3"
 }
