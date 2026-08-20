@@ -1,0 +1,109 @@
+name: Diagnose YouTube Ingest Detail
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-youtube-ingest-detail.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fgbears-youtube-ingest-detail
+  cancel-in-progress: true
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Collect secret-redacted YouTube ingest diagnostics
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > /tmp/youtube-ingest-detail.txt <<'REMOTE'
+          set +e
+          env_file=/etc/fgbears-live/stream.env
+          yt_key=$(sudo awk -F= '/^YOUTUBE_STREAM_KEY=/{print substr($0,index($0,"=")+1)}' "$env_file" 2>/dev/null)
+          x_key=$(sudo awk -F= '/^X_STREAM_KEY=/{print substr($0,index($0,"=")+1)}' "$env_file" 2>/dev/null)
+          redact() {
+            sed -E 's#(rtmps?://[^ /]+/live2/)[^ ?]+#\1[REDACTED]#g; s#(rtmps?://[^ /]+/x/)[^ ?]+#\1[REDACTED]#g' |
+            { if [[ -n "$yt_key" ]]; then sed "s#${yt_key//\#/\\#}#[REDACTED_YOUTUBE_KEY]#g"; else cat; fi; } |
+            { if [[ -n "$x_key" ]]; then sed "s#${x_key//\#/\\#}#[REDACTED_X_KEY]#g"; else cat; fi; }
+          }
+
+          echo "CHECKED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "SERVICE_ACTIVE=$(systemctl is-active fgbears-live.service 2>/dev/null)"
+          ffmpeg_pid=$(pgrep -o -x ffmpeg || true)
+          echo "FFMPEG_PID_PRESENT=$([[ -n "$ffmpeg_pid" ]] && echo true || echo false)"
+          echo "YOUTUBE_KEY_PRESENT=$([[ -n "$yt_key" ]] && echo true || echo false)"
+          echo "YOUTUBE_KEY_LENGTH=${#yt_key}"
+
+          echo
+          echo '===== DNS / TLS REACHABILITY ====='
+          getent ahostsv4 a.rtmps.youtube.com | awk '{print $1}' | sort -u | head -n 8 || true
+          timeout 8 openssl s_client -connect a.rtmps.youtube.com:443 -servername a.rtmps.youtube.com </dev/null 2>&1 |
+            grep -E 'CONNECTED|Protocol|Cipher|Verify return code|connect:|error:' | head -n 20 || true
+
+          echo
+          echo '===== FFMPEG ESTABLISHED SOCKETS ====='
+          if [[ -n "$ffmpeg_pid" ]]; then
+            sudo ss -ntpH state established | grep "pid=$ffmpeg_pid" | redact || true
+          fi
+
+          echo
+          echo '===== CURRENT FFMPEG OUTPUT SHAPE ====='
+          if [[ -n "$ffmpeg_pid" ]]; then
+            sudo tr '\0' '\n' < "/proc/$ffmpeg_pid/cmdline" 2>/dev/null |
+              grep -E '^(rtmps?://|tee$|\[f=flv|onfail=|use_fifo=|fifo_format=)' |
+              redact || true
+          fi
+
+          echo
+          echo '===== RECENT STREAM ERRORS (REDACTED) ====='
+          sudo journalctl -u fgbears-live.service --since '90 minutes ago' --no-pager -o short-iso 2>/dev/null |
+            grep -Ei 'youtube|rtmp|muxer|server error|connection|broken pipe|i/o error|input/output error|failed|refused|timed out|tls|http error|already publishing|stream key' |
+            tail -n 180 |
+            redact || true
+          REMOTE
+
+      - name: Persist safe diagnostic report
+        if: always()
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/diagnostic-status
+          {
+            echo '# YouTube Ingest Detail Diagnostic'
+            echo
+            echo '```text'
+            cat /tmp/youtube-ingest-detail.txt 2>/dev/null || true
+            echo '```'
+          } > .github/diagnostic-status/fgbears-youtube-ingest-detail.md
+          git config user.name 'FGBears Diagnostic Bot'
+          git config user.email 'actions@github.com'
+          git add .github/diagnostic-status/fgbears-youtube-ingest-detail.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Record YouTube ingest detail diagnostic [skip ci]'
+          git push origin main
