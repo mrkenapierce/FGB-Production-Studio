@@ -1,5 +1,5 @@
 {
-  "facebookScheduleConfigured": true,
+  "facebookScheduleConfigured": false,
   "scheduleTimezone": "America/Chicago",
   "scheduleStart": "12:00",
   "scheduleStop": "15:25",
@@ -7,9 +7,12 @@
   "primaryHasNoMetaCredentials": true,
   "youtubeDedicatedRelay": true,
   "xPreserved": true,
-  "settledVerification": true,
-  "runId": "32401043636",
-  "checkedAt": "2026-08-20T18:03:30Z",
-  "jobStatus": "success",
-  "verifyOutcome": "success"
+  "deployedSha": "43c77ed38eeb8b9e155b97edd04957d636e25ac0",
+  "runId": "32407203226",
+  "checkedAt": "2026-08-20T19:13:31Z",
+  "jobStatus": "failure",
+  "installOutcome": "success",
+  "activateOutcome": "success",
+  "mirrorOutcome": "success",
+  "verifyOutcome": "failure"
 }
