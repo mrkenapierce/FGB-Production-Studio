@@ -5,11 +5,11 @@
   "transport": "ffmpeg-tee",
   "youtubePrimary": true,
   "xPreserved": true,
-  "deployedSha": "8fe72f51d5cb0c5bcf20acfc7949e0e38bf07447",
-  "runId": "32349359886",
-  "checkedAt": "2026-08-20T08:33:30Z",
+  "deployedSha": "25477921b3c6f0f82de92d771a0cdcbc8732a09c",
+  "runId": "32350141302",
+  "checkedAt": "2026-08-20T08:46:15Z",
   "jobStatus": "failure",
   "installOutcome": "success",
-  "activateOutcome": "failure",
-  "verifyOutcome": "skipped"
+  "activateOutcome": "success",
+  "verifyOutcome": "failure"
 }
