@@ -46,8 +46,12 @@ PY
 if [[ ${1:-} == "--disable" ]]; then
   write_updates 0
   systemctl disable --now fgbears-facebook-relay.service >/dev/null 2>&1 || true
-  systemctl restart fgbears-youtube-relay.service
-  echo "Facebook sidecar disabled. Primary encoder, YouTube, and X were not restarted."
+  systemctl reset-failed fgbears-live.service fgbears-youtube-relay.service || true
+  # The primary encoder reads its destination set only at process start. A
+  # controlled primary restart removes the localhost Facebook leg. It does not
+  # alter the YouTube relay configuration or X credentials.
+  systemctl restart fgbears-live.service
+  echo "Facebook sidecar disabled. Direct Facebook remains locked off."
   exit 0
 fi
 
@@ -67,21 +71,26 @@ write_updates 1 "$facebook_rtmp_base" "$facebook_stream_key"
 unset facebook_stream_key
 
 systemctl daemon-reload
-systemctl reset-failed fgbears-facebook-relay.service fgbears-youtube-relay.service || true
+systemctl reset-failed fgbears-facebook-relay.service fgbears-youtube-relay.service fgbears-live.service || true
+# Start the isolated Meta listener before the primary encoder begins publishing
+# to localhost:1936. Meta RTMPS exists only inside this sidecar process.
 systemctl enable fgbears-facebook-relay.service
 systemctl restart fgbears-facebook-relay.service
-# Restart only the YouTube copy-remux relay so it begins feeding the local
-# Facebook listener. The primary encoder and X process remain untouched.
-systemctl restart fgbears-youtube-relay.service
+# One controlled primary restart is required to add the new localhost-only tee
+# leg. YouTube's relay code is unchanged and X reconnects from the same encoder.
+systemctl restart fgbears-live.service
 
-for _ in $(seq 1 30); do
-  if systemctl is-active --quiet fgbears-facebook-relay.service && systemctl is-active --quiet fgbears-youtube-relay.service; then
-    echo "Facebook isolated sidecar enabled. Primary encoder and X were not restarted."
+for _ in $(seq 1 45); do
+  if systemctl is-active --quiet fgbears-live.service && \
+     systemctl is-active --quiet fgbears-youtube-relay.service && \
+     systemctl is-active --quiet fgbears-facebook-relay.service; then
+    echo "Facebook isolated sidecar enabled with localhost-only handoff."
     exit 0
   fi
   sleep 1
 done
 
-systemctl status fgbears-facebook-relay.service --no-pager --lines=40 >&2 || true
+systemctl status fgbears-live.service --no-pager --lines=40 >&2 || true
 systemctl status fgbears-youtube-relay.service --no-pager --lines=40 >&2 || true
+systemctl status fgbears-facebook-relay.service --no-pager --lines=40 >&2 || true
 exit 1
