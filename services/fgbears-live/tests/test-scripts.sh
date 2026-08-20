@@ -20,7 +20,10 @@ for script in "$ROOT"/bin/*.sh; do
 done
 python3 -m py_compile "$ROOT/bin/ad-overlay.py" "$ROOT/bin/crawl-overlay.py" "$ROOT/bin/bears-news-feed.py"
 
+# These are intentionally literal shell expressions from start-stream.sh.
+# shellcheck disable=SC2016
 grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${AD_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
+# shellcheck disable=SC2016
 grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-preset ultrafast' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-progress pipe:3' "$ROOT/bin/start-stream.sh"
