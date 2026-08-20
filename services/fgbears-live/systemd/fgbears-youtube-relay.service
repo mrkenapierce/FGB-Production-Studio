@@ -1,21 +1,20 @@
 [Unit]
-Description=FGBears TV 24/7 YouTube replay stream
-After=network-online.target fgbears-youtube-relay.service
+Description=FGBears YouTube RTMP copy-remux relay
+After=network-online.target
 Wants=network-online.target
-Requires=fgbears-youtube-relay.service
 StartLimitIntervalSec=30min
-StartLimitBurst=3
+StartLimitBurst=6
 
 [Service]
 Type=simple
 User=fgbears
 Group=fgbears
 EnvironmentFile=/etc/fgbears-live/stream.env
-ExecStart=/usr/local/bin/fgbears-start-stream
+ExecStart=/usr/local/bin/fgbears-youtube-relay
 Restart=on-failure
-RestartSec=15
+RestartSec=5
 SuccessExitStatus=130 143
-TimeoutStopSec=20
+TimeoutStopSec=15
 KillSignal=SIGINT
 UMask=0077
 NoNewPrivileges=true
@@ -23,7 +22,6 @@ PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
 ReadOnlyPaths=/opt/fgbears-live /etc/fgbears-live
-ReadWritePaths=/srv/fgbears-live
 RestrictSUIDSGID=true
 LockPersonality=true
 LimitNOFILE=65536
