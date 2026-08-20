@@ -1,10 +1,11 @@
 {
-  "serviceActive": false,
-  "facebookEnabled": true,
-  "ffmpegActive": false,
+  "serviceActive": true,
+  "facebookEnabled": false,
+  "ffmpegActive": true,
   "facebookSocketEstablished": false,
   "facebookSlaveFailureRecent": true,
-  "ffmpegEstablishedSocketCount": 0,
-  "checkedAt": "2026-08-20T02:29:42Z",
-  "runId": "32324817689"
+  "ffmpegEstablishedSocketCount": 4,
+  "errorClass": "network_or_tls",
+  "checkedAt": "2026-08-20T02:31:31Z",
+  "runId": "32324935324"
 }
