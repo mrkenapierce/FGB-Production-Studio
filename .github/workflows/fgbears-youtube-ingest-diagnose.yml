@@ -1,0 +1,152 @@
+name: Diagnose FGBears YouTube Ingest
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-youtube-ingest-diagnose.yml'
+
+permissions:
+  contents: write
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - id: diagnose
+        name: Check live YouTube and X ingest sockets safely
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > /tmp/youtube-ingest.env <<'REMOTE'
+          set -Eeuo pipefail
+          env_file=/etc/fgbears-live/stream.env
+          service_active=false
+          ffmpeg_active=false
+          youtube_configured=false
+          youtube_socket_established=false
+          x_enabled=false
+          x_socket_established=false
+          youtube_primary_failure_recent=false
+          ffmpeg_socket_count=0
+
+          systemctl is-active --quiet fgbears-live.service && service_active=true || true
+          if sudo awk -F= '/^YOUTUBE_STREAM_KEY=/{if(length(substr($0,index($0,"=")+1))>0) ok=1} END{exit ok?0:1}' "$env_file"; then
+            youtube_configured=true
+          fi
+          sudo grep -Eq '^X_STREAM_ENABLED=(1|true|yes|on)$' "$env_file" && x_enabled=true || true
+
+          ffmpeg_pid=$(pgrep -o -x ffmpeg || true)
+          if [[ -n "$ffmpeg_pid" ]]; then
+            ffmpeg_active=true
+            sudo ss -ntpH state established | grep "pid=$ffmpeg_pid" > /tmp/fgbears-ffmpeg-sockets.txt || true
+            ffmpeg_socket_count=$(wc -l < /tmp/fgbears-ffmpeg-sockets.txt | tr -d ' ')
+
+            getent ahostsv4 a.rtmps.youtube.com | awk '{print $1}' | sort -u > /tmp/fgbears-youtube-ips.txt
+            while IFS= read -r ip; do
+              [[ -n "$ip" ]] || continue
+              if grep -Fq "$ip:443" /tmp/fgbears-ffmpeg-sockets.txt; then
+                youtube_socket_established=true
+                break
+              fi
+            done < /tmp/fgbears-youtube-ips.txt
+
+            getent ahostsv4 ca.pscp.tv | awk '{print $1}' | sort -u > /tmp/fgbears-x-ips.txt || true
+            while IFS= read -r ip; do
+              [[ -n "$ip" ]] || continue
+              if grep -Fq "$ip:443" /tmp/fgbears-ffmpeg-sockets.txt; then
+                x_socket_established=true
+                break
+              fi
+            done < /tmp/fgbears-x-ips.txt
+          fi
+
+          sudo journalctl -u fgbears-live.service -n 500 --no-pager > /tmp/fgbears-youtube-journal.txt
+          if grep -Eq 'Slave muxer #0 failed|a\.rtmps\.youtube\.com.*(failed|error|refused|timed out)|YouTube.*(failed|error)' /tmp/fgbears-youtube-journal.txt; then
+            youtube_primary_failure_recent=true
+          fi
+
+          printf 'SERVICE_ACTIVE=%s\n' "$service_active"
+          printf 'FFMPEG_ACTIVE=%s\n' "$ffmpeg_active"
+          printf 'YOUTUBE_CONFIGURED=%s\n' "$youtube_configured"
+          printf 'YOUTUBE_SOCKET_ESTABLISHED=%s\n' "$youtube_socket_established"
+          printf 'X_ENABLED=%s\n' "$x_enabled"
+          printf 'X_SOCKET_ESTABLISHED=%s\n' "$x_socket_established"
+          printf 'YOUTUBE_PRIMARY_FAILURE_RECENT=%s\n' "$youtube_primary_failure_recent"
+          printf 'FFMPEG_SOCKET_COUNT=%s\n' "$ffmpeg_socket_count"
+
+          rm -f /tmp/fgbears-ffmpeg-sockets.txt /tmp/fgbears-youtube-ips.txt /tmp/fgbears-x-ips.txt /tmp/fgbears-youtube-journal.txt
+          REMOTE
+          cat /tmp/youtube-ingest.env
+
+      - name: Record safe ingest diagnostic
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          service_active=false
+          ffmpeg_active=false
+          youtube_configured=false
+          youtube_socket_established=false
+          x_enabled=false
+          x_socket_established=false
+          youtube_primary_failure_recent=false
+          ffmpeg_socket_count=0
+          if [[ -f /tmp/youtube-ingest.env ]]; then
+            while IFS='=' read -r key value; do
+              case "$key" in
+                SERVICE_ACTIVE) service_active="$value" ;;
+                FFMPEG_ACTIVE) ffmpeg_active="$value" ;;
+                YOUTUBE_CONFIGURED) youtube_configured="$value" ;;
+                YOUTUBE_SOCKET_ESTABLISHED) youtube_socket_established="$value" ;;
+                X_ENABLED) x_enabled="$value" ;;
+                X_SOCKET_ESTABLISHED) x_socket_established="$value" ;;
+                YOUTUBE_PRIMARY_FAILURE_RECENT) youtube_primary_failure_recent="$value" ;;
+                FFMPEG_SOCKET_COUNT) ffmpeg_socket_count="$value" ;;
+              esac
+            done < /tmp/youtube-ingest.env
+          fi
+          jq -n \
+            --argjson serviceActive "$service_active" \
+            --argjson ffmpegActive "$ffmpeg_active" \
+            --argjson youtubeConfigured "$youtube_configured" \
+            --argjson youtubeSocketEstablished "$youtube_socket_established" \
+            --argjson xEnabled "$x_enabled" \
+            --argjson xSocketEstablished "$x_socket_established" \
+            --argjson youtubePrimaryFailureRecent "$youtube_primary_failure_recent" \
+            --argjson ffmpegSocketCount "$ffmpeg_socket_count" \
+            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg runId "$GITHUB_RUN_ID" \
+            '{serviceActive:$serviceActive,ffmpegActive:$ffmpegActive,youtubeConfigured:$youtubeConfigured,youtubeSocketEstablished:$youtubeSocketEstablished,xEnabled:$xEnabled,xSocketEstablished:$xSocketEstablished,youtubePrimaryFailureRecent:$youtubePrimaryFailureRecent,ffmpegEstablishedSocketCount:$ffmpegSocketCount,checkedAt:$checkedAt,runId:$runId}' \
+            > .github/deployment-status/fgbears-youtube-ingest.json
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add -- .github/deployment-status/fgbears-youtube-ingest.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record YouTube ingest diagnostic [skip ci]'
+          git push origin main
