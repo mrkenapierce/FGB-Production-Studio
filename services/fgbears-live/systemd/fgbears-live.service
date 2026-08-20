@@ -1,8 +1,7 @@
 [Unit]
 Description=FGBears TV 24/7 YouTube replay stream
 After=network-online.target fgbears-youtube-relay.service
-Wants=network-online.target
-Requires=fgbears-youtube-relay.service
+Wants=network-online.target fgbears-youtube-relay.service
 StartLimitIntervalSec=30min
 StartLimitBurst=3
 
