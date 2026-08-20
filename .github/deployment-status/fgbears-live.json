@@ -1,16 +1,18 @@
 {
   "ok": true,
-  "deployedSha": "07b053cc64575545050de49ff5f9acf5f97250a0",
-  "runId": "32327219919",
-  "checkedAt": "2026-08-20T07:01:01Z",
+  "deployedSha": "8fe72f51d5cb0c5bcf20acfc7949e0e38bf07447",
+  "runId": "32349359862",
+  "checkedAt": "2026-08-20T08:33:14Z",
   "jobStatus": "success",
   "installOutcome": "success",
   "crawlHealthOutcome": "success",
   "emojiAssetsOutcome": "success",
   "ffmpegTransportOutcome": "success",
+  "youtubeRelayOutcome": "success",
   "crawlFrameOutcome": "success",
   "adsOutcome": "success",
   "service": "fgbears-live.service",
+  "youtubeRelayService": "fgbears-youtube-relay.service",
   "expectedServiceState": "active",
   "emojiRenderer": "twemoji-png",
   "emojiSelfTest": [
@@ -22,7 +24,7 @@
     "🧡"
   ],
   "ffmpegCrawlInput": "http://127.0.0.1:8788/overlay.mjpg",
-  "transport": "ffmpeg-tee",
+  "transport": "ffmpeg-tee-local-rtmp+youtube-copy-remux",
   "audioBitrateKbps": 128,
   "xSimulcastCapable": true,
   "xAccountHandle": "@epic501c3"
