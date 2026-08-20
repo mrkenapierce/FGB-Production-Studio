@@ -1,0 +1,71 @@
+name: Check FGBears YouTube Socket State
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-youtube-socket-state.yml'
+
+permissions:
+  contents: write
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Inspect FFmpeg socket states
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > /tmp/youtube-sockets.env <<'REMOTE'
+          set -Eeuo pipefail
+          pid=$(pgrep -o -x ffmpeg || true)
+          test -n "$pid"
+          sudo ss -ntpH | grep "pid=$pid" > /tmp/ffmpeg-sockets.txt || true
+          external_443_established=$(awk '$1=="ESTAB" && $5 ~ /:443$/ && $5 !~ /127\.0\.0\.1/ {n++} END{print n+0}' /tmp/ffmpeg-sockets.txt)
+          external_443_synsent=$(awk '$1=="SYN-SENT" && $5 ~ /:443$/ && $5 !~ /127\.0\.0\.1/ {n++} END{print n+0}' /tmp/ffmpeg-sockets.txt)
+          local_established=$(awk '$1=="ESTAB" && $5 ~ /^127\.0\.0\.1:/ {n++} END{print n+0}' /tmp/ffmpeg-sockets.txt)
+          printf 'EXTERNAL_443_ESTABLISHED=%s\n' "$external_443_established"
+          printf 'EXTERNAL_443_SYNSENT=%s\n' "$external_443_synsent"
+          printf 'LOCAL_ESTABLISHED=%s\n' "$local_established"
+          rm -f /tmp/ffmpeg-sockets.txt
+          REMOTE
+          cat /tmp/youtube-sockets.env
+      - name: Record socket state
+        if: always()
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          established=0; synsent=0; local=0
+          if [[ -f /tmp/youtube-sockets.env ]]; then
+            established=$(grep '^EXTERNAL_443_ESTABLISHED=' /tmp/youtube-sockets.env | cut -d= -f2 || echo 0)
+            synsent=$(grep '^EXTERNAL_443_SYNSENT=' /tmp/youtube-sockets.env | cut -d= -f2 || echo 0)
+            local=$(grep '^LOCAL_ESTABLISHED=' /tmp/youtube-sockets.env | cut -d= -f2 || echo 0)
+          fi
+          jq -n --argjson external443Established "$established" --argjson external443SynSent "$synsent" --argjson localEstablished "$local" --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '{external443Established:$external443Established,external443SynSent:$external443SynSent,localEstablished:$localEstablished,checkedAt:$checkedAt}' > .github/deployment-status/fgbears-youtube-sockets.json
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add -- .github/deployment-status/fgbears-youtube-sockets.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record YouTube socket state [skip ci]'
+          git push origin main
