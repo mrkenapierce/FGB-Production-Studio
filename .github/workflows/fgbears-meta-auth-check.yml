@@ -1,0 +1,70 @@
+name: FGBears Meta Auth Presence Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/meta-auth-check-trigger.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check Meta credential presence without exposing values
+        env:
+          A1: ${{ secrets.FGB_FACEBOOK_PAGE_ACCESS_TOKEN }}
+          A2: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+          A3: ${{ secrets.FGB_FACEBOOK_ACCESS_TOKEN }}
+          A4: ${{ secrets.FACEBOOK_ACCESS_TOKEN }}
+          A5: ${{ secrets.FGB_META_PAGE_ACCESS_TOKEN }}
+          A6: ${{ secrets.META_PAGE_ACCESS_TOKEN }}
+          A7: ${{ secrets.META_ACCESS_TOKEN }}
+          A8: ${{ secrets.FGB_FACEBOOK_USER_ACCESS_TOKEN }}
+          P1: ${{ secrets.FGB_FACEBOOK_PAGE_ID }}
+          P2: ${{ secrets.FACEBOOK_PAGE_ID }}
+          P3: ${{ secrets.FGB_META_PAGE_ID }}
+          P4: ${{ secrets.META_PAGE_ID }}
+          I1: ${{ secrets.FGB_META_APP_ID }}
+          I2: ${{ secrets.META_APP_ID }}
+          I3: ${{ secrets.FACEBOOK_APP_ID }}
+          S1: ${{ secrets.FGB_META_APP_SECRET }}
+          S2: ${{ secrets.META_APP_SECRET }}
+          S3: ${{ secrets.FACEBOOK_APP_SECRET }}
+        run: |
+          set -Eeuo pipefail
+          present() { [[ -n "$1" ]] && printf true || printf false; }
+          token=false
+          for v in "$A1" "$A2" "$A3" "$A4" "$A5" "$A6" "$A7" "$A8"; do [[ -n "$v" ]] && token=true; done
+          page=false
+          for v in "$P1" "$P2" "$P3" "$P4"; do [[ -n "$v" ]] && page=true; done
+          appid=false
+          for v in "$I1" "$I2" "$I3"; do [[ -n "$v" ]] && appid=true; done
+          appsecret=false
+          for v in "$S1" "$S2" "$S3"; do [[ -n "$v" ]] && appsecret=true; done
+          mkdir -p .github/deployment-status
+          jq -n \
+            --argjson accessToken "$token" \
+            --argjson pageId "$page" \
+            --argjson appId "$appid" \
+            --argjson appSecret "$appsecret" \
+            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{metaAccessTokenPresent:$accessToken,metaPageIdPresent:$pageId,metaAppIdPresent:$appId,metaAppSecretPresent:$appSecret,checkedAt:$checkedAt}' \
+            > .github/deployment-status/fgbears-meta-auth.json
+
+      - name: Record result
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add .github/deployment-status/fgbears-meta-auth.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record Meta auth presence diagnostic [skip ci]'
+          git pull --rebase origin main
+          git push origin main
