@@ -1,0 +1,104 @@
+name: Build Corrected Facebook Local-Handoff Branch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-facebook-v2-branch-builder.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch primary encoder for localhost-only Facebook handoff
+        run: |
+          set -Eeuo pipefail
+          branch=fix/facebook-local-handoff-v2
+          git checkout -B "$branch" origin/main
+          python3 <<'PY'
+          from pathlib import Path
+          p=Path('services/fgbears-live/bin/start-stream.sh')
+          s=p.read_text(encoding='utf-8')
+          old=''': "${FACEBOOK_STREAM_ENABLED:=0}"
+: "${FACEBOOK_RTMP_BASE:=}"
+: "${FACEBOOK_STREAM_KEY:=}"'''
+          new=''': "${FACEBOOK_STREAM_ENABLED:=0}"
+: "${FACEBOOK_RELAY_ENABLED:=0}"
+: "${FACEBOOK_LOCAL_RTMP_BASE:=rtmp://127.0.0.1:1936/live}"'''
+          if old not in s: raise SystemExit('Expected Facebook defaults block not found')
+          s=s.replace(old,new,1)
+
+          old='''case "${FACEBOOK_STREAM_ENABLED,,}" in
+  1|true|yes|on) FACEBOOK_STREAM_ACTIVE=1 ;;
+  0|false|no|off|"") FACEBOOK_STREAM_ACTIVE=0 ;;
+  *)
+    echo "FACEBOOK_STREAM_ENABLED must be 0/1, false/true, no/yes, or off/on." >&2
+    exit 64
+    ;;
+esac'''
+          new='''case "${FACEBOOK_STREAM_ENABLED,,}" in
+  1|true|yes|on)
+    echo "Direct Facebook output is permanently disabled in the primary encoder. Use FACEBOOK_RELAY_ENABLED." >&2
+    exit 78
+    ;;
+  0|false|no|off|"") ;;
+  *)
+    echo "FACEBOOK_STREAM_ENABLED must remain disabled." >&2
+    exit 64
+    ;;
+esac
+
+case "${FACEBOOK_RELAY_ENABLED,,}" in
+  1|true|yes|on) FACEBOOK_RELAY_ACTIVE=1 ;;
+  0|false|no|off|"") FACEBOOK_RELAY_ACTIVE=0 ;;
+  *)
+    echo "FACEBOOK_RELAY_ENABLED must be 0/1, false/true, no/yes, or off/on." >&2
+    exit 64
+    ;;
+esac'''
+          if old not in s: raise SystemExit('Expected Facebook flag block not found')
+          s=s.replace(old,new,1)
+
+          old='''if (( FACEBOOK_STREAM_ACTIVE )); then
+  [[ -n "$FACEBOOK_RTMP_BASE" ]] || { echo "FACEBOOK_RTMP_BASE is required when Facebook streaming is enabled." >&2; exit 78; }
+  [[ -n "$FACEBOOK_STREAM_KEY" ]] || { echo "FACEBOOK_STREAM_KEY is required when Facebook streaming is enabled." >&2; exit 78; }
+  [[ "$FACEBOOK_RTMP_BASE" == rtmp://* || "$FACEBOOK_RTMP_BASE" == rtmps://* ]] || {
+    echo "FACEBOOK_RTMP_BASE must be an RTMP or RTMPS URL from Facebook Live Producer." >&2
+    exit 78
+  }
+  [[ "$FACEBOOK_RTMP_BASE$FACEBOOK_STREAM_KEY" != *"|"* ]] || {
+    echo "Facebook RTMP URL/key contains an unsupported tee delimiter." >&2
+    exit 78
+  }
+  FACEBOOK_TARGET="${FACEBOOK_RTMP_BASE%/}/${FACEBOOK_STREAM_KEY}"
+  TEE_TARGETS+="|[f=flv:flvflags=no_duration_filesize:onfail=ignore]${FACEBOOK_TARGET}"
+  OUTPUT_LABELS+=("Facebook")
+fi'''
+          new='''if (( FACEBOOK_RELAY_ACTIVE )); then
+  [[ "$FACEBOOK_LOCAL_RTMP_BASE" == rtmp://127.0.0.1:* ]] || {
+    echo "FACEBOOK_LOCAL_RTMP_BASE must remain a loopback RTMP URL." >&2
+    exit 78
+  }
+  FACEBOOK_LOCAL_TARGET="${FACEBOOK_LOCAL_RTMP_BASE%/}/fgb-facebook"
+  TEE_TARGETS+="|[f=flv:flvflags=no_duration_filesize:onfail=ignore]${FACEBOOK_LOCAL_TARGET}"
+  OUTPUT_LABELS+=("Facebook local relay")
+fi'''
+          if old not in s: raise SystemExit('Expected direct Facebook tee block not found')
+          s=s.replace(old,new,1)
+          if 'live-api-s.facebook.com' in s or 'FACEBOOK_TARGET=' in s:
+              raise SystemExit('Direct Facebook external target still present in primary encoder')
+          p.write_text(s,encoding='utf-8')
+          PY
+          bash -n services/fgbears-live/bin/start-stream.sh
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add services/fgbears-live/bin/start-stream.sh
+          git commit -m 'Route Facebook only to isolated localhost sidecar'
+          git push --force-with-lease origin "$branch"
