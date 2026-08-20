@@ -2,11 +2,11 @@
   "serviceActive": true,
   "ffmpegActive": true,
   "youtubeConfigured": true,
-  "youtubeSocketEstablished": false,
+  "youtubeSocketEstablished": true,
   "xEnabled": true,
   "xSocketEstablished": true,
   "youtubePrimaryFailureRecent": true,
-  "ffmpegEstablishedSocketCount": 3,
-  "checkedAt": "2026-08-20T03:41:54Z",
+  "ffmpegEstablishedSocketCount": 4,
+  "checkedAt": "2026-08-20T03:43:54Z",
   "runId": "32326505362"
 }
