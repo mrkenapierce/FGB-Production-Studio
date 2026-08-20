@@ -2,20 +2,6 @@ name: Ensure FGB YouTube Broadcast Live
 
 on:
   workflow_dispatch:
-    inputs:
-      title:
-        description: YouTube broadcast title
-        required: true
-        default: "Football’s Greatest Bears Live | 24/7 Chicago Bears Talk, Episodes & Updates"
-      privacy:
-        description: YouTube privacy status
-        required: true
-        default: public
-        type: choice
-        options:
-          - public
-          - unlisted
-          - private
   push:
     branches: [main]
     paths:
@@ -45,27 +31,25 @@ jobs:
           test -n "$FGB_YOUTUBE_CLIENT_SECRET" || { echo 'Missing FGB_YOUTUBE_CLIENT_SECRET secret'; exit 1; }
           test -n "$FGB_YOUTUBE_REFRESH_TOKEN" || { echo 'Missing FGB_YOUTUBE_REFRESH_TOKEN secret'; exit 1; }
 
-      - name: Validate controller syntax
-        run: python3 -m py_compile .github/scripts/youtube-broadcast-control.py
+      - name: Validate permanent-target controller syntax
+        run: python3 -m py_compile .github/scripts/fgb-youtube-target.py
 
       - id: youtube
-        name: Create, bind, and start YouTube broadcast
+        name: Bind and start permanent FGB YouTube broadcast
         env:
           FGB_YOUTUBE_CLIENT_ID: ${{ secrets.FGB_YOUTUBE_CLIENT_ID }}
           FGB_YOUTUBE_CLIENT_SECRET: ${{ secrets.FGB_YOUTUBE_CLIENT_SECRET }}
           FGB_YOUTUBE_REFRESH_TOKEN: ${{ secrets.FGB_YOUTUBE_REFRESH_TOKEN }}
-          BROADCAST_TITLE: ${{ inputs.title || 'Football’s Greatest Bears Live | 24/7 Chicago Bears Talk, Episodes & Updates' }}
-          BROADCAST_PRIVACY: ${{ inputs.privacy || 'public' }}
         run: |
           set -Eeuo pipefail
-          python3 .github/scripts/youtube-broadcast-control.py \
-            --title "$BROADCAST_TITLE" \
-            --privacy "$BROADCAST_PRIVACY" \
+          python3 .github/scripts/fgb-youtube-target.py \
             2> >(tee /tmp/fgb-youtube-broadcast-error.txt >&2) \
             | tee /tmp/fgb-youtube-broadcast.txt
 
           watch_url=$(awk -F= '/^WATCH_URL=/{print substr($0,index($0,"=")+1)}' /tmp/fgb-youtube-broadcast.txt | tail -1)
           state=$(awk -F= '/^BROADCAST_STATE=/{print substr($0,index($0,"=")+1)}' /tmp/fgb-youtube-broadcast.txt | tail -1)
+          broadcast_id=$(awk -F= '/^BROADCAST_ID=/{print substr($0,index($0,"=")+1)}' /tmp/fgb-youtube-broadcast.txt | tail -1)
+          test "$broadcast_id" = "FxeMSzEB0_w"
           test "$state" = "live"
           test -n "$watch_url"
           echo "watch_url=$watch_url" >> "$GITHUB_OUTPUT"
@@ -107,7 +91,7 @@ jobs:
             --arg broadcastId "$broadcast_id" \
             --arg watchUrl "$watch_url" \
             --arg safeError "$safe_error" \
-            '{checkedAt:$checkedAt,runId:$runId,jobStatus:$jobStatus,requireOutcome:$requireOutcome,youtubeOutcome:$youtubeOutcome,broadcastState:$broadcastState,broadcastAction:$broadcastAction,broadcastId:$broadcastId,watchUrl:$watchUrl,safeError:$safeError,oracleRestarted:false}' \
+            '{checkedAt:$checkedAt,runId:$runId,jobStatus:$jobStatus,requireOutcome:$requireOutcome,youtubeOutcome:$youtubeOutcome,broadcastState:$broadcastState,broadcastAction:$broadcastAction,broadcastId:$broadcastId,watchUrl:$watchUrl,safeError:$safeError,preferredBroadcastId:"FxeMSzEB0_w",oracleRestarted:false}' \
             > .github/deployment-status/fgbears-youtube-broadcast.json
           git config user.name "FGBears YouTube Controller"
           git config user.email "actions@github.com"
@@ -124,6 +108,7 @@ jobs:
         run: |
           {
             echo '## FGB YouTube Broadcast'
+            echo 'Permanent target: FxeMSzEB0_w'
             if [[ -n "$WATCH_URL" ]]; then
               echo "Live: $WATCH_URL"
             else
