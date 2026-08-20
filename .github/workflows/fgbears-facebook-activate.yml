@@ -1,231 +1,64 @@
 name: Activate Scheduled FGBears Facebook Simulcast
-
 on:
   push:
     branches: [main]
     paths:
-      - 'services/fgbears-live/bin/start-stream.sh'
-      - 'services/fgbears-live/bin/facebook-relay.sh'
       - 'services/fgbears-live/bin/configure-facebook.sh'
-      - 'services/fgbears-live/bin/youtube-relay.sh'
-      - 'services/fgbears-live/config/stream.env.example'
-      - 'services/fgbears-live/systemd/fgbears-facebook-*.service'
-      - 'services/fgbears-live/systemd/fgbears-facebook-*.timer'
-      - 'services/fgbears-live/bin/install.sh'
+      - 'services/fgbears-live/systemd/fgbears-facebook-start.timer'
+      - 'services/fgbears-live/systemd/fgbears-facebook-stop.timer'
       - '.github/workflows/fgbears-facebook-activate.yml'
   workflow_dispatch:
-
 permissions:
-  contents: write
-
+  contents: read
 concurrency:
   group: fgbears-live-production-deploy
   cancel-in-progress: false
-
 env:
   ORACLE_USER: ubuntu
   FACEBOOK_RTMP_BASE: rtmps://live-api-s.facebook.com:443/rtmp/
-
 jobs:
   activate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Require production secrets
+      - uses: actions/checkout@v4
+      - name: Prepare protected connection
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
-          FGB_FACEBOOK_STREAM_KEY: ${{ secrets.FGB_FACEBOOK_STREAM_KEY }}
+          FB_KEY: ${{ secrets.FGB_FACEBOOK_STREAM_KEY }}
         run: |
-          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
-          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
-          test -n "$FGB_FACEBOOK_STREAM_KEY" || { echo 'Missing FGB_FACEBOOK_STREAM_KEY secret'; exit 1; }
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY" && test -n "$FB_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      - id: install
-        name: Install scheduled Facebook sidecar code
+      - name: Install Facebook schedule only
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
-            set -Eeuo pipefail
-            rm -rf /tmp/fgbears-facebook-deploy
-            git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-facebook-deploy
-            sudo bash /tmp/fgbears-facebook-deploy/services/fgbears-live/bin/install.sh
-          '
-
-      - id: activate_facebook
-        name: Install Facebook credential and daily schedule
-        if: steps.install.outcome == 'success'
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/configure-facebook.sh services/fgbears-live/systemd/fgbears-facebook-start.timer services/fgbears-live/systemd/fgbears-facebook-stop.timer "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo install -m 0755 /tmp/configure-facebook.sh /usr/local/bin/fgbears-configure-facebook && sudo install -m 0644 /tmp/fgbears-facebook-start.timer /tmp/fgbears-facebook-stop.timer /etc/systemd/system/ && sudo systemctl daemon-reload'
+      - name: Configure Facebook 9-to-5 schedule
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-          FGB_FACEBOOK_STREAM_KEY: ${{ secrets.FGB_FACEBOOK_STREAM_KEY }}
+          FB_KEY: ${{ secrets.FGB_FACEBOOK_STREAM_KEY }}
         run: |
-          set -Eeuo pipefail
-          {
-            printf '%s\n' "$FACEBOOK_RTMP_BASE"
-            printf '%s\n' "$FGB_FACEBOOK_STREAM_KEY"
-          } | ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo fgbears-configure-facebook'
-
-      - id: ensure_local_mirror
-        name: Load localhost Facebook mirror once
-        if: always() && steps.activate_facebook.outcome == 'success'
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          main_pid=$(systemctl show -p MainPID --value fgbears-live.service)
-          test "$main_pid" -gt 0
-          ffmpeg_pid=$(pgrep -P "$main_pid" -x ffmpeg | head -n 1)
-          args=$(mktemp)
-          trap 'rm -f "$args"' EXIT
-          sudo tr '\0' '\n' < "/proc/$ffmpeg_pid/cmdline" > "$args"
-          if grep -Fq 'udp://127.0.0.1:1936?pkt_size=1316' "$args"; then
-            echo 'Primary encoder already contains the isolated Facebook UDP mirror.'
-          else
-            echo 'Primary encoder needs a restart to load the isolated Facebook UDP mirror.'
-          fi
-          # Copy-remux relays must be listening before the primary encoder emits
-          # fresh H.264/AAC headers. Restart YouTube first, leave the configured
-          # Facebook sidecar listening, then restart the primary encoder once.
-          # This is the ordering proven by the production reconnect workflow.
-          sudo systemctl reset-failed fgbears-youtube-relay.service fgbears-live.service || true
-          sudo systemctl restart fgbears-youtube-relay.service
-          sudo systemctl restart fgbears-live.service
-          for _ in $(seq 1 60); do
-            if systemctl is-active --quiet fgbears-live.service; then
-              new_main=$(systemctl show -p MainPID --value fgbears-live.service)
-              new_ffmpeg=$(pgrep -P "$new_main" -x ffmpeg | head -n 1 || true)
-              if [[ -n "$new_ffmpeg" ]]; then
-                sudo tr '\0' '\n' < "/proc/$new_ffmpeg/cmdline" > "$args"
-                grep -Fq 'udp://127.0.0.1:1936?pkt_size=1316' "$args" && exit 0
-              fi
-            fi
-            sleep 1
-          done
-          echo 'Primary encoder did not load the localhost Facebook mirror.' >&2
-          exit 1
-          REMOTE
-
-      - id: verify_facebook
-        name: Verify schedule and isolated transports
-        if: always() && steps.ensure_local_mirror.outcome == 'success'
+          { printf '%s\n' "$FACEBOOK_RTMP_BASE"; printf '%s\n' "$FB_KEY"; } | ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo fgbears-configure-facebook'
+      - name: Verify schedule without touching other platforms
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           env_file=/etc/fgbears-live/stream.env
-          sudo grep -Fxq 'FACEBOOK_STREAM_ENABLED=0' "$env_file"
-          sudo grep -Eq '^FACEBOOK_RELAY_ENABLED=(1|true|yes|on)$' "$env_file"
-          sudo grep -Fqx 'FACEBOOK_LOCAL_UDP_URL=udp://127.0.0.1:1936?pkt_size=1316' "$env_file"
-          sudo grep -Fxq 'FACEBOOK_SCHEDULE_TIMEZONE=America/Chicago' "$env_file"
-          sudo grep -Fxq 'FACEBOOK_SCHEDULE_START=12:00' "$env_file"
-          sudo grep -Fxq 'FACEBOOK_SCHEDULE_STOP=15:25' "$env_file"
-          key_length=$(sudo awk -F= '/^FACEBOOK_STREAM_KEY=/{print length(substr($0,index($0,"=")+1))}' "$env_file")
-          test "${key_length:-0}" -gt 0
+          sudo grep -Fxq 'FACEBOOK_SCHEDULE_START=09:00' "$env_file"
+          sudo grep -Fxq 'FACEBOOK_SCHEDULE_STOP=17:00' "$env_file"
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          systemctl is-active --quiet fgbears-x-relay.service
+          systemctl is-active --quiet fgbears-instagram-relay.service
+          systemctl is-active --quiet fgbears-facebook-relay.service
           test "$(systemctl is-enabled fgbears-facebook-start.timer)" = enabled
           test "$(systemctl is-enabled fgbears-facebook-stop.timer)" = enabled
-          systemctl is-active --quiet fgbears-facebook-start.timer
-          systemctl is-active --quiet fgbears-facebook-stop.timer
-
-          now_hm=$(TZ=America/Chicago date +%H%M)
-          now_hm=$((10#$now_hm))
-          in_window=false
-          if (( now_hm >= 1200 && now_hm < 1525 )); then in_window=true; fi
-
-          for _ in $(seq 1 90); do
-            main_pid=$(systemctl show -p MainPID --value fgbears-live.service)
-            youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
-            if [[ "$main_pid" =~ ^[1-9][0-9]*$ && "$youtube_pid" =~ ^[1-9][0-9]*$ ]] && \
-               systemctl is-active --quiet fgbears-live.service && \
-               systemctl is-active --quiet fgbears-youtube-relay.service; then
-              primary_ffmpeg=$(pgrep -P "$main_pid" -x ffmpeg | head -n 1 || true)
-              [[ -n "$primary_ffmpeg" ]] || { sleep 2; continue; }
-              args=$(mktemp)
-              sudo tr '\0' '\n' < "/proc/$primary_ffmpeg/cmdline" > "$args"
-              grep -Fq 'udp://127.0.0.1:1936?pkt_size=1316' "$args"
-              if grep -Fq 'live-api-s.facebook.com' "$args" || grep -Fq 'FACEBOOK_STREAM_KEY' "$args"; then
-                echo 'Unsafe direct Facebook destination detected in primary encoder.' >&2
-                rm -f "$args"
-                exit 1
-              fi
-              rm -f "$args"
-
-              sockets=$(mktemp)
-              sudo ss -ntpH state established > "$sockets" || true
-              youtube_external=$(grep "pid=$youtube_pid" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -c ':443' || true)
-              x_external=$(grep "pid=$primary_ffmpeg" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -c ':443' || true)
-              facebook_external=0
-              facebook_active=false
-              facebook_pid=$(systemctl show -p MainPID --value fgbears-facebook-relay.service || true)
-              if [[ "$facebook_pid" =~ ^[1-9][0-9]*$ ]] && systemctl is-active --quiet fgbears-facebook-relay.service; then
-                facebook_active=true
-                facebook_external=$(grep "pid=$facebook_pid" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -c ':443' || true)
-                fbargs=$(mktemp)
-                sudo tr '\0' '\n' < "/proc/$facebook_pid/cmdline" > "$fbargs"
-                grep -Fq 'udp://127.0.0.1:1936?pkt_size=1316' "$fbargs"
-                rm -f "$fbargs"
-              fi
-              rm -f "$sockets"
-
-              if (( youtube_external > 0 && x_external > 0 )); then
-                if [[ "$in_window" == true && "$facebook_active" == true && "$facebook_external" -gt 0 ]]; then
-                  echo 'Verified scheduled window: YouTube + X + isolated Facebook are established.'
-                  exit 0
-                fi
-                if [[ "$in_window" == false && "$facebook_active" == false ]]; then
-                  echo 'Verified off-window state: YouTube + X established; Facebook correctly stopped.'
-                  exit 0
-                fi
-              fi
-            fi
-            sleep 2
-          done
-          echo 'Scheduled Facebook state did not verify while preserving YouTube and X.' >&2
-          exit 1
           REMOTE
-
-      - name: Record Facebook schedule activation result
-        if: always()
-        env:
-          INSTALL_OUTCOME: ${{ steps.install.outcome }}
-          ACTIVATE_OUTCOME: ${{ steps.activate_facebook.outcome }}
-          MIRROR_OUTCOME: ${{ steps.ensure_local_mirror.outcome }}
-          VERIFY_OUTCOME: ${{ steps.verify_facebook.outcome }}
-          JOB_STATUS: ${{ job.status }}
-        run: |
-          git fetch origin main
-          git checkout -B main origin/main
-          mkdir -p .github/deployment-status
-          configured=false
-          if [[ "$INSTALL_OUTCOME" == success && "$ACTIVATE_OUTCOME" == success && "$MIRROR_OUTCOME" == success && "$VERIFY_OUTCOME" == success ]]; then
-            configured=true
-          fi
-          jq -n \
-            --argjson configured "$configured" \
-            --arg deployedSha "$GITHUB_SHA" \
-            --arg runId "$GITHUB_RUN_ID" \
-            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --arg jobStatus "$JOB_STATUS" \
-            --arg installOutcome "$INSTALL_OUTCOME" \
-            --arg activateOutcome "$ACTIVATE_OUTCOME" \
-            --arg mirrorOutcome "$MIRROR_OUTCOME" \
-            --arg verifyOutcome "$VERIFY_OUTCOME" \
-            '{facebookScheduleConfigured:$configured,scheduleTimezone:"America/Chicago",scheduleStart:"12:00",scheduleStop:"15:25",transport:"primary-udp-mirror+isolated-copy-remux-sidecar",primaryHasNoMetaCredentials:true,youtubeDedicatedRelay:true,xPreserved:true,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,activateOutcome:$activateOutcome,mirrorOutcome:$mirrorOutcome,verifyOutcome:$verifyOutcome}' \
-            > .github/deployment-status/fgbears-facebook.json
-          git config user.name 'FGBears Deploy Bot'
-          git config user.email 'actions@github.com'
-          git add -- .github/deployment-status/fgbears-facebook.json
-          git diff --cached --quiet && exit 0
-          git commit -m 'Record scheduled FGBears Facebook activation result [skip ci]'
-          git push origin main
