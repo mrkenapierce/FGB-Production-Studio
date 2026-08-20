@@ -65,6 +65,7 @@ install -d -o root -g root -m 0755 /srv/fgbears-live/health
 install -d -o root -g fgbears -m 0750 /etc/fgbears-live
 
 install -m 0755 /opt/fgbears-live/bin/start-stream.sh /usr/local/bin/fgbears-start-stream
+install -m 0755 /opt/fgbears-live/bin/youtube-relay.sh /usr/local/bin/fgbears-youtube-relay
 install -m 0755 /opt/fgbears-live/bin/configure-x.sh /usr/local/bin/fgbears-configure-x
 install -m 0755 /opt/fgbears-live/bin/configure-facebook.sh /usr/local/bin/fgbears-configure-facebook
 install -m 0755 /opt/fgbears-live/bin/normalize-library.sh /usr/local/bin/fgbears-normalize
@@ -75,14 +76,66 @@ install -m 0755 /opt/fgbears-live/bin/healthcheck.sh /usr/local/bin/fgbears-heal
 install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-stream-status
 
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
+install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-relay.service /etc/systemd/system/fgbears-youtube-relay.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.service /etc/systemd/system/fgbears-live-health.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.timer /etc/systemd/system/fgbears-live-health.timer
 
-if [[ ! -e /etc/fgbears-live/stream.env ]]; then
-  install -o root -g fgbears -m 0640 /opt/fgbears-live/config/stream.env.example /etc/fgbears-live/stream.env
+ENV_PATH=/etc/fgbears-live/stream.env
+if [[ ! -e "$ENV_PATH" ]]; then
+  install -o root -g fgbears -m 0640 /opt/fgbears-live/config/stream.env.example "$ENV_PATH"
 fi
 
+# Migrate existing production installs from direct YouTube-through-tee output to
+# a local RTMP hop. Preserve the existing external YouTube base as the relay's
+# upstream and never print or alter the protected stream key.
+python3 - "$ENV_PATH" <<'PY'
+from pathlib import Path
+import sys
+
+path = Path(sys.argv[1])
+lines = path.read_text(encoding="utf-8").splitlines()
+values = {}
+for line in lines:
+    if "=" in line and not line.lstrip().startswith("#"):
+        key, value = line.split("=", 1)
+        values[key] = value
+
+local_base = values.get("YOUTUBE_LOCAL_RTMP_BASE") or "rtmp://127.0.0.1:1935/live"
+current_base = values.get("YOUTUBE_RTMP_BASE", "")
+upstream = values.get("YOUTUBE_UPSTREAM_RTMP_BASE", "")
+if not upstream:
+    if current_base and not current_base.startswith("rtmp://127.0.0.1:"):
+        upstream = current_base
+    else:
+        upstream = "rtmps://a.rtmps.youtube.com/live2"
+
+updates = {
+    "YOUTUBE_RTMP_BASE": local_base,
+    "YOUTUBE_LOCAL_RTMP_BASE": local_base,
+    "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
+}
+seen = set()
+out = []
+for line in lines:
+    if "=" in line and not line.lstrip().startswith("#"):
+        key = line.split("=", 1)[0]
+        if key in updates:
+            if key not in seen:
+                out.append(f"{key}={updates[key]}")
+                seen.add(key)
+            continue
+    out.append(line)
+for key, value in updates.items():
+    if key not in seen:
+        out.append(f"{key}={value}")
+path.write_text("\n".join(out) + "\n", encoding="utf-8")
+PY
+chown root:fgbears "$ENV_PATH"
+chmod 0640 "$ENV_PATH"
+
 systemctl daemon-reload
+systemctl enable fgbears-youtube-relay.service
+systemctl restart fgbears-youtube-relay.service
 systemctl enable --now fgbears-live-health.timer
 
-echo "Installed FGBears Live with YouTube primary plus isolated X and Facebook simulcast capability. Secondary legs remain disabled until their credentials are configured."
+echo "Installed FGBears Live with single-encode output, local YouTube copy-remux relay, and isolated X/Facebook simulcast capability."
