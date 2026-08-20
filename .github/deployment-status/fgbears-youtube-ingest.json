@@ -1,0 +1,12 @@
+{
+  "serviceActive": true,
+  "ffmpegActive": true,
+  "youtubeConfigured": true,
+  "youtubeSocketEstablished": false,
+  "xEnabled": true,
+  "xSocketEstablished": true,
+  "youtubePrimaryFailureRecent": true,
+  "ffmpegEstablishedSocketCount": 4,
+  "checkedAt": "2026-08-20T02:57:55Z",
+  "runId": "32326505362"
+}
