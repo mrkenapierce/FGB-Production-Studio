@@ -13,6 +13,8 @@ source "$ENV_FILE"
 : "${X_STREAM_ENABLED:=0}"
 : "${X_RELAY_ENABLED:=0}"
 : "${X_LOCAL_UDP_URL:=udp://127.0.0.1:1937?pkt_size=1316}"
+: "${INSTAGRAM_RELAY_ENABLED:=0}"
+: "${INSTAGRAM_LOCAL_UDP_URL:=udp://127.0.0.1:1938?pkt_size=1316}"
 : "${FACEBOOK_STREAM_ENABLED:=0}"
 : "${FACEBOOK_LOCAL_UDP_URL:=udp://127.0.0.1:1936?pkt_size=1316}"
 : "${PLAYLIST_FILE:=/srv/fgbears-live/playlist.ffconcat}"
@@ -71,6 +73,11 @@ case "${FACEBOOK_STREAM_ENABLED,,}" in
     ;;
 esac
 
+[[ "$INSTAGRAM_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
+  echo "INSTAGRAM_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
+  exit 78
+}
+
 [[ "$FACEBOOK_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
   echo "FACEBOOK_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
   exit 78
@@ -83,10 +90,16 @@ TEE_TARGETS="[f=flv:flvflags=no_duration_filesize:onfail=ignore]${YOUTUBE_TARGET
 OUTPUT_LABELS=("YouTube local relay")
 
 # X is isolated from the primary encoder. The primary process always emits
-# the already-encoded program to a loopback UDP mirror; the scheduled X sidecar
+# the already-encoded program to loopback UDP mirrors; scheduled sidecars
 # owns the protected X credential and can start/stop without touching YouTube.
 TEE_TARGETS+="|[f=mpegts:onfail=ignore]${X_LOCAL_UDP_URL}"
 OUTPUT_LABELS+=("X local mirror")
+
+# Instagram is isolated in the same way. Its sidecar converts the landscape
+# program to a vertical canvas without placing Instagram credentials in the
+# primary encoder.
+TEE_TARGETS+="|[f=mpegts:onfail=ignore]${INSTAGRAM_LOCAL_UDP_URL}"
+OUTPUT_LABELS+=("Instagram local mirror")
 
 # This local UDP mirror is always emitted. When the scheduled Facebook sidecar
 # is stopped, the packets are simply discarded by the kernel. Starting/stopping
