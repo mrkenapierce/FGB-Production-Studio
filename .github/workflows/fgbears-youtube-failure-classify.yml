@@ -43,7 +43,7 @@ jobs:
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > /tmp/youtube-failure.env <<'REMOTE'
           set -Eeuo pipefail
           env_file=/etc/fgbears-live/stream.env
-          sudo journalctl -u fgbears-live.service -n 900 --no-pager > /tmp/fgbears-youtube-journal.txt
+          sudo journalctl -u fgbears-live.service -u fgbears-youtube-relay.service -n 1200 --no-pager > /tmp/fgbears-youtube-journal.txt
           sudo python3 - "$env_file" /tmp/fgbears-youtube-journal.txt <<'PY'
           from pathlib import Path
           import re, sys
@@ -68,7 +68,6 @@ jobs:
                   ('tls' in low and any(w in low for w in ('error','failed','handshake','closed')))):
                   start=max(0,i-2); end=min(len(lines),i+3)
                   relevant.extend(lines[start:end])
-          # de-dupe while preserving order
           seen=set(); rel=[]
           for line in relevant:
               if line not in seen:
@@ -87,8 +86,7 @@ jobs:
           else:
               error_class='none_or_unknown'
           safe=[]
-          for line in rel[-20:]:
-              # remove destination path after youtube host in case any credential fragment remains
+          for line in rel[-24:]:
               line=re.sub(r'(a\.rtmps\.youtube\.com(?::\d+)?)(/\S*)?',r'\1/[REDACTED_PATH]',line)
               line=re.sub(r'(rtmps?://[^\s/]+)(/\S*)',r'\1/[REDACTED_PATH]',line)
               safe.append(line[:500])
