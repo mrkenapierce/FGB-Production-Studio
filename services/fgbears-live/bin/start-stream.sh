@@ -11,8 +11,8 @@ source "$ENV_FILE"
 : "${YOUTUBE_STREAM_KEY:?YOUTUBE_STREAM_KEY is required}"
 : "${YOUTUBE_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"
 : "${X_STREAM_ENABLED:=0}"
-: "${X_RTMP_BASE:=}"
-: "${X_STREAM_KEY:=}"
+: "${X_RELAY_ENABLED:=0}"
+: "${X_LOCAL_UDP_URL:=udp://127.0.0.1:1937?pkt_size=1316}"
 : "${FACEBOOK_STREAM_ENABLED:=0}"
 : "${FACEBOOK_LOCAL_UDP_URL:=udp://127.0.0.1:1936?pkt_size=1316}"
 : "${PLAYLIST_FILE:=/srv/fgbears-live/playlist.ffconcat}"
@@ -44,13 +44,20 @@ source "$ENV_FILE"
 [[ -r "$BEARS_NEWS_SCRIPT" ]] || { echo "Bears news feed poller is missing: $BEARS_NEWS_SCRIPT" >&2; exit 66; }
 
 case "${X_STREAM_ENABLED,,}" in
-  1|true|yes|on) X_STREAM_ACTIVE=1 ;;
-  0|false|no|off|"") X_STREAM_ACTIVE=0 ;;
+  1|true|yes|on)
+    echo "Direct X output is permanently disabled in the primary encoder." >&2
+    exit 78
+    ;;
+  0|false|no|off|"") ;;
   *)
-    echo "X_STREAM_ENABLED must be 0/1, false/true, no/yes, or off/on." >&2
+    echo "X_STREAM_ENABLED must remain disabled." >&2
     exit 64
     ;;
 esac
+[[ "$X_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
+  echo "X_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
+  exit 78
+}
 
 case "${FACEBOOK_STREAM_ENABLED,,}" in
   1|true|yes|on)
@@ -75,21 +82,11 @@ YOUTUBE_TARGET="${YOUTUBE_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 TEE_TARGETS="[f=flv:flvflags=no_duration_filesize:onfail=ignore]${YOUTUBE_TARGET}"
 OUTPUT_LABELS=("YouTube local relay")
 
-if (( X_STREAM_ACTIVE )); then
-  [[ -n "$X_RTMP_BASE" ]] || { echo "X_RTMP_BASE is required when X streaming is enabled." >&2; exit 78; }
-  [[ -n "$X_STREAM_KEY" ]] || { echo "X_STREAM_KEY is required when X streaming is enabled." >&2; exit 78; }
-  [[ "$X_RTMP_BASE" == rtmp://* || "$X_RTMP_BASE" == rtmps://* ]] || {
-    echo "X_RTMP_BASE must be an RTMP or RTMPS URL from X Live Studio." >&2
-    exit 78
-  }
-  [[ "$X_RTMP_BASE$X_STREAM_KEY" != *"|"* ]] || {
-    echo "X RTMP URL/key contains an unsupported tee delimiter." >&2
-    exit 78
-  }
-  X_TARGET="${X_RTMP_BASE%/}/${X_STREAM_KEY}"
-  TEE_TARGETS+="|[f=flv:flvflags=no_duration_filesize:onfail=ignore]${X_TARGET}"
-  OUTPUT_LABELS+=("X")
-fi
+# X is isolated from the primary encoder. The primary process always emits
+# the already-encoded program to a loopback UDP mirror; the scheduled X sidecar
+# owns the protected X credential and can start/stop without touching YouTube.
+TEE_TARGETS+="|[f=mpegts:onfail=ignore]${X_LOCAL_UDP_URL}"
+OUTPUT_LABELS+=("X local mirror")
 
 # This local UDP mirror is always emitted. When the scheduled Facebook sidecar
 # is stopped, the packets are simply discarded by the kernel. Starting/stopping
