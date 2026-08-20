@@ -22,6 +22,7 @@ grep -q '^YOUTUBE_LOCAL_RTMP_BASE=rtmp://127.0.0.1:1935/live$' "$ROOT/config/str
 grep -q '^YOUTUBE_UPSTREAM_RTMP_BASE=rtmps://a.rtmps.youtube.com/live2$' "$ROOT/config/stream.env.example"
 
 grep -Fq 'FACEBOOK_LOCAL_UDP_URL' "$ROOT/bin/start-stream.sh"
+# shellcheck disable=SC2016
 grep -Fq '[f=mpegts:onfail=ignore]${FACEBOOK_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"
 grep -Fq 'Facebook local mirror' "$ROOT/bin/start-stream.sh"
 if grep -Fq 'live-api-s.facebook.com' "$ROOT/bin/start-stream.sh" || grep -Fq 'FACEBOOK_STREAM_KEY' "$ROOT/bin/start-stream.sh"; then
@@ -52,6 +53,7 @@ grep -Fq -- '-c copy' "$ROOT/bin/youtube-relay.sh"
 grep -Fq -- '-f flv -flvflags no_duration_filesize' "$ROOT/bin/youtube-relay.sh"
 
 grep -Fq 'FACEBOOK_LOCAL_UDP_URL' "$ROOT/bin/facebook-relay.sh"
+# shellcheck disable=SC2016
 grep -Fq -- '-i "$FACEBOOK_LOCAL_UDP_URL"' "$ROOT/bin/facebook-relay.sh"
 grep -Fq -- '-c copy' "$ROOT/bin/facebook-relay.sh"
 grep -Fq 'FACEBOOK_RTMP_BASE' "$ROOT/bin/facebook-relay.sh"
