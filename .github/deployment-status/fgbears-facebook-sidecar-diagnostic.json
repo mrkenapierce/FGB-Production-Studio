@@ -1,0 +1,22 @@
+{
+  "primaryActive": true,
+  "youtubeRelayActive": false,
+  "facebookRelayActive": true,
+  "legacyFacebookDirectEnabled": false,
+  "facebookRelayEnabled": true,
+  "facebookKeyPresent": true,
+  "youtubeEstablished": false,
+  "xEstablished": false,
+  "facebookEstablished": false,
+  "localFacebookHandoff": false,
+  "primaryRestarts": "0",
+  "youtubeRelayRestarts": "6",
+  "facebookRelayRestarts": "0",
+  "youtubeRelayResult": "exit-code",
+  "facebookRelayResult": "success",
+  "youtubeRelayExecStatus": "234",
+  "facebookRelayExecStatus": "0",
+  "failureClass": "youtube-relay-inactive",
+  "safeDetail": "Aug 20 17:19:48 fgbears-live fgbears-youtube-relay[592522]: Error opening output files: Invalid argument || Aug 20 17:19:48 fgbears-live systemd[1]: fgbears-youtube-relay.service: Failed with result 'exit-code'. || Aug 20 17:19:53 fgbears-live systemd[1]: Started fgbears-youtube-relay.service - FGBears YouTube RTMP copy-remux relay. || Aug 20 17:19:58 fgbears-live fgbears-youtube-relay[592610]: [out#0/tee @ 0xb6bed6e86d10] Could not write header (incorrect codec parameters ?): Invalid argument || Aug 20 17:19:58 fgbears-live fgbears-youtube-relay[592610]: Error opening output file [f=flv:flvflags=no_duration_filesize:onfail=ignore]rtmps://a.rtmps.youtube.com/[REDACTED_PATH] || Aug 20 17:19:58 fgbears-live fgbears-youtube-relay[592610]: Error opening output files: Invalid argument || Aug 20 17:19:58 fgbears-live systemd[1]: fgbears-youtube-relay.service: Failed with result 'exit-code'. || Aug 20 17:20:03 fgbears-live systemd[1]: Started fgbears-youtube-relay.service - FGBears YouTube RTMP copy-remux relay. || Aug 20 17:20:08 fgbears-live fgbears-youtube-relay[592696]: [out#0/tee @ 0xabcc47268d10] Could not write header (incorrect codec parameters ?): Invalid argument || Aug 20 17:20:08 fgbears-live fgbears-youtube-relay[592696]: Error opening output file [f=flv:flvflags=no_duration_filesize:onfail=ignore]rtmps://a.rtmps.youtube.com/[REDACTED_PATH] || Aug 20 17:20:08 fgbears-live fgbears-youtube-relay[592696]: Error opening output files: Invalid argument || Aug 20 17:20:08 fgbears-live systemd[1]: fgbears-youtube-relay.service: Failed with result 'exit-code'. || Aug 20 17:20:13 fgbears-live systemd[1]: fgbears-youtube-relay.service: Failed with result 'exit-code'. || Aug 20 17:20:13 fgbears-live systemd[1]: Failed to start fgbears-youtube-relay.service - FGBears YouTube RTMP copy-remux relay. || Aug 20 17:22:13 fgbears-live systemd[1]: fgbears-youtube-relay.service: Failed with result 'exit-code'. || Aug 20 17:22:13 fgbears-live systemd[1]: Failed to start fgbears-youtube-relay.service - FGBears YouTube RTMP copy-remux relay. || Aug 20 17:22:34 fgbears-live fgbears-facebook-relay[592218]: [rtmp @ 0xae3f94978b10] Cannot open connection tcp://127.0.0.1:1936?listen&listen_timeout=-1000&tcp_nodelay=0 || Aug 20 17:22:34 fgbears-live fgbears-facebook-relay[592218]: [in#0 @ 0xae3f949b58b0] Error opening input: Immediate exit requested || Aug 20 17:22:34 fgbears-live fgbears-facebook-relay[592218]: Error opening input file rtmp://127.0.0.1:1936/[REDACTED_PATH] || Aug 20 17:22:34 fgbears-live systemd[1]: Stopping fgbears-facebook-relay.service - FGBears Facebook RTMP copy-remux relay... || Aug 20 17:22:34 fgbears-live systemd[1]: Stopped fgbears-facebook-relay.service - FGBears Facebook RTMP copy-remux relay. || Aug 20 17:22:34 fgbears-live systemd[1]: Started fgbears-facebook-relay.service - FGBears Facebook RTMP copy-remux relay. || Aug 20 17:22:34 fgbears-live systemd[1]: fgbears-youtube-relay.service: Failed with result 'exit-code'. || Aug 20 17:22:34 fgbears-live systemd[1]: Failed to start fgbears-youtube-relay.service - FGBears YouTube RTMP copy-remux relay.",
+  "checkedAt": "2026-08-20T17:25:43Z"
+}
