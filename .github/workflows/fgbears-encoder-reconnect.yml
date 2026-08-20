@@ -1,5 +1,6 @@
 name: Reconnect FGB Encoder
 
+# Manual recovery trigger: 2026-08-20
 on:
   workflow_dispatch:
   push:
