@@ -1,0 +1,15 @@
+{
+  "facebookKeyPresent": false,
+  "facebookSimulcastActive": false,
+  "rolledBack": false,
+  "primaryRestarted": false,
+  "youtubeEstablished": false,
+  "xEstablished": false,
+  "facebookEstablished": false,
+  "localFacebookHandoff": false,
+  "failureClass": "diagnostic-unavailable",
+  "transport": "isolated-copy-remux-sidecar",
+  "checkedAt": "2026-08-20T17:22:35Z",
+  "runId": "32397087573",
+  "jobStatus": "failure"
+}
