@@ -1,0 +1,6 @@
+[Unit]
+Description=Stop scheduled FGBears Instagram simulcast
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl stop fgbears-instagram-relay.service
