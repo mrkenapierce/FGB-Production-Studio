@@ -1,0 +1,11 @@
+{
+  "secretPresent": false,
+  "activated": false,
+  "youtubeSocketEstablished": false,
+  "requireOutcome": "failure",
+  "activateOutcome": "skipped",
+  "verifyOutcome": "skipped",
+  "jobStatus": "failure",
+  "checkedAt": "2026-08-20T07:05:35Z",
+  "service": "fgbears-live.service"
+}
