@@ -1,0 +1,140 @@
+name: Verify Settled FGBears Facebook Schedule
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-facebook-settled-verify.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require Oracle access
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - id: verify
+        name: Require stable scheduled transport without restarts
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          env_file=/etc/fgbears-live/stream.env
+          sudo grep -Fxq 'FACEBOOK_STREAM_ENABLED=0' "$env_file"
+          sudo grep -Eq '^FACEBOOK_RELAY_ENABLED=(1|true|yes|on)$' "$env_file"
+          sudo grep -Fqx 'FACEBOOK_SCHEDULE_TIMEZONE=America/Chicago' "$env_file"
+          sudo grep -Fqx 'FACEBOOK_SCHEDULE_START=12:00' "$env_file"
+          sudo grep -Fqx 'FACEBOOK_SCHEDULE_STOP=15:25' "$env_file"
+          test "$(systemctl is-enabled fgbears-facebook-start.timer)" = enabled
+          test "$(systemctl is-enabled fgbears-facebook-stop.timer)" = enabled
+          systemctl is-active --quiet fgbears-facebook-start.timer
+          systemctl is-active --quiet fgbears-facebook-stop.timer
+
+          now_hm=$(TZ=America/Chicago date +%H%M); now_hm=$((10#$now_hm))
+          in_window=false
+          if (( now_hm >= 1200 && now_hm < 1525 )); then in_window=true; fi
+
+          stable=0
+          first_main=''; first_youtube=''; first_facebook=''
+          for _ in $(seq 1 30); do
+            main_pid=$(systemctl show -p MainPID --value fgbears-live.service)
+            youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+            [[ "$main_pid" =~ ^[1-9][0-9]*$ && "$youtube_pid" =~ ^[1-9][0-9]*$ ]] || { stable=0; sleep 2; continue; }
+            systemctl is-active --quiet fgbears-live.service || { stable=0; sleep 2; continue; }
+            systemctl is-active --quiet fgbears-youtube-relay.service || { stable=0; sleep 2; continue; }
+            [[ -n "$first_main" ]] || first_main="$main_pid"
+            [[ -n "$first_youtube" ]] || first_youtube="$youtube_pid"
+            [[ "$main_pid" == "$first_main" && "$youtube_pid" == "$first_youtube" ]] || { echo 'Primary or YouTube relay restarted during settled verification.' >&2; exit 1; }
+
+            primary_ffmpeg=$(pgrep -P "$main_pid" -x ffmpeg | head -n1 || true)
+            [[ -n "$primary_ffmpeg" ]] || { stable=0; sleep 2; continue; }
+            args=$(mktemp)
+            sudo tr '\0' '\n' < "/proc/$primary_ffmpeg/cmdline" > "$args"
+            grep -Fq 'udp://127.0.0.1:1936?pkt_size=1316' "$args"
+            ! grep -Fq 'live-api-s.facebook.com' "$args"
+            rm -f "$args"
+
+            sockets=$(mktemp)
+            sudo ss -ntpH state established > "$sockets" || true
+            youtube_ok=false; x_ok=false; facebook_ok=false
+            grep "pid=$youtube_pid" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && youtube_ok=true || true
+            grep "pid=$primary_ffmpeg" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && x_ok=true || true
+
+            if [[ "$in_window" == true ]]; then
+              facebook_pid=$(systemctl show -p MainPID --value fgbears-facebook-relay.service || true)
+              [[ "$facebook_pid" =~ ^[1-9][0-9]*$ ]] || { rm -f "$sockets"; stable=0; sleep 2; continue; }
+              systemctl is-active --quiet fgbears-facebook-relay.service || { rm -f "$sockets"; stable=0; sleep 2; continue; }
+              [[ -n "$first_facebook" ]] || first_facebook="$facebook_pid"
+              [[ "$facebook_pid" == "$first_facebook" ]] || { echo 'Facebook sidecar restarted during settled verification.' >&2; rm -f "$sockets"; exit 1; }
+              grep "pid=$facebook_pid" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && facebook_ok=true || true
+              fbargs=$(mktemp)
+              sudo tr '\0' '\n' < "/proc/$facebook_pid/cmdline" > "$fbargs"
+              grep -Fq 'udp://127.0.0.1:1936?pkt_size=1316' "$fbargs"
+              grep -Fq 'live-api-s.facebook.com' "$fbargs"
+              rm -f "$fbargs"
+            else
+              if ! systemctl is-active --quiet fgbears-facebook-relay.service; then facebook_ok=true; fi
+            fi
+            rm -f "$sockets"
+
+            if [[ "$youtube_ok" == true && "$x_ok" == true && "$facebook_ok" == true ]]; then
+              stable=$((stable+1))
+              if (( stable >= 5 )); then
+                echo "Stable scheduled transport verified for 5 consecutive samples; inWindow=$in_window."
+                exit 0
+              fi
+            else
+              stable=0
+            fi
+            sleep 2
+          done
+          echo 'Settled Facebook schedule verification did not reach five stable samples.' >&2
+          exit 1
+          REMOTE
+
+      - name: Reconcile production status
+        if: always()
+        env:
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          configured=false
+          if [[ "$VERIFY_OUTCOME" == success ]]; then configured=true; fi
+          jq -n \
+            --argjson configured "$configured" \
+            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg jobStatus "$JOB_STATUS" \
+            --arg verifyOutcome "$VERIFY_OUTCOME" \
+            '{facebookScheduleConfigured:$configured,scheduleTimezone:"America/Chicago",scheduleStart:"12:00",scheduleStop:"15:25",transport:"primary-udp-mirror+isolated-copy-remux-sidecar",primaryHasNoMetaCredentials:true,youtubeDedicatedRelay:true,xPreserved:true,settledVerification:true,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,verifyOutcome:$verifyOutcome}' > .github/deployment-status/fgbears-facebook.json
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add .github/deployment-status/fgbears-facebook.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Reconcile settled Facebook schedule status [skip ci]'
+          git push origin main
