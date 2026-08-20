@@ -46,13 +46,22 @@ jobs:
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
       - id: restart
-        name: Restart encoder service only
+        name: Restart YouTube relay and encoder services
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
-            'sudo systemctl reset-failed fgbears-live.service || true; sudo systemctl restart fgbears-live.service; sudo systemctl is-active --quiet fgbears-live.service'
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          if systemctl cat fgbears-youtube-relay.service >/dev/null 2>&1; then
+            sudo systemctl reset-failed fgbears-youtube-relay.service fgbears-live.service || true
+            sudo systemctl restart fgbears-youtube-relay.service
+          else
+            sudo systemctl reset-failed fgbears-live.service || true
+          fi
+          sudo systemctl restart fgbears-live.service
+          sudo systemctl is-active --quiet fgbears-live.service
+          REMOTE
 
       - id: verify
         name: Verify YouTube and X sockets recover
@@ -65,21 +74,30 @@ jobs:
           yt_ok=false
           x_ok=false
           for _ in $(seq 1 75); do
-            pid=$(pgrep -o -x ffmpeg || true)
-            if [[ -n "$pid" ]]; then
-              sudo ss -ntpH state established | grep "pid=$pid" > /tmp/fgb-reconnect-sockets.txt || true
+            : > /tmp/fgb-reconnect-sockets.txt
+            pids=$(pgrep -x ffmpeg || true)
+            if [[ -n "$pids" ]]; then
+              sudo ss -ntpH state established > /tmp/fgb-reconnect-all-sockets.txt || true
+              while IFS= read -r pid; do
+                [[ -n "$pid" ]] || continue
+                grep "pid=$pid" /tmp/fgb-reconnect-all-sockets.txt >> /tmp/fgb-reconnect-sockets.txt || true
+              done <<< "$pids"
+              sort -u /tmp/fgb-reconnect-sockets.txt -o /tmp/fgb-reconnect-sockets.txt
+
               getent ahostsv4 a.rtmps.youtube.com | awk '{print $1}' | sort -u > /tmp/fgb-reconnect-yt-ips.txt
               while IFS= read -r ip; do
                 [[ -n "$ip" ]] || continue
                 grep -Fq "$ip:443" /tmp/fgb-reconnect-sockets.txt && yt_ok=true
               done < /tmp/fgb-reconnect-yt-ips.txt
-              getent ahostsv4 ca.pscp.tv | awk '{print $1}' | sort -u > /tmp/fgb-reconnect-x-ips.txt
+
+              getent ahostsv4 ca.pscp.tv | awk '{print $1}' | sort -u > /tmp/fgb-reconnect-x-ips.txt || true
               while IFS= read -r ip; do
                 [[ -n "$ip" ]] || continue
                 grep -Fq "$ip:443" /tmp/fgb-reconnect-sockets.txt && x_ok=true
               done < /tmp/fgb-reconnect-x-ips.txt
+
               if [[ "$yt_ok" == true && "$x_ok" == true ]]; then
-                rm -f /tmp/fgb-reconnect-sockets.txt /tmp/fgb-reconnect-yt-ips.txt /tmp/fgb-reconnect-x-ips.txt
+                rm -f /tmp/fgb-reconnect-all-sockets.txt /tmp/fgb-reconnect-sockets.txt /tmp/fgb-reconnect-yt-ips.txt /tmp/fgb-reconnect-x-ips.txt
                 echo 'YouTube and X sockets established.'
                 exit 0
               fi
@@ -87,7 +105,7 @@ jobs:
             sleep 2
           done
           echo "Transport recovery incomplete: youtube=$yt_ok x=$x_ok" >&2
-          rm -f /tmp/fgb-reconnect-sockets.txt /tmp/fgb-reconnect-yt-ips.txt /tmp/fgb-reconnect-x-ips.txt
+          rm -f /tmp/fgb-reconnect-all-sockets.txt /tmp/fgb-reconnect-sockets.txt /tmp/fgb-reconnect-yt-ips.txt /tmp/fgb-reconnect-x-ips.txt
           exit 1
           REMOTE
 
@@ -107,7 +125,7 @@ jobs:
             --arg jobStatus "$JOB_STATUS" \
             --arg restartOutcome "$RESTART_OUTCOME" \
             --arg verifyOutcome "$VERIFY_OUTCOME" \
-            '{checkedAt:$checkedAt,runId:$runId,jobStatus:$jobStatus,restartOutcome:$restartOutcome,verifyOutcome:$verifyOutcome,service:"fgbears-live.service",facebookTouched:false}' \
+            '{checkedAt:$checkedAt,runId:$runId,jobStatus:$jobStatus,restartOutcome:$restartOutcome,verifyOutcome:$verifyOutcome,service:"fgbears-live.service",youtubeRelayService:"fgbears-youtube-relay.service",facebookTouched:false}' \
             > .github/deployment-status/fgbears-encoder-reconnect.json
           git config user.name 'FGBears Deploy Bot'
           git config user.email 'actions@github.com'
