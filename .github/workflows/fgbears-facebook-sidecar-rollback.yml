@@ -1,0 +1,74 @@
+name: Safely Roll Back FGBears Facebook Sidecar
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-facebook-sidecar-rollback.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Disable Facebook sidecar and restore YouTube relay only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > /tmp/fbrollback.json <<'REMOTE'
+          set -Eeuo pipefail
+          before=$(systemctl show -p MainPID --value fgbears-live.service)
+          sudo fgbears-configure-facebook --disable >/dev/null
+          for _ in $(seq 1 60); do
+            after=$(systemctl show -p MainPID --value fgbears-live.service)
+            relay=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+            primary_ffmpeg=$(pgrep -P "$after" -x ffmpeg | head -n 1 || true)
+            if [[ "$after" == "$before" && "$relay" =~ ^[1-9][0-9]*$ && -n "$primary_ffmpeg" ]] && systemctl is-active --quiet fgbears-live.service && systemctl is-active --quiet fgbears-youtube-relay.service; then
+              sudo ss -ntpH state established > /tmp/rollback-sockets.txt || true
+              yt=$(grep "pid=$relay" /tmp/rollback-sockets.txt | grep -vE '127\.0\.0\.1|\[::1\]' | grep -c ':443' || true)
+              x=$(grep "pid=$primary_ffmpeg" /tmp/rollback-sockets.txt | grep -vE '127\.0\.0\.1|\[::1\]' | grep -c ':443' || true)
+              rm -f /tmp/rollback-sockets.txt
+              if (( yt > 0 && x > 0 )); then
+                jq -n --argjson primaryActive true --argjson primaryRestarted false --argjson youtubeEstablished true --argjson xEstablished true --argjson facebookEnabled false --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '{primaryActive:$primaryActive,primaryRestarted:$primaryRestarted,youtubeEstablished:$youtubeEstablished,xEstablished:$xEstablished,facebookEnabled:$facebookEnabled,checkedAt:$checkedAt}'
+                exit 0
+              fi
+            fi
+            sleep 2
+          done
+          jq -n --argjson primaryActive "$(systemctl is-active --quiet fgbears-live.service && echo true || echo false)" --argjson primaryRestarted false --argjson youtubeEstablished false --argjson xEstablished false --argjson facebookEnabled false --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '{primaryActive:$primaryActive,primaryRestarted:$primaryRestarted,youtubeEstablished:$youtubeEstablished,xEstablished:$xEstablished,facebookEnabled:$facebookEnabled,checkedAt:$checkedAt}'
+          exit 1
+          REMOTE
+          cat /tmp/fbrollback.json
+      - name: Record rollback result
+        if: always()
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          test -s /tmp/fbrollback.json && cp /tmp/fbrollback.json .github/deployment-status/fgbears-facebook-sidecar-rollback.json || echo '{"status":"unavailable"}' > .github/deployment-status/fgbears-facebook-sidecar-rollback.json
+          git config user.name 'FGBears Deploy Bot'; git config user.email 'actions@github.com'
+          git add .github/deployment-status/fgbears-facebook-sidecar-rollback.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record Facebook sidecar rollback [skip ci]'
+          git push origin main
