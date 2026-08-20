@@ -1,0 +1,153 @@
+name: Activate FGBears YouTube Stream Key
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-youtube-key-activate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fgbears-youtube-key-activation
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: require
+        name: Require protected YouTube stream-key secret
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          FGB_YOUTUBE_STREAM_KEY: ${{ secrets.FGB_YOUTUBE_STREAM_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+          test -n "$FGB_YOUTUBE_STREAM_KEY" || { echo 'Missing FGB_YOUTUBE_STREAM_KEY secret'; exit 1; }
+
+      - name: Configure Oracle SSH
+        if: steps.require.outcome == 'success'
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - id: activate_key
+        name: Install protected YouTube key on Oracle and restart encoder
+        if: steps.require.outcome == 'success'
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          FGB_YOUTUBE_STREAM_KEY: ${{ secrets.FGB_YOUTUBE_STREAM_KEY }}
+        run: |
+          set -Eeuo pipefail
+          printf '%s\n' "$FGB_YOUTUBE_STREAM_KEY" | ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          IFS= read -r key
+          [[ -n "$key" ]] || { echo 'Protected YouTube key was empty.' >&2; exit 64; }
+          [[ "$key" != *'|'* ]] || { echo 'Unsupported character in YouTube key.' >&2; exit 64; }
+          env_file=/etc/fgbears-live/stream.env
+          [[ -f "$env_file" ]] || { echo 'Missing stream.env' >&2; exit 66; }
+          KEY_VALUE="$key" python3 - "$env_file" <<'PY'
+          from pathlib import Path
+          import os, sys
+          path = Path(sys.argv[1])
+          text = path.read_text(encoding='utf-8')
+          value = os.environ['KEY_VALUE']
+          out=[]; seen=False
+          for line in text.splitlines():
+              if line.startswith('YOUTUBE_STREAM_KEY='):
+                  out.append('YOUTUBE_STREAM_KEY=' + value); seen=True
+              else:
+                  out.append(line)
+          if not seen:
+              out.append('YOUTUBE_STREAM_KEY=' + value)
+          path.write_text('\n'.join(out) + '\n', encoding='utf-8')
+          PY
+          unset key KEY_VALUE
+          chown root:fgbears "$env_file"
+          chmod 640 "$env_file"
+          systemctl reset-failed fgbears-live.service || true
+          systemctl restart fgbears-live.service
+          REMOTE
+
+      - id: verify
+        name: Verify YouTube RTMPS socket without exposing credentials
+        if: steps.activate_key.outcome == 'success'
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          for _ in $(seq 1 60); do
+            if systemctl is-active --quiet fgbears-live.service; then
+              ffmpeg_pid=$(pgrep -o -x ffmpeg || true)
+              if [[ -n "$ffmpeg_pid" ]]; then
+                sudo ss -ntpH state established | grep "pid=$ffmpeg_pid" > /tmp/fgbears-yt-key-sockets.txt || true
+                getent ahostsv4 a.rtmps.youtube.com | awk '{print $1}' | sort -u > /tmp/fgbears-yt-key-ips.txt
+                while IFS= read -r ip; do
+                  [[ -n "$ip" ]] || continue
+                  if grep -Fq "$ip:443" /tmp/fgbears-yt-key-sockets.txt; then
+                    rm -f /tmp/fgbears-yt-key-sockets.txt /tmp/fgbears-yt-key-ips.txt
+                    echo 'YouTube RTMPS socket established.'
+                    exit 0
+                  fi
+                done < /tmp/fgbears-yt-key-ips.txt
+              fi
+            fi
+            sleep 2
+          done
+          echo 'YouTube RTMPS socket was not established after the protected key update.' >&2
+          exit 1
+          REMOTE
+
+      - name: Record safe activation result
+        if: always()
+        env:
+          REQUIRE_OUTCOME: ${{ steps.require.outcome }}
+          ACTIVATE_OUTCOME: ${{ steps.activate_key.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          secret_present=false
+          activated=false
+          socket_established=false
+          [[ "$REQUIRE_OUTCOME" == 'success' ]] && secret_present=true
+          [[ "$ACTIVATE_OUTCOME" == 'success' ]] && activated=true
+          [[ "$VERIFY_OUTCOME" == 'success' ]] && socket_established=true
+          jq -n \
+            --argjson secretPresent "$secret_present" \
+            --argjson activated "$activated" \
+            --argjson youtubeSocketEstablished "$socket_established" \
+            --arg requireOutcome "$REQUIRE_OUTCOME" \
+            --arg activateOutcome "$ACTIVATE_OUTCOME" \
+            --arg verifyOutcome "$VERIFY_OUTCOME" \
+            --arg jobStatus "$JOB_STATUS" \
+            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{secretPresent:$secretPresent,activated:$activated,youtubeSocketEstablished:$youtubeSocketEstablished,requireOutcome:$requireOutcome,activateOutcome:$activateOutcome,verifyOutcome:$verifyOutcome,jobStatus:$jobStatus,checkedAt:$checkedAt,service:"fgbears-live.service"}' \
+            > .github/deployment-status/fgbears-youtube-key.json
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add .github/deployment-status/fgbears-youtube-key.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Record YouTube stream-key activation result [skip ci]'
+          git push origin main
