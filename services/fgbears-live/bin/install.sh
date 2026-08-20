@@ -16,9 +16,6 @@ for package in "${required_packages[@]}"; do
   fi
 done
 
-# Do not hit Ubuntu mirrors on every deployment. The Oracle host already has
-# these packages in normal operation; only contact apt when something is actually
-# missing. Retry/time out explicitly so a slow mirror cannot strand the SSH deploy.
 if ((${#missing_packages[@]})); then
   echo "Installing missing packages: ${missing_packages[*]}"
   apt-get \
@@ -42,10 +39,6 @@ fi
 install -d -m 0755 /opt/fgbears-live
 rsync -a --delete "$SOURCE_DIR/" /opt/fgbears-live/
 
-# Keep the mature renderer implementation as the base module and install the
-# aspect-safe entry point at the path start-stream already launches. This makes
-# every photo use the same no-crop/no-stretch fitting rule without changing the
-# live stream's video-clock architecture.
 mv /opt/fgbears-live/bin/ad-overlay.py /opt/fgbears-live/bin/ad-overlay-base.py
 install -m 0755 /opt/fgbears-live/bin/ad-overlay-smart.py /opt/fgbears-live/bin/ad-overlay.py
 
@@ -53,8 +46,6 @@ install -d -m 0755 /opt/fgbears-live/assets
 base64 --decode "$SOURCE_DIR/../../renderer/assets/epic-logo-for-qr.base64.txt" > /opt/fgbears-live/assets/epic-logo.png
 chmod 0644 /opt/fgbears-live/assets/epic-logo.png
 
-# Install the approved FGB/EPIC card shown between sponsor advertisements and
-# fail the deployment unless Pillow can fully decode the broadcast-sized file.
 install -m 0644 \
   "$SOURCE_DIR/assets/fgb-epic-default-interstitial.jpg" \
   /opt/fgbears-live/assets/fgb-epic-default-interstitial.jpg
@@ -79,6 +70,10 @@ install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-st
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-relay.service /etc/systemd/system/fgbears-youtube-relay.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-facebook-relay.service /etc/systemd/system/fgbears-facebook-relay.service
+install -m 0644 /opt/fgbears-live/systemd/fgbears-facebook-start.service /etc/systemd/system/fgbears-facebook-start.service
+install -m 0644 /opt/fgbears-live/systemd/fgbears-facebook-stop.service /etc/systemd/system/fgbears-facebook-stop.service
+install -m 0644 /opt/fgbears-live/systemd/fgbears-facebook-start.timer /etc/systemd/system/fgbears-facebook-start.timer
+install -m 0644 /opt/fgbears-live/systemd/fgbears-facebook-stop.timer /etc/systemd/system/fgbears-facebook-stop.timer
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.service /etc/systemd/system/fgbears-live-health.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.timer /etc/systemd/system/fgbears-live-health.timer
 
@@ -87,9 +82,8 @@ if [[ ! -e "$ENV_PATH" ]]; then
   install -o root -g fgbears -m 0640 /opt/fgbears-live/config/stream.env.example "$ENV_PATH"
 fi
 
-# Preserve the local YouTube hop and migrate any legacy direct Facebook enablement
-# into the isolated sidecar. The primary encoder's Facebook flag is always forced
-# off so Facebook TLS can never re-enter the primary FFmpeg process.
+# Preserve credentials, lock out direct Meta output, and keep the Facebook
+# schedule independent of the primary encoder and dedicated YouTube relay.
 python3 - "$ENV_PATH" <<'PY'
 from pathlib import Path
 import sys
@@ -124,7 +118,10 @@ updates = {
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
     "FACEBOOK_STREAM_ENABLED": "0",
     "FACEBOOK_RELAY_ENABLED": relay_enabled,
-    "FACEBOOK_LOCAL_RTMP_BASE": values.get("FACEBOOK_LOCAL_RTMP_BASE") or "rtmp://127.0.0.1:1936/live",
+    "FACEBOOK_LOCAL_UDP_URL": "udp://127.0.0.1:1936?pkt_size=1316",
+    "FACEBOOK_SCHEDULE_TIMEZONE": "America/Chicago",
+    "FACEBOOK_SCHEDULE_START": "12:00",
+    "FACEBOOK_SCHEDULE_STOP": "15:25",
 }
 seen = set()
 out = []
@@ -147,19 +144,33 @@ chmod 0640 "$ENV_PATH"
 
 systemctl daemon-reload
 systemctl enable fgbears-youtube-relay.service
+systemctl disable fgbears-facebook-relay.service >/dev/null 2>&1 || true
 
+facebook_configured=false
 if grep -Eq '^FACEBOOK_RELAY_ENABLED=(1|true|yes|on)$' "$ENV_PATH" && \
    grep -Eq '^FACEBOOK_RTMP_BASE=rtmps?://.+' "$ENV_PATH" && \
    awk -F= '/^FACEBOOK_STREAM_KEY=/{if(length(substr($0,index($0,"=")+1))>0) ok=1} END{exit ok?0:1}' "$ENV_PATH"; then
-  systemctl enable fgbears-facebook-relay.service
-  systemctl reset-failed fgbears-facebook-relay.service || true
-  systemctl restart fgbears-facebook-relay.service
-else
-  systemctl disable --now fgbears-facebook-relay.service >/dev/null 2>&1 || true
+  facebook_configured=true
 fi
 
-# Start/restart the local listeners before the primary encoder reconnects to them.
+if [[ "$facebook_configured" == true ]]; then
+  systemctl enable --now fgbears-facebook-start.timer fgbears-facebook-stop.timer
+  now_hm=$(TZ=America/Chicago date +%H%M)
+  now_hm=$((10#$now_hm))
+  systemctl reset-failed fgbears-facebook-relay.service || true
+  if (( now_hm >= 1200 && now_hm < 1525 )); then
+    systemctl restart fgbears-facebook-relay.service
+  else
+    systemctl stop fgbears-facebook-relay.service >/dev/null 2>&1 || true
+  fi
+else
+  systemctl disable --now fgbears-facebook-start.timer fgbears-facebook-stop.timer >/dev/null 2>&1 || true
+  systemctl stop fgbears-facebook-relay.service >/dev/null 2>&1 || true
+fi
+
+# The YouTube relay remains a dedicated single-output copy-remux service.
+systemctl reset-failed fgbears-youtube-relay.service || true
 systemctl restart fgbears-youtube-relay.service
 systemctl enable --now fgbears-live-health.timer
 
-echo "Installed FGBears Live with one primary encode, isolated YouTube copy-remux relay, X output, and an optional isolated Facebook copy-remux sidecar."
+echo "Installed FGBears Live with one primary encode, dedicated YouTube relay, X output, and a scheduled isolated Facebook sidecar (12:00-15:25 America/Chicago)."

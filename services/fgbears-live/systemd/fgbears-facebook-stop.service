@@ -1,0 +1,6 @@
+[Unit]
+Description=Stop scheduled FGBears Facebook simulcast
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/systemctl stop fgbears-facebook-relay.service
