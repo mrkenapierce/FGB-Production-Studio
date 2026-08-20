@@ -1,12 +1,14 @@
 {
   "serviceActive": true,
+  "youtubeRelayActive": true,
   "ffmpegActive": true,
   "youtubeConfigured": true,
-  "youtubeSocketEstablished": true,
+  "youtubeSocketEstablished": false,
   "xEnabled": true,
-  "xSocketEstablished": true,
+  "xSocketEstablished": false,
   "youtubePrimaryFailureRecent": true,
-  "ffmpegEstablishedSocketCount": 4,
-  "checkedAt": "2026-08-20T08:03:54Z",
-  "runId": "32326505362"
+  "ffmpegEstablishedSocketCount": 0,
+  "checkedAt": "2026-08-20T08:33:06Z",
+  "runId": "32349359767",
+  "transport": "youtube-copy-remux-relay"
 }
