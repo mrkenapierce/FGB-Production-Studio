@@ -13,6 +13,9 @@ source "$ENV_FILE"
 : "${X_STREAM_ENABLED:=0}"
 : "${X_RTMP_BASE:=}"
 : "${X_STREAM_KEY:=}"
+: "${FACEBOOK_STREAM_ENABLED:=0}"
+: "${FACEBOOK_RTMP_BASE:=}"
+: "${FACEBOOK_STREAM_KEY:=}"
 : "${PLAYLIST_FILE:=/srv/fgbears-live/playlist.ffconcat}"
 : "${FFMPEG_LOGLEVEL:=warning}"
 : "${OUTPUT_FPS:=24}"
@@ -42,20 +45,27 @@ source "$ENV_FILE"
 [[ -r "$BEARS_NEWS_SCRIPT" ]] || { echo "Bears news feed poller is missing: $BEARS_NEWS_SCRIPT" >&2; exit 66; }
 
 case "${X_STREAM_ENABLED,,}" in
-  1|true|yes|on)
-    X_STREAM_ACTIVE=1
-    ;;
-  0|false|no|off|"")
-    X_STREAM_ACTIVE=0
-    ;;
+  1|true|yes|on) X_STREAM_ACTIVE=1 ;;
+  0|false|no|off|"") X_STREAM_ACTIVE=0 ;;
   *)
     echo "X_STREAM_ENABLED must be 0/1, false/true, no/yes, or off/on." >&2
     exit 64
     ;;
 esac
 
+case "${FACEBOOK_STREAM_ENABLED,,}" in
+  1|true|yes|on) FACEBOOK_STREAM_ACTIVE=1 ;;
+  0|false|no|off|"") FACEBOOK_STREAM_ACTIVE=0 ;;
+  *)
+    echo "FACEBOOK_STREAM_ENABLED must be 0/1, false/true, no/yes, or off/on." >&2
+    exit 64
+    ;;
+esac
+
 YOUTUBE_TARGET="${YOUTUBE_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 TEE_TARGETS="[f=flv:flvflags=no_duration_filesize:onfail=abort]${YOUTUBE_TARGET}"
+OUTPUT_LABELS=("YouTube primary")
+
 if (( X_STREAM_ACTIVE )); then
   [[ -n "$X_RTMP_BASE" ]] || { echo "X_RTMP_BASE is required when X streaming is enabled." >&2; exit 78; }
   [[ -n "$X_STREAM_KEY" ]] || { echo "X_STREAM_KEY is required when X streaming is enabled." >&2; exit 78; }
@@ -68,13 +78,27 @@ if (( X_STREAM_ACTIVE )); then
     exit 78
   }
   X_TARGET="${X_RTMP_BASE%/}/${X_STREAM_KEY}"
-  # X is deliberately onfail=ignore. A failed X session must never terminate
-  # the primary YouTube broadcast.
   TEE_TARGETS+="|[f=flv:flvflags=no_duration_filesize:onfail=ignore]${X_TARGET}"
-  echo "FGBears Live output: YouTube primary + X Live Studio optional simulcast."
-else
-  echo "FGBears Live output: YouTube primary. X simulcast is disabled."
+  OUTPUT_LABELS+=("X")
 fi
+
+if (( FACEBOOK_STREAM_ACTIVE )); then
+  [[ -n "$FACEBOOK_RTMP_BASE" ]] || { echo "FACEBOOK_RTMP_BASE is required when Facebook streaming is enabled." >&2; exit 78; }
+  [[ -n "$FACEBOOK_STREAM_KEY" ]] || { echo "FACEBOOK_STREAM_KEY is required when Facebook streaming is enabled." >&2; exit 78; }
+  [[ "$FACEBOOK_RTMP_BASE" == rtmp://* || "$FACEBOOK_RTMP_BASE" == rtmps://* ]] || {
+    echo "FACEBOOK_RTMP_BASE must be an RTMP or RTMPS URL from Facebook Live Producer." >&2
+    exit 78
+  }
+  [[ "$FACEBOOK_RTMP_BASE$FACEBOOK_STREAM_KEY" != *"|"* ]] || {
+    echo "Facebook RTMP URL/key contains an unsupported tee delimiter." >&2
+    exit 78
+  }
+  FACEBOOK_TARGET="${FACEBOOK_RTMP_BASE%/}/${FACEBOOK_STREAM_KEY}"
+  TEE_TARGETS+="|[f=flv:flvflags=no_duration_filesize:onfail=ignore]${FACEBOOK_TARGET}"
+  OUTPUT_LABELS+=("Facebook")
+fi
+
+printf 'FGBears Live output: %s.\n' "$(IFS=' + '; echo "${OUTPUT_LABELS[*]}")"
 
 python3 "$AD_OVERLAY_SCRIPT" &
 OVERLAY_PID=$!
@@ -163,10 +187,9 @@ progress_sink() {
 FFMPEG_PID=""
 
 # Keep one primary live video clock from the ad renderer. The crawl renderer is
-# consumed as its own small MJPEG lane so emoji can be composited as images
-# instead of being redrawn by FFmpeg's single-font drawtext filter. The finished
-# program is encoded once and the tee muxer distributes identical packets to
-# YouTube and, when configured, X Live Studio.
+# consumed as its own small MJPEG lane so emoji can be composited as images.
+# The finished program is encoded once and the tee muxer distributes identical
+# packets to YouTube plus any enabled secondary destinations.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
