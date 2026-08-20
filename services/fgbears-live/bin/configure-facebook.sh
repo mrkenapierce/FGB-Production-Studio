@@ -17,7 +17,10 @@ text = path.read_text(encoding="utf-8")
 updates = {
     "FACEBOOK_STREAM_ENABLED": "0",
     "FACEBOOK_RELAY_ENABLED": os.environ["FACEBOOK_RELAY_ENABLED_VALUE"],
-    "FACEBOOK_LOCAL_RTMP_BASE": "rtmp://127.0.0.1:1936/live",
+    "FACEBOOK_LOCAL_UDP_URL": "udp://127.0.0.1:1936?pkt_size=1316",
+    "FACEBOOK_SCHEDULE_TIMEZONE": "America/Chicago",
+    "FACEBOOK_SCHEDULE_START": "12:00",
+    "FACEBOOK_SCHEDULE_STOP": "15:25",
 }
 if os.environ.get("FACEBOOK_RTMP_BASE_VALUE"):
     updates["FACEBOOK_RTMP_BASE"] = os.environ["FACEBOOK_RTMP_BASE_VALUE"]
@@ -43,15 +46,19 @@ PY
   chmod 640 "$ENV_FILE"
 }
 
+in_schedule_window() {
+  local now_hm
+  now_hm=$(TZ=America/Chicago date +%H%M)
+  now_hm=$((10#$now_hm))
+  (( now_hm >= 1200 && now_hm < 1525 ))
+}
+
 if [[ ${1:-} == "--disable" ]]; then
   write_updates 0
-  systemctl disable --now fgbears-facebook-relay.service >/dev/null 2>&1 || true
-  systemctl reset-failed fgbears-live.service fgbears-youtube-relay.service || true
-  # The primary encoder reads its destination set only at process start. A
-  # controlled primary restart removes the localhost Facebook leg. It does not
-  # alter the YouTube relay configuration or X credentials.
-  systemctl restart fgbears-live.service
-  echo "Facebook sidecar disabled. Direct Facebook remains locked off."
+  systemctl disable --now fgbears-facebook-start.timer fgbears-facebook-stop.timer >/dev/null 2>&1 || true
+  systemctl stop fgbears-facebook-relay.service >/dev/null 2>&1 || true
+  systemctl reset-failed fgbears-facebook-relay.service || true
+  echo "Facebook schedule disabled. Primary encoder, YouTube, and X were not restarted."
   exit 0
 fi
 
@@ -71,26 +78,15 @@ write_updates 1 "$facebook_rtmp_base" "$facebook_stream_key"
 unset facebook_stream_key
 
 systemctl daemon-reload
-systemctl reset-failed fgbears-facebook-relay.service fgbears-youtube-relay.service fgbears-live.service || true
-# Start the isolated Meta listener before the primary encoder begins publishing
-# to localhost:1936. Meta RTMPS exists only inside this sidecar process.
-systemctl enable fgbears-facebook-relay.service
-systemctl restart fgbears-facebook-relay.service
-# One controlled primary restart is required to add the new localhost-only tee
-# leg. YouTube's relay code is unchanged and X reconnects from the same encoder.
-systemctl restart fgbears-live.service
+systemctl reset-failed fgbears-facebook-relay.service || true
+systemctl enable --now fgbears-facebook-start.timer fgbears-facebook-stop.timer
 
-for _ in $(seq 1 45); do
-  if systemctl is-active --quiet fgbears-live.service && \
-     systemctl is-active --quiet fgbears-youtube-relay.service && \
-     systemctl is-active --quiet fgbears-facebook-relay.service; then
-    echo "Facebook isolated sidecar enabled with localhost-only handoff."
-    exit 0
-  fi
-  sleep 1
-done
+# The primary encoder continuously emits only a localhost UDP copy, so changing
+# the Facebook schedule never requires restarting the primary stream or YouTube.
+if in_schedule_window; then
+  systemctl restart fgbears-facebook-relay.service
+else
+  systemctl stop fgbears-facebook-relay.service >/dev/null 2>&1 || true
+fi
 
-systemctl status fgbears-live.service --no-pager --lines=40 >&2 || true
-systemctl status fgbears-youtube-relay.service --no-pager --lines=40 >&2 || true
-systemctl status fgbears-facebook-relay.service --no-pager --lines=40 >&2 || true
-exit 1
+echo "Facebook simulcast scheduled daily from 12:00 PM to 3:25 PM America/Chicago."
