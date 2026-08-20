@@ -102,3 +102,5 @@ fi'''
           git add services/fgbears-live/bin/start-stream.sh
           git commit -m 'Route Facebook only to isolated localhost sidecar'
           git push --force-with-lease origin "$branch"
+
+# Re-run marker: corrected branch exists before patching.
