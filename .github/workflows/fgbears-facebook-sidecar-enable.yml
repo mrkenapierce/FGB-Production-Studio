@@ -1,0 +1,233 @@
+name: Enable FGBears Facebook Sidecar Safely
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-facebook-sidecar-enable.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fgbears-live-production-deploy
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require Oracle access
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - id: enable_sidecar
+        name: Install and enable Facebook sidecar using preserved Oracle credential
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > /tmp/facebook-sidecar.env <<'REMOTE'
+          set -Eeuo pipefail
+          env_file=/etc/fgbears-live/stream.env
+          primary_pid_before=$(systemctl show -p MainPID --value fgbears-live.service)
+
+          rm -rf /tmp/fgbears-facebook-sidecar
+          git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-facebook-sidecar >/dev/null 2>&1
+          sudo bash /tmp/fgbears-facebook-sidecar/services/fgbears-live/bin/install.sh >/dev/null
+
+          key_present=false
+          if sudo awk -F= '/^FACEBOOK_STREAM_KEY=/{if(length(substr($0,index($0,"=")+1))>0) ok=1} END{exit ok?0:1}' "$env_file"; then
+            key_present=true
+          fi
+          if [[ "$key_present" != true ]]; then
+            printf 'KEY_PRESENT=false\n'
+            printf 'ACTIVATED=false\n'
+            printf 'ROLLED_BACK=false\n'
+            printf 'FAILURE_CLASS=facebook-key-missing-on-oracle\n'
+            exit 1
+          fi
+          if ! sudo grep -Eq '^FACEBOOK_RTMP_BASE=rtmps?://.+' "$env_file"; then
+            printf 'KEY_PRESENT=true\n'
+            printf 'ACTIVATED=false\n'
+            printf 'ROLLED_BACK=false\n'
+            printf 'FAILURE_CLASS=facebook-rtmp-base-missing\n'
+            exit 1
+          fi
+
+          sudo python3 - "$env_file" <<'PY'
+          from pathlib import Path
+          import sys
+          p=Path(sys.argv[1])
+          lines=p.read_text(encoding='utf-8').splitlines()
+          updates={
+              'FACEBOOK_STREAM_ENABLED':'0',
+              'FACEBOOK_RELAY_ENABLED':'1',
+              'FACEBOOK_LOCAL_RTMP_BASE':'rtmp://127.0.0.1:1936/live',
+          }
+          seen=set(); out=[]
+          for line in lines:
+              key=line.split('=',1)[0] if '=' in line and not line.lstrip().startswith('#') else None
+              if key in updates:
+                  if key not in seen:
+                      out.append(f'{key}={updates[key]}'); seen.add(key)
+              else:
+                  out.append(line)
+          for key,value in updates.items():
+              if key not in seen: out.append(f'{key}={value}')
+          p.write_text('\n'.join(out)+'\n',encoding='utf-8')
+          PY
+          sudo chown root:fgbears "$env_file"
+          sudo chmod 0640 "$env_file"
+          sudo systemctl daemon-reload
+          sudo systemctl reset-failed fgbears-facebook-relay.service fgbears-youtube-relay.service || true
+          sudo systemctl enable fgbears-facebook-relay.service >/dev/null
+          sudo systemctl restart fgbears-facebook-relay.service
+          sudo systemctl restart fgbears-youtube-relay.service
+
+          rollback() {
+            sudo python3 - "$env_file" <<'PY'
+          from pathlib import Path
+          import sys
+          p=Path(sys.argv[1]); lines=p.read_text(encoding='utf-8').splitlines(); out=[]; seen=set()
+          updates={'FACEBOOK_STREAM_ENABLED':'0','FACEBOOK_RELAY_ENABLED':'0'}
+          for line in lines:
+              key=line.split('=',1)[0] if '=' in line and not line.lstrip().startswith('#') else None
+              if key in updates:
+                  if key not in seen: out.append(f'{key}={updates[key]}'); seen.add(key)
+              else: out.append(line)
+          for key,value in updates.items():
+              if key not in seen: out.append(f'{key}={value}')
+          p.write_text('\n'.join(out)+'\n',encoding='utf-8')
+          PY
+            sudo systemctl disable --now fgbears-facebook-relay.service >/dev/null 2>&1 || true
+            sudo systemctl restart fgbears-youtube-relay.service || true
+          }
+
+          stable_samples=0
+          failure_class=facebook-sidecar-not-stable
+          facebook_pid_first=''
+          youtube_pid_first=''
+          for _ in $(seq 1 60); do
+            primary_pid_now=$(systemctl show -p MainPID --value fgbears-live.service)
+            youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+            facebook_pid=$(systemctl show -p MainPID --value fgbears-facebook-relay.service)
+            if [[ "$primary_pid_now" != "$primary_pid_before" ]]; then
+              failure_class=primary-encoder-restarted
+              break
+            fi
+            if systemctl is-active --quiet fgbears-live.service && systemctl is-active --quiet fgbears-youtube-relay.service && systemctl is-active --quiet fgbears-facebook-relay.service && [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]] && [[ "$facebook_pid" =~ ^[1-9][0-9]*$ ]]; then
+              [[ -n "$facebook_pid_first" ]] || facebook_pid_first="$facebook_pid"
+              [[ -n "$youtube_pid_first" ]] || youtube_pid_first="$youtube_pid"
+              if [[ "$facebook_pid" != "$facebook_pid_first" ]]; then failure_class=facebook-relay-restarted; break; fi
+              if [[ "$youtube_pid" != "$youtube_pid_first" ]]; then failure_class=youtube-relay-restarted; break; fi
+              primary_ffmpeg=$(pgrep -P "$primary_pid_now" -x ffmpeg | head -n 1 || true)
+              sockets=$(mktemp)
+              sudo ss -ntpH state established > "$sockets" || true
+              youtube_external=$(grep "pid=$youtube_pid" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -c ':443' || true)
+              facebook_external=$(grep "pid=$facebook_pid" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -c ':443' || true)
+              x_external=0
+              if [[ -n "$primary_ffmpeg" ]]; then
+                x_external=$(grep "pid=$primary_ffmpeg" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -c ':443' || true)
+              fi
+              local_handoff=$(grep "pid=$youtube_pid" "$sockets" | grep -c '127.0.0.1:1936' || true)
+              rm -f "$sockets"
+              if (( youtube_external > 0 && facebook_external > 0 && x_external > 0 && local_handoff > 0 )); then
+                stable_samples=$((stable_samples+1))
+                if (( stable_samples >= 5 )); then
+                  printf 'KEY_PRESENT=true\n'
+                  printf 'ACTIVATED=true\n'
+                  printf 'ROLLED_BACK=false\n'
+                  printf 'PRIMARY_RESTARTED=false\n'
+                  printf 'YOUTUBE_ESTABLISHED=true\n'
+                  printf 'X_ESTABLISHED=true\n'
+                  printf 'FACEBOOK_ESTABLISHED=true\n'
+                  printf 'LOCAL_HANDOFF=true\n'
+                  printf 'FAILURE_CLASS=none\n'
+                  exit 0
+                fi
+              else
+                stable_samples=0
+              fi
+            fi
+            sleep 2
+          done
+
+          rollback
+          printf 'KEY_PRESENT=true\n'
+          printf 'ACTIVATED=false\n'
+          printf 'ROLLED_BACK=true\n'
+          printf 'PRIMARY_RESTARTED=false\n'
+          printf 'YOUTUBE_ESTABLISHED=false\n'
+          printf 'X_ESTABLISHED=false\n'
+          printf 'FACEBOOK_ESTABLISHED=false\n'
+          printf 'LOCAL_HANDOFF=false\n'
+          printf 'FAILURE_CLASS=%s\n' "$failure_class"
+          exit 1
+          REMOTE
+          cat /tmp/facebook-sidecar.env
+
+      - name: Record safe Facebook sidecar result
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
+          key_present=false; activated=false; rolled_back=false; primary_restarted=false
+          youtube_established=false; x_established=false; facebook_established=false; local_handoff=false
+          failure_class=diagnostic-unavailable
+          if [[ -f /tmp/facebook-sidecar.env ]]; then
+            while IFS='=' read -r key value; do
+              case "$key" in
+                KEY_PRESENT) key_present="$value" ;;
+                ACTIVATED) activated="$value" ;;
+                ROLLED_BACK) rolled_back="$value" ;;
+                PRIMARY_RESTARTED) primary_restarted="$value" ;;
+                YOUTUBE_ESTABLISHED) youtube_established="$value" ;;
+                X_ESTABLISHED) x_established="$value" ;;
+                FACEBOOK_ESTABLISHED) facebook_established="$value" ;;
+                LOCAL_HANDOFF) local_handoff="$value" ;;
+                FAILURE_CLASS) failure_class="$value" ;;
+              esac
+            done < /tmp/facebook-sidecar.env
+          fi
+          mkdir -p .github/deployment-status
+          jq -n \
+            --argjson facebookKeyPresent "$key_present" \
+            --argjson facebookSimulcastActive "$activated" \
+            --argjson rolledBack "$rolled_back" \
+            --argjson primaryRestarted "$primary_restarted" \
+            --argjson youtubeEstablished "$youtube_established" \
+            --argjson xEstablished "$x_established" \
+            --argjson facebookEstablished "$facebook_established" \
+            --argjson localFacebookHandoff "$local_handoff" \
+            --arg failureClass "$failure_class" \
+            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg jobStatus "${{ job.status }}" \
+            '{facebookKeyPresent:$facebookKeyPresent,facebookSimulcastActive:$facebookSimulcastActive,rolledBack:$rolledBack,primaryRestarted:$primaryRestarted,youtubeEstablished:$youtubeEstablished,xEstablished:$xEstablished,facebookEstablished:$facebookEstablished,localFacebookHandoff:$localFacebookHandoff,failureClass:$failureClass,transport:"isolated-copy-remux-sidecar",checkedAt:$checkedAt,runId:$runId,jobStatus:$jobStatus}' \
+            > .github/deployment-status/fgbears-facebook-sidecar.json
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add .github/deployment-status/fgbears-facebook-sidecar.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record safe Facebook sidecar activation [skip ci]'
+          git push origin main
