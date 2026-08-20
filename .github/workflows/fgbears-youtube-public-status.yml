@@ -1,0 +1,62 @@
+name: Check FGBears YouTube Public Status
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-youtube-public-status.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  status:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Inspect public YouTube watch page
+        run: |
+          python3 - <<'PY' > /tmp/fgb-public-status.json
+          import json, re, urllib.request
+          video_id='QxmLpaargj0'
+          url=f'https://www.youtube.com/watch?v={video_id}'
+          req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/151 Safari/537.36','Accept-Language':'en-US,en;q=0.9'})
+          out={'videoId':video_id,'httpOk':False,'isLiveNow':False,'isLive':False,'isUpcoming':False,'playabilityStatus':'unknown','publicWatchUrl':url}
+          try:
+              with urllib.request.urlopen(req,timeout=20) as r:
+                  html=r.read().decode('utf-8','replace')
+                  out['httpOk']=200 <= r.status < 400
+              out['isLiveNow']='"isLiveNow":true' in html
+              out['isLive']='"isLive":true' in html
+              out['isUpcoming']='"isUpcoming":true' in html
+              m=re.search(r'"playabilityStatus"\s*:\s*\{\s*"status"\s*:\s*"([A-Z_]+)"',html)
+              if m: out['playabilityStatus']=m.group(1)
+              m=re.search(r'"liveBroadcastDetails"\s*:\s*\{([^{}]{0,2000})\}',html)
+              out['hasLiveBroadcastDetails']=bool(m)
+              out['pageMentionsOfflineSlate']='This live stream is currently offline' in html
+          except Exception as e:
+              out['fetchError']=type(e).__name__
+          print(json.dumps(out,separators=(',',':')))
+          PY
+          cat /tmp/fgb-public-status.json
+      - name: Record safe public status
+        if: always()
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          if [[ -s /tmp/fgb-public-status.json ]]; then
+            jq --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg runId "$GITHUB_RUN_ID" '. + {checkedAt:$checkedAt,runId:$runId}' /tmp/fgb-public-status.json > .github/deployment-status/fgbears-youtube-public-status.json
+          else
+            jq -n --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg runId "$GITHUB_RUN_ID" '{videoId:"QxmLpaargj0",httpOk:false,fetchError:"workflow-output-missing",checkedAt:$checkedAt,runId:$runId}' > .github/deployment-status/fgbears-youtube-public-status.json
+          fi
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add .github/deployment-status/fgbears-youtube-public-status.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record FGB YouTube public status [skip ci]'
+          git push origin main
