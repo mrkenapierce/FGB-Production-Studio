@@ -1,0 +1,10 @@
+{
+  "serviceActive": false,
+  "facebookEnabled": true,
+  "ffmpegActive": false,
+  "facebookSocketEstablished": false,
+  "facebookSlaveFailureRecent": true,
+  "ffmpegEstablishedSocketCount": 0,
+  "checkedAt": "2026-08-20T02:29:42Z",
+  "runId": "32324817689"
+}
