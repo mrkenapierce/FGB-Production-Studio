@@ -22,7 +22,7 @@ on:
       - '.github/youtube-broadcast-trigger.txt'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   ensure-live:
@@ -31,8 +31,11 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Require YouTube OAuth secrets
+      - id: require
+        name: Require YouTube OAuth secrets
         env:
           FGB_YOUTUBE_CLIENT_ID: ${{ secrets.FGB_YOUTUBE_CLIENT_ID }}
           FGB_YOUTUBE_CLIENT_SECRET: ${{ secrets.FGB_YOUTUBE_CLIENT_SECRET }}
@@ -58,6 +61,7 @@ jobs:
           python3 .github/scripts/youtube-broadcast-control.py \
             --title "$BROADCAST_TITLE" \
             --privacy "$BROADCAST_PRIVACY" \
+            2> >(tee /tmp/fgb-youtube-broadcast-error.txt >&2) \
             | tee /tmp/fgb-youtube-broadcast.txt
 
           watch_url=$(awk -F= '/^WATCH_URL=/{print substr($0,index($0,"=")+1)}' /tmp/fgb-youtube-broadcast.txt | tail -1)
@@ -65,6 +69,53 @@ jobs:
           test "$state" = "live"
           test -n "$watch_url"
           echo "watch_url=$watch_url" >> "$GITHUB_OUTPUT"
+
+      - name: Record safe broadcast controller result
+        if: always()
+        env:
+          REQUIRE_OUTCOME: ${{ steps.require.outcome }}
+          YOUTUBE_OUTCOME: ${{ steps.youtube.outcome }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          set -Eeuo pipefail
+          watch_url=''
+          state=''
+          action=''
+          broadcast_id=''
+          safe_error=''
+          if [[ -s /tmp/fgb-youtube-broadcast.txt ]]; then
+            watch_url=$(sed -n 's/^WATCH_URL=//p' /tmp/fgb-youtube-broadcast.txt | tail -1)
+            state=$(sed -n 's/^BROADCAST_STATE=//p' /tmp/fgb-youtube-broadcast.txt | tail -1)
+            action=$(sed -n 's/^BROADCAST_ACTION=//p' /tmp/fgb-youtube-broadcast.txt | tail -1)
+            broadcast_id=$(sed -n 's/^BROADCAST_ID=//p' /tmp/fgb-youtube-broadcast.txt | tail -1)
+          fi
+          if [[ -s /tmp/fgb-youtube-broadcast-error.txt ]]; then
+            safe_error=$(tail -c 1800 /tmp/fgb-youtube-broadcast-error.txt | tr '\n' ' ')
+          fi
+
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          jq -n \
+            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg jobStatus "$JOB_STATUS" \
+            --arg requireOutcome "${REQUIRE_OUTCOME:-unknown}" \
+            --arg youtubeOutcome "${YOUTUBE_OUTCOME:-unknown}" \
+            --arg broadcastState "$state" \
+            --arg broadcastAction "$action" \
+            --arg broadcastId "$broadcast_id" \
+            --arg watchUrl "$watch_url" \
+            --arg safeError "$safe_error" \
+            '{checkedAt:$checkedAt,runId:$runId,jobStatus:$jobStatus,requireOutcome:$requireOutcome,youtubeOutcome:$youtubeOutcome,broadcastState:$broadcastState,broadcastAction:$broadcastAction,broadcastId:$broadcastId,watchUrl:$watchUrl,safeError:$safeError,oracleRestarted:false}' \
+            > .github/deployment-status/fgbears-youtube-broadcast.json
+          git config user.name "FGBears YouTube Controller"
+          git config user.email "actions@github.com"
+          git add -- .github/deployment-status/fgbears-youtube-broadcast.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Record YouTube broadcast controller result [skip ci]"
+            git push origin main
+          fi
 
       - name: Publish workflow summary
         if: always()
@@ -76,6 +127,6 @@ jobs:
             if [[ -n "$WATCH_URL" ]]; then
               echo "Live: $WATCH_URL"
             else
-              echo 'Broadcast controller did not return a live watch URL. Review the failed step above.'
+              echo 'Broadcast controller did not return a live watch URL. Review the recorded deployment status.'
             fi
           } >> "$GITHUB_STEP_SUMMARY"
