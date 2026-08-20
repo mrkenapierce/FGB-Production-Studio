@@ -1,0 +1,118 @@
+name: Reconnect FGB Encoder
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-encoder-reconnect.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fgbears-encoder-reconnect
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  reconnect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: require
+        name: Require Oracle access
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - id: restart
+        name: Restart encoder service only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
+            'sudo systemctl reset-failed fgbears-live.service || true; sudo systemctl restart fgbears-live.service; sudo systemctl is-active --quiet fgbears-live.service'
+
+      - id: verify
+        name: Verify YouTube and X sockets recover
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          yt_ok=false
+          x_ok=false
+          for _ in $(seq 1 75); do
+            pid=$(pgrep -o -x ffmpeg || true)
+            if [[ -n "$pid" ]]; then
+              sudo ss -ntpH state established | grep "pid=$pid" > /tmp/fgb-reconnect-sockets.txt || true
+              getent ahostsv4 a.rtmps.youtube.com | awk '{print $1}' | sort -u > /tmp/fgb-reconnect-yt-ips.txt
+              while IFS= read -r ip; do
+                [[ -n "$ip" ]] || continue
+                grep -Fq "$ip:443" /tmp/fgb-reconnect-sockets.txt && yt_ok=true
+              done < /tmp/fgb-reconnect-yt-ips.txt
+              getent ahostsv4 ca.pscp.tv | awk '{print $1}' | sort -u > /tmp/fgb-reconnect-x-ips.txt
+              while IFS= read -r ip; do
+                [[ -n "$ip" ]] || continue
+                grep -Fq "$ip:443" /tmp/fgb-reconnect-sockets.txt && x_ok=true
+              done < /tmp/fgb-reconnect-x-ips.txt
+              if [[ "$yt_ok" == true && "$x_ok" == true ]]; then
+                rm -f /tmp/fgb-reconnect-sockets.txt /tmp/fgb-reconnect-yt-ips.txt /tmp/fgb-reconnect-x-ips.txt
+                echo 'YouTube and X sockets established.'
+                exit 0
+              fi
+            fi
+            sleep 2
+          done
+          echo "Transport recovery incomplete: youtube=$yt_ok x=$x_ok" >&2
+          rm -f /tmp/fgb-reconnect-sockets.txt /tmp/fgb-reconnect-yt-ips.txt /tmp/fgb-reconnect-x-ips.txt
+          exit 1
+          REMOTE
+
+      - name: Record reconnect result
+        if: always()
+        env:
+          RESTART_OUTCOME: ${{ steps.restart.outcome }}
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          jq -n \
+            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg runId "$GITHUB_RUN_ID" \
+            --arg jobStatus "$JOB_STATUS" \
+            --arg restartOutcome "$RESTART_OUTCOME" \
+            --arg verifyOutcome "$VERIFY_OUTCOME" \
+            '{checkedAt:$checkedAt,runId:$runId,jobStatus:$jobStatus,restartOutcome:$restartOutcome,verifyOutcome:$verifyOutcome,service:"fgbears-live.service",facebookTouched:false}' \
+            > .github/deployment-status/fgbears-encoder-reconnect.json
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add .github/deployment-status/fgbears-encoder-reconnect.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record encoder reconnect result [skip ci]'
+            git push origin main
+          fi
