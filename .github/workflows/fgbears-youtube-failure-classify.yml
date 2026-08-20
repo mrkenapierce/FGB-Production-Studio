@@ -1,0 +1,121 @@
+name: Classify FGBears YouTube Failure
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-youtube-failure-classify.yml'
+
+permissions:
+  contents: write
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Classify redacted YouTube failure
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > /tmp/youtube-failure.env <<'REMOTE'
+          set -Eeuo pipefail
+          env_file=/etc/fgbears-live/stream.env
+          sudo journalctl -u fgbears-live.service -n 900 --no-pager > /tmp/fgbears-youtube-journal.txt
+          sudo python3 - "$env_file" /tmp/fgbears-youtube-journal.txt <<'PY'
+          from pathlib import Path
+          import re, sys
+          env_path = Path(sys.argv[1])
+          log_path = Path(sys.argv[2])
+          secrets=[]
+          for line in env_path.read_text(encoding='utf-8').splitlines():
+              if '=' not in line or line.lstrip().startswith('#'):
+                  continue
+              k,v=line.split('=',1)
+              if k.endswith('STREAM_KEY') and v:
+                  secrets.append(v)
+          text=log_path.read_text(encoding='utf-8',errors='replace')
+          for secret in secrets:
+              text=text.replace(secret,'[REDACTED]')
+          lines=text.splitlines()
+          relevant=[]
+          for i,line in enumerate(lines):
+              low=line.lower()
+              if ('youtube' in low or 'a.rtmps.youtube.com' in low or 'slave muxer #0' in low or
+                  ('rtmp' in low and any(w in low for w in ('error','failed','refused','closed','reject','invalid'))) or
+                  ('tls' in low and any(w in low for w in ('error','failed','handshake','closed')))):
+                  start=max(0,i-2); end=min(len(lines),i+3)
+                  relevant.extend(lines[start:end])
+          # de-dupe while preserving order
+          seen=set(); rel=[]
+          for line in relevant:
+              if line not in seen:
+                  seen.add(line); rel.append(line)
+          low='\n'.join(rel).lower()
+          if any(x in low for x in ('invalid stream key','stream key not found','authentication failed','access denied','not authorized','permission denied')):
+              error_class='key_or_auth_rejected'
+          elif any(x in low for x in ('server error','application rejected','publish rejected','rtmp server sent error')):
+              error_class='youtube_server_rejected'
+          elif any(x in low for x in ('connection refused','connection timed out','network is unreachable','handshake failed','tls error','ssl error')):
+              error_class='network_or_tls'
+          elif any(x in low for x in ('broken pipe','connection reset','connection closed')):
+              error_class='connection_dropped'
+          elif 'slave muxer #0 failed' in low:
+              error_class='youtube_output_failed'
+          else:
+              error_class='none_or_unknown'
+          safe=[]
+          for line in rel[-20:]:
+              # remove destination path after youtube host in case any credential fragment remains
+              line=re.sub(r'(a\.rtmps\.youtube\.com(?::\d+)?)(/\S*)?',r'\1/[REDACTED_PATH]',line)
+              line=re.sub(r'(rtmps?://[^\s/]+)(/\S*)',r'\1/[REDACTED_PATH]',line)
+              safe.append(line[:500])
+          print('ERROR_CLASS='+error_class)
+          print('SAFE_DETAIL='+(' || '.join(safe) if safe else 'No targeted YouTube error lines found.'))
+          PY
+          rm -f /tmp/fgbears-youtube-journal.txt
+          REMOTE
+          cat /tmp/youtube-failure.env
+
+      - name: Record classification
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          error_class=unavailable
+          safe_detail='Diagnostic unavailable.'
+          if [[ -f /tmp/youtube-failure.env ]]; then
+            error_class=$(grep '^ERROR_CLASS=' /tmp/youtube-failure.env | head -1 | cut -d= -f2- || true)
+            safe_detail=$(grep '^SAFE_DETAIL=' /tmp/youtube-failure.env | head -1 | cut -d= -f2- || true)
+          fi
+          jq -n --arg errorClass "$error_class" --arg safeDetail "$safe_detail" --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg runId "$GITHUB_RUN_ID" '{errorClass:$errorClass,safeDetail:$safeDetail,checkedAt:$checkedAt,runId:$runId}' > .github/deployment-status/fgbears-youtube-failure.json
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add -- .github/deployment-status/fgbears-youtube-failure.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record YouTube failure classification [skip ci]'
+          git push origin main
