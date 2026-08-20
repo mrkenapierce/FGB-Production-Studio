@@ -14,8 +14,7 @@ source "$ENV_FILE"
 : "${X_RTMP_BASE:=}"
 : "${X_STREAM_KEY:=}"
 : "${FACEBOOK_STREAM_ENABLED:=0}"
-: "${FACEBOOK_RELAY_ENABLED:=0}"
-: "${FACEBOOK_LOCAL_RTMP_BASE:=rtmp://127.0.0.1:1936/live}"
+: "${FACEBOOK_LOCAL_UDP_URL:=udp://127.0.0.1:1936?pkt_size=1316}"
 : "${PLAYLIST_FILE:=/srv/fgbears-live/playlist.ffconcat}"
 : "${FFMPEG_LOGLEVEL:=warning}"
 : "${OUTPUT_FPS:=24}"
@@ -55,7 +54,7 @@ esac
 
 case "${FACEBOOK_STREAM_ENABLED,,}" in
   1|true|yes|on)
-    echo "Direct Facebook output is permanently disabled in the primary encoder. Use FACEBOOK_RELAY_ENABLED." >&2
+    echo "Direct Facebook output is permanently disabled in the primary encoder." >&2
     exit 78
     ;;
   0|false|no|off|"") ;;
@@ -65,18 +64,14 @@ case "${FACEBOOK_STREAM_ENABLED,,}" in
     ;;
 esac
 
-case "${FACEBOOK_RELAY_ENABLED,,}" in
-  1|true|yes|on) FACEBOOK_RELAY_ACTIVE=1 ;;
-  0|false|no|off|"") FACEBOOK_RELAY_ACTIVE=0 ;;
-  *)
-    echo "FACEBOOK_RELAY_ENABLED must be 0/1, false/true, no/yes, or off/on." >&2
-    exit 64
-    ;;
-esac
+[[ "$FACEBOOK_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
+  echo "FACEBOOK_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
+  exit 78
+}
 
 YOUTUBE_TARGET="${YOUTUBE_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
-# The YouTube destination is a loopback relay. Keep it recoverable so a relay
-# restart cannot terminate the primary encode or interrupt X.
+# The YouTube destination is a dedicated loopback relay. Facebook never touches
+# that relay; the primary encoder emits a second local MPEG-TS copy over UDP.
 TEE_TARGETS="[f=flv:flvflags=no_duration_filesize:onfail=ignore]${YOUTUBE_TARGET}"
 OUTPUT_LABELS=("YouTube local relay")
 
@@ -96,15 +91,11 @@ if (( X_STREAM_ACTIVE )); then
   OUTPUT_LABELS+=("X")
 fi
 
-if (( FACEBOOK_RELAY_ACTIVE )); then
-  [[ "$FACEBOOK_LOCAL_RTMP_BASE" == rtmp://127.0.0.1:* ]] || {
-    echo "FACEBOOK_LOCAL_RTMP_BASE must remain a loopback RTMP URL." >&2
-    exit 78
-  }
-  FACEBOOK_LOCAL_TARGET="${FACEBOOK_LOCAL_RTMP_BASE%/}/fgb-facebook"
-  TEE_TARGETS+="|[f=flv:flvflags=no_duration_filesize:onfail=ignore]${FACEBOOK_LOCAL_TARGET}"
-  OUTPUT_LABELS+=("Facebook local relay")
-fi
+# This local UDP mirror is always emitted. When the scheduled Facebook sidecar
+# is stopped, the packets are simply discarded by the kernel. Starting/stopping
+# Facebook therefore never requires a restart of the primary encoder or YouTube.
+TEE_TARGETS+="|[f=mpegts:onfail=ignore]${FACEBOOK_LOCAL_UDP_URL}"
+OUTPUT_LABELS+=("Facebook local mirror")
 
 printf 'FGBears Live output: %s.\n' "$(IFS=' + '; echo "${OUTPUT_LABELS[*]}")"
 
@@ -196,8 +187,8 @@ FFMPEG_PID=""
 
 # Keep one primary live video clock from the ad renderer. The crawl renderer is
 # consumed as its own small MJPEG lane so emoji can be composited as images.
-# The finished program is encoded once and the tee muxer distributes identical
-# packets to the local YouTube relay, X, and optionally the local Facebook relay.
+# The finished program is encoded once; packet copies feed YouTube, X and the
+# always-safe localhost Facebook mirror.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
