@@ -63,7 +63,9 @@ case "${FACEBOOK_STREAM_ENABLED,,}" in
 esac
 
 YOUTUBE_TARGET="${YOUTUBE_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
-TEE_TARGETS="[f=flv:flvflags=no_duration_filesize:onfail=abort]${YOUTUBE_TARGET}"
+# The YouTube destination is now a loopback relay. Keep it recoverable so a
+# relay restart cannot terminate the primary encode or interrupt the X leg.
+TEE_TARGETS="[f=flv:flvflags=no_duration_filesize:onfail=ignore]${YOUTUBE_TARGET}"
 OUTPUT_LABELS=("YouTube primary")
 
 if (( X_STREAM_ACTIVE )); then
@@ -189,7 +191,7 @@ FFMPEG_PID=""
 # Keep one primary live video clock from the ad renderer. The crawl renderer is
 # consumed as its own small MJPEG lane so emoji can be composited as images.
 # The finished program is encoded once and the tee muxer distributes identical
-# packets to YouTube plus any enabled secondary destinations.
+# packets to the local YouTube relay plus any enabled secondary destinations.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
