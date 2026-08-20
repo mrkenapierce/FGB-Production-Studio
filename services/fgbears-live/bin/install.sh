@@ -66,6 +66,7 @@ install -d -o root -g fgbears -m 0750 /etc/fgbears-live
 
 install -m 0755 /opt/fgbears-live/bin/start-stream.sh /usr/local/bin/fgbears-start-stream
 install -m 0755 /opt/fgbears-live/bin/configure-x.sh /usr/local/bin/fgbears-configure-x
+install -m 0755 /opt/fgbears-live/bin/configure-facebook.sh /usr/local/bin/fgbears-configure-facebook
 install -m 0755 /opt/fgbears-live/bin/normalize-library.sh /usr/local/bin/fgbears-normalize
 install -m 0755 /opt/fgbears-live/bin/validate-media.sh /usr/local/bin/fgbears-validate
 install -m 0755 /opt/fgbears-live/bin/rebuild-playlist.sh /usr/local/bin/fgbears-rebuild-playlist
@@ -84,4 +85,4 @@ fi
 systemctl daemon-reload
 systemctl enable --now fgbears-live-health.timer
 
-echo "Installed FGBears Live with dynamic advertising and X simulcast capability. The X leg remains disabled until @epic501c3 Live Studio credentials are configured."
+echo "Installed FGBears Live with YouTube primary plus isolated X and Facebook simulcast capability. Secondary legs remain disabled until their credentials are configured."
