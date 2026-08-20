@@ -1,11 +1,11 @@
 {
-  "secretPresent": false,
-  "activated": false,
-  "youtubeSocketEstablished": false,
-  "requireOutcome": "failure",
-  "activateOutcome": "skipped",
-  "verifyOutcome": "skipped",
-  "jobStatus": "failure",
-  "checkedAt": "2026-08-20T07:05:35Z",
+  "secretPresent": true,
+  "activated": true,
+  "youtubeSocketEstablished": true,
+  "requireOutcome": "success",
+  "activateOutcome": "success",
+  "verifyOutcome": "success",
+  "jobStatus": "success",
+  "checkedAt": "2026-08-20T07:38:28Z",
   "service": "fgbears-live.service"
 }
