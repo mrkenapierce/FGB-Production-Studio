@@ -16,6 +16,10 @@ on:
           - public
           - unlisted
           - private
+  push:
+    branches: [main]
+    paths:
+      - '.github/youtube-broadcast-trigger.txt'
 
 permissions:
   contents: read
@@ -47,8 +51,8 @@ jobs:
           FGB_YOUTUBE_CLIENT_ID: ${{ secrets.FGB_YOUTUBE_CLIENT_ID }}
           FGB_YOUTUBE_CLIENT_SECRET: ${{ secrets.FGB_YOUTUBE_CLIENT_SECRET }}
           FGB_YOUTUBE_REFRESH_TOKEN: ${{ secrets.FGB_YOUTUBE_REFRESH_TOKEN }}
-          BROADCAST_TITLE: ${{ inputs.title }}
-          BROADCAST_PRIVACY: ${{ inputs.privacy }}
+          BROADCAST_TITLE: ${{ inputs.title || 'Football’s Greatest Bears Live | 24/7 Chicago Bears Talk, Episodes & Updates' }}
+          BROADCAST_PRIVACY: ${{ inputs.privacy || 'public' }}
         run: |
           set -Eeuo pipefail
           python3 .github/scripts/youtube-broadcast-control.py \
