@@ -1,15 +1,15 @@
 {
   "ok": false,
-  "deployedSha": "39a1f2c3291856b9122225b0792733fc6152b09c",
-  "runId": "32169652581",
-  "checkedAt": "2026-08-18T18:12:03Z",
+  "deployedSha": "c3102b5d0b668f9ff9b7fe1c82598897a3d0894d",
+  "runId": "32317348166",
+  "checkedAt": "2026-08-20T00:32:27Z",
   "jobStatus": "failure",
-  "installOutcome": "success",
-  "crawlHealthOutcome": "success",
-  "emojiAssetsOutcome": "failure",
-  "ffmpegCrawlOutcome": "success",
-  "crawlFrameOutcome": "success",
-  "adsOutcome": "success",
+  "installOutcome": "failure",
+  "crawlHealthOutcome": "skipped",
+  "emojiAssetsOutcome": "skipped",
+  "ffmpegTransportOutcome": "skipped",
+  "crawlFrameOutcome": "skipped",
+  "adsOutcome": "skipped",
   "service": "fgbears-live.service",
   "expectedServiceState": "active",
   "emojiRenderer": "twemoji-png",
@@ -21,5 +21,8 @@
     "💙",
     "🧡"
   ],
-  "ffmpegCrawlInput": "http://127.0.0.1:8788/overlay.mjpg"
+  "ffmpegCrawlInput": "http://127.0.0.1:8788/overlay.mjpg",
+  "transport": "ffmpeg-tee",
+  "audioBitrateKbps": 128,
+  "xSimulcastCapable": true
 }
