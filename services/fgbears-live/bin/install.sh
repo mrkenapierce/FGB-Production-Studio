@@ -6,9 +6,34 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 SOURCE_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
 
 export DEBIAN_FRONTEND=noninteractive
-apt-get update
-apt-get install -y --no-install-recommends \
+required_packages=(
   ffmpeg ca-certificates curl git jq rsync python3 python3-pil qrencode fonts-dejavu-core
+)
+missing_packages=()
+for package in "${required_packages[@]}"; do
+  if ! dpkg-query -W -f='${Status}\n' "$package" 2>/dev/null | grep -Fqx 'install ok installed'; then
+    missing_packages+=("$package")
+  fi
+done
+
+# Do not hit Ubuntu mirrors on every deployment. The Oracle host already has
+# these packages in normal operation; only contact apt when something is actually
+# missing. Retry/time out explicitly so a slow mirror cannot strand the SSH deploy.
+if ((${#missing_packages[@]})); then
+  echo "Installing missing packages: ${missing_packages[*]}"
+  apt-get \
+    -o Acquire::Retries=3 \
+    -o Acquire::http::Timeout=30 \
+    -o Acquire::https::Timeout=30 \
+    update
+  apt-get \
+    -o Acquire::Retries=3 \
+    -o Acquire::http::Timeout=30 \
+    -o Acquire::https::Timeout=30 \
+    install -y --no-install-recommends "${missing_packages[@]}"
+else
+  echo "All required FGBears Live packages are already installed; skipping apt."
+fi
 
 if ! id fgbears >/dev/null 2>&1; then
   useradd --system --home-dir /srv/fgbears-live --shell /usr/sbin/nologin fgbears
@@ -40,6 +65,7 @@ install -d -o root -g root -m 0755 /srv/fgbears-live/health
 install -d -o root -g fgbears -m 0750 /etc/fgbears-live
 
 install -m 0755 /opt/fgbears-live/bin/start-stream.sh /usr/local/bin/fgbears-start-stream
+install -m 0755 /opt/fgbears-live/bin/configure-x.sh /usr/local/bin/fgbears-configure-x
 install -m 0755 /opt/fgbears-live/bin/normalize-library.sh /usr/local/bin/fgbears-normalize
 install -m 0755 /opt/fgbears-live/bin/validate-media.sh /usr/local/bin/fgbears-validate
 install -m 0755 /opt/fgbears-live/bin/rebuild-playlist.sh /usr/local/bin/fgbears-rebuild-playlist
@@ -58,4 +84,4 @@ fi
 systemctl daemon-reload
 systemctl enable --now fgbears-live-health.timer
 
-echo "Installed FGBears Live with dynamic advertising. The stream remains stopped until a real stream key and at least one normalized episode are present."
+echo "Installed FGBears Live with dynamic advertising and X simulcast capability. The X leg remains disabled until @epic501c3 Live Studio credentials are configured."
