@@ -1,0 +1,68 @@
+name: FGBears Oracle Meta Auth Presence Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/meta-oracle-auth-check-trigger.txt'
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require Oracle access
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Check Oracle for Meta publishing credentials without reading values
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'bash -s' > /tmp/meta-oracle.json <<'REMOTE'
+          set -Eeuo pipefail
+          env_file=/etc/fgbears-live/stream.env
+          token=false; page=false; appid=false; appsecret=false
+          has_nonempty_key() {
+            local pattern=$1
+            sudo awk -F= -v p="$pattern" '
+              $1 ~ p {v=substr($0,index($0,"=")+1); if(length(v)>0){found=1}}
+              END{exit found?0:1}' "$env_file" 2>/dev/null
+          }
+          has_nonempty_key '^(FGB_)?(FACEBOOK|META)_(PAGE_)?ACCESS_TOKEN$' && token=true || true
+          has_nonempty_key '^(FGB_)?(FACEBOOK|META)_USER_ACCESS_TOKEN$' && token=true || true
+          has_nonempty_key '^(FGB_)?(FACEBOOK|META)_PAGE_ID$' && page=true || true
+          has_nonempty_key '^(FGB_)?(FACEBOOK|META)_APP_ID$' && appid=true || true
+          has_nonempty_key '^(FGB_)?(FACEBOOK|META)_APP_SECRET$' && appsecret=true || true
+          printf '{"oracleMetaAccessTokenPresent":%s,"oracleMetaPageIdPresent":%s,"oracleMetaAppIdPresent":%s,"oracleMetaAppSecretPresent":%s}\n' "$token" "$page" "$appid" "$appsecret"
+          REMOTE
+          jq . /tmp/meta-oracle.json
+
+      - name: Record result
+        run: |
+          set -Eeuo pipefail
+          mkdir -p .github/deployment-status
+          jq --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" '. + {checkedAt:$checkedAt}' /tmp/meta-oracle.json > .github/deployment-status/fgbears-meta-oracle-auth.json
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add .github/deployment-status/fgbears-meta-oracle-auth.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record Oracle Meta auth presence diagnostic [skip ci]'
+          git pull --rebase origin main
+          git push origin main
