@@ -19,8 +19,8 @@ updates = {
     "FACEBOOK_RELAY_ENABLED": os.environ["FACEBOOK_RELAY_ENABLED_VALUE"],
     "FACEBOOK_LOCAL_UDP_URL": "udp://127.0.0.1:1936?pkt_size=1316",
     "FACEBOOK_SCHEDULE_TIMEZONE": "America/Chicago",
-    "FACEBOOK_SCHEDULE_START": "12:00",
-    "FACEBOOK_SCHEDULE_STOP": "15:25",
+    "FACEBOOK_SCHEDULE_START": "09:00",
+    "FACEBOOK_SCHEDULE_STOP": "17:00",
 }
 if os.environ.get("FACEBOOK_RTMP_BASE_VALUE"):
     updates["FACEBOOK_RTMP_BASE"] = os.environ["FACEBOOK_RTMP_BASE_VALUE"]
@@ -50,7 +50,7 @@ in_schedule_window() {
   local now_hm
   now_hm=$(TZ=America/Chicago date +%H%M)
   now_hm=$((10#$now_hm))
-  (( now_hm >= 1200 && now_hm < 1525 ))
+  (( now_hm >= 900 && now_hm < 1700 ))
 }
 
 if [[ ${1:-} == "--disable" ]]; then
@@ -89,4 +89,4 @@ else
   systemctl stop fgbears-facebook-relay.service >/dev/null 2>&1 || true
 fi
 
-echo "Facebook simulcast scheduled daily from 12:00 PM to 3:25 PM America/Chicago."
+echo "Facebook simulcast scheduled daily from 9:00 AM to 5:00 PM America/Chicago."
