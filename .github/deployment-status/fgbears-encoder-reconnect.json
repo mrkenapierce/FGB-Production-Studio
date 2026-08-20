@@ -1,9 +1,10 @@
 {
-  "checkedAt": "2026-08-20T08:20:26Z",
-  "runId": "32348301172",
+  "checkedAt": "2026-08-20T08:33:13Z",
+  "runId": "32349359721",
   "jobStatus": "success",
   "restartOutcome": "success",
   "verifyOutcome": "success",
   "service": "fgbears-live.service",
+  "youtubeRelayService": "fgbears-youtube-relay.service",
   "facebookTouched": false
 }
