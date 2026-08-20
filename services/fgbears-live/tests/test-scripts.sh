@@ -31,10 +31,20 @@ grep -Fq 'loudnorm=I=-16:TP=-1.5:LRA=7' "$ROOT/bin/start-stream.sh"
 grep -Fq 'acompressor=threshold=0.125:ratio=3' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-c:a aac -b:a 128k -ar 48000 -ac 2' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-f tee -use_fifo 1' "$ROOT/bin/start-stream.sh"
-grep -Fq 'onfail=abort' "$ROOT/bin/start-stream.sh"
+# shellcheck disable=SC2016
+grep -Fq 'TEE_TARGETS="[f=flv:flvflags=no_duration_filesize:onfail=ignore]${YOUTUBE_TARGET}"' "$ROOT/bin/start-stream.sh"
+if grep -Fq 'onfail=abort]${YOUTUBE_TARGET}' "$ROOT/bin/start-stream.sh"; then
+  echo 'The local YouTube relay leg must never abort the primary encoder.' >&2
+  exit 1
+fi
 grep -Fq 'onfail=ignore' "$ROOT/bin/start-stream.sh"
 grep -Fq 'StartLimitBurst=3' "$ROOT/systemd/fgbears-live.service"
 grep -Fq 'Restart=on-failure' "$ROOT/systemd/fgbears-live.service"
+grep -Fq 'Wants=network-online.target fgbears-youtube-relay.service' "$ROOT/systemd/fgbears-live.service"
+if grep -Fq 'Requires=fgbears-youtube-relay.service' "$ROOT/systemd/fgbears-live.service"; then
+  echo 'The YouTube relay must not be a hard lifecycle dependency of the primary encoder.' >&2
+  exit 1
+fi
 
 if find "$ROOT" -type f -name 'stream.env' -print -quit | grep -q .; then
   echo 'A real stream.env file must never be committed.' >&2
