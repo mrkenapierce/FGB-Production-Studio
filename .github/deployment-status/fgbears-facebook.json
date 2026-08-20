@@ -7,12 +7,12 @@
   "primaryHasNoMetaCredentials": true,
   "youtubeDedicatedRelay": true,
   "xPreserved": true,
-  "deployedSha": "fd17bdf4a12352c39ee9e321ac5adf78d8bea80e",
-  "runId": "32410472819",
-  "checkedAt": "2026-08-20T19:47:40Z",
+  "deployedSha": "4a058f009206b6a70873fd7f144e46a1d8ef3f58",
+  "runId": "32412586483",
+  "checkedAt": "2026-08-20T20:13:30Z",
   "jobStatus": "failure",
   "installOutcome": "success",
   "activateOutcome": "success",
-  "mirrorOutcome": "failure",
-  "verifyOutcome": "skipped"
+  "mirrorOutcome": "success",
+  "verifyOutcome": "failure"
 }
