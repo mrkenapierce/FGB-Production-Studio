@@ -1,0 +1,131 @@
+name: Diagnose FGBears Facebook Sidecar
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-facebook-sidecar-diagnose.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Collect redacted production state
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > /tmp/fbdiag.json <<'REMOTE'
+          set -Eeuo pipefail
+          env_file=/etc/fgbears-live/stream.env
+          primary_active=false; youtube_active=false; facebook_active=false
+          legacy_fb=false; fb_relay_enabled=false; fb_key_present=false
+          youtube_external=false; x_external=false; facebook_external=false; local_fb_handoff=false
+          systemctl is-active --quiet fgbears-live.service && primary_active=true || true
+          systemctl is-active --quiet fgbears-youtube-relay.service && youtube_active=true || true
+          systemctl is-active --quiet fgbears-facebook-relay.service && facebook_active=true || true
+          sudo grep -Eq '^FACEBOOK_STREAM_ENABLED=(1|true|yes|on)$' "$env_file" && legacy_fb=true || true
+          sudo grep -Eq '^FACEBOOK_RELAY_ENABLED=(1|true|yes|on)$' "$env_file" && fb_relay_enabled=true || true
+          sudo awk -F= '/^FACEBOOK_STREAM_KEY=/{if(length(substr($0,index($0,"=")+1))>0) ok=1} END{exit ok?0:1}' "$env_file" && fb_key_present=true || true
+
+          primary_pid=$(systemctl show -p MainPID --value fgbears-live.service 2>/dev/null || true)
+          youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service 2>/dev/null || true)
+          facebook_pid=$(systemctl show -p MainPID --value fgbears-facebook-relay.service 2>/dev/null || true)
+          primary_restarts=$(systemctl show -p NRestarts --value fgbears-live.service 2>/dev/null || true)
+          youtube_restarts=$(systemctl show -p NRestarts --value fgbears-youtube-relay.service 2>/dev/null || true)
+          facebook_restarts=$(systemctl show -p NRestarts --value fgbears-facebook-relay.service 2>/dev/null || true)
+          youtube_result=$(systemctl show -p Result --value fgbears-youtube-relay.service 2>/dev/null || true)
+          facebook_result=$(systemctl show -p Result --value fgbears-facebook-relay.service 2>/dev/null || true)
+          youtube_exec=$(systemctl show -p ExecMainStatus --value fgbears-youtube-relay.service 2>/dev/null || true)
+          facebook_exec=$(systemctl show -p ExecMainStatus --value fgbears-facebook-relay.service 2>/dev/null || true)
+
+          sudo ss -ntpH state established > /tmp/fbdiag-sockets.txt || true
+          if [[ "$primary_pid" =~ ^[1-9][0-9]*$ ]]; then
+            primary_ffmpeg=$(pgrep -P "$primary_pid" -x ffmpeg | head -n 1 || true)
+            [[ -n "$primary_ffmpeg" ]] && grep "pid=$primary_ffmpeg" /tmp/fbdiag-sockets.txt | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && x_external=true || true
+          fi
+          if [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]]; then
+            grep "pid=$youtube_pid" /tmp/fbdiag-sockets.txt | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && youtube_external=true || true
+            grep "pid=$youtube_pid" /tmp/fbdiag-sockets.txt | grep -q '127.0.0.1:1936' && local_fb_handoff=true || true
+          fi
+          if [[ "$facebook_pid" =~ ^[1-9][0-9]*$ ]]; then
+            grep "pid=$facebook_pid" /tmp/fbdiag-sockets.txt | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && facebook_external=true || true
+          fi
+
+          sudo journalctl -u fgbears-youtube-relay.service -u fgbears-facebook-relay.service --since '15 minutes ago' --no-pager > /tmp/fbdiag-journal.txt || true
+          sudo python3 - "$env_file" /tmp/fbdiag-journal.txt > /tmp/fbdiag-detail.txt <<'PY'
+          from pathlib import Path
+          import re, sys
+          env=Path(sys.argv[1]).read_text(encoding='utf-8',errors='replace').splitlines()
+          text=Path(sys.argv[2]).read_text(encoding='utf-8',errors='replace')
+          for line in env:
+              if '=' in line and not line.lstrip().startswith('#'):
+                  k,v=line.split('=',1)
+                  if k.endswith('STREAM_KEY') and v:
+                      text=text.replace(v,'[REDACTED]')
+          safe=[]
+          for line in text.splitlines():
+              low=line.lower()
+              if any(x in low for x in ('error','failed','invalid','unable','cannot','broken pipe','connection refused','tls','rtmp')):
+                  line=re.sub(r'(rtmps?://[^\s/]+)(/\S*)',r'\1/[REDACTED_PATH]',line)
+                  safe.append(line[-600:])
+          print(' || '.join(safe[-24:])[:12000])
+          PY
+          safe_detail=$(cat /tmp/fbdiag-detail.txt)
+          failure_class=none
+          if [[ "$legacy_fb" == true ]]; then failure_class=unsafe-direct-facebook-enabled
+          elif [[ "$primary_active" != true ]]; then failure_class=primary-inactive
+          elif [[ "$youtube_active" != true ]]; then failure_class=youtube-relay-inactive
+          elif [[ "$fb_relay_enabled" == true && "$facebook_active" != true ]]; then failure_class=facebook-relay-inactive
+          elif [[ "$youtube_external" != true ]]; then failure_class=youtube-external-absent
+          elif [[ "$x_external" != true ]]; then failure_class=x-external-absent
+          elif [[ "$fb_relay_enabled" == true && "$local_fb_handoff" != true ]]; then failure_class=facebook-local-handoff-absent
+          elif [[ "$fb_relay_enabled" == true && "$facebook_external" != true ]]; then failure_class=facebook-external-absent
+          fi
+          jq -n \
+            --argjson primaryActive "$primary_active" --argjson youtubeRelayActive "$youtube_active" --argjson facebookRelayActive "$facebook_active" \
+            --argjson legacyFacebookDirectEnabled "$legacy_fb" --argjson facebookRelayEnabled "$fb_relay_enabled" --argjson facebookKeyPresent "$fb_key_present" \
+            --argjson youtubeEstablished "$youtube_external" --argjson xEstablished "$x_external" --argjson facebookEstablished "$facebook_external" --argjson localFacebookHandoff "$local_fb_handoff" \
+            --arg primaryRestarts "${primary_restarts:-unknown}" --arg youtubeRelayRestarts "${youtube_restarts:-unknown}" --arg facebookRelayRestarts "${facebook_restarts:-unknown}" \
+            --arg youtubeRelayResult "${youtube_result:-unknown}" --arg facebookRelayResult "${facebook_result:-unknown}" --arg youtubeRelayExecStatus "${youtube_exec:-unknown}" --arg facebookRelayExecStatus "${facebook_exec:-unknown}" \
+            --arg failureClass "$failure_class" --arg safeDetail "$safe_detail" --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{primaryActive:$primaryActive,youtubeRelayActive:$youtubeRelayActive,facebookRelayActive:$facebookRelayActive,legacyFacebookDirectEnabled:$legacyFacebookDirectEnabled,facebookRelayEnabled:$facebookRelayEnabled,facebookKeyPresent:$facebookKeyPresent,youtubeEstablished:$youtubeEstablished,xEstablished:$xEstablished,facebookEstablished:$facebookEstablished,localFacebookHandoff:$localFacebookHandoff,primaryRestarts:$primaryRestarts,youtubeRelayRestarts:$youtubeRelayRestarts,facebookRelayRestarts:$facebookRelayRestarts,youtubeRelayResult:$youtubeRelayResult,facebookRelayResult:$facebookRelayResult,youtubeRelayExecStatus:$youtubeRelayExecStatus,facebookRelayExecStatus:$facebookRelayExecStatus,failureClass:$failureClass,safeDetail:$safeDetail,checkedAt:$checkedAt}'
+          rm -f /tmp/fbdiag-sockets.txt /tmp/fbdiag-journal.txt /tmp/fbdiag-detail.txt
+          REMOTE
+          cat /tmp/fbdiag.json
+      - name: Record diagnostic
+        if: always()
+        run: |
+          set -Eeuo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          if [[ -s /tmp/fbdiag.json ]]; then cp /tmp/fbdiag.json .github/deployment-status/fgbears-facebook-sidecar-diagnostic.json; else echo '{"failureClass":"diagnostic-unavailable"}' > .github/deployment-status/fgbears-facebook-sidecar-diagnostic.json; fi
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add .github/deployment-status/fgbears-facebook-sidecar-diagnostic.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record Facebook sidecar diagnostic [skip ci]'
+          git push origin main
