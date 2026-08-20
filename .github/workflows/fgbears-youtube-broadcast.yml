@@ -1,0 +1,77 @@
+name: Ensure FGB YouTube Broadcast Live
+
+on:
+  workflow_dispatch:
+    inputs:
+      title:
+        description: YouTube broadcast title
+        required: true
+        default: "Football’s Greatest Bears Live | 24/7 Chicago Bears Talk, Episodes & Updates"
+      privacy:
+        description: YouTube privacy status
+        required: true
+        default: public
+        type: choice
+        options:
+          - public
+          - unlisted
+          - private
+
+permissions:
+  contents: read
+
+jobs:
+  ensure-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Require YouTube OAuth secrets
+        env:
+          FGB_YOUTUBE_CLIENT_ID: ${{ secrets.FGB_YOUTUBE_CLIENT_ID }}
+          FGB_YOUTUBE_CLIENT_SECRET: ${{ secrets.FGB_YOUTUBE_CLIENT_SECRET }}
+          FGB_YOUTUBE_REFRESH_TOKEN: ${{ secrets.FGB_YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          test -n "$FGB_YOUTUBE_CLIENT_ID" || { echo 'Missing FGB_YOUTUBE_CLIENT_ID secret'; exit 1; }
+          test -n "$FGB_YOUTUBE_CLIENT_SECRET" || { echo 'Missing FGB_YOUTUBE_CLIENT_SECRET secret'; exit 1; }
+          test -n "$FGB_YOUTUBE_REFRESH_TOKEN" || { echo 'Missing FGB_YOUTUBE_REFRESH_TOKEN secret'; exit 1; }
+
+      - name: Validate controller syntax
+        run: python3 -m py_compile services/fgbears-live/bin/youtube-broadcast-control.py
+
+      - id: youtube
+        name: Create, bind, and start YouTube broadcast
+        env:
+          FGB_YOUTUBE_CLIENT_ID: ${{ secrets.FGB_YOUTUBE_CLIENT_ID }}
+          FGB_YOUTUBE_CLIENT_SECRET: ${{ secrets.FGB_YOUTUBE_CLIENT_SECRET }}
+          FGB_YOUTUBE_REFRESH_TOKEN: ${{ secrets.FGB_YOUTUBE_REFRESH_TOKEN }}
+          BROADCAST_TITLE: ${{ inputs.title }}
+          BROADCAST_PRIVACY: ${{ inputs.privacy }}
+        run: |
+          set -Eeuo pipefail
+          python3 services/fgbears-live/bin/youtube-broadcast-control.py \
+            --title "$BROADCAST_TITLE" \
+            --privacy "$BROADCAST_PRIVACY" \
+            | tee /tmp/fgb-youtube-broadcast.txt
+
+          watch_url=$(awk -F= '/^WATCH_URL=/{print substr($0,index($0,"=")+1)}' /tmp/fgb-youtube-broadcast.txt | tail -1)
+          state=$(awk -F= '/^BROADCAST_STATE=/{print substr($0,index($0,"=")+1)}' /tmp/fgb-youtube-broadcast.txt | tail -1)
+          test "$state" = "live"
+          test -n "$watch_url"
+          echo "watch_url=$watch_url" >> "$GITHUB_OUTPUT"
+
+      - name: Publish workflow summary
+        if: always()
+        env:
+          WATCH_URL: ${{ steps.youtube.outputs.watch_url }}
+        run: |
+          {
+            echo '## FGB YouTube Broadcast'
+            if [[ -n "$WATCH_URL" ]]; then
+              echo "Live: $WATCH_URL"
+            else
+              echo 'Broadcast controller did not return a live watch URL. Review the failed step above.'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
