@@ -1,0 +1,77 @@
+name: Test Updated FGBears Facebook Key
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-facebook-key-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ORACLE_USER: ubuntu
+  FACEBOOK_RTMP_BASE: rtmps://live-api-s.facebook.com:443/rtmp/
+
+jobs:
+  test-key:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          FGB_FACEBOOK_STREAM_KEY: ${{ secrets.FGB_FACEBOOK_STREAM_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          test -n "$FGB_FACEBOOK_STREAM_KEY"
+
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+
+      - name: Trust Oracle host key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - id: probe
+        name: Test Meta ingest without touching YouTube or X
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          FGB_FACEBOOK_STREAM_KEY: ${{ secrets.FGB_FACEBOOK_STREAM_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test_url="${FACEBOOK_RTMP_BASE%/}/${FGB_FACEBOOK_STREAM_KEY}"
+          printf '%s\n' "$FGB_FACEBOOK_STREAM_KEY" | ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'read -r fbkey; set -Eeuo pipefail; test "$(systemctl is-active fgbears-live.service)" = active; sudo grep -Fxq "FACEBOOK_STREAM_ENABLED=0" /etc/fgbears-live/stream.env; timeout 15 ffmpeg -hide_banner -nostdin -loglevel warning -re -f lavfi -i color=c=black:s=1280x720:r=24 -f lavfi -i anullsrc=r=48000:cl=stereo -t 8 -map 0:v -map 1:a -c:v libx264 -preset ultrafast -tune zerolatency -profile:v main -pix_fmt yuv420p -b:v 1200k -maxrate 1500k -bufsize 3000k -g 48 -c:a aac -b:a 128k -ar 48000 -ac 2 -f flv "rtmps://live-api-s.facebook.com:443/rtmp/$fbkey" >/tmp/fb-key-test.log 2>&1; status=$?; sed "s/$fbkey/[REDACTED]/g" /tmp/fb-key-test.log | tail -40; rm -f /tmp/fb-key-test.log; exit $status'
+
+      - name: Record safe key-test result
+        if: always()
+        env:
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          accepted=false
+          if [[ "$PROBE_OUTCOME" == success ]]; then accepted=true; fi
+          jq -n --argjson accepted "$accepted" --arg outcome "$PROBE_OUTCOME" --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg runId "$GITHUB_RUN_ID" '{facebookKeyAccepted:$accepted,probeOutcome:$outcome,primaryStreamUntouched:true,checkedAt:$checkedAt,runId:$runId}' > .github/deployment-status/fgbears-facebook-key-test.json
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add -- .github/deployment-status/fgbears-facebook-key-test.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record Facebook key test [skip ci]'
+            git push origin main
+          fi
