@@ -1,0 +1,12 @@
+{
+  "xSimulcastActive": false,
+  "xAccountHandle": "@epic501c3",
+  "xRtmpBase": "rtmps://ca.pscp.tv:443/x",
+  "service": "fgbears-live.service",
+  "deployedSha": "1e56c3c73fa301d7e9e21ef48957ccb560114e7f",
+  "runId": "32321639422",
+  "checkedAt": "2026-08-20T01:36:48Z",
+  "jobStatus": "failure",
+  "activateOutcome": "success",
+  "verifyOutcome": "failure"
+}
