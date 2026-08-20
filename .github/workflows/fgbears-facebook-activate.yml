@@ -4,13 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'services/fgbears-live/bin/facebook-relay.sh'
-      - 'services/fgbears-live/bin/configure-facebook.sh'
-      - 'services/fgbears-live/bin/youtube-relay.sh'
-      - 'services/fgbears-live/systemd/fgbears-facebook-relay.service'
-      - 'services/fgbears-live/systemd/fgbears-live.service'
-      - 'services/fgbears-live/bin/install.sh'
-      - '.github/workflows/fgbears-facebook-activate.yml'
+      - '.github/facebook-activate-trigger.txt'
   workflow_dispatch:
 
 permissions:
@@ -40,38 +34,16 @@ jobs:
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
           FGB_FACEBOOK_STREAM_KEY: ${{ secrets.FGB_FACEBOOK_STREAM_KEY }}
         run: |
-          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
-          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
-          test -n "$FGB_FACEBOOK_STREAM_KEY" || { echo 'Missing FGB_FACEBOOK_STREAM_KEY secret'; exit 1; }
-
-      - name: Configure SSH
-        env:
-          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
-        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          test -n "$FGB_FACEBOOK_STREAM_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
-
-      - name: Trust Oracle host key
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      - id: install
-        name: Install isolated Facebook sidecar code
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
-            set -Eeuo pipefail
-            rm -rf /tmp/fgbears-facebook-deploy
-            git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-facebook-deploy
-            sudo bash /tmp/fgbears-facebook-deploy/services/fgbears-live/bin/install.sh
-          '
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
       - id: activate_facebook
-        name: Install Facebook credential and start sidecar only
-        if: steps.install.outcome == 'success'
+        name: Enable isolated Facebook sidecar
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           FGB_FACEBOOK_STREAM_KEY: ${{ secrets.FGB_FACEBOOK_STREAM_KEY }}
@@ -83,87 +55,98 @@ jobs:
           } | ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo fgbears-configure-facebook'
 
       - id: verify_facebook
-        name: Verify Facebook isolation plus YouTube and X preservation
+        name: Verify three isolated transports and rollback on failure
         if: always() && steps.activate_facebook.outcome == 'success'
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > /tmp/facebook-verify.env <<'REMOTE'
+          set -u
           env_file=/etc/fgbears-live/stream.env
-          sudo grep -Fxq 'FACEBOOK_STREAM_ENABLED=0' "$env_file"
-          sudo grep -Eq '^FACEBOOK_RELAY_ENABLED=(1|true|yes|on)$' "$env_file"
-          sudo grep -Fxq 'FACEBOOK_LOCAL_RTMP_BASE=rtmp://127.0.0.1:1936/live' "$env_file"
-          key_length=$(sudo awk -F= '/^FACEBOOK_STREAM_KEY=/{print length(substr($0,index($0,"=")+1))}' "$env_file")
-          test "${key_length:-0}" -gt 0
+          legacy=false; relay_enabled=false; key_present=false
+          sudo grep -Eq '^FACEBOOK_STREAM_ENABLED=(1|true|yes|on)$' "$env_file" && legacy=true || true
+          sudo grep -Eq '^FACEBOOK_RELAY_ENABLED=(1|true|yes|on)$' "$env_file" && relay_enabled=true || true
+          sudo awk -F= '/^FACEBOOK_STREAM_KEY=/{if(length(substr($0,index($0,"=")+1))>0) ok=1} END{exit ok?0:1}' "$env_file" && key_present=true || true
+          if [[ "$legacy" == true || "$relay_enabled" != true || "$key_present" != true ]]; then
+            printf 'ACTIVE=false\nROLLED_BACK=false\nFAILURE_CLASS=configuration-invariant-failed\n'
+            exit 1
+          fi
 
+          stable=0; failure=transport-not-stable
+          primary_pid_first=''; youtube_pid_first=''; facebook_pid_first=''
+          youtube_ok=false; x_ok=false; facebook_ok=false; local_ok=false
           for _ in $(seq 1 90); do
-            main_pid=$(systemctl show -p MainPID --value fgbears-live.service)
-            youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
-            facebook_pid=$(systemctl show -p MainPID --value fgbears-facebook-relay.service)
+            main_pid=$(systemctl show -p MainPID --value fgbears-live.service 2>/dev/null || echo 0)
+            youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service 2>/dev/null || echo 0)
+            facebook_pid=$(systemctl show -p MainPID --value fgbears-facebook-relay.service 2>/dev/null || echo 0)
             if [[ "$main_pid" =~ ^[1-9][0-9]*$ && "$youtube_pid" =~ ^[1-9][0-9]*$ && "$facebook_pid" =~ ^[1-9][0-9]*$ ]] && \
-               systemctl is-active --quiet fgbears-live.service && \
-               systemctl is-active --quiet fgbears-youtube-relay.service && \
-               systemctl is-active --quiet fgbears-facebook-relay.service; then
+               systemctl is-active --quiet fgbears-live.service && systemctl is-active --quiet fgbears-youtube-relay.service && systemctl is-active --quiet fgbears-facebook-relay.service; then
+              [[ -n "$primary_pid_first" ]] || primary_pid_first="$main_pid"
+              [[ -n "$youtube_pid_first" ]] || youtube_pid_first="$youtube_pid"
+              [[ -n "$facebook_pid_first" ]] || facebook_pid_first="$facebook_pid"
+              if [[ "$main_pid" != "$primary_pid_first" ]]; then failure=primary-restarted-during-verification; break; fi
+              if [[ "$youtube_pid" != "$youtube_pid_first" ]]; then failure=youtube-relay-restarted-during-verification; break; fi
+              if [[ "$facebook_pid" != "$facebook_pid_first" ]]; then failure=facebook-relay-restarted-during-verification; break; fi
               primary_ffmpeg=$(pgrep -P "$main_pid" -x ffmpeg | head -n 1 || true)
               sockets=$(mktemp)
               sudo ss -ntpH state established > "$sockets" || true
-              youtube_external=$(grep "pid=$youtube_pid" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -c ':443' || true)
-              facebook_external=$(grep "pid=$facebook_pid" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -c ':443' || true)
-              x_external=0
+              grep "pid=$youtube_pid" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && youtube_ok=true || youtube_ok=false
+              [[ -n "$primary_ffmpeg" ]] && grep "pid=$primary_ffmpeg" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && x_ok=true || x_ok=false
+              grep "pid=$facebook_pid" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && facebook_ok=true || facebook_ok=false
+              [[ -n "$primary_ffmpeg" ]] && grep "pid=$primary_ffmpeg" "$sockets" | grep -q '127.0.0.1:1936' && local_ok=true || local_ok=false
               if [[ -n "$primary_ffmpeg" ]]; then
-                x_external=$(grep "pid=$primary_ffmpeg" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -c ':443' || true)
-                args=$(mktemp)
-                sudo tr '\0' '\n' < "/proc/$primary_ffmpeg/cmdline" > "$args"
+                args=$(mktemp); sudo tr '\0' '\n' < "/proc/$primary_ffmpeg/cmdline" > "$args"
                 if grep -Fq 'live-api-s.facebook.com' "$args"; then
-                  echo 'Unsafe direct Facebook destination detected in primary encoder.' >&2
-                  rm -f "$args" "$sockets"
-                  exit 1
+                  rm -f "$args" "$sockets"; failure=unsafe-meta-endpoint-in-primary; break
                 fi
                 rm -f "$args"
               fi
-              local_handoff=$(grep "pid=$youtube_pid" "$sockets" | grep -c '127.0.0.1:1936' || true)
               rm -f "$sockets"
-              if (( youtube_external > 0 && facebook_external > 0 && x_external > 0 && local_handoff > 0 )); then
-                echo 'Verified: YouTube external + X external + isolated Facebook external, with Facebook fed only through localhost.'
-                exit 0
+              if [[ "$youtube_ok" == true && "$x_ok" == true && "$facebook_ok" == true && "$local_ok" == true ]]; then
+                stable=$((stable+1))
+                if (( stable >= 5 )); then
+                  printf 'ACTIVE=true\nROLLED_BACK=false\nYOUTUBE=true\nX=true\nFACEBOOK=true\nLOCAL=true\nFAILURE_CLASS=none\n'
+                  exit 0
+                fi
+              else
+                stable=0
               fi
             fi
             sleep 2
           done
-          echo 'All three isolated transports did not become established within the verification window.' >&2
+
+          # Facebook did not prove stable. Remove only the Facebook feature and
+          # restore the primary destination set; the YouTube relay configuration
+          # is never modified by this rollback.
+          sudo fgbears-configure-facebook --disable >/dev/null 2>&1 || true
+          printf 'ACTIVE=false\nROLLED_BACK=true\nYOUTUBE=%s\nX=%s\nFACEBOOK=false\nLOCAL=false\nFAILURE_CLASS=%s\n' "$youtube_ok" "$x_ok" "$failure"
           exit 1
           REMOTE
+          cat /tmp/facebook-verify.env
 
       - name: Record Facebook activation result
         if: always()
         env:
-          INSTALL_OUTCOME: ${{ steps.install.outcome }}
           ACTIVATE_OUTCOME: ${{ steps.activate_facebook.outcome }}
           VERIFY_OUTCOME: ${{ steps.verify_facebook.outcome }}
           JOB_STATUS: ${{ job.status }}
         run: |
+          set -Eeuo pipefail
           git fetch origin main
           git checkout -B main origin/main
-          mkdir -p .github/deployment-status
-          active=false
-          if [[ "$INSTALL_OUTCOME" == "success" && "$ACTIVATE_OUTCOME" == "success" && "$VERIFY_OUTCOME" == "success" ]]; then
-            active=true
+          active=false; rolled_back=false; youtube=false; x=false; facebook=false; local=false; failure=verification-unavailable
+          if [[ -f /tmp/facebook-verify.env ]]; then
+            while IFS='=' read -r k v; do
+              case "$k" in
+                ACTIVE) active="$v";; ROLLED_BACK) rolled_back="$v";; YOUTUBE) youtube="$v";; X) x="$v";; FACEBOOK) facebook="$v";; LOCAL) local="$v";; FAILURE_CLASS) failure="$v";;
+              esac
+            done < /tmp/facebook-verify.env
           fi
-          jq -n \
-            --argjson active "$active" \
-            --arg deployedSha "$GITHUB_SHA" \
-            --arg runId "$GITHUB_RUN_ID" \
-            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --arg jobStatus "$JOB_STATUS" \
-            --arg installOutcome "$INSTALL_OUTCOME" \
-            --arg activateOutcome "$ACTIVATE_OUTCOME" \
-            --arg verifyOutcome "$VERIFY_OUTCOME" \
-            '{facebookSimulcastActive:$active,service:"fgbears-facebook-relay.service",transport:"isolated-copy-remux-sidecar",primaryEncoderUntouchedByFacebook:true,youtubePreserved:true,xPreserved:true,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,activateOutcome:$activateOutcome,verifyOutcome:$verifyOutcome}' \
-            > .github/deployment-status/fgbears-facebook.json
-          git config user.name 'FGBears Deploy Bot'
-          git config user.email 'actions@github.com'
-          git add -- .github/deployment-status/fgbears-facebook.json
+          mkdir -p .github/deployment-status
+          jq -n --argjson active "$active" --argjson rolledBack "$rolled_back" --argjson youtubeEstablished "$youtube" --argjson xEstablished "$x" --argjson facebookEstablished "$facebook" --argjson localFacebookHandoff "$local" --arg failureClass "$failure" --arg runId "$GITHUB_RUN_ID" --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg jobStatus "$JOB_STATUS" --arg activateOutcome "$ACTIVATE_OUTCOME" --arg verifyOutcome "$VERIFY_OUTCOME" '{facebookSimulcastActive:$active,rolledBack:$rolledBack,youtubeEstablished:$youtubeEstablished,xEstablished:$xEstablished,facebookEstablished:$facebookEstablished,localFacebookHandoff:$localFacebookHandoff,primaryExternalMetaEndpoint:false,transport:"primary-localhost-to-isolated-facebook-copy-remux",failureClass:$failureClass,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,activateOutcome:$activateOutcome,verifyOutcome:$verifyOutcome}' > .github/deployment-status/fgbears-facebook.json
+          git config user.name 'FGBears Deploy Bot'; git config user.email 'actions@github.com'
+          git add .github/deployment-status/fgbears-facebook.json
           git diff --cached --quiet && exit 0
           git commit -m 'Record isolated FGBears Facebook activation result [skip ci]'
           git push origin main
