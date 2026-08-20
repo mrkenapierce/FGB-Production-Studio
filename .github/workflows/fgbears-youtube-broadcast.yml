@@ -39,7 +39,7 @@ jobs:
           test -n "$FGB_YOUTUBE_REFRESH_TOKEN" || { echo 'Missing FGB_YOUTUBE_REFRESH_TOKEN secret'; exit 1; }
 
       - name: Validate controller syntax
-        run: python3 -m py_compile services/fgbears-live/bin/youtube-broadcast-control.py
+        run: python3 -m py_compile .github/scripts/youtube-broadcast-control.py
 
       - id: youtube
         name: Create, bind, and start YouTube broadcast
@@ -51,7 +51,7 @@ jobs:
           BROADCAST_PRIVACY: ${{ inputs.privacy }}
         run: |
           set -Eeuo pipefail
-          python3 services/fgbears-live/bin/youtube-broadcast-control.py \
+          python3 .github/scripts/youtube-broadcast-control.py \
             --title "$BROADCAST_TITLE" \
             --privacy "$BROADCAST_PRIVACY" \
             | tee /tmp/fgb-youtube-broadcast.txt
