@@ -28,12 +28,17 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck ffmpeg jq python3-pil qrencode
       - name: ShellCheck
         run: shellcheck services/fgbears-live/bin/*.sh services/fgbears-live/tests/*.sh
-      - name: Functional tests
-        run: |
-          bash services/fgbears-live/tests/test-scripts.sh
-          bash services/fgbears-live/tests/test-multistream.sh
-          python3 services/fgbears-live/tests/test-house-label.py
-          python3 services/fgbears-live/tests/test-ad-interstitial.py
-          python3 services/fgbears-live/tests/test-ad-image-fit.py
-          bash services/fgbears-live/tests/test-bears-news.sh
-          bash services/fgbears-live/tests/test-health-monitor.sh
+      - name: Integration scripts
+        run: bash services/fgbears-live/tests/test-scripts.sh
+      - name: Multistream and YouTube relay
+        run: bash services/fgbears-live/tests/test-multistream.sh
+      - name: House label
+        run: python3 services/fgbears-live/tests/test-house-label.py
+      - name: Ad interstitial
+        run: python3 services/fgbears-live/tests/test-ad-interstitial.py
+      - name: Ad image fit
+        run: python3 services/fgbears-live/tests/test-ad-image-fit.py
+      - name: Bears news
+        run: bash services/fgbears-live/tests/test-bears-news.sh
+      - name: Health monitor
+        run: bash services/fgbears-live/tests/test-health-monitor.sh
