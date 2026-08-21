@@ -1,5 +1,5 @@
 {
-  "facebookIngestActive": false,
+  "facebookIngestActive": true,
   "facebookPageUrl": "https://www.facebook.com/share/1U4q6xagPW/?mibextid=wwXIfr",
   "scheduleTimezone": "America/Chicago",
   "scheduleStart": "09:00",
@@ -16,7 +16,7 @@
   "publicBroadcastVerified": false,
   "transport": "primary-udp-mirror+isolated-copy-remux-sidecar",
   "youtubePreserved": true,
-  "runId": "32495354086",
-  "checkedAt": "2026-08-21T15:23:07Z",
-  "jobStatus": "failure"
+  "runId": "32497534605",
+  "checkedAt": "2026-08-21T15:27:14Z",
+  "jobStatus": "success"
 }
