@@ -57,9 +57,12 @@ install -d -o root -g fgbears -m 0750 /etc/fgbears-live
 
 install -m 0755 /opt/fgbears-live/bin/start-stream.sh /usr/local/bin/fgbears-start-stream
 install -m 0755 /opt/fgbears-live/bin/youtube-relay.sh /usr/local/bin/fgbears-youtube-relay
+install -m 0755 /opt/fgbears-live/bin/x-relay.sh /usr/local/bin/fgbears-x-relay
 install -m 0755 /opt/fgbears-live/bin/facebook-relay.sh /usr/local/bin/fgbears-facebook-relay
+install -m 0755 /opt/fgbears-live/bin/instagram-relay.sh /usr/local/bin/fgbears-instagram-relay
 install -m 0755 /opt/fgbears-live/bin/configure-x.sh /usr/local/bin/fgbears-configure-x
 install -m 0755 /opt/fgbears-live/bin/configure-facebook.sh /usr/local/bin/fgbears-configure-facebook
+install -m 0755 /opt/fgbears-live/bin/configure-instagram.sh /usr/local/bin/fgbears-configure-instagram
 install -m 0755 /opt/fgbears-live/bin/normalize-library.sh /usr/local/bin/fgbears-normalize
 install -m 0755 /opt/fgbears-live/bin/validate-media.sh /usr/local/bin/fgbears-validate
 install -m 0755 /opt/fgbears-live/bin/rebuild-playlist.sh /usr/local/bin/fgbears-rebuild-playlist
@@ -69,11 +72,11 @@ install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-st
 
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-relay.service /etc/systemd/system/fgbears-youtube-relay.service
-install -m 0644 /opt/fgbears-live/systemd/fgbears-facebook-relay.service /etc/systemd/system/fgbears-facebook-relay.service
-install -m 0644 /opt/fgbears-live/systemd/fgbears-facebook-start.service /etc/systemd/system/fgbears-facebook-start.service
-install -m 0644 /opt/fgbears-live/systemd/fgbears-facebook-stop.service /etc/systemd/system/fgbears-facebook-stop.service
-install -m 0644 /opt/fgbears-live/systemd/fgbears-facebook-start.timer /etc/systemd/system/fgbears-facebook-start.timer
-install -m 0644 /opt/fgbears-live/systemd/fgbears-facebook-stop.timer /etc/systemd/system/fgbears-facebook-stop.timer
+for platform in x facebook instagram; do
+  for unit in relay.service start.service stop.service start.timer stop.timer; do
+    install -m 0644 "/opt/fgbears-live/systemd/fgbears-${platform}-${unit}" "/etc/systemd/system/fgbears-${platform}-${unit}"
+  done
+done
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.service /etc/systemd/system/fgbears-live-health.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.timer /etc/systemd/system/fgbears-live-health.timer
 
@@ -112,16 +115,33 @@ relay_enabled = values.get("FACEBOOK_RELAY_ENABLED")
 if relay_enabled is None:
     relay_enabled = "1" if truthy(values.get("FACEBOOK_STREAM_ENABLED", "0")) else "0"
 
+x_relay_enabled = values.get("X_RELAY_ENABLED")
+if x_relay_enabled is None:
+    x_relay_enabled = "1" if values.get("X_STREAM_KEY") else "0"
+
+instagram_relay_enabled = values.get("INSTAGRAM_RELAY_ENABLED", "0")
+
 updates = {
     "YOUTUBE_RTMP_BASE": local_base,
     "YOUTUBE_LOCAL_RTMP_BASE": local_base,
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
+    "X_STREAM_ENABLED": "0",
+    "X_RELAY_ENABLED": x_relay_enabled,
+    "X_LOCAL_UDP_URL": "udp://127.0.0.1:1937?pkt_size=1316",
+    "X_SCHEDULE_TIMEZONE": "America/Chicago",
+    "X_SCHEDULE_START": "09:00",
+    "X_SCHEDULE_STOP": "17:00",
     "FACEBOOK_STREAM_ENABLED": "0",
     "FACEBOOK_RELAY_ENABLED": relay_enabled,
     "FACEBOOK_LOCAL_UDP_URL": "udp://127.0.0.1:1936?pkt_size=1316",
     "FACEBOOK_SCHEDULE_TIMEZONE": "America/Chicago",
-    "FACEBOOK_SCHEDULE_START": "12:00",
-    "FACEBOOK_SCHEDULE_STOP": "15:25",
+    "FACEBOOK_SCHEDULE_START": "09:00",
+    "FACEBOOK_SCHEDULE_STOP": "17:00",
+    "INSTAGRAM_RELAY_ENABLED": instagram_relay_enabled,
+    "INSTAGRAM_LOCAL_UDP_URL": "udp://127.0.0.1:1938?pkt_size=1316",
+    "INSTAGRAM_SCHEDULE_TIMEZONE": "America/Chicago",
+    "INSTAGRAM_SCHEDULE_START": "09:00",
+    "INSTAGRAM_SCHEDULE_STOP": "17:00",
 }
 seen = set()
 out = []
@@ -144,7 +164,35 @@ chmod 0640 "$ENV_PATH"
 
 systemctl daemon-reload
 systemctl enable fgbears-youtube-relay.service
-systemctl disable fgbears-facebook-relay.service >/dev/null 2>&1 || true
+systemctl disable fgbears-x-relay.service fgbears-facebook-relay.service fgbears-instagram-relay.service >/dev/null 2>&1 || true
+
+now_hm=$(TZ=America/Chicago date +%H%M)
+now_hm=$((10#$now_hm))
+in_social_window=false
+(( now_hm >= 900 && now_hm < 1700 )) && in_social_window=true
+
+configure_scheduled_relay() {
+  local platform=$1 configured=$2
+  if [[ "$configured" == true ]]; then
+    systemctl enable --now "fgbears-${platform}-start.timer" "fgbears-${platform}-stop.timer"
+    systemctl reset-failed "fgbears-${platform}-relay.service" || true
+    if [[ "$in_social_window" == true ]]; then
+      systemctl restart "fgbears-${platform}-relay.service"
+    else
+      systemctl stop "fgbears-${platform}-relay.service" >/dev/null 2>&1 || true
+    fi
+  else
+    systemctl disable --now "fgbears-${platform}-start.timer" "fgbears-${platform}-stop.timer" >/dev/null 2>&1 || true
+    systemctl stop "fgbears-${platform}-relay.service" >/dev/null 2>&1 || true
+  fi
+}
+
+x_configured=false
+if grep -Eq '^X_RELAY_ENABLED=(1|true|yes|on)$' "$ENV_PATH" && \
+   grep -Eq '^X_RTMP_BASE=rtmps?://.+' "$ENV_PATH" && \
+   awk -F= '/^X_STREAM_KEY=/{if(length(substr($0,index($0,"=")+1))>0) ok=1} END{exit ok?0:1}' "$ENV_PATH"; then
+  x_configured=true
+fi
 
 facebook_configured=false
 if grep -Eq '^FACEBOOK_RELAY_ENABLED=(1|true|yes|on)$' "$ENV_PATH" && \
@@ -153,24 +201,20 @@ if grep -Eq '^FACEBOOK_RELAY_ENABLED=(1|true|yes|on)$' "$ENV_PATH" && \
   facebook_configured=true
 fi
 
-if [[ "$facebook_configured" == true ]]; then
-  systemctl enable --now fgbears-facebook-start.timer fgbears-facebook-stop.timer
-  now_hm=$(TZ=America/Chicago date +%H%M)
-  now_hm=$((10#$now_hm))
-  systemctl reset-failed fgbears-facebook-relay.service || true
-  if (( now_hm >= 1200 && now_hm < 1525 )); then
-    systemctl restart fgbears-facebook-relay.service
-  else
-    systemctl stop fgbears-facebook-relay.service >/dev/null 2>&1 || true
-  fi
-else
-  systemctl disable --now fgbears-facebook-start.timer fgbears-facebook-stop.timer >/dev/null 2>&1 || true
-  systemctl stop fgbears-facebook-relay.service >/dev/null 2>&1 || true
+instagram_configured=false
+if grep -Eq '^INSTAGRAM_RELAY_ENABLED=(1|true|yes|on)$' "$ENV_PATH" && \
+   grep -Eq '^INSTAGRAM_STREAM_URL=rtmps?://.+' "$ENV_PATH" && \
+   awk -F= '/^INSTAGRAM_STREAM_KEY=/{if(length(substr($0,index($0,"=")+1))>0) ok=1} END{exit ok?0:1}' "$ENV_PATH"; then
+  instagram_configured=true
 fi
+
+configure_scheduled_relay x "$x_configured"
+configure_scheduled_relay facebook "$facebook_configured"
+configure_scheduled_relay instagram "$instagram_configured"
 
 # The YouTube relay remains a dedicated single-output copy-remux service.
 systemctl reset-failed fgbears-youtube-relay.service || true
 systemctl restart fgbears-youtube-relay.service
 systemctl enable --now fgbears-live-health.timer
 
-echo "Installed FGBears Live with one primary encode, dedicated YouTube relay, X output, and a scheduled isolated Facebook sidecar (12:00-15:25 America/Chicago)."
+echo "Installed FGBears Live with one primary encode, dedicated YouTube relay, and isolated X/Facebook/Instagram sidecars scheduled 09:00-17:00 America/Chicago."

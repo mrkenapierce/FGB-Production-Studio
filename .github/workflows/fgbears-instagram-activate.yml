@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: fgbears-live-production-deploy
@@ -56,7 +56,8 @@ jobs:
         run: |
           { printf '%s\n' "$IG_URL"; printf '%s\n' "$IG_KEY"; } |
             ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo fgbears-configure-instagram'
-      - name: Verify Instagram without touching other platforms
+      - id: verify
+        name: Verify Instagram without touching other platforms
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -64,9 +65,9 @@ jobs:
           set -Eeuo pipefail
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet fgbears-youtube-relay.service
-          systemctl is-active --quiet fgbears-x-relay.service
-          systemctl is-active --quiet fgbears-facebook-relay.service
           systemctl is-active --quiet fgbears-instagram-relay.service
+          sudo grep -Fxq 'INSTAGRAM_SCHEDULE_START=09:00' /etc/fgbears-live/stream.env
+          sudo grep -Fxq 'INSTAGRAM_SCHEDULE_STOP=17:00' /etc/fgbears-live/stream.env
           test "$(systemctl is-enabled fgbears-instagram-start.timer)" = enabled
           test "$(systemctl is-enabled fgbears-instagram-stop.timer)" = enabled
           for _ in $(seq 1 45); do
@@ -78,3 +79,19 @@ jobs:
           echo 'Instagram relay did not establish; other destinations remain untouched.' >&2
           exit 1
           REMOTE
+      - name: Record Instagram ingest activation
+        if: always()
+        env:
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          active=false; [[ "$VERIFY_OUTCOME" == success ]] && active=true
+          jq -n --argjson active "$active" --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg runId "$GITHUB_RUN_ID" --arg jobStatus "$JOB_STATUS" \
+            '{instagramIngestActive:$active,instagramAccountHandle:"@epic501c3",scheduleTimezone:"America/Chicago",scheduleStart:"09:00",scheduleStop:"17:00",publicBroadcastVerified:false,transport:"primary-udp-mirror+isolated-vertical-transcode-sidecar",youtubePreserved:true,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus}' \
+            > .github/deployment-status/fgbears-instagram.json
+          git config user.name 'FGBears Deploy Bot'; git config user.email 'actions@github.com'
+          git add .github/deployment-status/fgbears-instagram.json
+          git diff --cached --quiet || { git commit -m 'Record scheduled Instagram ingest [skip ci]'; git push origin main; }

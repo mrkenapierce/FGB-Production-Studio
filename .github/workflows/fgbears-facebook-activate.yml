@@ -9,7 +9,7 @@ on:
       - '.github/workflows/fgbears-facebook-activate.yml'
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: fgbears-live-production-deploy
   cancel-in-progress: false
@@ -45,7 +45,8 @@ jobs:
           FB_KEY: ${{ secrets.FGB_FACEBOOK_STREAM_KEY }}
         run: |
           { printf '%s\n' "$FACEBOOK_RTMP_BASE"; printf '%s\n' "$FB_KEY"; } | ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo fgbears-configure-facebook'
-      - name: Verify schedule without touching other platforms
+      - id: verify
+        name: Verify schedule without touching other platforms
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -56,9 +57,31 @@ jobs:
           sudo grep -Fxq 'FACEBOOK_SCHEDULE_STOP=17:00' "$env_file"
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet fgbears-youtube-relay.service
-          systemctl is-active --quiet fgbears-x-relay.service
-          systemctl is-active --quiet fgbears-instagram-relay.service
           systemctl is-active --quiet fgbears-facebook-relay.service
           test "$(systemctl is-enabled fgbears-facebook-start.timer)" = enabled
           test "$(systemctl is-enabled fgbears-facebook-stop.timer)" = enabled
+          for _ in $(seq 1 45); do
+            pid=$(systemctl show -p MainPID --value fgbears-facebook-relay.service)
+            sockets=$(sudo ss -ntpH state established || true)
+            grep "pid=$pid" <<<"$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && exit 0
+            sleep 2
+          done
+          echo 'Facebook relay did not establish; YouTube remains untouched.' >&2
+          exit 1
           REMOTE
+      - name: Record Facebook ingest activation
+        if: always()
+        env:
+          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          JOB_STATUS: ${{ job.status }}
+        run: |
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          active=false; [[ "$VERIFY_OUTCOME" == success ]] && active=true
+          jq -n --argjson active "$active" --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg runId "$GITHUB_RUN_ID" --arg jobStatus "$JOB_STATUS" \
+            '{facebookIngestActive:$active,scheduleTimezone:"America/Chicago",scheduleStart:"09:00",scheduleStop:"17:00",publicBroadcastVerified:false,transport:"primary-udp-mirror+isolated-copy-remux-sidecar",youtubePreserved:true,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus}' \
+            > .github/deployment-status/fgbears-facebook.json
+          git config user.name 'FGBears Deploy Bot'; git config user.email 'actions@github.com'
+          git add .github/deployment-status/fgbears-facebook.json
+          git diff --cached --quiet || { git commit -m 'Record scheduled Facebook ingest [skip ci]'; git push origin main; }
