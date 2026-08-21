@@ -1,5 +1,4 @@
 name: Activate Scheduled FGBears Instagram Simulcast
-# Post-deployment verification trigger for the repaired social schedule.
 
 on:
   push:
@@ -78,6 +77,11 @@ jobs:
             sleep 2
           done
           echo 'Instagram relay did not establish; other destinations remain untouched.' >&2
+          systemctl show fgbears-instagram-relay.service \
+            -p ActiveState -p SubState -p Result -p ExecMainStatus -p NRestarts --no-pager >&2 || true
+          sudo journalctl -u fgbears-instagram-relay.service -n 80 --no-pager 2>&1 \
+            | sed -E 's#rtmps?://[^[:space:]]+#rtmps://[REDACTED]#g' \
+            | tail -40 >&2 || true
           exit 1
           REMOTE
       - name: Record Instagram ingest activation
