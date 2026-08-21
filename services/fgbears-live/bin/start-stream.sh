@@ -92,19 +92,19 @@ OUTPUT_LABELS=("YouTube local relay")
 # X is isolated from the primary encoder. The primary process always emits
 # the already-encoded program to loopback UDP mirrors; scheduled sidecars
 # owns the protected X credential and can start/stop without touching YouTube.
-TEE_TARGETS+="|[f=mpegts:onfail=ignore]${X_LOCAL_UDP_URL}"
+TEE_TARGETS+="|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${X_LOCAL_UDP_URL}"
 OUTPUT_LABELS+=("X local mirror")
 
 # Instagram is isolated in the same way. Its sidecar converts the landscape
 # program to a vertical canvas without placing Instagram credentials in the
 # primary encoder.
-TEE_TARGETS+="|[f=mpegts:onfail=ignore]${INSTAGRAM_LOCAL_UDP_URL}"
+TEE_TARGETS+="|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${INSTAGRAM_LOCAL_UDP_URL}"
 OUTPUT_LABELS+=("Instagram local mirror")
 
 # This local UDP mirror is always emitted. When the scheduled Facebook sidecar
 # is stopped, the packets are simply discarded by the kernel. Starting/stopping
 # Facebook therefore never requires a restart of the primary encoder or YouTube.
-TEE_TARGETS+="|[f=mpegts:onfail=ignore]${FACEBOOK_LOCAL_UDP_URL}"
+TEE_TARGETS+="|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${FACEBOOK_LOCAL_UDP_URL}"
 OUTPUT_LABELS+=("Facebook local mirror")
 
 printf 'FGBears Live output: %s.\n' "$(IFS=' + '; echo "${OUTPUT_LABELS[*]}")"
