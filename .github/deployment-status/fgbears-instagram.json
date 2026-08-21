@@ -7,7 +7,7 @@
   "publicBroadcastVerified": false,
   "transport": "primary-udp-mirror+isolated-vertical-transcode-sidecar",
   "youtubePreserved": true,
-  "runId": "32493694778",
-  "checkedAt": "2026-08-21T14:45:26Z",
+  "runId": "32494360997",
+  "checkedAt": "2026-08-21T14:52:40Z",
   "jobStatus": "failure"
 }
