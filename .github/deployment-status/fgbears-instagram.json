@@ -1,5 +1,5 @@
 {
-  "instagramIngestActive": true,
+  "instagramIngestActive": false,
   "instagramAccountHandle": "@epic501c3",
   "scheduleTimezone": "America/Chicago",
   "scheduleStart": "09:00",
@@ -7,7 +7,7 @@
   "publicBroadcastVerified": false,
   "transport": "primary-udp-mirror+isolated-vertical-transcode-sidecar",
   "youtubePreserved": true,
-  "runId": "32492485342",
-  "checkedAt": "2026-08-21T14:31:17Z",
-  "jobStatus": "success"
+  "runId": "32493386249",
+  "checkedAt": "2026-08-21T14:41:59Z",
+  "jobStatus": "failure"
 }
