@@ -1,3 +1,4 @@
+# Post-social-repair verification: 2026-08-21T14:55Z
 name: Activate Scheduled FGBears Facebook Simulcast
 # Reconcile repaired Facebook schedule after the full deployment.
 on:
