@@ -1,4 +1,5 @@
 name: Deploy FGBears Live
+# Reconcile social automation deployment on 2026-08-21.
 
 on:
   workflow_dispatch:
