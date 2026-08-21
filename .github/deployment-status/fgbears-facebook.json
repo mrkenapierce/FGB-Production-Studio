@@ -1,18 +1,15 @@
 {
   "facebookScheduleConfigured": false,
   "scheduleTimezone": "America/Chicago",
-  "scheduleStart": "12:00",
-  "scheduleStop": "15:25",
+  "scheduleStart": "09:00",
+  "scheduleStop": "17:00",
   "transport": "primary-udp-mirror+isolated-copy-remux-sidecar",
   "primaryHasNoMetaCredentials": true,
   "youtubeDedicatedRelay": true,
   "xPreserved": true,
-  "deployedSha": "4a058f009206b6a70873fd7f144e46a1d8ef3f58",
-  "runId": "32412586483",
-  "checkedAt": "2026-08-20T20:13:30Z",
+  "settledVerification": true,
+  "runId": "32492485636",
+  "checkedAt": "2026-08-21T14:31:26Z",
   "jobStatus": "failure",
-  "installOutcome": "success",
-  "activateOutcome": "success",
-  "mirrorOutcome": "success",
   "verifyOutcome": "failure"
 }
