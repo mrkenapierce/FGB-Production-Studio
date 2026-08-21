@@ -1,12 +1,22 @@
 {
-  "facebookIngestActive": true,
+  "facebookIngestActive": false,
+  "facebookPageUrl": "https://www.facebook.com/share/1U4q6xagPW/?mibextid=wwXIfr",
   "scheduleTimezone": "America/Chicago",
   "scheduleStart": "09:00",
   "scheduleStop": "17:00",
+  "scheduleDays": [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday"
+  ],
   "publicBroadcastVerified": false,
   "transport": "primary-udp-mirror+isolated-copy-remux-sidecar",
   "youtubePreserved": true,
-  "runId": "32494668733",
-  "checkedAt": "2026-08-21T14:55:48Z",
-  "jobStatus": "success"
+  "runId": "32495354086",
+  "checkedAt": "2026-08-21T15:03:23Z",
+  "jobStatus": "failure"
 }
