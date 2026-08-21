@@ -6,6 +6,7 @@ BREAKER_FILE=${FFMPEG_RESTART_BREAKER_FILE:-/srv/fgbears-live/health/restart-bre
 SAMPLE_SECONDS=${STREAM_STATUS_SAMPLE_SECONDS:-20}
 WARN_SPEED=${STREAM_STATUS_WARN_SPEED:-0.95}
 STALE_SECONDS=${STREAM_STATUS_STALE_SECONDS:-90}
+ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 
 if [[ ${1:-} == "--sample-seconds" ]]; then
   SAMPLE_SECONDS=${2:-}
@@ -89,6 +90,44 @@ fi
 available_memory_mb=$(awk '/^MemAvailable:/ { printf "%.0f", $2 / 1024 }' /proc/meminfo)
 load_1m=$(awk '{ print $1 }' /proc/loadavg)
 
+central_hm=$(TZ=America/Chicago date +%H%M)
+central_hm=$((10#$central_hm))
+social_window=0
+(( central_hm >= 900 && central_hm < 1700 )) && social_window=1
+
+social_state() {
+  local platform=$1 enabled_key=$2 service="fgbears-${platform}-relay.service"
+  local enabled=0 active=0 socket=0 pid
+  [[ -r "$ENV_FILE" ]] && grep -Eq "^${enabled_key}=(1|true|yes|on)$" "$ENV_FILE" && enabled=1
+  systemctl is-active --quiet "$service" && active=1 || true
+  pid=$(systemctl show -p MainPID --value "$service" 2>/dev/null || true)
+  if (( active == 1 )) && [[ "$pid" =~ ^[1-9][0-9]*$ ]]; then
+    sudo ss -ntpH state established 2>/dev/null | grep "pid=$pid" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && socket=1 || true
+  fi
+  printf '%s %s %s\n' "$enabled" "$active" "$socket"
+}
+
+read -r x_enabled x_active x_socket < <(social_state x X_RELAY_ENABLED)
+read -r facebook_enabled facebook_active facebook_socket < <(social_state facebook FACEBOOK_RELAY_ENABLED)
+read -r instagram_enabled instagram_active instagram_socket < <(social_state instagram INSTAGRAM_RELAY_ENABLED)
+
+if (( social_window == 1 )); then
+  for platform in x facebook instagram; do
+    [[ "$status" == "OK" ]] || break
+    eval "enabled=\${${platform}_enabled} active=\${${platform}_active} socket=\${${platform}_socket}"
+    if (( enabled == 1 && active == 0 )); then
+      status="WARN"
+      reason="${platform^^}_RELAY_INACTIVE"
+      break
+    fi
+    if (( enabled == 1 && socket == 0 )); then
+      status="WARN"
+      reason="${platform^^}_INGEST_NOT_ESTABLISHED"
+      break
+    fi
+  done
+fi
+
 printf 'OVERALL_STATUS=%s\n' "$status"
 printf 'REASON=%s\n' "$reason"
 printf 'CHECKED_AT_EPOCH=%s\n' "$(date +%s)"
@@ -103,3 +142,7 @@ printf 'INTERVAL_SPEED=%s\n' "$interval_speed"
 printf 'SAMPLE_RESULT=%s\n' "$sample_result"
 printf 'AVAILABLE_MEMORY_MB=%s\n' "$available_memory_mb"
 printf 'LOAD_1M=%s\n' "$load_1m"
+printf 'SOCIAL_WINDOW_ACTIVE=%s\n' "$social_window"
+printf 'X_ENABLED=%s\nX_RELAY_ACTIVE=%s\nX_INGEST_SOCKET=%s\n' "$x_enabled" "$x_active" "$x_socket"
+printf 'FACEBOOK_ENABLED=%s\nFACEBOOK_RELAY_ACTIVE=%s\nFACEBOOK_INGEST_SOCKET=%s\n' "$facebook_enabled" "$facebook_active" "$facebook_socket"
+printf 'INSTAGRAM_ENABLED=%s\nINSTAGRAM_RELAY_ACTIVE=%s\nINSTAGRAM_INGEST_SOCKET=%s\n' "$instagram_enabled" "$instagram_active" "$instagram_socket"
