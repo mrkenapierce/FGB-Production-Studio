@@ -16,7 +16,7 @@
   "publicBroadcastVerified": false,
   "transport": "primary-udp-mirror+isolated-copy-remux-sidecar",
   "youtubePreserved": true,
-  "runId": "32495354086",
-  "checkedAt": "2026-08-21T15:03:23Z",
+  "runId": "32496933942",
+  "checkedAt": "2026-08-21T15:20:53Z",
   "jobStatus": "failure"
 }
