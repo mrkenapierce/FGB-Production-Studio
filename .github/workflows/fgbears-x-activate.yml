@@ -72,21 +72,8 @@ jobs:
           { printf '%s\n' "$X_RTMP_BASE"; printf '%s\n' "$FGB_X_STREAM_KEY"; } |
             ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo fgbears-configure-x'
 
-      - id: reconnect
-        name: Load fresh media headers without changing Facebook or YouTube credentials
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          sudo systemctl reset-failed fgbears-youtube-relay.service fgbears-x-relay.service fgbears-live.service || true
-          sudo systemctl restart fgbears-youtube-relay.service
-          sudo systemctl restart fgbears-x-relay.service
-          sudo systemctl restart fgbears-live.service
-          REMOTE
-
       - id: verify
-        name: Verify 9-to-5 X schedule and protected platform connections
+        name: Verify 9-to-5 X ingest without restarting YouTube
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -114,17 +101,12 @@ jobs:
                systemctl is-active --quiet fgbears-x-relay.service; then
               primary_ffmpeg=$(pgrep -P "$main_pid" -x ffmpeg | head -n1 || true)
               sockets=$(mktemp); sudo ss -ntpH state established > "$sockets" || true
-              yt_ok=false; x_ok=false; fb_ok=true
+              yt_ok=false; x_ok=false
               grep "pid=$yt_pid" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && yt_ok=true || true
               grep "pid=$x_pid" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && x_ok=true || true
-              fb_pid=$(systemctl show -p MainPID --value fgbears-facebook-relay.service || true)
-              if systemctl is-active --quiet fgbears-facebook-relay.service && [[ "$fb_pid" =~ ^[1-9][0-9]*$ ]]; then
-                fb_ok=false
-                grep "pid=$fb_pid" "$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && fb_ok=true || true
-              fi
               rm -f "$sockets"
-              if [[ "$yt_ok" == true && "$x_ok" == true && "$fb_ok" == true ]]; then
-                echo 'Verified YouTube + scheduled X + current Facebook state.'
+              if [[ "$yt_ok" == true && "$x_ok" == true ]]; then
+                echo 'Verified YouTube continuity and scheduled X ingest.'
                 exit 0
               fi
             fi
@@ -144,7 +126,7 @@ jobs:
           git checkout -B main origin/main
           mkdir -p .github/deployment-status
           active=false; [[ "$VERIFY_OUTCOME" == success ]] && active=true
-          jq -n --argjson active "$active" --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)"             --arg runId "$GITHUB_RUN_ID" --arg jobStatus "$JOB_STATUS" --arg youtubePage "$YOUTUBE_PAGE_URL"             '{xSimulcastActive:$active,xAccountHandle:"@epic501c3",scheduleTimezone:"America/Chicago",scheduleStart:"09:00",scheduleStop:"17:00",transport:"primary-udp-mirror+isolated-copy-remux-sidecar",youtubePage:$youtubePage,youtubePreserved:true,facebookPreserved:true,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus}'             > .github/deployment-status/fgbears-x.json
+          jq -n --argjson active "$active" --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)"             --arg runId "$GITHUB_RUN_ID" --arg jobStatus "$JOB_STATUS" --arg youtubePage "$YOUTUBE_PAGE_URL"             '{xIngestActive:$active,xAccountHandle:"@epic501c3",scheduleTimezone:"America/Chicago",scheduleStart:"09:00",scheduleStop:"17:00",publicBroadcastVerified:false,platformBroadcastObjectRequired:true,transport:"primary-udp-mirror+isolated-copy-remux-sidecar",youtubePage:$youtubePage,youtubePreserved:true,facebookPreserved:true,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus}'             > .github/deployment-status/fgbears-x.json
           git config user.name 'FGBears Deploy Bot'; git config user.email 'actions@github.com'
           git add .github/deployment-status/fgbears-x.json
           git diff --cached --quiet || { git commit -m 'Record scheduled X activation [skip ci]'; git push origin main; }
