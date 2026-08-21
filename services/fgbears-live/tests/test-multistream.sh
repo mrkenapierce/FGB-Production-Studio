@@ -29,9 +29,9 @@ grep -q '^YOUTUBE_UPSTREAM_RTMP_BASE=rtmps://a.rtmps.youtube.com/live2$' "$ROOT/
 
 grep -Fq 'FACEBOOK_LOCAL_UDP_URL' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
-grep -Fq '[f=mpegts:onfail=ignore]${FACEBOOK_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"
-grep -Fq '[f=mpegts:onfail=ignore]${X_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"
-grep -Fq '[f=mpegts:onfail=ignore]${INSTAGRAM_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"
+grep -Fq '[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${FACEBOOK_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"
+grep -Fq '[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${X_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"
+grep -Fq '[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${INSTAGRAM_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"
 grep -Fq 'Facebook local mirror' "$ROOT/bin/start-stream.sh"
 if grep -Fq 'live-api-s.facebook.com' "$ROOT/bin/start-stream.sh" || grep -Fq 'FACEBOOK_STREAM_KEY' "$ROOT/bin/start-stream.sh"; then
   echo 'The primary encoder must never know the Meta endpoint or Facebook stream key.' >&2
@@ -107,7 +107,7 @@ ffmpeg -hide_banner -loglevel error \
   -c:a aac -b:a 128k \
   -f tee -use_fifo 1 \
   -fifo_options 'attempt_recovery=1:recover_any_error=1:recovery_wait_time=1' \
-  "[f=flv:flvflags=no_duration_filesize:onfail=ignore]$TMP/youtube-local.flv|[f=mpegts:onfail=ignore]$TMP/x-local.ts|[f=mpegts:onfail=ignore]$TMP/facebook-local.ts|[f=mpegts:onfail=ignore]$TMP/instagram-local.ts"
+  "[f=flv:flvflags=no_duration_filesize:onfail=ignore]$TMP/youtube-local.flv|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/x-local.ts|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/facebook-local.ts|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/instagram-local.ts"
 
 ffmpeg -hide_banner -loglevel error -i "$TMP/youtube-local.flv" -map 0:v:0 -map 0:a:0 -c copy -f flv -flvflags no_duration_filesize "$TMP/youtube-upstream.flv"
 ffmpeg -hide_banner -loglevel error -i "$TMP/x-local.ts" -map 0:v:0 -map 0:a:0 -c copy -f flv -flvflags no_duration_filesize "$TMP/x-upstream.flv"
