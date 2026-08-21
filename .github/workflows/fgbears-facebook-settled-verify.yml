@@ -45,8 +45,8 @@ jobs:
           sudo grep -Fxq 'FACEBOOK_STREAM_ENABLED=0' "$env_file"
           sudo grep -Eq '^FACEBOOK_RELAY_ENABLED=(1|true|yes|on)$' "$env_file"
           sudo grep -Fqx 'FACEBOOK_SCHEDULE_TIMEZONE=America/Chicago' "$env_file"
-          sudo grep -Fqx 'FACEBOOK_SCHEDULE_START=12:00' "$env_file"
-          sudo grep -Fqx 'FACEBOOK_SCHEDULE_STOP=15:25' "$env_file"
+          sudo grep -Fqx 'FACEBOOK_SCHEDULE_START=09:00' "$env_file"
+          sudo grep -Fqx 'FACEBOOK_SCHEDULE_STOP=17:00' "$env_file"
           test "$(systemctl is-enabled fgbears-facebook-start.timer)" = enabled
           test "$(systemctl is-enabled fgbears-facebook-stop.timer)" = enabled
           systemctl is-active --quiet fgbears-facebook-start.timer
@@ -54,7 +54,7 @@ jobs:
 
           now_hm=$(TZ=America/Chicago date +%H%M); now_hm=$((10#$now_hm))
           in_window=false
-          if (( now_hm >= 1200 && now_hm < 1525 )); then in_window=true; fi
+          if (( now_hm >= 900 && now_hm < 1700 )); then in_window=true; fi
 
           stable=0
           first_main=''; first_youtube=''; first_facebook=''
@@ -131,7 +131,7 @@ jobs:
             --arg runId "$GITHUB_RUN_ID" \
             --arg jobStatus "$JOB_STATUS" \
             --arg verifyOutcome "$VERIFY_OUTCOME" \
-            '{facebookScheduleConfigured:$configured,scheduleTimezone:"America/Chicago",scheduleStart:"12:00",scheduleStop:"15:25",transport:"primary-udp-mirror+isolated-copy-remux-sidecar",primaryHasNoMetaCredentials:true,youtubeDedicatedRelay:true,xPreserved:true,settledVerification:true,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,verifyOutcome:$verifyOutcome}' > .github/deployment-status/fgbears-facebook.json
+            '{facebookScheduleConfigured:$configured,scheduleTimezone:"America/Chicago",scheduleStart:"09:00",scheduleStop:"17:00",transport:"primary-udp-mirror+isolated-copy-remux-sidecar",primaryHasNoMetaCredentials:true,youtubeDedicatedRelay:true,xPreserved:true,settledVerification:true,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,verifyOutcome:$verifyOutcome}' > .github/deployment-status/fgbears-facebook.json
           git config user.name 'FGBears Deploy Bot'
           git config user.email 'actions@github.com'
           git add .github/deployment-status/fgbears-facebook.json
