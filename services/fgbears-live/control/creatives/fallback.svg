@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#0B162A"/>
+  <rect x="0" y="0" width="1280" height="18" fill="#C83803"/>
+  <text x="640" y="300" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="74" font-weight="700" fill="#FFFFFF">FGP LIVE</text>
+  <text x="640" y="380" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="34" fill="#FFFFFF">24/7 Football Commentary &amp; Programming</text>
+  <text x="640" y="455" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="28" fill="#C83803">Stay with us — programming continues.</text>
+  <text x="640" y="650" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="#FFFFFF">Fallback visual • audio continues uninterrupted</text>
+</svg>
