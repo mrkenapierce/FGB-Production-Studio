@@ -1,4 +1,5 @@
 name: Deploy FGBears Live
+# Deploy restart-safe social codec headers on 2026-08-21.
 # Reconcile social automation deployment on 2026-08-21.
 
 on:
