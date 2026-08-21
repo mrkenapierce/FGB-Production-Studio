@@ -64,6 +64,32 @@ run_lag_check() {
   fi
 }
 
+reconcile_social_relay() {
+  local platform=$1 enabled_key=$2 service="fgbears-${platform}-relay.service"
+  local start_timer="fgbears-${platform}-start.timer" stop_timer="fgbears-${platform}-stop.timer"
+  local enabled=false now_hm
+  grep -Eq "^${enabled_key}=(1|true|yes|on)$" "$ENV_FILE" && enabled=true
+
+  if [[ "$enabled" != true ]]; then
+    systemctl stop "$service" >/dev/null 2>&1 || true
+    return 0
+  fi
+
+  systemctl enable --now "$start_timer" "$stop_timer" >/dev/null 2>&1 || true
+  now_hm=$(TZ=America/Chicago date +%H%M)
+  now_hm=$((10#$now_hm))
+  if (( now_hm >= 900 && now_hm < 1700 )); then
+    if ! systemctl is-active --quiet "$service"; then
+      logger -t fgbears-live-health "Recovering scheduled ${platform} relay during the 09:00-17:00 Central window."
+      systemctl reset-failed "$service" || true
+      systemctl restart "$service"
+    fi
+  elif systemctl is-active --quiet "$service"; then
+    logger -t fgbears-live-health "Stopping ${platform} relay outside the 09:00-17:00 Central window."
+    systemctl stop "$service"
+  fi
+}
+
 [[ -r "$ENV_FILE" && -s "$PLAYLIST_FILE" ]] || exit 0
 if grep -q '^YOUTUBE_STREAM_KEY=REPLACE_WITH_YOUTUBE_STREAM_KEY$' "$ENV_FILE"; then
   exit 0
@@ -94,6 +120,9 @@ if (( age > 90 )); then
 fi
 
 [[ -n "$out_time_us" ]] || exit 0
+reconcile_social_relay x X_RELAY_ENABLED
+reconcile_social_relay facebook FACEBOOK_RELAY_ENABLED
+reconcile_social_relay instagram INSTAGRAM_RELAY_ENABLED
 run_lag_check
 printf '%s %s\n' "$now" "$out_time_us" > "${HEALTH_SAMPLE_FILE}.partial"
 mv -f "${HEALTH_SAMPLE_FILE}.partial" "$HEALTH_SAMPLE_FILE"
