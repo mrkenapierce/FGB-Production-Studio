@@ -70,6 +70,11 @@ jobs:
             sleep 2
           done
           echo 'Facebook relay did not establish; YouTube remains untouched.' >&2
+          systemctl show fgbears-facebook-relay.service \\
+            -p ActiveState -p SubState -p Result -p ExecMainStatus -p NRestarts --no-pager >&2 || true
+          sudo journalctl -u fgbears-facebook-relay.service -n 100 --no-pager 2>&1 \\
+            | sed -E 's#rtmps?://[^[:space:]]+#rtmps://[REDACTED]#g' \\
+            | tail -60 >&2 || true
           exit 1
           REMOTE
       - name: Record Facebook ingest activation
