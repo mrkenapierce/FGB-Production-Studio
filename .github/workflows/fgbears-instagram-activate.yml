@@ -1,5 +1,4 @@
-# Post-codec-header deployment verification: 2026-08-21T14:51Z
-name: Activate Scheduled FGBears Instagram Simulcast
+name: Pause FGBears Instagram Simulcast
 
 on:
   push:
@@ -19,7 +18,7 @@ env:
   ORACLE_USER: ubuntu
 
 jobs:
-  activate:
+  pause:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -28,76 +27,51 @@ jobs:
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
-          IG_URL: ${{ secrets.FGB_INSTAGRAM_STREAM_URL }}
-          IG_KEY: ${{ secrets.FGB_INSTAGRAM_STREAM_KEY }}
         run: |
-          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY" && test -n "$IG_URL" && test -n "$IG_KEY"
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Install Instagram relay only
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/instagram-relay.sh services/fgbears-live/bin/configure-instagram.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/"
-          scp -i ~/.ssh/oracle_key services/fgbears-live/systemd/fgbears-instagram-* "$ORACLE_USER@$ORACLE_HOST:/tmp/"
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          sudo install -m 0755 /tmp/instagram-relay.sh /usr/local/bin/fgbears-instagram-relay
-          sudo install -m 0755 /tmp/configure-instagram.sh /usr/local/bin/fgbears-configure-instagram
-          sudo install -m 0644 /tmp/fgbears-instagram-*.service /tmp/fgbears-instagram-*.timer /etc/systemd/system/
-          sudo systemctl daemon-reload
-          REMOTE
-      - name: Configure Instagram 9-to-5 schedule
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-          IG_URL: ${{ secrets.FGB_INSTAGRAM_STREAM_URL }}
-          IG_KEY: ${{ secrets.FGB_INSTAGRAM_STREAM_KEY }}
-        run: |
-          { printf '%s\n' "$IG_URL"; printf '%s\n' "$IG_KEY"; } |
-            ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo fgbears-configure-instagram'
-      - id: verify
-        name: Verify Instagram without touching other platforms
+
+      - id: pause
+        name: Disable Instagram relay and daily timers
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
+          env_file=/etc/fgbears-live/stream.env
+          if sudo grep -q '^INSTAGRAM_RELAY_ENABLED=' "$env_file"; then
+            sudo sed -i -E 's/^INSTAGRAM_RELAY_ENABLED=.*/INSTAGRAM_RELAY_ENABLED=0/' "$env_file"
+          else
+            printf '%s\n' 'INSTAGRAM_RELAY_ENABLED=0' | sudo tee -a "$env_file" >/dev/null
+          fi
+          sudo systemctl disable --now fgbears-instagram-start.timer fgbears-instagram-stop.timer
+          sudo systemctl stop fgbears-instagram-relay.service
+          sudo systemctl reset-failed fgbears-instagram-relay.service || true
+          ! systemctl is-active --quiet fgbears-instagram-relay.service
+          [[ "$(systemctl is-enabled fgbears-instagram-start.timer 2>/dev/null || true)" != enabled ]]
+          [[ "$(systemctl is-enabled fgbears-instagram-stop.timer 2>/dev/null || true)" != enabled ]]
+          sudo grep -Fxq 'INSTAGRAM_RELAY_ENABLED=0' "$env_file"
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet fgbears-youtube-relay.service
-          systemctl is-active --quiet fgbears-instagram-relay.service
-          sudo grep -Fxq 'INSTAGRAM_SCHEDULE_START=09:00' /etc/fgbears-live/stream.env
-          sudo grep -Fxq 'INSTAGRAM_SCHEDULE_STOP=17:00' /etc/fgbears-live/stream.env
-          test "$(systemctl is-enabled fgbears-instagram-start.timer)" = enabled
-          test "$(systemctl is-enabled fgbears-instagram-stop.timer)" = enabled
-          for _ in $(seq 1 45); do
-            pid=$(systemctl show -p MainPID --value fgbears-instagram-relay.service)
-            sockets=$(sudo ss -ntpH state established || true)
-            grep "pid=$pid" <<<"$sockets" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && exit 0
-            sleep 2
-          done
-          echo 'Instagram relay did not establish; other destinations remain untouched.' >&2
-          systemctl show fgbears-instagram-relay.service \
-            -p ActiveState -p SubState -p Result -p ExecMainStatus -p NRestarts --no-pager >&2 || true
-          sudo journalctl -u fgbears-instagram-relay.service -n 80 --no-pager 2>&1 \
-            | sed -E 's#rtmps?://[^[:space:]]+#rtmps://[REDACTED]#g' \
-            | tail -40 >&2 || true
-          exit 1
           REMOTE
-      - name: Record Instagram ingest activation
+
+      - name: Record Instagram pause
         if: always()
         env:
-          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
+          PAUSE_OUTCOME: ${{ steps.pause.outcome }}
           JOB_STATUS: ${{ job.status }}
         run: |
           git fetch origin main
           git checkout -B main origin/main
           mkdir -p .github/deployment-status
-          active=false; [[ "$VERIFY_OUTCOME" == success ]] && active=true
-          jq -n --argjson active "$active" --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg runId "$GITHUB_RUN_ID" --arg jobStatus "$JOB_STATUS" \
-            '{instagramIngestActive:$active,instagramAccountHandle:"@epic501c3",scheduleTimezone:"America/Chicago",scheduleStart:"09:00",scheduleStop:"17:00",publicBroadcastVerified:false,transport:"primary-udp-mirror+isolated-vertical-transcode-sidecar",youtubePreserved:true,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus}' \
+          paused=false; [[ "$PAUSE_OUTCOME" == success ]] && paused=true
+          jq -n --argjson paused "$paused" --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg runId "$GITHUB_RUN_ID" --arg jobStatus "$JOB_STATUS" \
+            '{instagramIngestActive:false,instagramPaused:$paused,pauseReason:"Follower threshold not yet reached",instagramAccountHandle:"@epic501c3",dailySchedule:"paused",publicBroadcastVerified:false,youtubePreserved:true,xPreserved:true,facebookPreserved:true,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus}' \
             > .github/deployment-status/fgbears-instagram.json
-          git config user.name 'FGBears Deploy Bot'; git config user.email 'actions@github.com'
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
           git add .github/deployment-status/fgbears-instagram.json
-          git diff --cached --quiet || { git commit -m 'Record scheduled Instagram ingest [skip ci]'; git push origin main; }
+          git diff --cached --quiet || { git commit -m 'Record Instagram pause [skip ci]'; git push origin main; }
