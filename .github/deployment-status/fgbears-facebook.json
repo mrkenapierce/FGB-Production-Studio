@@ -1,15 +1,12 @@
 {
-  "facebookScheduleConfigured": false,
+  "facebookIngestActive": true,
   "scheduleTimezone": "America/Chicago",
   "scheduleStart": "09:00",
   "scheduleStop": "17:00",
+  "publicBroadcastVerified": false,
   "transport": "primary-udp-mirror+isolated-copy-remux-sidecar",
-  "primaryHasNoMetaCredentials": true,
-  "youtubeDedicatedRelay": true,
-  "xPreserved": true,
-  "settledVerification": true,
-  "runId": "32492485636",
-  "checkedAt": "2026-08-21T14:31:26Z",
-  "jobStatus": "failure",
-  "verifyOutcome": "failure"
+  "youtubePreserved": true,
+  "runId": "32493036917",
+  "checkedAt": "2026-08-21T14:37:55Z",
+  "jobStatus": "success"
 }
