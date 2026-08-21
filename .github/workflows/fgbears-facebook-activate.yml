@@ -82,7 +82,7 @@ jobs:
           mkdir -p .github/deployment-status
           active=false; [[ "$VERIFY_OUTCOME" == success ]] && active=true
           jq -n --argjson active "$active" --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg runId "$GITHUB_RUN_ID" --arg jobStatus "$JOB_STATUS" \
-            '{facebookIngestActive:$active,scheduleTimezone:"America/Chicago",scheduleStart:"09:00",scheduleStop:"17:00",publicBroadcastVerified:false,transport:"primary-udp-mirror+isolated-copy-remux-sidecar",youtubePreserved:true,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus}' \
+            '{facebookIngestActive:$active,facebookPageUrl:"https://www.facebook.com/share/1U4q6xagPW/?mibextid=wwXIfr",scheduleTimezone:"America/Chicago",scheduleStart:"09:00",scheduleStop:"17:00",scheduleDays:["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],publicBroadcastVerified:false,transport:"primary-udp-mirror+isolated-copy-remux-sidecar",youtubePreserved:true,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus}' \
             > .github/deployment-status/fgbears-facebook.json
           git config user.name 'FGBears Deploy Bot'; git config user.email 'actions@github.com'
           git add .github/deployment-status/fgbears-facebook.json
