@@ -1,4 +1,5 @@
 name: Audit FGBears News Runtime
+# Runtime verification after RSS cache-bypass deployment.
 
 on:
   workflow_dispatch:
