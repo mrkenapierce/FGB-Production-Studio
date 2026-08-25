@@ -71,7 +71,7 @@ PY
 kill "$OVERLAY_PID"; wait "$OVERLAY_PID" 2>/dev/null || true; OVERLAY_PID=""
 
 cat > "$TMP/crawl.json" <<'JSON'
-{"active":true,"label":"FGB LIVE","message":"🐻⬇️ #FGB 💙🧡","speed":"normal","updatedAt":"2026-08-19T00:00:00Z"}
+{"active":true,"label":"FGB LIVE","message":"legacy first message","messages":[{"enabled":true,"text":"MESSAGE ONE 🐻⬇️"},{"enabled":true,"text":"MESSAGE TWO"},{"enabled":true,"text":"MESSAGE THREE"},{"enabled":true,"text":"MESSAGE FOUR"},{"enabled":true,"text":"MESSAGE FIVE 💙🧡"}],"separator":"•","speed":"normal","updatedAt":"2026-08-25T00:00:00Z"}
 JSON
 CRAWL_FEED_FILE="$TMP/crawl.json" CRAWL_RUNTIME_DIR="$TMP/runtime" CRAWL_OVERLAY_PORT=18788 CRAWL_OVERLAY_FPS=10 python3 "$ROOT/bin/crawl-overlay.py" >"$TMP/crawl-overlay.log" 2>&1 &
 CRAWL_PID=$!
@@ -79,7 +79,17 @@ for _ in {1..40}; do
   curl --silent --fail --max-time 1 http://127.0.0.1:18788/healthz >"$TMP/crawl-health.json" && break
   sleep 0.1
 done
-jq -e '.ok == true and .active == true' "$TMP/crawl-health.json" >/dev/null
+jq -e '.ok == true and .active == true and .messageCount == 5' "$TMP/crawl-health.json" >/dev/null
+python3 - "$TMP/runtime/crawl-message.txt" <<'PY'
+from pathlib import Path
+import sys
+text = Path(sys.argv[1]).read_text(encoding='utf-8')
+expected = ['MESSAGE ONE', 'MESSAGE TWO', 'MESSAGE THREE', 'MESSAGE FOUR', 'MESSAGE FIVE']
+positions = [text.index(message) for message in expected]
+assert positions == sorted(positions), (positions, text)
+assert text.count('•') == 4, text
+assert 'LEGACY FIRST MESSAGE' not in text, text
+PY
 curl --silent --fail http://127.0.0.1:18788/frame.jpg -o "$TMP/crawl-frame.jpg"
 python3 - "$TMP/crawl-frame.jpg" <<'PY'
 from PIL import Image
