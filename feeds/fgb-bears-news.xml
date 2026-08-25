@@ -5,16 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 25 Aug 2026 20:01:46 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 20:43:35 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears activate S Elijah Hicks, LB Keyshaun Elliott</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears activate S Elijah Hicks, LB Keyshaun Elliott</description>
-      <link>https://sports.yahoo.com/articles/bears-activate-elijah-hicks-lb-183038054.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ed3011dfda5cd8c56b0d</guid>
-      <pubDate>Tue, 25 Aug 2026 18:30:38 GMT</pubDate>
+      <title>Bears RT Darnell Wright left practice with possible elbow injury</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears RT Darnell Wright left practice with possible elbow injury</description>
+      <link>https://sports.yahoo.com/articles/bears-rt-darnell-wright-left-201540149.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5fde4f0e559b66c48fe6</guid>
+      <pubDate>Tue, 25 Aug 2026 20:15:40 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Roster Moves: Keyshaun Elliott and Elijah Hicks activated off PUP</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Roster Moves: Keyshaun Elliott and Elijah Hicks activated off PUP</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-roster-moves-keyshaun-200000390.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1d94de29781c66c70407</guid>
+      <pubDate>Tue, 25 Aug 2026 20:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -40,13 +50,13 @@
     </item>
 
     <item>
-      <title>Report: Bears have had trade talks involving DT Gervon Dexter</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Report: Bears have had trade talks involving DT Gervon Dexter</description>
-      <link>https://sports.yahoo.com/articles/report-bears-had-trade-talks-194349048.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-bc47176144b963a4d0cf</guid>
-      <pubDate>Tue, 25 Aug 2026 12:43:00 GMT</pubDate>
+      <title>Gervon Dexter Trade Rumor Pops Up After Bears DT&apos;s Early Exit From Practice</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Gervon Dexter Trade Rumor Pops Up After Bears DT&apos;s Early Exit From Practice</description>
+      <link>https://www.si.com/nfl/bears/onsi/gervon-dexter-trade-rumor-bears-early-exit-practice</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-84dd4834d920c841d2cd</guid>
+      <pubDate>Tue, 25 Aug 2026 12:57:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -60,13 +70,13 @@
     </item>
 
     <item>
-      <title>Bears Sign Linebacker, Place Another on Injured Reserve Among 4 Roster Moves</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Sign Linebacker, Place Another on Injured Reserve Among 4 Roster Moves</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-sign-linebacker-place-another-on-injured-reserve-among-4-roster-moves-01m0x2k79nc0</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5e081d99c172449185f9</guid>
-      <pubDate>Tue, 25 Aug 2026 11:48:00 GMT</pubDate>
+      <title>Bears RT Darnell Wright left practice with possible elbow injury</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears RT Darnell Wright left practice with possible elbow injury</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-rt-darnell-wright-left-practice-with-possible-elbow-injury</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9c7d5aedcd3247db2ed7</guid>
+      <pubDate>Tue, 25 Aug 2026 09:16:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
@@ -75,16 +85,6 @@
       <link>https://www.nytimes.com/athletic/7536827/2026/08/25/nfl-rivalries-uniforms-packers-bears-lions/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-1c19b9333f7d159be33d</guid>
       <pubDate>Tue, 25 Aug 2026 06:58:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears camp mood check: Reasons for optimism, concern, curiosity</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears camp mood check: Reasons for optimism, concern, curiosity</description>
-      <link>https://www.nytimes.com/athletic/7535564/2026/08/25/bears-caleb-williams-ben-johnson-optimisim/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-22fb77e1da0e2ae99137</guid>
-      <pubDate>Tue, 25 Aug 2026 03:04:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
