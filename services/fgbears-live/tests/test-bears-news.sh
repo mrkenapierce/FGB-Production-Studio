@@ -13,6 +13,17 @@ cleanup() {
 trap cleanup EXIT
 
 python3 -m py_compile "$ROOT/bin/bears-news-feed.py"
+python3 - "$ROOT/bin/bears-news-feed.py" <<'PY'
+import importlib.util
+import sys
+import urllib.parse
+spec = importlib.util.spec_from_file_location('bears_news_feed', sys.argv[1])
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+url = module.cache_busted_feed_url()
+query = urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
+assert query.get('_refresh') and query['_refresh'][0].isdigit(), url
+PY
 bash -n "$ROOT/bin/start-stream.sh"
 
 # Preserve the single-program-clock design. Bears news remains native drawtext
