@@ -243,6 +243,7 @@ class State:
             "active": False,
             "label": "EPIC LIVE",
             "message": "",
+            "messageCount": 0,
             "speed": "normal",
             "speedPps": 105,
             "updatedAt": "",
@@ -260,11 +261,35 @@ class State:
             speed_pps = float(fallback_pps)
         speed_pps = min(400.0, max(20.0, speed_pps))
         label = grapheme_slice(str(payload.get("label") or "EPIC LIVE"), 24)
-        message = grapheme_slice(str(payload.get("message") or ""), 600)
+        message_parts: list[str] = []
+        raw_messages = payload.get("messages")
+        if isinstance(raw_messages, list):
+            for entry in raw_messages:
+                if isinstance(entry, str):
+                    enabled = True
+                    text = entry
+                elif isinstance(entry, dict):
+                    enabled = bool(entry.get("enabled", True))
+                    text = str(entry.get("text") or entry.get("message") or "")
+                else:
+                    continue
+                normalized = grapheme_slice(" ".join(text.split()), 600)
+                if enabled and normalized:
+                    message_parts.append(normalized)
+                if len(message_parts) == 5:
+                    break
+        separator = grapheme_slice(str(payload.get("separator") or "•"), 8) or "•"
+        if message_parts:
+            message = ("     " + separator + "     ").join(message_parts)
+        else:
+            message = grapheme_slice(str(payload.get("message") or ""), 600)
+        message = grapheme_slice(message, 3200)
+        message_count = len(message_parts) if message_parts else (1 if message else 0)
         value = {
             "active": bool(payload.get("active")),
             "label": label,
             "message": message,
+            "messageCount": message_count,
             "speed": speed,
             "speedPps": speed_pps,
             "updatedAt": str(payload.get("updatedAt") or ""),
@@ -388,6 +413,7 @@ class Handler(BaseHTTPRequestHandler):
                     "lastError": error,
                     "emojiRenderer": "twemoji-png",
                     "messageGraphemes": len(graphemes(str(value["message"]))),
+                    "messageCount": int(value.get("messageCount") or 0),
                 }
             ).encode("utf-8")
             self.send_response(200)

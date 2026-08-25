@@ -40,11 +40,18 @@ def source_name(item: ET.Element) -> str:
     return host or "FGB SOURCE"
 
 
+def cache_busted_feed_url() -> str:
+    parts = urllib.parse.urlsplit(FEED_URL)
+    query = urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+    query.append(("_refresh", str(time.time_ns())))
+    return urllib.parse.urlunsplit((parts.scheme, parts.netloc, parts.path, urllib.parse.urlencode(query), parts.fragment))
+
+
 def read_feed_bytes() -> bytes:
     if FEED_FILE:
         return Path(FEED_FILE).read_bytes()
     request = urllib.request.Request(
-        FEED_URL,
+        cache_busted_feed_url(),
         headers={
             "Accept": "application/rss+xml, application/xml, text/xml",
             "Cache-Control": "no-cache",
