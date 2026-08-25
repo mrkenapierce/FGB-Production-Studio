@@ -1,0 +1,52 @@
+name: Refresh Football's Greatest Bears News
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/refresh-footballs-greatest-bears-news.mjs'
+      - '.github/workflows/refresh-footballs-greatest-bears-news.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: footballs-greatest-bears-news-refresh
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Validate generator
+        run: node scripts/refresh-footballs-greatest-bears-news.mjs --self-test
+
+      - name: Scan approved sources
+        run: node scripts/refresh-footballs-greatest-bears-news.mjs
+
+      - name: Commit only a changed feed
+        run: |
+          if git diff --quiet -- feeds/fgb-bears-news.xml; then
+            echo 'No story changes; no commit required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add feeds/fgb-bears-news.xml
+          git commit -m "Refresh Football's Greatest Bears news feed"
+          git pull --rebase origin main
+          git push origin HEAD:main
