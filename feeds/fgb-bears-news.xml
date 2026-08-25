@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 25 Aug 2026 20:43:35 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 21:41:12 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -60,33 +60,23 @@
     </item>
 
     <item>
-      <title>Darnell Wright Exits Chicago Bears Practice Early With Apparent Injury</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Darnell Wright Exits Chicago Bears Practice Early With Apparent Injury</description>
-      <link>https://www.si.com/nfl/bears/onsi/darnell-wright-chicago-bears-practice-early-injury</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ae2208756f90890bddfb</guid>
-      <pubDate>Tue, 25 Aug 2026 12:31:00 GMT</pubDate>
+      <title>Bears Sign Linebacker, Place Another on Injured Reserve Among 4 Roster Moves</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Sign Linebacker, Place Another on Injured Reserve Among 4 Roster Moves</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-sign-linebacker-place-another-on-injured-reserve-among-4-roster-moves-01m0x2k79nc0</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5e081d99c172449185f9</guid>
+      <pubDate>Tue, 25 Aug 2026 11:48:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Bears RT Darnell Wright left practice with possible elbow injury</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears RT Darnell Wright left practice with possible elbow injury</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-rt-darnell-wright-left-practice-with-possible-elbow-injury</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9c7d5aedcd3247db2ed7</guid>
-      <pubDate>Tue, 25 Aug 2026 09:16:00 GMT</pubDate>
+      <title>2026 CBS Sports NFL All-Breakout Team: Caleb Williams, two other Bears headline rising stars on offense</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: 2026 CBS Sports NFL All-Breakout Team: Caleb Williams, two other Bears headline rising stars on offense</description>
+      <link>https://www.cbssports.com/nfl/news/2026-nfl-breakout-team-caleb-williams/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8cf3e989baf1b4c72b22</guid>
+      <pubDate>Mon, 24 Aug 2026 14:18:02 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
-      <title>First look at NFL’s new ‘Rivalries’ jerseys: Bears, Lions, Vikings, Packers, Colts</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: First look at NFL’s new ‘Rivalries’ jerseys: Bears, Lions, Vikings, Packers, Colts</description>
-      <link>https://www.nytimes.com/athletic/7536827/2026/08/25/nfl-rivalries-uniforms-packers-bears-lions/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1c19b9333f7d159be33d</guid>
-      <pubDate>Tue, 25 Aug 2026 06:58:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
