@@ -5,26 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 25 Aug 2026 01:37:11 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 02:44:19 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears Projected to Cut Roschon Johnson in Favor of Ex-Dolphins RB</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Projected to Cut Roschon Johnson in Favor of Ex-Dolphins RB</description>
-      <link>https://sports.yahoo.com/articles/bears-projected-cut-roschon-johnson-000321205.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-62dcad2b6a59fdceec84</guid>
-      <pubDate>Mon, 24 Aug 2026 17:00:00 GMT</pubDate>
+      <title>Bengals 53-man roster prediction after win vs. Bears in Preseason Week 2 (UPDATE)</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bengals 53-man roster prediction after win vs. Bears in Preseason Week 2 (UPDATE)</description>
+      <link>https://sports.yahoo.com/articles/bengals-53-man-roster-prediction-115500629.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ba93026185dad7ed5183</guid>
+      <pubDate>Tue, 25 Aug 2026 02:17:03 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears 53-Man Roster Prediction: Final Roster Bubbles</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears 53-Man Roster Prediction: Final Roster Bubbles</description>
-      <link>https://sports.yahoo.com/articles/bears-53-man-roster-prediction-231042218.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e671602421ee5ac71c28</guid>
-      <pubDate>Mon, 24 Aug 2026 16:10:00 GMT</pubDate>
+      <title>Which Chicago Bears bubble player do you think will make the roster?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Which Chicago Bears bubble player do you think will make the roster?</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-bubble-player-think-021324601.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-418313c29f7a70c1d162</guid>
+      <pubDate>Tue, 25 Aug 2026 02:13:24 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -60,16 +60,6 @@
     </item>
 
     <item>
-      <title>Bears&apos; Kalif Raymond: Drawing strong praise in camp</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kalif Raymond: Drawing strong praise in camp</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-kalif-raymond-drawing-strong-praise-in-camp/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f963aefdfd58533eb879</guid>
-      <pubDate>Mon, 24 Aug 2026 08:17:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
       <title>Recapping Bears-Bengals Preseason Week 2 game | Bears, etc. Podcast</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Recapping Bears-Bengals Preseason Week 2 game | Bears, etc. Podcast</description>
       <link>https://www.chicagobears.com/audio/recapping-bears-bengals-preseason-week-2-game-bears-etc-podcast</link>
@@ -87,6 +77,16 @@
       <pubDate>Mon, 24 Aug 2026 04:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams believes Bears offense will be &apos;rolling&apos; heading into regular season</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Caleb Williams believes Bears offense will be &apos;rolling&apos; heading into regular season</description>
+      <link>https://www.chicagobears.com/news/caleb-williams-believes-bears-offense-will-be-rolling-heading-into-regular-season</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f5bfb6da9fd0168adc59</guid>
+      <pubDate>Sun, 23 Aug 2026 04:45:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
