@@ -2,8 +2,9 @@
 Description=Run the FGBears TV health check every five minutes
 
 [Timer]
-OnBootSec=3min
-OnUnitActiveSec=5min
+OnCalendar=*:0/5
+AccuracySec=1s
+RandomizedDelaySec=0
 Persistent=true
 
 [Install]

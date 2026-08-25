@@ -15,8 +15,22 @@ LAG_SAMPLE_SECONDS=${FFMPEG_LAG_SAMPLE_SECONDS:-20}
 LAG_WARN_SPEED=${FFMPEG_LAG_WARN_SPEED:-0.95}
 RESTART_BUDGET=${FFMPEG_RESTART_BUDGET:-2}
 RESTART_WINDOW_SECONDS=${FFMPEG_RESTART_WINDOW_SECONDS:-1800}
+NEWS_REFRESH_BIN=${BEARS_NEWS_REFRESH_BIN:-/opt/fgbears-live/bin/refresh-bears-news.py}
+NEWS_REFRESH_INTERVAL_SECONDS=${BEARS_NEWS_REFRESH_INTERVAL_SECONDS:-900}
+NEWS_LOCAL_FEED=${BEARS_NEWS_LOCAL_FEED_FILE:-/srv/fgbears-live/runtime/fgb-bears-news.xml}
+NEWS_REFRESH_STATUS=${BEARS_NEWS_REFRESH_STATUS_FILE:-/srv/fgbears-live/runtime/bears-news-refresh-status.env}
 
 mkdir -p "$HEALTH_STATE_DIR"
+
+run_news_refresh() {
+  [[ -f "$NEWS_REFRESH_BIN" ]] || return 0
+  if ! runuser -u fgbears -- env \
+    FGB_BEARS_NEWS_FEED_PATH="$NEWS_LOCAL_FEED" \
+    FGB_BEARS_NEWS_STATUS_PATH="$NEWS_REFRESH_STATUS" \
+    python3 "$NEWS_REFRESH_BIN" --interval-seconds "$NEWS_REFRESH_INTERVAL_SECONDS"; then
+    logger -t fgbears-live-health "Bears news refresh failed; last good local feed remains in service."
+  fi
+}
 
 guarded_restart() {
   local reason=$1 now cutoff count temporary
@@ -65,9 +79,13 @@ run_lag_check() {
 }
 
 reconcile_social_relay() {
-  local platform=$1 enabled_key=$2 service="fgbears-${platform}-relay.service"
-  local start_timer="fgbears-${platform}-start.timer" stop_timer="fgbears-${platform}-stop.timer"
+  local platform enabled_key service start_timer stop_timer
   local enabled=false now_hm
+  platform=$1
+  enabled_key=$2
+  service="fgbears-${platform}-relay.service"
+  start_timer="fgbears-${platform}-start.timer"
+  stop_timer="fgbears-${platform}-stop.timer"
   grep -Eq "^${enabled_key}=(1|true|yes|on)$" "$ENV_FILE" && enabled=true
 
   if [[ "$enabled" != true ]]; then
@@ -89,6 +107,10 @@ reconcile_social_relay() {
     systemctl stop "$service"
   fi
 }
+
+# News scanning is independent of encoder health. The five-minute host timer calls
+# this script; the refresher itself runs only once per 15-minute epoch bucket.
+run_news_refresh
 
 [[ -r "$ENV_FILE" && -s "$PLAYLIST_FILE" ]] || exit 0
 if grep -q '^YOUTUBE_STREAM_KEY=REPLACE_WITH_YOUTUBE_STREAM_KEY$' "$ENV_FILE"; then

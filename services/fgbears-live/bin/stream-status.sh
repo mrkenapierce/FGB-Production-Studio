@@ -7,6 +7,10 @@ SAMPLE_SECONDS=${STREAM_STATUS_SAMPLE_SECONDS:-20}
 WARN_SPEED=${STREAM_STATUS_WARN_SPEED:-0.95}
 STALE_SECONDS=${STREAM_STATUS_STALE_SECONDS:-90}
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
+NEWS_STATUS_FILE=${BEARS_NEWS_REFRESH_STATUS_FILE:-/srv/fgbears-live/runtime/bears-news-refresh-status.env}
+NEWS_FEED_FILE=${BEARS_NEWS_LOCAL_FEED_FILE:-/srv/fgbears-live/runtime/fgb-bears-news.xml}
+NEWS_ACTIVE_FILE=${BEARS_NEWS_ACTIVE_FILE:-/srv/fgbears-live/runtime/bears-news-active}
+NEWS_STALE_SECONDS=${BEARS_NEWS_STALE_SECONDS:-1200}
 
 if [[ ${1:-} == "--sample-seconds" ]]; then
   SAMPLE_SECONDS=${2:-}
@@ -96,8 +100,11 @@ social_window=0
 (( central_hm >= 900 && central_hm < 1700 )) && social_window=1
 
 social_state() {
-  local platform=$1 enabled_key=$2 service="fgbears-${platform}-relay.service"
+  local platform enabled_key service
   local enabled=0 active=0 socket=0 pid
+  platform=$1
+  enabled_key=$2
+  service="fgbears-${platform}-relay.service"
   [[ -r "$ENV_FILE" ]] && grep -Eq "^${enabled_key}=(1|true|yes|on)$" "$ENV_FILE" && enabled=1
   systemctl is-active --quiet "$service" && active=1 || true
   pid=$(systemctl show -p MainPID --value "$service" 2>/dev/null || true)
@@ -128,6 +135,48 @@ if (( social_window == 1 )); then
   done
 fi
 
+news_refresh_status="NOT_INITIALIZED"
+news_scan_epoch=0
+news_scan_age=-1
+news_item_count=0
+news_feed_bytes=0
+news_ribbon_active=0
+if [[ -s "$NEWS_STATUS_FILE" ]]; then
+  news_refresh_status=$(sed -n 's/^STATUS=\([A-Z][A-Z]*\)$/\1/p' "$NEWS_STATUS_FILE" | tail -n 1)
+  news_scan_epoch=$(sed -n 's/^LAST_SCAN_EPOCH=\([0-9][0-9]*\)$/\1/p' "$NEWS_STATUS_FILE" | tail -n 1)
+  news_item_count=$(sed -n 's/^ITEM_COUNT=\([0-9][0-9]*\)$/\1/p' "$NEWS_STATUS_FILE" | tail -n 1)
+  [[ "$news_scan_epoch" =~ ^[0-9]+$ ]] || news_scan_epoch=0
+  [[ "$news_item_count" =~ ^[0-9]+$ ]] || news_item_count=0
+  if (( news_scan_epoch > 0 )); then
+    news_scan_age=$(( $(date +%s) - news_scan_epoch ))
+  fi
+fi
+if [[ -s "$NEWS_FEED_FILE" ]]; then
+  news_feed_bytes=$(stat -c %s "$NEWS_FEED_FILE" 2>/dev/null || echo 0)
+fi
+if [[ -r "$NEWS_ACTIVE_FILE" ]] && [[ $(tr -d '[:space:]' < "$NEWS_ACTIVE_FILE") == "1" ]]; then
+  news_ribbon_active=1
+fi
+
+if [[ "$status" == "OK" ]]; then
+  if [[ "$news_refresh_status" == "ERROR" ]]; then
+    status="WARN"
+    reason="NEWS_REFRESH_ERROR"
+  elif (( news_scan_age < 0 )); then
+    status="WARN"
+    reason="NEWS_REFRESH_NOT_INITIALIZED"
+  elif (( news_scan_age > NEWS_STALE_SECONDS )); then
+    status="WARN"
+    reason="NEWS_REFRESH_STALE"
+  elif (( news_feed_bytes <= 0 )); then
+    status="WARN"
+    reason="NEWS_FEED_MISSING"
+  elif (( news_ribbon_active == 0 )); then
+    status="WARN"
+    reason="NEWS_RIBBON_INACTIVE"
+  fi
+fi
+
 printf 'OVERALL_STATUS=%s\n' "$status"
 printf 'REASON=%s\n' "$reason"
 printf 'CHECKED_AT_EPOCH=%s\n' "$(date +%s)"
@@ -146,3 +195,8 @@ printf 'SOCIAL_WINDOW_ACTIVE=%s\n' "$social_window"
 printf 'X_ENABLED=%s\nX_RELAY_ACTIVE=%s\nX_INGEST_SOCKET=%s\n' "$x_enabled" "$x_active" "$x_socket"
 printf 'FACEBOOK_ENABLED=%s\nFACEBOOK_RELAY_ACTIVE=%s\nFACEBOOK_INGEST_SOCKET=%s\n' "$facebook_enabled" "$facebook_active" "$facebook_socket"
 printf 'INSTAGRAM_ENABLED=%s\nINSTAGRAM_RELAY_ACTIVE=%s\nINSTAGRAM_INGEST_SOCKET=%s\n' "$instagram_enabled" "$instagram_active" "$instagram_socket"
+printf 'NEWS_REFRESH_STATUS=%s\n' "$news_refresh_status"
+printf 'NEWS_SCAN_AGE_SECONDS=%s\n' "$news_scan_age"
+printf 'NEWS_ITEM_COUNT=%s\n' "$news_item_count"
+printf 'NEWS_FEED_BYTES=%s\n' "$news_feed_bytes"
+printf 'NEWS_RIBBON_ACTIVE=%s\n' "$news_ribbon_active"
