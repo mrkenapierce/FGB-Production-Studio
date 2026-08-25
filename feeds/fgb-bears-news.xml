@@ -1,82 +1,92 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Football's Greatest Bears News</title>
+    <title>Football&apos;s Greatest Bears News</title>
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
-    <description>Original FGB-written Chicago Bears news briefs with source attribution for Football's Greatest Bears live programming.</description>
+    <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 19 Aug 2026 03:59:00 -0500</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 01:37:11 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Kyle Monangai's hyperextended knee will sideline him multiple weeks, creating fresh uncertainty for the Bears' Week 1 backfield</title>
-      <description>FGB brief: Sports Illustrated reports Monangai suffered a hyperextended knee and is expected to miss multiple weeks, though the Bears view the diagnosis as positive compared with what they initially feared.</description>
-      <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-season-debut-doubt</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-17-214</guid>
-      <pubDate>Mon, 17 Aug 2026 00:00:00 -0500</pubDate>
+      <title>Bears Projected to Cut Roschon Johnson in Favor of Ex-Dolphins RB</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Projected to Cut Roschon Johnson in Favor of Ex-Dolphins RB</description>
+      <link>https://sports.yahoo.com/articles/bears-projected-cut-roschon-johnson-000321205.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-62dcad2b6a59fdceec84</guid>
+      <pubDate>Mon, 24 Aug 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears 53-Man Roster Prediction: Final Roster Bubbles</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears 53-Man Roster Prediction: Final Roster Bubbles</description>
+      <link>https://sports.yahoo.com/articles/bears-53-man-roster-prediction-231042218.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e671602421ee5ac71c28</guid>
+      <pubDate>Mon, 24 Aug 2026 16:10:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Braxton Jones&apos; Stuggles Leave Bears with Few Options and Time Nearly Up</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Braxton Jones&apos; Stuggles Leave Bears with Few Options and Time Nearly Up</description>
+      <link>https://www.si.com/nfl/bears/onsi/braxton-jones-stuggles-leave-bears-with-few-options-and-time-nearly-up</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5a60f41f06e9ce0649a4</guid>
+      <pubDate>Mon, 24 Aug 2026 14:23:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Bears activate Ozzy Trapilo while clearing three injured players as the offensive tackle competition gains another option</title>
-      <description>FGB brief: Chicago's official transaction log shows Trapilo was activated Aug. 16, while K.C. Eziomume, Kyron Hudson and Gervarrius Owens were waived with injury settlements.</description>
-      <link>https://www.chicagobears.com/team/transactions/2026</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-16-213</guid>
-      <pubDate>Sun, 16 Aug 2026 00:00:00 -0500</pubDate>
+      <title>2026 CBS Sports NFL All-Breakout Team: Caleb Williams, two other Bears headline rising stars on offense</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: 2026 CBS Sports NFL All-Breakout Team: Caleb Williams, two other Bears headline rising stars on offense</description>
+      <link>https://www.cbssports.com/nfl/news/2026-nfl-breakout-team-caleb-williams/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8cf3e989baf1b4c72b22</guid>
+      <pubDate>Mon, 24 Aug 2026 14:18:02 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Where Toughest Chicago Bears Cuts Should Come Based on PFF&apos;s Grades</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Where Toughest Chicago Bears Cuts Should Come Based on PFF&apos;s Grades</description>
+      <link>https://www.si.com/nfl/bears/onsi/where-toughest-chicago-bears-cuts-pff-grades</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-eabdbb754e6d7af9a204</guid>
+      <pubDate>Mon, 24 Aug 2026 14:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Kalif Raymond: Drawing strong praise in camp</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kalif Raymond: Drawing strong praise in camp</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-kalif-raymond-drawing-strong-praise-in-camp/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f963aefdfd58533eb879</guid>
+      <pubDate>Mon, 24 Aug 2026 08:17:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Recapping Bears-Bengals Preseason Week 2 game | Bears, etc. Podcast</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Recapping Bears-Bengals Preseason Week 2 game | Bears, etc. Podcast</description>
+      <link>https://www.chicagobears.com/audio/recapping-bears-bengals-preseason-week-2-game-bears-etc-podcast</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7ea4dfd937812b3c6222</guid>
+      <pubDate>Mon, 24 Aug 2026 06:11:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
-      <title>Ben Johnson's reserve offense rolls as Tyson Bagent and Case Keenum combine for 320 yards and three touchdowns</title>
-      <description>FGB analysis: NFL.com says Chicago's offense stayed productive without its starters, with Bagent and Keenum combining for 320 passing yards and three touchdowns while several reserve skill players strengthened roster cases.</description>
-      <link>https://www.nfl.com/news/2026-nfl-preseason-week-1-what-we-learned-from-saturday-s-games</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-16-210</guid>
-      <pubDate>Sun, 16 Aug 2026 00:00:00 -0500</pubDate>
-      <category>analysis</category>
-      <source url="https://www.nfl.com/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Six Bears reserves strengthen roster cases as Kaden Davis, Jamree Kromah and Beanie Bishop headline Cleveland win</title>
-      <description>FGB brief: ChicagoBears.com highlighted Davis' 88 receiving yards, Kromah's two sacks and Bishop's two interceptions among six reserve performances that stood out in the 34-10 preseason victory.</description>
-      <link>https://www.chicagobears.com/news/6-players-that-stood-out-in-bears-first-preseason-game</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-16-211</guid>
-      <pubDate>Sat, 15 Aug 2026 18:56:00 -0500</pubDate>
-      <category>analysis</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Antwaan Randle El sparks 24-point second half after Ben Johnson hands him Bears play-calling duties</title>
-      <description>FGB analysis: CBS Sports reports Chicago scored 24 second-half points after receivers coach Antwaan Randle El took over play calling, earning strong praise from Johnson for his future coaching potential.</description>
-      <link>https://www.cbssports.com/nfl/news/antwaan-randle-el-takes-over-play-calling-duties-and-bears-offense-comes-to-life-in-preseason-win-over-browns/</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-16-212</guid>
-      <pubDate>Sat, 15 Aug 2026 21:07:00 -0500</pubDate>
-      <category>analysis</category>
-      <source url="https://www.cbssports.com/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson says the Bears are chasing historic scoring, shutouts and blowouts rather than treating a Super Bowl as enough</title>
-      <description>FGB analysis: Johnson has set an intentionally extreme standard for 2026, including surpassing Denver's 2013 scoring record and building the kind of dominance that extends beyond simply winning a championship.</description>
-      <link>https://www.cbssports.com/nfl/news/bears-coach-ben-johnson-winning-super-bowl-2026-goals/</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-08-14-204</guid>
-      <pubDate>Thu, 13 Aug 2026 10:16:00 -0500</pubDate>
-      <category>analysis</category>
-      <source url="https://www.cbssports.com/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears head to Cincinnati next week for a joint practice before their second preseason game against the Bengals</title>
-      <description>FGB brief: Yahoo Sports' training-camp schedule lists Chicago's next major checkpoint as an Aug. 20 joint practice in Cincinnati, followed by the Aug. 22 preseason matchup with the Bengals.</description>
-      <link>https://sports.yahoo.com/nfl/article/nfl-training-camp-schedules-2026-report-dates-locations-joint-practices-preseason-games-and-more-for-all-32-teams-172324825.html</link>
-      <guid isPermaLink="false">fgb-bears-news-2026-07-22-205</guid>
-      <pubDate>Wed, 22 Jul 2026 09:22:00 -0500</pubDate>
+      <title>2026 Chicago Bears: Projecting final 53-man roster</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: 2026 Chicago Bears: Projecting final 53-man roster</description>
+      <link>https://www.espn.com/nfl/story/_/id/49670838/2026-nfl-season-chicago-bears-final-roster-projection-depth-chart</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7fa019dadc28617e739b</guid>
+      <pubDate>Mon, 24 Aug 2026 04:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/">Yahoo Sports</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
