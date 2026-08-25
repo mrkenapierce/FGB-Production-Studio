@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 25 Aug 2026 22:27:53 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 22:54:57 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Report: Bears fielding trade calls on DT Gervon Dexter</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Report: Bears fielding trade calls on DT Gervon Dexter</description>
+      <link>https://sports.yahoo.com/articles/report-bears-fielding-trade-calls-224023821.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4fc6b3fd05d3433db9cf</guid>
+      <pubDate>Tue, 25 Aug 2026 22:40:23 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears RT Darnell Wright left practice with possible elbow injury</title>
@@ -15,16 +25,6 @@
       <link>https://sports.yahoo.com/articles/bears-rt-darnell-wright-left-201540149.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-5fde4f0e559b66c48fe6</guid>
       <pubDate>Tue, 25 Aug 2026 20:15:40 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Roster Moves: Keyshaun Elliott and Elijah Hicks activated off PUP</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Roster Moves: Keyshaun Elliott and Elijah Hicks activated off PUP</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-roster-moves-keyshaun-200000390.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1d94de29781c66c70407</guid>
-      <pubDate>Tue, 25 Aug 2026 20:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -40,16 +40,6 @@
     </item>
 
     <item>
-      <title>Jordan van den Berg, Montez Sweat Reprimanded as Bears Leaders Hold Teammates Accountable</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Jordan van den Berg, Montez Sweat Reprimanded as Bears Leaders Hold Teammates Accountable</description>
-      <link>https://www.si.com/nfl/bears/onsi/jordan-van-den-berg-montez-sweat-reprimanded-bears-leaders-accountable</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cc79be91ef5f44a93025</guid>
-      <pubDate>Tue, 25 Aug 2026 14:37:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Bears unveil Rivalries uniform</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears unveil Rivalries uniform</description>
       <link>https://www.chicagobears.com/news/bears-unveil-rivalries-uniform</link>
@@ -57,16 +47,6 @@
       <pubDate>Tue, 25 Aug 2026 14:02:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Gervon Dexter Trade Rumor Pops Up After Bears DT&apos;s Early Exit From Practice</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Gervon Dexter Trade Rumor Pops Up After Bears DT&apos;s Early Exit From Practice</description>
-      <link>https://www.si.com/nfl/bears/onsi/gervon-dexter-trade-rumor-bears-early-exit-practice</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-84dd4834d920c841d2cd</guid>
-      <pubDate>Tue, 25 Aug 2026 12:57:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -87,6 +67,26 @@
       <pubDate>Tue, 25 Aug 2026 06:58:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears camp mood check: Reasons for optimism, concern, curiosity</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears camp mood check: Reasons for optimism, concern, curiosity</description>
+      <link>https://www.nytimes.com/athletic/7535564/2026/08/25/bears-caleb-williams-ben-johnson-optimisim/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-22fb77e1da0e2ae99137</guid>
+      <pubDate>Tue, 25 Aug 2026 03:04:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Bears LT competition still &apos;a hot spot,&apos; Ben Johnson says</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears LT competition still &apos;a hot spot,&apos; Ben Johnson says</description>
+      <link>https://www.espn.com/nfl/story/_/id/49725718/bears-lt-competition-hot-spot-ben-johnson-says</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-315fb4027d22014e2d2d</guid>
+      <pubDate>Tue, 25 Aug 2026 02:05:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
