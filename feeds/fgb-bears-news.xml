@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 25 Aug 2026 11:51:22 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 12:27:07 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Five Bears Takes Following Their Preseason Week 2 Game In Cincinnati</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Five Bears Takes Following Their Preseason Week 2 Game In Cincinnati</description>
+      <link>https://sports.yahoo.com/articles/five-bears-takes-following-preseason-120000443.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-87b320bd4f7eea0804f2</guid>
+      <pubDate>Tue, 25 Aug 2026 12:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bengals offensive rookie roundup vs. Chicago Bears</title>
@@ -20,13 +30,33 @@
     </item>
 
     <item>
-      <title>The Bear’s Den: Questions abound as Bears look to finalize the 53-man roster amid injuries</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: Questions abound as Bears look to finalize the 53-man roster amid injuries</description>
-      <link>https://sports.yahoo.com/articles/bear-den-questions-abound-bears-100000343.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-76bfc0c13e6cf8154c23</guid>
-      <pubDate>Tue, 25 Aug 2026 10:00:00 GMT</pubDate>
+      <title>The Chicago Bears&apos; Shemar Turner Injury Update Creates An Interesting Equation</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Chicago Bears&apos; Shemar Turner Injury Update Creates An Interesting Equation</description>
+      <link>https://www.si.com/nfl/bears/onsi/the-chicago-bears-shemar-turner-injury-update-creates-an-interesting-equation</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b6594087b50ef2868caa</guid>
+      <pubDate>Tue, 25 Aug 2026 05:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears camp mood check: Reasons for optimism, concern, curiosity</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears camp mood check: Reasons for optimism, concern, curiosity</description>
+      <link>https://www.nytimes.com/athletic/7535564/2026/08/25/bears-caleb-williams-ben-johnson-optimisim/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-22fb77e1da0e2ae99137</guid>
+      <pubDate>Tue, 25 Aug 2026 03:04:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Braxton Jones&apos; Stuggles Leave Bears with Few Options and Time Nearly Up</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Braxton Jones&apos; Stuggles Leave Bears with Few Options and Time Nearly Up</description>
+      <link>https://www.si.com/nfl/bears/onsi/braxton-jones-stuggles-leave-bears-with-few-options-and-time-nearly-up</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5a60f41f06e9ce0649a4</guid>
+      <pubDate>Mon, 24 Aug 2026 14:23:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -57,16 +87,6 @@
       <pubDate>Sun, 23 Aug 2026 04:45:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Use BetMGM bonus code CBSSPORTS to get $1,500 in bonus bets for NFL preseason, Bengals-Bears, MLB on Saturday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Use BetMGM bonus code CBSSPORTS to get $1,500 in bonus bets for NFL preseason, Bengals-Bears, MLB on Saturday</description>
-      <link>https://www.cbssports.com/betting/news/use-betmgm-bonus-code-cbssports-to-get-1500-bonus-bets-nfl-preseason-bengals-bears-mlb-saturday/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d1d05954949abd5dfc81</guid>
-      <pubDate>Sat, 22 Aug 2026 20:32:38 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
