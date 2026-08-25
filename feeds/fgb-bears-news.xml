@@ -5,18 +5,18 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 25 Aug 2026 17:46:08 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 18:24:34 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears New Rivalry Jerseys Revealed</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears New Rivalry Jerseys Revealed</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-rivalry-jerseys-revealed-145437526.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d82fbcbb33245bf0e490</guid>
-      <pubDate>Tue, 25 Aug 2026 14:54:37 GMT</pubDate>
+      <title>Chicago Bears announce roster moves</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears announce roster moves</description>
+      <link>https://www.chicagobears.com/news/chicago-bears-announce-roster-moves-august-25-2026</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-786d3fadfe39dd9794b4</guid>
+      <pubDate>Tue, 25 Aug 2026 18:08:12 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
@@ -30,13 +30,43 @@
     </item>
 
     <item>
-      <title>Behind the Scenes: Generations of Bears players meet for Nike&apos;s Rivalries uniform shoot</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Behind the Scenes: Generations of Bears players meet for Nike&apos;s Rivalries uniform shoot</description>
-      <link>https://www.chicagobears.com/news/behind-the-scenes-generations-of-bears-players-meet-for-nike-s-rivalries-uniform-shoot</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-410295e11eb0c6046e5e</guid>
-      <pubDate>Tue, 25 Aug 2026 14:00:00 GMT</pubDate>
+      <title>Bears HC Ben Johnson shares injury updates before final open practice</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears HC Ben Johnson shares injury updates before final open practice</description>
+      <link>https://sports.yahoo.com/articles/bears-hc-ben-johnson-shares-180853450.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d0d27f928f042712466a</guid>
+      <pubDate>Tue, 25 Aug 2026 11:08:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Live updates from Day 18 of Chicago Bears training camp practice</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Live updates from Day 18 of Chicago Bears training camp practice</description>
+      <link>https://sports.yahoo.com/articles/live-updates-day-18-chicago-173028008.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c1e8e7dfb0cd85079a7e</guid>
+      <pubDate>Tue, 25 Aug 2026 10:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears and Bengals Are Perfect Trade Partners Amid Cincinnati&apos;s Issue on Offense</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears and Bengals Are Perfect Trade Partners Amid Cincinnati&apos;s Issue on Offense</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-and-bengals-are-perfect-trade-partners-amid-cincinnati-s-issue-on-offense</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6ae3fa3660d4edaaa041</guid>
+      <pubDate>Tue, 25 Aug 2026 09:18:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Unveil New Nike &apos;Rivalries&apos; Uniform For 2026 NFL Season</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Unveil New Nike &apos;Rivalries&apos; Uniform For 2026 NFL Season</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-unveil-nike-rivalries-uniform-nfl-season</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5985d359c1da4aae67ce</guid>
+      <pubDate>Tue, 25 Aug 2026 07:21:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -57,16 +87,6 @@
       <pubDate>Tue, 25 Aug 2026 03:04:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>2026 CBS Sports NFL All-Breakout Team: Caleb Williams, two other Bears headline rising stars on offense</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: 2026 CBS Sports NFL All-Breakout Team: Caleb Williams, two other Bears headline rising stars on offense</description>
-      <link>https://www.cbssports.com/nfl/news/2026-nfl-breakout-team-caleb-williams/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8cf3e989baf1b4c72b22</guid>
-      <pubDate>Mon, 24 Aug 2026 14:18:02 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
