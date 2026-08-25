@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 25 Aug 2026 13:27:35 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 14:12:42 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears unveil Rivalries uniform</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears unveil Rivalries uniform</description>
+      <link>https://www.chicagobears.com/news/bears-unveil-rivalries-uniform</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c26d35a9f91bd86bd0fb</guid>
+      <pubDate>Tue, 25 Aug 2026 14:02:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Behind the Scenes: Generations of Bears players meet for Nike&apos;s Rivalries uniform shoot</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Behind the Scenes: Generations of Bears players meet for Nike&apos;s Rivalries uniform shoot</description>
+      <link>https://www.chicagobears.com/news/behind-the-scenes-generations-of-bears-players-meet-for-nike-s-rivalries-uniform-shoot</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-410295e11eb0c6046e5e</guid>
+      <pubDate>Tue, 25 Aug 2026 14:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
 
     <item>
       <title>Five Bears Takes Following Their Preseason Week 2 Game In Cincinnati</title>
@@ -20,13 +40,33 @@
     </item>
 
     <item>
-      <title>Bengals offensive rookie roundup vs. Chicago Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bengals offensive rookie roundup vs. Chicago Bears</description>
-      <link>https://sports.yahoo.com/articles/bengals-offensive-rookie-roundup-vs-103000873.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f4e5c248e64f43f05bae</guid>
-      <pubDate>Tue, 25 Aug 2026 10:30:00 GMT</pubDate>
+      <title>First look at NFL’s new ‘Rivalries’ jerseys: Bears, Lions, Vikings, Packers, Colts</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: First look at NFL’s new ‘Rivalries’ jerseys: Bears, Lions, Vikings, Packers, Colts</description>
+      <link>https://www.nytimes.com/athletic/7536827/2026/08/25/nfl-rivalries-uniforms-packers-bears-lions/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1c19b9333f7d159be33d</guid>
+      <pubDate>Tue, 25 Aug 2026 06:58:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Sam Roush Is the Missing Piece in Bears’ Three-TE Offense</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Sam Roush Is the Missing Piece in Bears’ Three-TE Offense</description>
+      <link>https://sports.yahoo.com/articles/sam-roush-missing-piece-bears-134305330.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-08bffc694832a62daecd</guid>
+      <pubDate>Tue, 25 Aug 2026 06:43:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Former Chicago Bears Wide Receiver Announcer Retirement From NFL</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Former Chicago Bears Wide Receiver Announcer Retirement From NFL</description>
+      <link>https://www.si.com/nfl/bears/onsi/former-chicago-bears-wide-receiver-announcer-retirement-from-nfl</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4582b264c838611d28d1</guid>
+      <pubDate>Tue, 25 Aug 2026 06:31:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -47,46 +87,6 @@
       <pubDate>Tue, 25 Aug 2026 03:04:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Braxton Jones&apos; Stuggles Leave Bears with Few Options and Time Nearly Up</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Braxton Jones&apos; Stuggles Leave Bears with Few Options and Time Nearly Up</description>
-      <link>https://www.si.com/nfl/bears/onsi/braxton-jones-stuggles-leave-bears-with-few-options-and-time-nearly-up</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5a60f41f06e9ce0649a4</guid>
-      <pubDate>Mon, 24 Aug 2026 14:23:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>2026 CBS Sports NFL All-Breakout Team: Caleb Williams, two other Bears headline rising stars on offense</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: 2026 CBS Sports NFL All-Breakout Team: Caleb Williams, two other Bears headline rising stars on offense</description>
-      <link>https://www.cbssports.com/nfl/news/2026-nfl-breakout-team-caleb-williams/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8cf3e989baf1b4c72b22</guid>
-      <pubDate>Mon, 24 Aug 2026 14:18:02 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams believes Bears offense will be &apos;rolling&apos; heading into regular season</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Caleb Williams believes Bears offense will be &apos;rolling&apos; heading into regular season</description>
-      <link>https://www.chicagobears.com/news/caleb-williams-believes-bears-offense-will-be-rolling-heading-into-regular-season</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f5bfb6da9fd0168adc59</guid>
-      <pubDate>Sun, 23 Aug 2026 04:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Game Recap: Bears fall to Bengals in second preseason game</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Recap: Bears fall to Bengals in second preseason game</description>
-      <link>https://www.chicagobears.com/news/game-recap-bears-fall-to-bengals-in-second-preseason-game</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3039cff8cd6dc7464fd0</guid>
-      <pubDate>Sun, 23 Aug 2026 04:13:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
