@@ -14,6 +14,9 @@ FEED_URL = os.getenv(
     "https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml",
 )
 FEED_FILE = os.getenv("BEARS_NEWS_FEED_FILE")
+LOCAL_FEED_FILE = Path(
+    os.getenv("BEARS_NEWS_LOCAL_FEED_FILE", "/srv/fgbears-live/runtime/fgb-bears-news.xml")
+)
 POLL_SECONDS = max(30, int(os.getenv("BEARS_NEWS_POLL_SECONDS", "300")))
 MAX_ITEMS = max(1, min(20, int(os.getenv("BEARS_NEWS_MAX_ITEMS", "8"))))
 RUNTIME_DIR = Path(os.getenv("CRAWL_RUNTIME_DIR", "/srv/fgbears-live/runtime"))
@@ -50,12 +53,17 @@ def cache_busted_feed_url() -> str:
 def read_feed_bytes() -> bytes:
     if FEED_FILE:
         return Path(FEED_FILE).read_bytes()
+    # The Oracle-generated feed is the live runtime source. GitHub remains the
+    # public/canonical feed and is the automatic fallback until the local feed
+    # has completed its first successful scan.
+    if LOCAL_FEED_FILE.is_file() and LOCAL_FEED_FILE.stat().st_size > 0:
+        return LOCAL_FEED_FILE.read_bytes()
     request = urllib.request.Request(
         cache_busted_feed_url(),
         headers={
             "Accept": "application/rss+xml, application/xml, text/xml",
             "Cache-Control": "no-cache",
-            "User-Agent": "FGBears-Live-News/3.0",
+            "User-Agent": "FGBears-Live-News/4.0",
         },
     )
     with urllib.request.urlopen(request, timeout=10) as response:
