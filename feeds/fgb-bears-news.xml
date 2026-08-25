@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 25 Aug 2026 17:14:37 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 17:46:08 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -15,16 +15,6 @@
       <link>https://sports.yahoo.com/articles/chicago-bears-rivalry-jerseys-revealed-145437526.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-d82fbcbb33245bf0e490</guid>
       <pubDate>Tue, 25 Aug 2026 14:54:37 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bengals defensive rookie roundup vs. Chicago Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bengals defensive rookie roundup vs. Chicago Bears</description>
-      <link>https://sports.yahoo.com/articles/bengals-defensive-rookie-roundup-vs-144500978.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-80cf9fc67d193d32903e</guid>
-      <pubDate>Tue, 25 Aug 2026 14:45:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -50,26 +40,6 @@
     </item>
 
     <item>
-      <title>Bears and Bengals Are Perfect Trade Partners Amid Cincinnati&apos;s Issue on Offense</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears and Bengals Are Perfect Trade Partners Amid Cincinnati&apos;s Issue on Offense</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-and-bengals-are-perfect-trade-partners-amid-cincinnati-s-issue-on-offense</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6ae3fa3660d4edaaa041</guid>
-      <pubDate>Tue, 25 Aug 2026 09:18:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Unveil New Nike &apos;Rivalries&apos; Uniform For 2026 NFL Season</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Unveil New Nike &apos;Rivalries&apos; Uniform For 2026 NFL Season</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-unveil-nike-rivalries-uniform-nfl-season</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5985d359c1da4aae67ce</guid>
-      <pubDate>Tue, 25 Aug 2026 07:21:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>First look at NFL’s new ‘Rivalries’ jerseys: Bears, Lions, Vikings, Packers, Colts</title>
       <description>Football&apos;s Greatest Bears news brief from The Athletic: First look at NFL’s new ‘Rivalries’ jerseys: Bears, Lions, Vikings, Packers, Colts</description>
       <link>https://www.nytimes.com/athletic/7536827/2026/08/25/nfl-rivalries-uniforms-packers-bears-lions/</link>
@@ -87,6 +57,16 @@
       <pubDate>Tue, 25 Aug 2026 03:04:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>2026 CBS Sports NFL All-Breakout Team: Caleb Williams, two other Bears headline rising stars on offense</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: 2026 CBS Sports NFL All-Breakout Team: Caleb Williams, two other Bears headline rising stars on offense</description>
+      <link>https://www.cbssports.com/nfl/news/2026-nfl-breakout-team-caleb-williams/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8cf3e989baf1b4c72b22</guid>
+      <pubDate>Mon, 24 Aug 2026 14:18:02 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
