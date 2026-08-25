@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 25 Aug 2026 12:27:07 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 13:27:35 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -70,21 +70,21 @@
     </item>
 
     <item>
-      <title>Recapping Bears-Bengals Preseason Week 2 game | Bears, etc. Podcast</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Recapping Bears-Bengals Preseason Week 2 game | Bears, etc. Podcast</description>
-      <link>https://www.chicagobears.com/audio/recapping-bears-bengals-preseason-week-2-game-bears-etc-podcast</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7ea4dfd937812b3c6222</guid>
-      <pubDate>Mon, 24 Aug 2026 06:11:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
       <title>Caleb Williams believes Bears offense will be &apos;rolling&apos; heading into regular season</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Caleb Williams believes Bears offense will be &apos;rolling&apos; heading into regular season</description>
       <link>https://www.chicagobears.com/news/caleb-williams-believes-bears-offense-will-be-rolling-heading-into-regular-season</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-f5bfb6da9fd0168adc59</guid>
       <pubDate>Sun, 23 Aug 2026 04:45:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Game Recap: Bears fall to Bengals in second preseason game</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Recap: Bears fall to Bengals in second preseason game</description>
+      <link>https://www.chicagobears.com/news/game-recap-bears-fall-to-bengals-in-second-preseason-game</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3039cff8cd6dc7464fd0</guid>
+      <pubDate>Sun, 23 Aug 2026 04:13:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
