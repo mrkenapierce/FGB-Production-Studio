@@ -71,7 +71,7 @@ PY
 kill "$OVERLAY_PID"; wait "$OVERLAY_PID" 2>/dev/null || true; OVERLAY_PID=""
 
 cat > "$TMP/crawl.json" <<'JSON'
-{"active":true,"label":"FGB LIVE","message":"legacy first message","messages":[{"enabled":true,"text":"MESSAGE ONE 🐻⬇️"},{"enabled":true,"text":"MESSAGE TWO"},{"enabled":true,"text":"MESSAGE THREE"},{"enabled":true,"text":"MESSAGE FOUR"},{"enabled":true,"text":"MESSAGE FIVE 💙🧡"}],"separator":"•","speed":"normal","updatedAt":"2026-08-25T00:00:00Z"}
+{"active":true,"label":"FGB LIVE","message":"legacy first message","messages":[{"enabled":true,"text":"MESSAGE ONE"},{"enabled":true,"text":"MESSAGE TWO"},{"enabled":true,"text":"MESSAGE THREE"},{"enabled":true,"text":"MESSAGE FOUR"},{"enabled":true,"text":"MESSAGE FIVE"}],"separator":"•","speed":"normal","updatedAt":"2026-08-25T00:00:00Z"}
 JSON
 CRAWL_FEED_FILE="$TMP/crawl.json" CRAWL_RUNTIME_DIR="$TMP/runtime" CRAWL_OVERLAY_PORT=18788 CRAWL_OVERLAY_FPS=10 python3 "$ROOT/bin/crawl-overlay.py" >"$TMP/crawl-overlay.log" 2>&1 &
 CRAWL_PID=$!
