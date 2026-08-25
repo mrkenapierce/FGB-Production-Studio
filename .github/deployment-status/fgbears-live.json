@@ -1,8 +1,8 @@
 {
   "ok": true,
-  "deployedSha": "330e1d59b101564180ce535335b145e1e6ed7fd0",
-  "runId": "32494167717",
-  "checkedAt": "2026-08-21T14:50:10Z",
+  "deployedSha": "20a87202e0f861b20e16dd78c4e0bce010ee46c7",
+  "runId": "32799245361",
+  "checkedAt": "2026-08-25T01:53:47Z",
   "jobStatus": "success",
   "installOutcome": "success",
   "crawlHealthOutcome": "success",
