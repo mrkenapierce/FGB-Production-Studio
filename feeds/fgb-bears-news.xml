@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 25 Aug 2026 03:32:12 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 05:45:21 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -80,13 +80,13 @@
     </item>
 
     <item>
-      <title>2026 Chicago Bears: Projecting final 53-man roster</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: 2026 Chicago Bears: Projecting final 53-man roster</description>
-      <link>https://www.espn.com/nfl/story/_/id/49670838/2026-nfl-season-chicago-bears-final-roster-projection-depth-chart</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7fa019dadc28617e739b</guid>
-      <pubDate>Mon, 24 Aug 2026 04:00:00 GMT</pubDate>
+      <title>Caleb Williams believes Bears offense will be &apos;rolling&apos; heading into regular season</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Caleb Williams believes Bears offense will be &apos;rolling&apos; heading into regular season</description>
+      <link>https://www.chicagobears.com/news/caleb-williams-believes-bears-offense-will-be-rolling-heading-into-regular-season</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f5bfb6da9fd0168adc59</guid>
+      <pubDate>Sun, 23 Aug 2026 04:45:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
