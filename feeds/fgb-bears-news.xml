@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 25 Aug 2026 11:17:56 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 11:51:22 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -30,26 +30,6 @@
     </item>
 
     <item>
-      <title>Chicago Bears camp mood check: Reasons for optimism, concern, curiosity</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears camp mood check: Reasons for optimism, concern, curiosity</description>
-      <link>https://www.nytimes.com/athletic/7535564/2026/08/25/bears-caleb-williams-ben-johnson-optimisim/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-22fb77e1da0e2ae99137</guid>
-      <pubDate>Tue, 25 Aug 2026 03:04:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Braxton Jones&apos; Stuggles Leave Bears with Few Options and Time Nearly Up</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Braxton Jones&apos; Stuggles Leave Bears with Few Options and Time Nearly Up</description>
-      <link>https://www.si.com/nfl/bears/onsi/braxton-jones-stuggles-leave-bears-with-few-options-and-time-nearly-up</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5a60f41f06e9ce0649a4</guid>
-      <pubDate>Mon, 24 Aug 2026 14:23:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>2026 CBS Sports NFL All-Breakout Team: Caleb Williams, two other Bears headline rising stars on offense</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: 2026 CBS Sports NFL All-Breakout Team: Caleb Williams, two other Bears headline rising stars on offense</description>
       <link>https://www.cbssports.com/nfl/news/2026-nfl-breakout-team-caleb-williams/</link>
@@ -57,16 +37,6 @@
       <pubDate>Mon, 24 Aug 2026 14:18:02 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Where Toughest Chicago Bears Cuts Should Come Based on PFF&apos;s Grades</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Where Toughest Chicago Bears Cuts Should Come Based on PFF&apos;s Grades</description>
-      <link>https://www.si.com/nfl/bears/onsi/where-toughest-chicago-bears-cuts-pff-grades</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-eabdbb754e6d7af9a204</guid>
-      <pubDate>Mon, 24 Aug 2026 14:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -87,6 +57,16 @@
       <pubDate>Sun, 23 Aug 2026 04:45:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Use BetMGM bonus code CBSSPORTS to get $1,500 in bonus bets for NFL preseason, Bengals-Bears, MLB on Saturday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Use BetMGM bonus code CBSSPORTS to get $1,500 in bonus bets for NFL preseason, Bengals-Bears, MLB on Saturday</description>
+      <link>https://www.cbssports.com/betting/news/use-betmgm-bonus-code-cbssports-to-get-1500-bonus-bets-nfl-preseason-bengals-bears-mlb-saturday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d1d05954949abd5dfc81</guid>
+      <pubDate>Sat, 22 Aug 2026 20:32:38 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
