@@ -5,28 +5,38 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 25 Aug 2026 10:04:47 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 10:47:16 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bengals 53-man roster prediction after win vs. Bears in Preseason Week 2 (UPDATE)</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bengals 53-man roster prediction after win vs. Bears in Preseason Week 2 (UPDATE)</description>
-      <link>https://sports.yahoo.com/articles/bengals-53-man-roster-prediction-115500629.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ba93026185dad7ed5183</guid>
-      <pubDate>Tue, 25 Aug 2026 02:17:03 GMT</pubDate>
+      <title>Bengals offensive rookie roundup vs. Chicago Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bengals offensive rookie roundup vs. Chicago Bears</description>
+      <link>https://sports.yahoo.com/articles/bengals-offensive-rookie-roundup-vs-103000873.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f4e5c248e64f43f05bae</guid>
+      <pubDate>Tue, 25 Aug 2026 10:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Which Chicago Bears bubble player do you think will make the roster?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Which Chicago Bears bubble player do you think will make the roster?</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-bubble-player-think-021324601.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-418313c29f7a70c1d162</guid>
-      <pubDate>Tue, 25 Aug 2026 02:13:24 GMT</pubDate>
+      <title>The Bear’s Den: Questions abound as Bears look to finalize the 53-man roster amid injuries</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: Questions abound as Bears look to finalize the 53-man roster amid injuries</description>
+      <link>https://sports.yahoo.com/articles/bear-den-questions-abound-bears-100000343.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-76bfc0c13e6cf8154c23</guid>
+      <pubDate>Tue, 25 Aug 2026 10:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears camp mood check: Reasons for optimism, concern, curiosity</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears camp mood check: Reasons for optimism, concern, curiosity</description>
+      <link>https://www.nytimes.com/athletic/7535564/2026/08/25/bears-caleb-williams-ben-johnson-optimisim/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-22fb77e1da0e2ae99137</guid>
+      <pubDate>Tue, 25 Aug 2026 03:04:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -77,16 +87,6 @@
       <pubDate>Mon, 24 Aug 2026 06:11:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Why Kalif Raymond is the Chicago Bears’ most popular player</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Why Kalif Raymond is the Chicago Bears’ most popular player</description>
-      <link>https://www.nytimes.com/athletic/7533465/2026/08/24/bears-kalif-raymond-popular/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2feceeaf9a8c4de23e3a</guid>
-      <pubDate>Mon, 24 Aug 2026 03:05:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
