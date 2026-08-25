@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 25 Aug 2026 22:54:57 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 25 Aug 2026 23:16:47 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -40,6 +40,46 @@
     </item>
 
     <item>
+      <title>Bears LT competition still &apos;a hot spot,&apos; Ben Johnson says</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears LT competition still &apos;a hot spot,&apos; Ben Johnson says</description>
+      <link>https://www.espn.com/nfl/story/_/id/49725718/bears-lt-competition-hot-spot-ben-johnson-says</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-315fb4027d22014e2d2d</guid>
+      <pubDate>Tue, 25 Aug 2026 16:05:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Ben Johnson&apos;s Reaction to New Bears Uniforms Sums It Up Best</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson&apos;s Reaction to New Bears Uniforms Sums It Up Best</description>
+      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-s-reaction-to-new-bears-uniforms-sums-it-up-best</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ab3399d6fc08ab52bd3b</guid>
+      <pubDate>Tue, 25 Aug 2026 15:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Tyson Bagent: Back to practice</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Tyson Bagent: Back to practice</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-tyson-bagent-back-to-practice/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1db7e0423b0be66616ec</guid>
+      <pubDate>Tue, 25 Aug 2026 15:21:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Jordan van den Berg, Montez Sweat Reprimanded as Bears Leaders Hold Teammates Accountable</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Jordan van den Berg, Montez Sweat Reprimanded as Bears Leaders Hold Teammates Accountable</description>
+      <link>https://www.si.com/nfl/bears/onsi/jordan-van-den-berg-montez-sweat-reprimanded-bears-leaders-accountable</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cc79be91ef5f44a93025</guid>
+      <pubDate>Tue, 25 Aug 2026 14:37:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>Bears unveil Rivalries uniform</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears unveil Rivalries uniform</description>
       <link>https://www.chicagobears.com/news/bears-unveil-rivalries-uniform</link>
@@ -47,46 +87,6 @@
       <pubDate>Tue, 25 Aug 2026 14:02:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears RT Darnell Wright left practice with possible elbow injury</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears RT Darnell Wright left practice with possible elbow injury</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-rt-darnell-wright-left-practice-with-possible-elbow-injury</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9c7d5aedcd3247db2ed7</guid>
-      <pubDate>Tue, 25 Aug 2026 09:16:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
-      <title>First look at NFL’s new ‘Rivalries’ jerseys: Bears, Lions, Vikings, Packers, Colts</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: First look at NFL’s new ‘Rivalries’ jerseys: Bears, Lions, Vikings, Packers, Colts</description>
-      <link>https://www.nytimes.com/athletic/7536827/2026/08/25/nfl-rivalries-uniforms-packers-bears-lions/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1c19b9333f7d159be33d</guid>
-      <pubDate>Tue, 25 Aug 2026 06:58:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears camp mood check: Reasons for optimism, concern, curiosity</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears camp mood check: Reasons for optimism, concern, curiosity</description>
-      <link>https://www.nytimes.com/athletic/7535564/2026/08/25/bears-caleb-williams-ben-johnson-optimisim/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-22fb77e1da0e2ae99137</guid>
-      <pubDate>Tue, 25 Aug 2026 03:04:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Bears LT competition still &apos;a hot spot,&apos; Ben Johnson says</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears LT competition still &apos;a hot spot,&apos; Ben Johnson says</description>
-      <link>https://www.espn.com/nfl/story/_/id/49725718/bears-lt-competition-hot-spot-ben-johnson-says</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-315fb4027d22014e2d2d</guid>
-      <pubDate>Tue, 25 Aug 2026 02:05:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
