@@ -1,0 +1,49 @@
+name: Fix FGB Ribbon Clipping
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-fgb-ribbon-clipping.yml'
+      - '.github/scripts/fix-fgb-ribbon-clipping.py'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply ribbon repair
+        run: python3 .github/scripts/fix-fgb-ribbon-clipping.py
+      - name: Install test dependencies
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg jq python3-pil qrencode
+      - name: Validate source and regressions
+        run: |
+          python3 -m py_compile services/fgbears-live/bin/crawl-overlay.py services/fgbears-live/bin/bears-news-feed.py
+          bash -n services/fgbears-live/bin/start-stream.sh
+          bash services/fgbears-live/tests/test-production-invariants.sh
+          bash services/fgbears-live/tests/test-bears-news.sh
+          bash services/fgbears-live/tests/test-scripts.sh
+      - name: Commit repaired production source
+        run: |
+          git config user.name 'FGBears Repair Bot'
+          git config user.email 'actions@github.com'
+          git add \
+            services/fgbears-live/bin/start-stream.sh \
+            services/fgbears-live/bin/crawl-overlay.py \
+            services/fgbears-live/tests/test-production-invariants.sh \
+            services/fgbears-live/tests/test-bears-news.sh \
+            services/fgbears-live/tests/test-scripts.sh \
+            .github/scripts/lock-fgb-audio-rss.py
+          if git diff --cached --quiet; then
+            echo 'Ribbon repair already present.'
+            exit 0
+          fi
+          git commit -m 'Remove ribbon clipping gutters and preserve full RSS text'
+          git push origin HEAD:main
