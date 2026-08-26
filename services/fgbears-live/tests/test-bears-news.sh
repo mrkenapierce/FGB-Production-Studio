@@ -37,9 +37,9 @@ if grep -Fq 'BEARS_NEWS_OVERLAY_PORT' "$ROOT/bin/start-stream.sh"; then
   exit 1
 fi
 grep -q '^BEARS_NEWS_SCROLL_PPS=90$' "$ROOT/config/stream.env.example"
-grep -q '^OUTPUT_FPS=24$' "$ROOT/config/stream.env.example"
-grep -q '^VIDEO_GOP=48$' "$ROOT/config/stream.env.example"
-grep -q '^DRAWTEXT_RELOAD_FRAMES=24$' "$ROOT/config/stream.env.example"
+grep -q '^OUTPUT_FPS=30$' "$ROOT/config/stream.env.example"
+grep -q '^VIDEO_GOP=60$' "$ROOT/config/stream.env.example"
+grep -q '^DRAWTEXT_RELOAD_FRAMES=30$' "$ROOT/config/stream.env.example"
 
 # shellcheck disable=SC2016
 grep -Fq -- '-g "$VIDEO_GOP" -keyint_min "$VIDEO_GOP"' "$ROOT/bin/start-stream.sh"
@@ -144,11 +144,11 @@ graph = graph.replace('[2:v]', '[1:v]')
 graph = graph.replace('[BASE:v]', '[0:v]')
 graph = graph.replace('$CRAWL_RUNTIME_DIR', runtime)
 graph = graph.replace('$BEARS_NEWS_SCROLL_PPS', '90')
-graph = graph.replace('$DRAWTEXT_RELOAD_FRAMES', '24')
+graph = graph.replace('$DRAWTEXT_RELOAD_FRAMES', '30')
 subprocess.run([
     'ffmpeg', '-hide_banner', '-loglevel', 'error',
-    '-f', 'lavfi', '-i', 'color=c=black:s=1280x720:r=24:d=0.4',
-    '-f', 'lavfi', '-i', 'color=c=black:s=1280x139:r=15:d=0.4',
+    '-f', 'lavfi', '-i', 'color=c=black:s=1280x720:r=30:d=0.4',
+    '-f', 'lavfi', '-i', 'color=c=black:s=1280x139:r=30:d=0.4',
     '-filter_complex', graph, '-map', '[v]', '-t', '0.4', '-f', 'null', '-'
 ], check=True)
 PY

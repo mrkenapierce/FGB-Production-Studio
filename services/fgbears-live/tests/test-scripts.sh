@@ -26,7 +26,11 @@ python3 "$ROOT/tests/test-game-overlay.py"
 grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${AD_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
 grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
-grep -Fq -- '-preset ultrafast' "$ROOT/bin/start-stream.sh"
+grep -Fq -- '-preset veryfast -profile:v high -bf 2 -refs 1' "$ROOT/bin/start-stream.sh"
+grep -Fq ': "${OUTPUT_FPS:=30}"' "$ROOT/bin/start-stream.sh"
+grep -Fq ': "${VIDEO_GOP:=60}"' "$ROOT/bin/start-stream.sh"
+grep -Fq ': "${AD_OVERLAY_FPS:=30}"' "$ROOT/bin/start-stream.sh"
+grep -Fq ': "${CRAWL_OVERLAY_FPS:=30}"' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-progress pipe:3' "$ROOT/bin/start-stream.sh"
 grep -Fq 'loudnorm=I=-16:TP=-1.5:LRA=9' "$ROOT/bin/start-stream.sh"
 if grep -Eq 'afftdn=|deesser=|equalizer=' "$ROOT/bin/start-stream.sh"; then
@@ -123,6 +127,7 @@ expected = ['MESSAGE ONE', 'MESSAGE TWO', 'MESSAGE THREE', 'MESSAGE FOUR', 'MESS
 positions = [text.index(message) for message in expected]
 assert positions == sorted(positions), (positions, text)
 assert text.count('•') == 4, text
+assert 'MESSAGE ONE     •     MESSAGE TWO' in text, text
 assert 'LEGACY FIRST MESSAGE' not in text, text
 PY
 curl --silent --fail http://127.0.0.1:18788/frame.jpg -o "$TMP/crawl-frame.jpg"
