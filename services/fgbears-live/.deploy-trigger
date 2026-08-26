@@ -1,3 +1,3 @@
-2026-08-26T11:16:00Z
-Reason: extend recurring outbound-audio monitoring to a 20-second sample every 15 minutes so intermittent peak/headroom and continuity defects are more likely to be detected.
-Expected: live audio stays volume=-2dB,aresample=48000:first_pts=0; recurring checker samples 20 seconds and tests AAC/48k/stereo, peak headroom, clipping, true near-silence, channel balance, DC offset, and PTS continuity; preserve all video/crawl/trivia/ads behavior and current YouTube URL.
+2026-08-26T19:03:00Z
+Reason: deploy the permanent removal of Facebook from the FGB livestream production architecture.
+Expected: Facebook relay/timers/configuration/health checks remain absent; primary FGB encoder and isolated YouTube relay remain active at the existing YouTube URL; strict real-time cadence and zero-drop health gate must pass.
