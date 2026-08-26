@@ -85,8 +85,9 @@ if [[ ! -e "$ENV_PATH" ]]; then
   install -o root -g fgbears -m 0640 /opt/fgbears-live/config/stream.env.example "$ENV_PATH"
 fi
 
-# Preserve credentials, lock out direct Meta output, and keep the Facebook
-# schedule independent of the primary encoder and dedicated YouTube relay.
+# Preserve credentials, migrate YouTube's internal handoff to connectionless
+# loopback MPEG-TS, lock out direct Meta output, and keep social schedules
+# independent of the primary encoder.
 python3 - "$ENV_PATH" <<'PY'
 from pathlib import Path
 import sys
@@ -99,7 +100,6 @@ for line in lines:
         key, value = line.split("=", 1)
         values[key] = value
 
-local_base = values.get("YOUTUBE_LOCAL_RTMP_BASE") or "rtmp://127.0.0.1:1935/live"
 current_base = values.get("YOUTUBE_RTMP_BASE", "")
 upstream = values.get("YOUTUBE_UPSTREAM_RTMP_BASE", "")
 if not upstream:
@@ -122,8 +122,7 @@ if x_relay_enabled is None:
 instagram_relay_enabled = values.get("INSTAGRAM_RELAY_ENABLED", "0")
 
 updates = {
-    "YOUTUBE_RTMP_BASE": local_base,
-    "YOUTUBE_LOCAL_RTMP_BASE": local_base,
+    "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
     "X_STREAM_ENABLED": "0",
     "X_RELAY_ENABLED": x_relay_enabled,
@@ -212,9 +211,10 @@ configure_scheduled_relay x "$x_configured"
 configure_scheduled_relay facebook "$facebook_configured"
 configure_scheduled_relay instagram "$instagram_configured"
 
-# The YouTube relay remains a dedicated single-output copy-remux service.
+# The YouTube relay remains a dedicated single-output copy-remux service. It
+# waits on the connectionless local UDP program and can restart independently.
 systemctl reset-failed fgbears-youtube-relay.service || true
 systemctl restart fgbears-youtube-relay.service
 systemctl enable --now fgbears-live-health.timer
 
-echo "Installed FGBears Live with one primary encode, dedicated YouTube relay, and isolated X/Facebook/Instagram sidecars scheduled 09:00-17:00 America/Chicago."
+echo "Installed FGBears Live with one primary encode, isolated YouTube UDP relay, and X/Facebook/Instagram sidecars scheduled 09:00-17:00 America/Chicago."
