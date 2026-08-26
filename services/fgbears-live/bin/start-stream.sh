@@ -19,9 +19,9 @@ source "$ENV_FILE"
 : "${FACEBOOK_LOCAL_UDP_URL:=udp://127.0.0.1:1936?pkt_size=1316}"
 : "${PLAYLIST_FILE:=/srv/fgbears-live/playlist.ffconcat}"
 : "${FFMPEG_LOGLEVEL:=warning}"
-: "${OUTPUT_FPS:=24}"
-: "${VIDEO_GOP:=48}"
-: "${DRAWTEXT_RELOAD_FRAMES:=24}"
+: "${OUTPUT_FPS:=30}"
+: "${VIDEO_GOP:=60}"
+: "${DRAWTEXT_RELOAD_FRAMES:=30}"
 : "${AD_OVERLAY_PORT:=8787}"
 : "${AD_OVERLAY_FPS:=25}"
 : "${AD_OVERLAY_SCRIPT:=/opt/fgbears-live/bin/ad-overlay.py}"
@@ -88,27 +88,12 @@ esac
   exit 78
 }
 
-# YouTube is isolated from the primary encoder by a connectionless loopback
-# MPEG-TS mirror. Repeated transport headers and H.264 extradata at keyframes
-# let a restarted relay join midstream without forcing the encoder to restart.
 TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"
 OUTPUT_LABELS=("YouTube local UDP mirror")
-
-# X is isolated from the primary encoder. The primary process always emits
-# the already-encoded program to loopback UDP mirrors; scheduled sidecars
-# own the protected X credential and can start/stop without touching YouTube.
 TEE_TARGETS+="|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${X_LOCAL_UDP_URL}"
 OUTPUT_LABELS+=("X local mirror")
-
-# Instagram is isolated in the same way. Its sidecar converts the landscape
-# program to a vertical canvas without placing Instagram credentials in the
-# primary encoder.
 TEE_TARGETS+="|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${INSTAGRAM_LOCAL_UDP_URL}"
 OUTPUT_LABELS+=("Instagram local mirror")
-
-# This local UDP mirror is always emitted. When the scheduled Facebook sidecar
-# is stopped, the packets are simply discarded by the kernel. Starting/stopping
-# Facebook therefore never requires a restart of the primary encoder or YouTube.
 TEE_TARGETS+="|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${FACEBOOK_LOCAL_UDP_URL}"
 OUTPUT_LABELS+=("Facebook local mirror")
 
@@ -126,59 +111,29 @@ cleanup() {
     kill -INT "$FFMPEG_PID" 2>/dev/null || true
     wait "$FFMPEG_PID" 2>/dev/null || true
   fi
-  if kill -0 "$OVERLAY_PID" 2>/dev/null; then
-    kill "$OVERLAY_PID" 2>/dev/null || true
-    wait "$OVERLAY_PID" 2>/dev/null || true
-  fi
-  if kill -0 "$CRAWL_PID" 2>/dev/null; then
-    kill "$CRAWL_PID" 2>/dev/null || true
-    wait "$CRAWL_PID" 2>/dev/null || true
-  fi
-  if kill -0 "$NEWS_PID" 2>/dev/null; then
-    kill "$NEWS_PID" 2>/dev/null || true
-    wait "$NEWS_PID" 2>/dev/null || true
-  fi
+  if kill -0 "$OVERLAY_PID" 2>/dev/null; then kill "$OVERLAY_PID" 2>/dev/null || true; wait "$OVERLAY_PID" 2>/dev/null || true; fi
+  if kill -0 "$CRAWL_PID" 2>/dev/null; then kill "$CRAWL_PID" 2>/dev/null || true; wait "$CRAWL_PID" 2>/dev/null || true; fi
+  if kill -0 "$NEWS_PID" 2>/dev/null; then kill "$NEWS_PID" 2>/dev/null || true; wait "$NEWS_PID" 2>/dev/null || true; fi
 }
 trap cleanup EXIT INT TERM
 
 for _ in {1..30}; do
-  if curl --silent --fail --max-time 1 "http://127.0.0.1:${AD_OVERLAY_PORT}/healthz" >/dev/null; then
-    break
-  fi
-  if ! kill -0 "$OVERLAY_PID" 2>/dev/null; then
-    echo "Ad overlay renderer exited before becoming healthy." >&2
-    exit 70
-  fi
+  if curl --silent --fail --max-time 1 "http://127.0.0.1:${AD_OVERLAY_PORT}/healthz" >/dev/null; then break; fi
+  if ! kill -0 "$OVERLAY_PID" 2>/dev/null; then echo "Ad overlay renderer exited before becoming healthy." >&2; exit 70; fi
   sleep 0.2
 done
-curl --silent --fail --max-time 2 "http://127.0.0.1:${AD_OVERLAY_PORT}/healthz" >/dev/null || {
-  echo "Ad overlay renderer did not become healthy." >&2
-  exit 70
-}
+curl --silent --fail --max-time 2 "http://127.0.0.1:${AD_OVERLAY_PORT}/healthz" >/dev/null || { echo "Ad overlay renderer did not become healthy." >&2; exit 70; }
 
 for _ in {1..30}; do
-  if curl --silent --fail --max-time 1 "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/healthz" >/dev/null; then
-    break
-  fi
-  if ! kill -0 "$CRAWL_PID" 2>/dev/null; then
-    echo "Crawl overlay renderer exited before becoming healthy." >&2
-    exit 70
-  fi
+  if curl --silent --fail --max-time 1 "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/healthz" >/dev/null; then break; fi
+  if ! kill -0 "$CRAWL_PID" 2>/dev/null; then echo "Crawl overlay renderer exited before becoming healthy." >&2; exit 70; fi
   sleep 0.2
 done
-curl --silent --fail --max-time 2 "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/healthz" >/dev/null || {
-  echo "Crawl overlay renderer did not become healthy." >&2
-  exit 70
-}
+curl --silent --fail --max-time 2 "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/healthz" >/dev/null || { echo "Crawl overlay renderer did not become healthy." >&2; exit 70; }
 
 for _ in {1..50}; do
-  if [[ -e "$CRAWL_RUNTIME_DIR/bears-news-label.txt" && -e "$CRAWL_RUNTIME_DIR/bears-news-message.txt" ]]; then
-    break
-  fi
-  if ! kill -0 "$NEWS_PID" 2>/dev/null; then
-    echo "Bears news feed poller exited before publishing runtime text." >&2
-    exit 70
-  fi
+  if [[ -e "$CRAWL_RUNTIME_DIR/bears-news-label.txt" && -e "$CRAWL_RUNTIME_DIR/bears-news-message.txt" ]]; then break; fi
+  if ! kill -0 "$NEWS_PID" 2>/dev/null; then echo "Bears news feed poller exited before publishing runtime text." >&2; exit 70; fi
   sleep 0.2
 done
 
@@ -200,10 +155,6 @@ progress_sink() {
 
 FFMPEG_PID=""
 
-# Keep one primary live video clock from the ad renderer. The crawl renderer is
-# consumed as its own small MJPEG lane so emoji can be composited as images.
-# The finished program is encoded once; connectionless packet copies feed the
-# isolated YouTube, X, Facebook, and Instagram relays.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
