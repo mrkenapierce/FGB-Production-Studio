@@ -1,0 +1,138 @@
+name: Deploy EPIC Crawl Fidelity Runtime
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-epic-crawl-fidelity-runtime.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Install slower high-fidelity crawl and enforce YouTube-only runtime
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/crawl-overlay.py "$ORACLE_USER@$ORACLE_HOST:/tmp/crawl-overlay.py"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+
+          sudo install -m 0755 /tmp/crawl-overlay.py /opt/fgbears-live/bin/crawl-overlay.py
+
+          # Permanently retire social sidecars on this production host.
+          for unit in \
+            fgbears-x-relay.service fgbears-x-start.service fgbears-x-stop.service fgbears-x-start.timer fgbears-x-stop.timer \
+            fgbears-instagram-relay.service fgbears-instagram-start.service fgbears-instagram-stop.service fgbears-instagram-start.timer fgbears-instagram-stop.timer \
+            fgbears-facebook-relay.service fgbears-facebook-start.service fgbears-facebook-stop.service fgbears-facebook-start.timer fgbears-facebook-stop.timer; do
+            sudo systemctl disable --now "$unit" >/dev/null 2>&1 || true
+          done
+          sudo rm -f /etc/systemd/system/fgbears-x-* /etc/systemd/system/fgbears-instagram-* /etc/systemd/system/fgbears-facebook-* || true
+          sudo rm -f /usr/local/bin/fgbears-x-* /usr/local/bin/fgbears-instagram-* /usr/local/bin/fgbears-facebook-* || true
+
+          sudo python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          replacement = '''TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"
+printf 'FGBears Live output: YouTube local UDP mirror only.\\n'
+
+'''
+
+          for raw in ('/usr/local/bin/fgbears-start-stream', '/opt/fgbears-live/bin/start-stream.sh'):
+              path = Path(raw)
+              if not path.exists():
+                  continue
+              text = path.read_text(encoding='utf-8')
+              text = re.sub(r'^: "\$\{(?:X|INSTAGRAM|FACEBOOK)_[A-Z0-9_]+.*\n', '', text, flags=re.M)
+              start = text.find('case "${X_STREAM_ENABLED,,}" in')
+              end = text.find('python3 "$AD_OVERLAY_SCRIPT"', start if start >= 0 else 0)
+              if start >= 0 and end > start:
+                  text = text[:start] + replacement + text[end:]
+              else:
+                  tee = text.find('TEE_TARGETS=')
+                  end = text.find('python3 "$AD_OVERLAY_SCRIPT"', tee if tee >= 0 else 0)
+                  if tee >= 0 and end > tee:
+                      text = text[:tee] + replacement + text[end:]
+              if '1937' in text or '1938' in text or 'X local mirror' in text or 'Instagram local mirror' in text or 'Facebook local mirror' in text:
+                  raise SystemExit(f'Failed to remove social tee outputs from {raw}')
+              path.write_text(text, encoding='utf-8')
+              path.chmod(0o755)
+
+          env = Path('/etc/fgbears-live/stream.env')
+          if env.exists():
+              lines = env.read_text(encoding='utf-8').splitlines()
+              lines = [line for line in lines if not line.startswith(('X_', 'INSTAGRAM_', 'FACEBOOK_'))]
+              env.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          PY
+
+          sudo systemctl daemon-reload
+          sudo systemctl reset-failed fgbears-youtube-relay.service fgbears-live.service || true
+          sudo systemctl restart fgbears-youtube-relay.service
+          sudo systemctl restart fgbears-live.service
+
+          for i in $(seq 1 60); do
+            if systemctl is-active --quiet fgbears-live.service && \
+               systemctl is-active --quiet fgbears-youtube-relay.service && \
+               curl -fsS --max-time 1 http://127.0.0.1:8788/healthz >/tmp/crawl-health.json; then
+              break
+            fi
+            sleep 1
+          done
+
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          curl -fsS http://127.0.0.1:8788/healthz | tee /tmp/crawl-health.json
+
+          grep -Fq 'CRAWL_SPEED_SCALE", "0.72"' /opt/fgbears-live/bin/crawl-overlay.py
+          grep -Fq 'speed_pps * SPEED_SCALE' /opt/fgbears-live/bin/crawl-overlay.py
+          grep -Fq 'quality=96' /opt/fgbears-live/bin/crawl-overlay.py
+          grep -Fq 'subsampling=0' /opt/fgbears-live/bin/crawl-overlay.py
+          grep -Fq 'YouTube local UDP mirror only' /usr/local/bin/fgbears-start-stream
+          ! grep -Eq '1937|1938|X local mirror|Instagram local mirror|Facebook local mirror' /usr/local/bin/fgbears-start-stream
+          ! grep -Eq '^(X_|INSTAGRAM_|FACEBOOK_)' /etc/fgbears-live/stream.env
+
+          # Ensure no retired social service is active.
+          ! systemctl is-active --quiet fgbears-x-relay.service
+          ! systemctl is-active --quiet fgbears-instagram-relay.service
+          ! systemctl is-active --quiet fgbears-facebook-relay.service
+
+          # Validate a steady 10-second production clock and zero dropped frames.
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          first_media=$(sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_frame=$(sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_epoch=$(date +%s%N)
+          sleep 10
+          second_media=$(sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_frame=$(sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          dropped=$(sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_epoch=$(date +%s%N)
+          awk -v m1="$first_media" -v m2="$second_media" -v f1="$first_frame" -v f2="$second_frame" -v e1="$first_epoch" -v e2="$second_epoch" -v dropped="${dropped:-0}" 'BEGIN {
+            wall=(e2-e1)/1000000000; program=(m2-m1)/1000000; ratio=program/wall; fps=(f2-f1)/wall;
+            printf "EPIC crawl deploy health: program=%.3fs wall=%.3fs ratio=%.3fx fps=%.2f dropped=%d\\n", program, wall, ratio, fps, dropped;
+            if (ratio < 0.95 || fps < 28.5 || dropped != 0) exit 1;
+          }'
+          REMOTE
