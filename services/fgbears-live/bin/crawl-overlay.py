@@ -389,7 +389,16 @@ def frame() -> Image.Image:
 
 def jpeg() -> bytes:
     output = io.BytesIO()
-    frame().convert("RGB").save(output, format="JPEG", quality=94, optimize=False)
+    # Preserve sharp high-contrast crawl text and Bears orange/blue edges across
+    # the localhost MJPEG transport. 4:4:4 avoids the chroma blockiness caused
+    # by Pillow's default JPEG subsampling while keeping the renderer at 15 fps.
+    frame().convert("RGB").save(
+        output,
+        format="JPEG",
+        quality=96,
+        subsampling=0,
+        optimize=False,
+    )
     return output.getvalue()
 
 
