@@ -58,13 +58,16 @@ JSON
 cat > "$TMP/game.json" <<'JSON'
 {"visible":false,"presentationMode":"crawl_only","adsEnabled":false}
 JSON
-SPONSOR_FEED_FILE="$TMP/feed.json" GAME_SCREEN_FEED_FILE="$TMP/game.json" AD_FRAME_FILE="$TMP/runtime/ad-frame.jpg" AD_OVERLAY_PORT=18787 python3 "$ROOT/bin/ad-overlay-smart.py" >"$TMP/ad-overlay.log" 2>&1 &
+SPONSOR_FEED_FILE="$TMP/feed.json" GAME_SCREEN_FEED_FILE="$TMP/game.json" CRAWL_RUNTIME_DIR="$TMP/runtime" AD_FRAME_FILE="$TMP/runtime/ad-frame.jpg" AD_OVERLAY_PORT=18787 python3 "$ROOT/bin/ad-overlay-smart.py" >"$TMP/ad-overlay.log" 2>&1 &
 OVERLAY_PID=$!
 for _ in {1..40}; do
   curl --silent --fail --max-time 1 http://127.0.0.1:18787/healthz >"$TMP/ad-health.json" && break
   sleep 0.1
 done
-jq -e '.ok == true' "$TMP/ad-health.json" >/dev/null
+if ! jq -e '.ok == true' "$TMP/ad-health.json" >/dev/null; then
+  cat "$TMP/ad-overlay.log" >&2 || true
+  exit 1
+fi
 curl --silent --fail http://127.0.0.1:18787/frame.jpg -o "$TMP/ad-frame.jpg"
 python3 - "$TMP/ad-frame.jpg" <<'PY'
 from PIL import Image
@@ -78,13 +81,16 @@ kill "$OVERLAY_PID"; wait "$OVERLAY_PID" 2>/dev/null || true; OVERLAY_PID=""
 cat > "$TMP/game.json" <<'JSON'
 {"visible":true,"gameId":"test-game","presentationMode":"alternate_game_ads","adsEnabled":false,"title":"ZIP SHOWDOWN","matchup":"61108 VS 61107","currentPrize":"$25","phase":"question","questionNumber":1,"questionCount":1,"prompt":"WHO WAS NICKNAMED SWEETNESS?","choices":[{"key":"A","text":"DICK BUTKUS"},{"key":"B","text":"WALTER PAYTON"}],"participants":12,"standings":[{"zip":"61108","score":4,"players":7}],"playPath":"/fgb/play","gameScreenSeconds":20,"adsPerBreak":1,"keepTriviaCrawlDuringAds":true,"allowPaidAds":true,"allowHouseAds":true}
 JSON
-SPONSOR_FEED_FILE="$TMP/feed.json" GAME_SCREEN_FEED_FILE="$TMP/game.json" AD_FRAME_FILE="$TMP/runtime/game-frame.jpg" AD_OVERLAY_PORT=18787 python3 "$ROOT/bin/ad-overlay-smart.py" >"$TMP/game-overlay.log" 2>&1 &
+SPONSOR_FEED_FILE="$TMP/feed.json" GAME_SCREEN_FEED_FILE="$TMP/game.json" CRAWL_RUNTIME_DIR="$TMP/runtime" AD_FRAME_FILE="$TMP/runtime/game-frame.jpg" AD_OVERLAY_PORT=18787 python3 "$ROOT/bin/ad-overlay-smart.py" >"$TMP/game-overlay.log" 2>&1 &
 OVERLAY_PID=$!
 for _ in {1..40}; do
   curl --silent --fail --max-time 1 http://127.0.0.1:18787/healthz >/dev/null && break
   sleep 0.1
 done
-curl --silent --fail http://127.0.0.1:18787/frame.jpg -o "$TMP/game-frame.jpg"
+if ! curl --silent --fail http://127.0.0.1:18787/frame.jpg -o "$TMP/game-frame.jpg"; then
+  cat "$TMP/game-overlay.log" >&2 || true
+  exit 1
+fi
 python3 - "$TMP/game-frame.jpg" <<'PY'
 from PIL import Image
 import sys
