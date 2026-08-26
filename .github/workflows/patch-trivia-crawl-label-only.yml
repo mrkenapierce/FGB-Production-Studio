@@ -1,0 +1,122 @@
+name: Patch Trivia Crawl Label Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-trivia-crawl-label-only.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  patch-deploy-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch trivia crawl behavior
+        run: |
+          python3 .github/scripts/patch-trivia-crawl-label-only.py
+          grep -Fq 'if trivia_mode:' services/fgbears-live/bin/crawl-overlay.py
+          grep -Fq 'if not value["message"]:' services/fgbears-live/bin/crawl-overlay.py
+          git diff --check
+
+      - name: Commit source change without full production deploy
+        run: |
+          git config user.name 'FGB Production Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add services/fgbears-live/bin/crawl-overlay.py
+          git commit -m 'Make trivia crawl label-only [skip ci]'
+          git push origin HEAD:main
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Validate trivia mode in isolation
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/crawl-overlay.py "$ORACLE_USER@$ORACLE_HOST:/tmp/crawl-overlay-trivia-label-only.py"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          rm -rf /tmp/fgb-trivia-crawl-test
+          mkdir -p /tmp/fgb-trivia-crawl-test
+          cat >/tmp/fgb-trivia-crawl-test/feed.json <<'JSON'
+          {"active":true,"label":"Trivia","triviaActive":true,"message":"WHO SCORED THE MOST TOUCHDOWNS?","messages":[{"enabled":true,"text":"WHO SCORED THE MOST TOUCHDOWNS?"}],"speed":"normal"}
+          JSON
+          FEED_FILE=/tmp/fgb-trivia-crawl-test/feed.json \
+          CRAWL_RUNTIME_DIR=/tmp/fgb-trivia-crawl-test/runtime \
+          CRAWL_OVERLAY_PORT=8798 \
+          python3 /tmp/crawl-overlay-trivia-label-only.py >/tmp/fgb-trivia-crawl-test/server.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8798/healthz >/tmp/fgb-trivia-crawl-test/health.json; then break; fi
+            sleep 0.2
+          done
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          h=json.loads(Path('/tmp/fgb-trivia-crawl-test/health.json').read_text())
+          assert h['active'] is True, h
+          assert h['messageGraphemes'] == 0, h
+          assert h['messageCount'] == 0, h
+          assert Path('/tmp/fgb-trivia-crawl-test/runtime/crawl-label.txt').read_text().strip() == 'TRIVIA'
+          assert Path('/tmp/fgb-trivia-crawl-test/runtime/crawl-message.txt').read_text().strip() == ''
+          assert Path('/tmp/fgb-trivia-crawl-test/runtime/crawl-active').read_text().strip() == '1'
+          print('Trivia crawl isolation test passed: label visible, question suppressed.')
+          PY
+          REMOTE
+
+      - name: Deploy crawl renderer and restart production
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo install -m 0755 /tmp/crawl-overlay-trivia-label-only.py /opt/fgbears-live/bin/crawl-overlay.py && sudo systemctl restart fgbears-live.service'
+
+      - name: Verify production health
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          for i in $(seq 1 60); do
+            if systemctl is-active --quiet fgbears-live.service && systemctl is-active --quiet fgbears-youtube-relay.service && curl -fsS --max-time 1 http://127.0.0.1:8788/healthz >/tmp/crawl-health.json; then break; fi
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          cat /tmp/crawl-health.json
+          grep -Fq 'if trivia_mode:' /opt/fgbears-live/bin/crawl-overlay.py
+          grep -Fq 'if not value["message"]:' /opt/fgbears-live/bin/crawl-overlay.py
+          grep -Fq 'YouTube local UDP mirror only' /usr/local/bin/fgbears-start-stream
+
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          first_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_epoch=$(date +%s%N)
+          sleep 10
+          second_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          dropped=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_epoch=$(date +%s%N)
+          awk -v m1="$first_media" -v m2="$second_media" -v f1="$first_frame" -v f2="$second_frame" -v e1="$first_epoch" -v e2="$second_epoch" -v dropped="${dropped:-0}" 'BEGIN { wall=(e2-e1)/1000000000; program=(m2-m1)/1000000; ratio=program/wall; fps=(f2-f1)/wall; printf "Trivia crawl deploy health: program=%.3fs wall=%.3fs ratio=%.3fx fps=%.2f dropped=%d\n", program, wall, ratio, fps, dropped; if (ratio < 0.95 || fps < 28.5 || dropped != 0) exit 1; }'
+          REMOTE
