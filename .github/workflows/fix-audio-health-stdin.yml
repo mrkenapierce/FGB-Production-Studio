@@ -1,0 +1,41 @@
+name: Fix FGB Audio Health Probe Stdin
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-audio-health-stdin.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Prevent decoder from consuming caller stdin
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('services/fgbears-live/bin/audio-health.py')
+          text = path.read_text(encoding='utf-8')
+          old = '["ffmpeg", "-hide_banner", "-v", "fatal", "-i", str(capture),'
+          new = '["ffmpeg", "-hide_banner", "-nostdin", "-v", "fatal", "-i", str(capture),'
+          if old not in text:
+              raise SystemExit('Expected FFmpeg invocation not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          python3 -m py_compile services/fgbears-live/bin/audio-health.py
+          python3 services/fgbears-live/bin/audio-health.py --self-test
+          git diff --check
+      - name: Commit probe fix
+        run: |
+          git config user.name 'FGB Production Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add services/fgbears-live/bin/audio-health.py
+          git commit -m 'Prevent live audio probe from consuming stdin'
+          git push origin HEAD:main
