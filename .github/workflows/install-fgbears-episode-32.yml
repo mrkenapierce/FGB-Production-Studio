@@ -1,0 +1,203 @@
+name: Install FGBears Episode 32
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/install-fgbears-episode-32.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+  EPISODE_ID: PUsi9hNXnhw
+  EPISODE_FILE: FGBears-Episode-32.mp4
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Check out current production source
+        uses: actions/checkout@v4
+
+      - name: Download and normalize Episode 32
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python3 -m pip install --quiet --disable-pip-version-check yt-dlp
+          mkdir -p /tmp/fgb-episode32
+          yt-dlp --no-playlist \
+            -f 'bv*[height<=720]+ba/b[height<=720]' \
+            --merge-output-format mp4 \
+            -o '/tmp/fgb-episode32/source.%(ext)s' \
+            "https://www.youtube.com/watch?v=${EPISODE_ID}"
+          source_file=$(find /tmp/fgb-episode32 -maxdepth 1 -type f -name 'source.*' -print -quit)
+          test -n "$source_file"
+          ffmpeg -hide_banner -y -loglevel warning \
+            -i "$source_file" \
+            -map 0:v:0 -map 0:a:0 \
+            -vf 'scale=1280:720:force_original_aspect_ratio=decrease:force_divisible_by=2,pad=1280:720:(ow-iw)/2:(oh-ih)/2:color=black,fps=30,format=yuv420p' \
+            -c:v libx264 -preset veryfast -profile:v high -level 4.0 \
+            -b:v 4000k -maxrate 4000k -bufsize 8000k \
+            -g 60 -keyint_min 60 -sc_threshold 0 -pix_fmt yuv420p -threads 2 \
+            -c:a aac -b:a 128k -ar 48000 -ac 2 \
+            -af 'aresample=48000:first_pts=0' \
+            -shortest -movflags +faststart -map_metadata -1 \
+            "/tmp/fgb-episode32/${EPISODE_FILE}"
+          probe_video=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt -of csv=p=0 "/tmp/fgb-episode32/${EPISODE_FILE}")
+          probe_audio=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels -of csv=p=0 "/tmp/fgb-episode32/${EPISODE_FILE}")
+          echo "video=$probe_video"
+          echo "audio=$probe_audio"
+          [[ "$probe_video" == 'h264,1280,720,30/1,yuv420p' ]]
+          [[ "$probe_audio" == 'aac,48000,2' ]]
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Copy Episode 32 to Oracle
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          scp -i ~/.ssh/oracle_key "/tmp/fgb-episode32/${EPISODE_FILE}" "$ORACLE_USER@$ORACLE_HOST:/tmp/${EPISODE_FILE}"
+
+      - name: Deploy repaired source, install Episode 32, and restart same stream
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          rm -rf /tmp/fgbears-live-episode32-deploy
+          git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-live-episode32-deploy
+          sudo bash /tmp/fgbears-live-episode32-deploy/services/fgbears-live/bin/install.sh
+
+          sudo install -o fgbears -g fgbears -m 0644 "/tmp/FGBears-Episode-32.mp4" "/srv/fgbears-live/media/FGBears-Episode-32.mp4"
+          rm -f "/tmp/FGBears-Episode-32.mp4"
+
+          sudo python3 - <<'PY'
+          from pathlib import Path
+          p = Path('/etc/fgbears-live/stream.env')
+          updates = {
+              'OUTPUT_FPS': '30',
+              'VIDEO_GOP': '60',
+              'DRAWTEXT_RELOAD_FRAMES': '30',
+              'AD_OVERLAY_FPS': '15',
+              'CRAWL_OVERLAY_FPS': '15',
+              'PODCAST_AUDIO_FILTER': 'aresample=48000:first_pts=0',
+          }
+          lines = p.read_text(encoding='utf-8').splitlines()
+          seen = set(); out = []
+          for line in lines:
+              if '=' in line and not line.lstrip().startswith('#'):
+                  key = line.split('=', 1)[0]
+                  if key in updates:
+                      if key not in seen:
+                          out.append(f'{key}={updates[key]}')
+                          seen.add(key)
+                      continue
+              out.append(line)
+          for key, value in updates.items():
+              if key not in seen:
+                  out.append(f'{key}={value}')
+          p.write_text('\n'.join(out) + '\n', encoding='utf-8')
+          PY
+          sudo chown root:fgbears /etc/fgbears-live/stream.env
+          sudo chmod 0640 /etc/fgbears-live/stream.env
+
+          sudo /opt/fgbears-live/bin/validate-media.sh /srv/fgbears-live/media
+          sudo /opt/fgbears-live/bin/rebuild-playlist.sh
+          tail -n 4 /srv/fgbears-live/playlist.ffconcat
+          grep -Fxq "file '/srv/fgbears-live/media/FGBears-Episode-32.mp4'" /srv/fgbears-live/playlist.ffconcat
+
+          sudo systemctl reset-failed fgbears-youtube-relay.service fgbears-live.service || true
+          sudo systemctl restart fgbears-youtube-relay.service
+          sudo systemctl restart fgbears-live.service
+
+          for _ in $(seq 1 60); do
+            if systemctl is-active --quiet fgbears-live.service && \
+               systemctl is-active --quiet fgbears-youtube-relay.service && \
+               curl --silent --fail --max-time 1 http://127.0.0.1:8787/healthz >/dev/null && \
+               curl --silent --fail --max-time 1 http://127.0.0.1:8788/healthz >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+
+          service_pid=$(systemctl show -p MainPID --value fgbears-live.service)
+          ffmpeg_pid=$(pgrep -P "$service_pid" -x ffmpeg | head -n 1)
+          test -n "$ffmpeg_pid"
+          active_args=$(mktemp)
+          trap 'rm -f "$active_args"' EXIT
+          sudo tr '\0' '\n' < "/proc/$ffmpeg_pid/cmdline" > "$active_args"
+          grep -A1 -Fx -- '-af' "$active_args" | tail -n1 | grep -Fxq 'aresample=48000:first_pts=0'
+          grep -A1 -Fx -- '-b:a' "$active_args" | tail -n1 | grep -Fxq '128k'
+          echo 'Active live audio path is transparent 48 kHz AAC.'
+          REMOTE
+
+      - name: Verify YouTube relay and real-time program health
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          for _ in $(seq 1 60); do
+            relay_pid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+            if [[ "$relay_pid" =~ ^[1-9][0-9]*$ ]]; then
+              sudo ss -ntpH state established | grep "pid=$relay_pid" > /tmp/fgbears-episode32-relay-sockets.txt || true
+              getent ahostsv4 a.rtmps.youtube.com | awk '{print $1}' | sort -u > /tmp/fgbears-episode32-youtube-ips.txt
+              while IFS= read -r ip; do
+                [[ -n "$ip" ]] || continue
+                if grep -Fq "$ip:443" /tmp/fgbears-episode32-relay-sockets.txt; then
+                  established=1
+                  break 2
+                fi
+              done < /tmp/fgbears-episode32-youtube-ips.txt
+            fi
+            sleep 2
+          done
+          rm -f /tmp/fgbears-episode32-relay-sockets.txt /tmp/fgbears-episode32-youtube-ips.txt
+          [[ "${established:-0}" == 1 ]]
+
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          for _ in $(seq 1 30); do
+            first_time=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n1)
+            first_frame=$(sudo sed -n 's/^frame=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n1)
+            first_drop=$(sudo sed -n 's/^drop_frames=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n1)
+            [[ "$first_time" =~ ^[0-9]+$ && "$first_frame" =~ ^[0-9]+$ && "$first_drop" =~ ^[0-9]+$ ]] && break
+            sleep 1
+          done
+          wall_start_ns=$(date +%s%N)
+          sleep 10
+          wall_end_ns=$(date +%s%N)
+          second_time=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_frame=$(sudo sed -n 's/^frame=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_drop=$(sudo sed -n 's/^drop_frames=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n1)
+          program_delta=$((second_time-first_time))
+          frame_delta=$((second_frame-first_frame))
+          wall_us=$(((wall_end_ns-wall_start_ns)/1000))
+          python3 - "$program_delta" "$wall_us" "$frame_delta" "$second_drop" <<'PY'
+          import sys
+          p,w,f,d=map(int,sys.argv[1:])
+          ratio=p/w
+          fps=f/(w/1_000_000)
+          print(f'Episode 32 live health: ratio={ratio:.3f}x fps={fps:.2f}/30 dropped={d}')
+          if ratio < .95: raise SystemExit('real-time cadence below 95%')
+          if fps < 28.5: raise SystemExit('effective frame rate below 95% of 30fps')
+          if d != 0: raise SystemExit(f'dropped frames={d}')
+          PY
+          echo 'Episode 32 is installed and the same YouTube live transport is healthy.'
+          REMOTE
