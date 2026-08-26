@@ -1,0 +1,94 @@
+name: Analyze FGBears Captured Audio
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-live-audio-metrics.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  metrics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Measure captured signal
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          PCM=/tmp/fgb-audio-live.pcm
+          PACKETS=/tmp/fgb-audio-packets.csv
+          CAPTURE=/tmp/fgb-audio-live.ts
+          test -s "$PCM"; test -s "$PACKETS"; test -s "$CAPTURE"
+          cat > /tmp/fgb-audio-analyze.py <<'PY'
+          import array,csv,math,sys
+          pcm,packets=sys.argv[1:]
+          a=array.array('h'); a.frombytes(open(pcm,'rb').read())
+          if sys.byteorder!='little': a.byteswap()
+          L=a[0::2]; R=a[1::2]; n=min(len(L),len(R)); L=L[:n]; R=R[:n]
+          if n<48000: raise SystemExit('Audio decode shorter than one second')
+          def m(ch):
+              peak=max(abs(x) for x in ch)
+              rms=math.sqrt(sum(float(x)*x for x in ch)/len(ch))
+              mean=sum(ch)/len(ch)
+              return (20*math.log10(max(peak,1)/32768),20*math.log10(max(rms,1e-9)/32768),sum(abs(x)>=32760 for x in ch)/len(ch),sum(abs(x)<=8 for x in ch)/len(ch),mean/32768)
+          lm=m(L); rm=m(R)
+          dot=sum(float(l)*r for l,r in zip(L,R)); l2=sum(float(l)*l for l in L); r2=sum(float(r)*r for r in R); corr=dot/math.sqrt(max(l2*r2,1))
+          pts=[]; durs=[]
+          for row in csv.reader(open(packets)):
+              try: pts.append(float(row[0])); durs.append(float(row[1]))
+              except (ValueError,IndexError): pass
+          regress=0; gaps=[]
+          for i in range(1,len(pts)):
+              d=pts[i]-pts[i-1]; expected=durs[i-1] if i-1<len(durs) else .021333
+              if d < -0.001: regress += 1
+              if d > max(.08, expected*3): gaps.append(d)
+          print(f'decoded_audio_seconds={n/48000:.3f}')
+          print(f'left_peak_dbfs={lm[0]:.2f}')
+          print(f'right_peak_dbfs={rm[0]:.2f}')
+          print(f'left_rms_dbfs={lm[1]:.2f}')
+          print(f'right_rms_dbfs={rm[1]:.2f}')
+          print(f'channel_rms_difference_db={abs(lm[1]-rm[1]):.2f}')
+          print(f'left_clip_ratio={lm[2]:.8f}')
+          print(f'right_clip_ratio={rm[2]:.8f}')
+          print(f'left_nearzero_ratio={lm[3]:.4f}')
+          print(f'right_nearzero_ratio={rm[3]:.4f}')
+          print(f'left_dc_fraction={lm[4]:.6f}')
+          print(f'right_dc_fraction={rm[4]:.6f}')
+          print(f'lr_correlation={corr:.4f}')
+          print(f'audio_pts_regressions={regress}')
+          print(f'audio_large_pts_gaps={len(gaps)}')
+          if gaps: print(f'largest_audio_pts_gap_seconds={max(gaps):.6f}')
+          warnings=[]
+          if max(lm[2],rm[2])>.0001: warnings.append('CLIPPING')
+          if max(lm[0],rm[0])>-.10: warnings.append('PEAK_TOO_CLOSE_TO_0_DBFS')
+          if max(lm[1],rm[1])<-45: warnings.append('NEAR_SILENCE')
+          if abs(lm[1]-rm[1])>6: warnings.append('CHANNEL_IMBALANCE')
+          if max(abs(lm[4]),abs(rm[4]))>.02: warnings.append('DC_OFFSET')
+          if regress: warnings.append('PTS_REGRESSION')
+          if gaps: warnings.append('PTS_GAPS')
+          print('AUDIO_WARNINGS='+(','.join(warnings) if warnings else 'NONE'))
+          PY
+          python3 /tmp/fgb-audio-analyze.py "$PCM" "$PACKETS"
+          echo '--- decoder-only audio errors ---'
+          ffmpeg -hide_banner -v warning -analyzeduration 2M -probesize 2M -i "$CAPTURE" -vn -map 0:a:0 -f null - 2>&1 | grep -Ei 'aac|audio|corrupt|error|invalid|non-monoton|timestamp' || true
+          REMOTE
