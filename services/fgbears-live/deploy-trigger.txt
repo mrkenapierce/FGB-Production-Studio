@@ -1,3 +1,3 @@
 FGB live production repair trigger
-2026-08-26T10:09:30Z
-Deploy transparent mastered-audio preservation while retaining 30 fps program output, 15 fps overlay feeds, existing crawl/ads/trivia behavior, relay isolation, and the unchanged YouTube live URL.
+2026-08-26T10:16:00Z
+Deploy crawl visual cleanup: remove the broken dark notch at the label/message divider and add safe ticker insets so moving text is not clipped directly against the divider or right border. Preserve audio repair, trivia behavior, ads, cadence, and the unchanged YouTube live URL.
