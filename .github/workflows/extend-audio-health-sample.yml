@@ -1,0 +1,39 @@
+name: Extend FGB Audio Health Sample
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/extend-audio-health-sample.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  extend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Extend recurring sample to 20 seconds
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('services/fgbears-live/bin/healthcheck.sh')
+          text = path.read_text(encoding='utf-8')
+          old = 'AUDIO_HEALTH_SAMPLE_SECONDS=${FGB_AUDIO_HEALTH_SAMPLE_SECONDS:-8}'
+          new = 'AUDIO_HEALTH_SAMPLE_SECONDS=${FGB_AUDIO_HEALTH_SAMPLE_SECONDS:-20}'
+          if old not in text:
+              raise SystemExit('Expected audio sample default not found')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+          git diff --check
+      - name: Commit recurring sample change
+        run: |
+          git config user.name 'FGB Production Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add services/fgbears-live/bin/healthcheck.sh
+          git commit -m 'Sample FGB live audio for 20 seconds every health interval'
+          git push origin HEAD:main
