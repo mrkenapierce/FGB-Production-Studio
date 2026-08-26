@@ -1,0 +1,51 @@
+name: Fix FGB Crawl Visuals
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-fgb-crawl-visuals.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Repair crawl divider and ticker clipping
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('services/fgbears-live/bin/crawl-overlay.py')
+          text = p.read_text()
+          old = '''    draw.rectangle((257, 15, 261, 122), fill=BEARS_BLUE)\n    draw.rectangle((262, 15, 266, 122), fill=BEARS_ORANGE)\n'''
+          new = '''    # Keep a single clean orange boundary between the label block and message lane.\n    draw.rectangle((262, 15, 266, 122), fill=BEARS_ORANGE)\n'''
+          if old not in text and new not in text:
+              raise SystemExit('Unexpected divider geometry')
+          text = text.replace(old, new)
+          old = '''    viewport_start = 267\n    viewport_top = 15\n    viewport_width = 990\n    viewport_height = 108\n'''
+          new = '''    # Keep moving glyphs clear of the divider and right border so partial letters\n    # do not appear glued to, or sliced directly against, the frame.\n    viewport_start = 279\n    viewport_top = 15\n    viewport_width = 966\n    viewport_height = 108\n'''
+          if old not in text and new not in text:
+              raise SystemExit('Unexpected ticker viewport geometry')
+          text = text.replace(old, new)
+          p.write_text(text)
+          PY
+          python3 -m py_compile services/fgbears-live/bin/crawl-overlay.py
+          git diff --check
+      - name: Commit crawl visual repair
+        run: |
+          git config user.name 'FGBears Repair Bot'
+          git config user.email 'actions@github.com'
+          git add services/fgbears-live/bin/crawl-overlay.py
+          if git diff --cached --quiet; then
+            echo 'Crawl visual repair already present.'
+            exit 0
+          fi
+          git commit -m 'Clean up FGB crawl divider and text clipping'
+          git push origin HEAD:main
