@@ -56,12 +56,10 @@ jobs:
           VALIDATOR="$REPO/services/fgbears-live/bin/validate-media.sh"
           chmod +x "$NORMALIZER" "$VALIDATOR"
 
-          # Reassert YouTube-only runtime without invoking the full installer.
           sudo python3 "$REPO/.github/scripts/fgb-runtime-youtube-only.py"
           ! sudo grep -Eq '^(X_|INSTAGRAM_|FACEBOOK_)' /etc/fgbears-live/stream.env
           ! grep -Eq '1937|1938|X local mirror|Instagram local mirror|Facebook local mirror' /usr/local/bin/fgbears-start-stream
 
-          # Install only the hardened media-ingest utilities used for future episodes.
           sudo install -m 0755 "$NORMALIZER" /usr/local/bin/fgbears-normalize
           sudo install -m 0755 "$VALIDATOR" /usr/local/bin/fgbears-validate
           sudo install -m 0755 "$REPO/services/fgbears-live/bin/rebuild-playlist.sh" /usr/local/bin/fgbears-rebuild-playlist
@@ -109,15 +107,18 @@ jobs:
               return 0
             fi
 
-            # Rare AAC/intersample overshoot fallback. Keep -14 LUFS integrated,
-            # but give the offline encoder extra true-peak headroom. This is never
-            # applied in the live signal path.
-            echo "Primary normalization rejected for $base (rc=$rc); retrying offline with conservative -3.0 dBTP target"
+            # Rare AAC/intersample overshoot fallback. Re-run loudnorm in its
+            # dynamic mode with additional true-peak headroom. This remains
+            # entirely offline and never enters the real-time encoder path.
+            echo "Primary normalization rejected for $base (rc=$rc); retrying offline with dynamic loudnorm and -3.0 dBTP target"
             rm -f "$output" "${output}.audio-profile.json" "${output%.mp4}.partial.mp4"
+            DYNAMIC_NORMALIZER="$WORK_DIR/normalize-dynamic.sh"
+            sed 's/linear=true:print_format=summary/linear=false:print_format=summary/' "$NORMALIZER" > "$DYNAMIC_NORMALIZER"
+            chmod +x "$DYNAMIC_NORMALIZER"
             if command -v ionice >/dev/null 2>&1; then
-              env FGB_LOUDNESS_TARGET_TP=-3.0 nice -n 10 ionice -c2 -n7 bash "$NORMALIZER" "$file" "$output"
+              env FGB_LOUDNESS_TARGET_TP=-3.0 nice -n 10 ionice -c2 -n7 bash "$DYNAMIC_NORMALIZER" "$file" "$output"
             else
-              env FGB_LOUDNESS_TARGET_TP=-3.0 nice -n 10 bash "$NORMALIZER" "$file" "$output"
+              env FGB_LOUDNESS_TARGET_TP=-3.0 nice -n 10 bash "$DYNAMIC_NORMALIZER" "$file" "$output"
             fi
           }
 
@@ -171,7 +172,6 @@ jobs:
           done < <(sed -n "s/^file '\(.*\)'$/\1/p" "$PLAYLIST")
           [[ $playlist_missing -eq 0 ]]
 
-          # Activate the normalized files with one primary-service restart only.
           sudo systemctl restart fgbears-live.service
           for _ in $(seq 1 60); do
             if systemctl is-active --quiet fgbears-live.service && systemctl is-active --quiet fgbears-youtube-relay.service; then
