@@ -1,4 +1,5 @@
 name: FGBears Live Audio Quality Gate
+# Incident recheck: 2026-08-26. This comment intentionally triggers the current signal gate.
 
 on:
   workflow_dispatch:
