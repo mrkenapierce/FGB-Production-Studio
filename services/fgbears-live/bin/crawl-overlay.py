@@ -386,11 +386,11 @@ def frame() -> Image.Image:
 
     message = value["message"].upper().strip()
     message_line, text_width_px = rich_line(message, 31, True, 35)
-    # Keep moving glyphs clear of the divider and right border so partial letters
-    # do not appear glued to, or sliced directly against, the frame.
-    viewport_start = 279
+    # Clip moving glyphs at the actual orange divider/right border so there is
+    # no visible dark-blue receiving gutter at either end of the crawl.
+    viewport_start = 267
     viewport_top = 15
-    viewport_width = 966
+    viewport_width = 990
     viewport_height = 108
     cycle = viewport_width + text_width_px + 120
     x = viewport_width - ((time.monotonic() - STARTED) * float(value["speedPps"]) % cycle)

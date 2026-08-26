@@ -36,7 +36,7 @@ if grep -Fq 'BEARS_NEWS_OVERLAY_PORT' "$ROOT/bin/start-stream.sh"; then
   echo 'The retired Bears news HTTP overlay must not be referenced.' >&2
   exit 1
 fi
-grep -q '^BEARS_NEWS_SCROLL_PPS=90$' "$ROOT/config/stream.env.example"
+grep -q '^BEARS_NEWS_SCROLL_PPS=76$' "$ROOT/config/stream.env.example"
 grep -q '^OUTPUT_FPS=30$' "$ROOT/config/stream.env.example"
 grep -q '^VIDEO_GOP=60$' "$ROOT/config/stream.env.example"
 grep -q '^DRAWTEXT_RELOAD_FRAMES=30$' "$ROOT/config/stream.env.example"
@@ -121,6 +121,7 @@ for _ in {1..50}; do
 done
 
 grep -q '^BEARS NEWS$' "$TMP/runtime/bears-news-label.txt"
+grep -Fq 'THIS IS A DELIBERATELY LONG CHICAGO BEARS HEADLINE THAT MUST REMAIN COMPLETE THROUGH THE SOURCE' "$TMP/runtime/bears-news-message.txt"
 grep -q 'CHICAGOBEARS.COM' "$TMP/runtime/bears-news-message.txt"
 grep -q 'BREAKING: MAJOR BEARS UPDATE' "$TMP/runtime/bears-news-message.txt"
 grep -q 'SOURCE: SECOND SOURCE' "$TMP/runtime/bears-news-message.txt"
@@ -143,7 +144,7 @@ graph = graph.replace('[1:v]', '[BASE:v]', 1)
 graph = graph.replace('[2:v]', '[1:v]')
 graph = graph.replace('[BASE:v]', '[0:v]')
 graph = graph.replace('$CRAWL_RUNTIME_DIR', runtime)
-graph = graph.replace('$BEARS_NEWS_SCROLL_PPS', '90')
+graph = graph.replace('$BEARS_NEWS_SCROLL_PPS', '76')
 graph = graph.replace('$DRAWTEXT_RELOAD_FRAMES', '30')
 subprocess.run([
     'ffmpeg', '-hide_banner', '-loglevel', 'error',

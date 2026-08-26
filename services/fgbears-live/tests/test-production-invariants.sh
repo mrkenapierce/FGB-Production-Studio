@@ -14,10 +14,14 @@ grep -Fq 'BEARS_NEWS_SCROLL_PPS:=76' "$START" || fail 'RSS/news crawl speed must
 grep -Fq 'BEARS_NEWS_SCROLL_PPS=76' "$ENV_EXAMPLE" || fail 'RSS/news default speed must remain 76 px/s.'
 
 # Typography and clean single-divider treatment must stay aligned with Main Crawl.
-grep -Fq 'fontsize=31:x=970-mod(t*$BEARS_NEWS_SCROLL_PPS' "$START" || fail 'RSS/news message typography/motion geometry diverged from Main Crawl.'
+grep -Fq 'fontsize=31:x=990-mod(t*$BEARS_NEWS_SCROLL_PPS' "$START" || fail 'RSS/news message typography/motion geometry diverged from Main Crawl.'
 grep -Fq 'fontcolor=white:fontsize=29:x=18+(239-text_w)/2:y=39' "$START" || fail 'RSS/news label typography diverged from Main Crawl.'
 if grep -Fq 'drawbox=x=257:y=23:w=5:h=68:color=0x0B162A' "$START"; then
   fail 'RSS/news crawl reintroduced the old double-divider/notch treatment.'
+fi
+
+if grep -Fq 'crop=w=970:h=68:x=277:y=23' "$START"; then
+  fail 'RSS/news crawl reintroduced the obsolete internal blue clipping gutter.'
 fi
 
 # RULE 2 — Audio is immutable at runtime.
