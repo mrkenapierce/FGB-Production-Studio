@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 26 Aug 2026 09:55:08 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 26 Aug 2026 10:24:57 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>The Bear’s Den: Bears wrap up training camp with hard practice</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: Bears wrap up training camp with hard practice</description>
+      <link>https://sports.yahoo.com/articles/bear-den-bears-wrap-training-100000729.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-55f5af4a917879a5515a</guid>
+      <pubDate>Wed, 26 Aug 2026 10:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears training camp report: Tuesday, Aug. 25</title>
@@ -30,16 +40,6 @@
     </item>
 
     <item>
-      <title>Bears Camp Report: Darnell Wright injured, Corners return, Jordan van den Berg with the ones, and more</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Camp Report: Darnell Wright injured, Corners return, Jordan van den Berg with the ones, and more</description>
-      <link>https://sports.yahoo.com/articles/bears-camp-report-darnell-wright-001500302.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-22a0256bf6a931eb20a3</guid>
-      <pubDate>Wed, 26 Aug 2026 00:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Chicago Bears announce roster moves</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears announce roster moves</description>
       <link>https://www.chicagobears.com/news/chicago-bears-announce-roster-moves-august-25-2026</link>
@@ -50,41 +50,11 @@
     </item>
 
     <item>
-      <title>The Good and Not So Good From Chicago Bears&apos; Final Public Practice of Training Camp</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Good and Not So Good From Chicago Bears&apos; Final Public Practice of Training Camp</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-good-and-not-so-good-from-chicago-bears-final-public-practice-of-training-camp</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d397d5b043704e5e29f6</guid>
-      <pubDate>Tue, 25 Aug 2026 16:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson Highlights Two Unsettled Chicago Bears Starting Competitions</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Highlights Two Unsettled Chicago Bears Starting Competitions</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-highlights-two-unsettled-chicago-bears-starting-competitions</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-25333c6b879c29f049ee</guid>
-      <pubDate>Tue, 25 Aug 2026 16:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Nephi Sewell: Placed on injured reserve</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Nephi Sewell: Placed on injured reserve</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-nephi-sewell-placed-on-injured-reserve/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e7d46eb65d4769fdec74</guid>
-      <pubDate>Tue, 25 Aug 2026 16:53:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Elijah Hicks: Activated off active/PUP list</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Elijah Hicks: Activated off active/PUP list</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-elijah-hicks-activated-off-activepup-list/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c9e505feacb4e8d2a283</guid>
-      <pubDate>Tue, 25 Aug 2026 16:48:00 GMT</pubDate>
+      <title>2026 CBS Sports NFL All-Breakout Team: Caleb Williams, two other Bears headline rising stars on offense</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: 2026 CBS Sports NFL All-Breakout Team: Caleb Williams, two other Bears headline rising stars on offense</description>
+      <link>https://www.cbssports.com/nfl/news/2026-nfl-breakout-team-caleb-williams/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8cf3e989baf1b4c72b22</guid>
+      <pubDate>Mon, 24 Aug 2026 14:18:02 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
