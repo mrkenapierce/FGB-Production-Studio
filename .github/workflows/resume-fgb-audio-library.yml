@@ -93,9 +93,32 @@ jobs:
             valid_profile "$output" "$output_marker"
             sudo chown fgbears:fgbears "$output" "$output_marker"
             sudo chmod 0644 "$output" "$output_marker"
-            # Same filesystem: these renames atomically switch the playlist pathname.
             sudo mv -f "$output" "$file"
             sudo mv -f "$output_marker" "$marker"
+          }
+
+          normalize_one() {
+            local file=$1 output=$2 base=$3
+            local rc=0
+            if command -v ionice >/dev/null 2>&1; then
+              nice -n 10 ionice -c2 -n7 bash "$NORMALIZER" "$file" "$output" || rc=$?
+            else
+              nice -n 10 bash "$NORMALIZER" "$file" "$output" || rc=$?
+            fi
+            if (( rc == 0 )); then
+              return 0
+            fi
+
+            # Rare AAC/intersample overshoot fallback. Keep -14 LUFS integrated,
+            # but give the offline encoder extra true-peak headroom. This is never
+            # applied in the live signal path.
+            echo "Primary normalization rejected for $base (rc=$rc); retrying offline with conservative -3.0 dBTP target"
+            rm -f "$output" "${output}.audio-profile.json" "${output%.mp4}.partial.mp4"
+            if command -v ionice >/dev/null 2>&1; then
+              env FGB_LOUDNESS_TARGET_TP=-3.0 nice -n 10 ionice -c2 -n7 bash "$NORMALIZER" "$file" "$output"
+            else
+              env FGB_LOUDNESS_TARGET_TP=-3.0 nice -n 10 bash "$NORMALIZER" "$file" "$output"
+            fi
           }
 
           migrated=0
@@ -127,11 +150,7 @@ jobs:
             (( free_kb >= required_kb )) || { echo "Insufficient free disk for $base" >&2; exit 71; }
 
             printf 'NORMALIZE: %s\n' "$base"
-            if command -v ionice >/dev/null 2>&1; then
-              nice -n 10 ionice -c2 -n7 bash "$NORMALIZER" "$file" "$output"
-            else
-              nice -n 10 bash "$NORMALIZER" "$file" "$output"
-            fi
+            normalize_one "$file" "$output" "$base"
             promote_temp "$output" "$file" "$marker"
             migrated=$((migrated + 1))
           done
