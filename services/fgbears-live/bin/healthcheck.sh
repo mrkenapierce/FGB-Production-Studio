@@ -21,7 +21,7 @@ NEWS_LOCAL_FEED=${BEARS_NEWS_LOCAL_FEED_FILE:-/srv/fgbears-live/runtime/fgb-bear
 NEWS_REFRESH_STATUS=${BEARS_NEWS_REFRESH_STATUS_FILE:-/srv/fgbears-live/runtime/bears-news-refresh-status.env}
 YOUTUBE_RELAY_SERVICE=${YOUTUBE_RELAY_SERVICE:-fgbears-youtube-relay.service}
 AUDIO_HEALTH_BIN=${FGB_AUDIO_HEALTH_BIN:-/usr/local/bin/fgbears-audio-health}
-AUDIO_HEALTH_INTERVAL_SECONDS=${FGB_AUDIO_HEALTH_INTERVAL_SECONDS:-900}
+AUDIO_HEALTH_INTERVAL_SECONDS=${FGB_AUDIO_HEALTH_INTERVAL_SECONDS:-300}
 AUDIO_HEALTH_SAMPLE_SECONDS=${FGB_AUDIO_HEALTH_SAMPLE_SECONDS:-20}
 AUDIO_HEALTH_EPOCH_FILE=${FGB_AUDIO_HEALTH_EPOCH_FILE:-$HEALTH_STATE_DIR/audio-health-epoch}
 AUDIO_HEALTH_STATUS_FILE=${FGB_AUDIO_HEALTH_STATUS_FILE:-$HEALTH_STATE_DIR/audio-health-status}
@@ -139,36 +139,6 @@ run_audio_check() {
   rm -f "$AUDIO_HEALTH_WARNING_FILE"
 }
 
-reconcile_social_relay() {
-  local platform enabled_key service start_timer stop_timer
-  local enabled=false now_hm
-  platform=$1
-  enabled_key=$2
-  service="fgbears-${platform}-relay.service"
-  start_timer="fgbears-${platform}-start.timer"
-  stop_timer="fgbears-${platform}-stop.timer"
-  grep -Eq "^${enabled_key}=(1|true|yes|on)$" "$ENV_FILE" && enabled=true
-
-  if [[ "$enabled" != true ]]; then
-    systemctl stop "$service" >/dev/null 2>&1 || true
-    return 0
-  fi
-
-  systemctl enable --now "$start_timer" "$stop_timer" >/dev/null 2>&1 || true
-  now_hm=$(TZ=America/Chicago date +%H%M)
-  now_hm=$((10#$now_hm))
-  if (( now_hm >= 900 && now_hm < 1700 )); then
-    if ! systemctl is-active --quiet "$service"; then
-      logger -t fgbears-live-health "Recovering scheduled ${platform} relay during the 09:00-17:00 Central window."
-      systemctl reset-failed "$service" || true
-      systemctl restart "$service"
-    fi
-  elif systemctl is-active --quiet "$service"; then
-    logger -t fgbears-live-health "Stopping ${platform} relay outside the 09:00-17:00 Central window."
-    systemctl stop "$service"
-  fi
-}
-
 # News scanning is independent of encoder health. The five-minute host timer calls
 # this script; the refresher itself runs only once per 15-minute epoch bucket.
 run_news_refresh
@@ -207,8 +177,6 @@ if (( age > 90 )); then
 fi
 
 [[ -n "$out_time_us" ]] || exit 0
-reconcile_social_relay x X_RELAY_ENABLED
-reconcile_social_relay instagram INSTAGRAM_RELAY_ENABLED
 run_lag_check
 run_audio_check
 printf '%s %s\n' "$now" "$out_time_us" > "${HEALTH_SAMPLE_FILE}.partial"
