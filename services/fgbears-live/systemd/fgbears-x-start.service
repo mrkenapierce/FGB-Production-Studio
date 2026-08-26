@@ -1,8 +1,0 @@
-[Unit]
-Description=Start scheduled FGBears X simulcast
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/systemctl start fgbears-x-relay.service

@@ -57,10 +57,6 @@ install -d -o root -g fgbears -m 0750 /etc/fgbears-live
 
 install -m 0755 /opt/fgbears-live/bin/start-stream.sh /usr/local/bin/fgbears-start-stream
 install -m 0755 /opt/fgbears-live/bin/youtube-relay.sh /usr/local/bin/fgbears-youtube-relay
-install -m 0755 /opt/fgbears-live/bin/x-relay.sh /usr/local/bin/fgbears-x-relay
-install -m 0755 /opt/fgbears-live/bin/instagram-relay.sh /usr/local/bin/fgbears-instagram-relay
-install -m 0755 /opt/fgbears-live/bin/configure-x.sh /usr/local/bin/fgbears-configure-x
-install -m 0755 /opt/fgbears-live/bin/configure-instagram.sh /usr/local/bin/fgbears-configure-instagram
 install -m 0755 /opt/fgbears-live/bin/normalize-library.sh /usr/local/bin/fgbears-normalize
 install -m 0755 /opt/fgbears-live/bin/validate-media.sh /usr/local/bin/fgbears-validate
 install -m 0755 /opt/fgbears-live/bin/rebuild-playlist.sh /usr/local/bin/fgbears-rebuild-playlist
@@ -71,11 +67,6 @@ install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-st
 
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-relay.service /etc/systemd/system/fgbears-youtube-relay.service
-for platform in x instagram; do
-  for unit in relay.service start.service stop.service start.timer stop.timer; do
-    install -m 0644 "/opt/fgbears-live/systemd/fgbears-${platform}-${unit}" "/etc/systemd/system/fgbears-${platform}-${unit}"
-  done
-done
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.service /etc/systemd/system/fgbears-live-health.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.timer /etc/systemd/system/fgbears-live-health.timer
 
@@ -84,9 +75,8 @@ if [[ ! -e "$ENV_PATH" ]]; then
   install -o root -g fgbears -m 0640 /opt/fgbears-live/config/stream.env.example "$ENV_PATH"
 fi
 
-# Preserve credentials, migrate YouTube's internal handoff to connectionless
-# loopback MPEG-TS and keep the remaining social schedules independent of
-# the primary encoder.
+# Preserve credentials and migrate YouTube's internal handoff to the isolated
+# loopback MPEG-TS relay. Remove all retired social-simulcast keys.
 python3 - "$ENV_PATH" <<'PY'
 from pathlib import Path
 import sys
@@ -107,34 +97,19 @@ if not upstream:
     else:
         upstream = "rtmps://a.rtmps.youtube.com/live2"
 
-def truthy(value):
-    return value.strip().lower() in {"1", "true", "yes", "on"}
-
-x_relay_enabled = "0"
-instagram_relay_enabled = "0"
-
 updates = {
-    "BEARS_NEWS_SCROLL_PPS": "76",
     "PODCAST_AUDIO_FILTER": "volume=-2dB,aresample=48000:first_pts=0",
     "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
-    "X_STREAM_ENABLED": "0",
-    "X_RELAY_ENABLED": "0",
-    "X_LOCAL_UDP_URL": "udp://127.0.0.1:1937?pkt_size=1316",
-    "X_SCHEDULE_TIMEZONE": "America/Chicago",
-    "X_SCHEDULE_START": "09:00",
-    "X_SCHEDULE_STOP": "17:00",
-    "INSTAGRAM_RELAY_ENABLED": "0",
-    "INSTAGRAM_LOCAL_UDP_URL": "udp://127.0.0.1:1938?pkt_size=1316",
-    "INSTAGRAM_SCHEDULE_TIMEZONE": "America/Chicago",
-    "INSTAGRAM_SCHEDULE_START": "09:00",
-    "INSTAGRAM_SCHEDULE_STOP": "17:00",
 }
+retired_prefixes = ("X_", "INSTAGRAM_", "FACEBOOK_")
 seen = set()
 out = []
 for line in lines:
     if "=" in line and not line.lstrip().startswith("#"):
         key = line.split("=", 1)[0]
+        if key.startswith(retired_prefixes):
+            continue
         if key in updates:
             if key not in seen:
                 out.append(f"{key}={updates[key]}")
@@ -151,50 +126,10 @@ chmod 0640 "$ENV_PATH"
 
 systemctl daemon-reload
 systemctl enable fgbears-youtube-relay.service
-systemctl disable fgbears-x-relay.service fgbears-instagram-relay.service >/dev/null 2>&1 || true
-
-now_hm=$(TZ=America/Chicago date +%H%M)
-now_hm=$((10#$now_hm))
-in_social_window=false
-(( now_hm >= 900 && now_hm < 1700 )) && in_social_window=true
-
-configure_scheduled_relay() {
-  local platform=$1 configured=$2
-  if [[ "$configured" == true ]]; then
-    systemctl enable --now "fgbears-${platform}-start.timer" "fgbears-${platform}-stop.timer"
-    systemctl reset-failed "fgbears-${platform}-relay.service" || true
-    if [[ "$in_social_window" == true ]]; then
-      systemctl restart "fgbears-${platform}-relay.service"
-    else
-      systemctl stop "fgbears-${platform}-relay.service" >/dev/null 2>&1 || true
-    fi
-  else
-    systemctl disable --now "fgbears-${platform}-start.timer" "fgbears-${platform}-stop.timer" >/dev/null 2>&1 || true
-    systemctl stop "fgbears-${platform}-relay.service" >/dev/null 2>&1 || true
-  fi
-}
-
-x_configured=false
-if grep -Eq '^X_RELAY_ENABLED=(1|true|yes|on)$' "$ENV_PATH" && \
-   grep -Eq '^X_RTMP_BASE=rtmps?://.+' "$ENV_PATH" && \
-   awk -F= '/^X_STREAM_KEY=/{if(length(substr($0,index($0,"=")+1))>0) ok=1} END{exit ok?0:1}' "$ENV_PATH"; then
-  x_configured=true
-fi
-
-instagram_configured=false
-if grep -Eq '^INSTAGRAM_RELAY_ENABLED=(1|true|yes|on)$' "$ENV_PATH" && \
-   grep -Eq '^INSTAGRAM_STREAM_URL=rtmps?://.+' "$ENV_PATH" && \
-   awk -F= '/^INSTAGRAM_STREAM_KEY=/{if(length(substr($0,index($0,"=")+1))>0) ok=1} END{exit ok?0:1}' "$ENV_PATH"; then
-  instagram_configured=true
-fi
-
-configure_scheduled_relay x "$x_configured"
-configure_scheduled_relay instagram "$instagram_configured"
-
 # The YouTube relay remains a dedicated single-output copy-remux service. It
 # waits on the connectionless local UDP program and can restart independently.
 systemctl reset-failed fgbears-youtube-relay.service || true
 systemctl restart fgbears-youtube-relay.service
 systemctl enable --now fgbears-live-health.timer
 
-echo "Installed FGBears Live with one primary encode, isolated YouTube UDP relay, and X/Instagram sidecars scheduled 09:00-17:00 America/Chicago."
+echo "Installed FGBears Live in YouTube-only mode with one primary encode and an isolated YouTube UDP relay."

@@ -120,9 +120,10 @@ write(path, text)
 path = LIVE / "bin" / "healthcheck.sh"
 text = read(path)
 start = text.find('reconcile_social_relay() {')
-end = text.find('# News scanning is independent', start)
-require(start >= 0 and end > start, "Could not locate social health block")
-text = text[:start] + text[end:]
+if start >= 0:
+    end = text.find('# News scanning is independent', start)
+    require(end > start, "Could not locate end of social health block")
+    text = text[:start] + text[end:]
 text = re.sub(r'^reconcile_social_relay .*\n', '', text, flags=re.M)
 require('reconcile_social_relay' not in text, "Social health reconciliation remains")
 write(path, text)
@@ -172,7 +173,7 @@ for retired in \
   test ! -e "$retired"
 done
 
-if grep -R -nE 'X_LOCAL_UDP_URL|X_RELAY_ENABLED|X_STREAM_ENABLED|INSTAGRAM_LOCAL_UDP_URL|INSTAGRAM_RELAY_ENABLED|FACEBOOK_LOCAL_UDP_URL|fgbears-(x|instagram|facebook)-relay|X local mirror|Instagram local mirror|Facebook local mirror' "$ROOT/bin" "$ROOT/config" "$ROOT/systemd"; then
+if grep -R --exclude=finalize-youtube-only.py -nE 'X_LOCAL_UDP_URL|X_RELAY_ENABLED|X_STREAM_ENABLED|INSTAGRAM_LOCAL_UDP_URL|INSTAGRAM_RELAY_ENABLED|FACEBOOK_LOCAL_UDP_URL|fgbears-(x|instagram|facebook)-relay|X local mirror|Instagram local mirror|Facebook local mirror' "$ROOT/bin" "$ROOT/config" "$ROOT/systemd"; then
   echo 'Retired social simulcast protocol remains in active FGB livestream code.' >&2
   exit 1
 fi

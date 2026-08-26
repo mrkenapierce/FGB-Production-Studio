@@ -10,11 +10,6 @@ source "$ENV_FILE"
 
 : "${YOUTUBE_STREAM_KEY:?YOUTUBE_STREAM_KEY is required}"
 : "${YOUTUBE_LOCAL_UDP_URL:=udp://127.0.0.1:1939?pkt_size=1316}"
-: "${X_STREAM_ENABLED:=0}"
-: "${X_RELAY_ENABLED:=0}"
-: "${X_LOCAL_UDP_URL:=udp://127.0.0.1:1937?pkt_size=1316}"
-: "${INSTAGRAM_RELAY_ENABLED:=0}"
-: "${INSTAGRAM_LOCAL_UDP_URL:=udp://127.0.0.1:1938?pkt_size=1316}"
 : "${PLAYLIST_FILE:=/srv/fgbears-live/playlist.ffconcat}"
 : "${FFMPEG_LOGLEVEL:=warning}"
 : "${OUTPUT_FPS:=30}"
@@ -48,31 +43,9 @@ CANONICAL_AUDIO_FILTER='volume=-2dB,aresample=48000:first_pts=0'
   exit 78
 }
 
-case "${X_STREAM_ENABLED,,}" in
-  1|true|yes|on)
-    echo "Direct X output is permanently disabled in the primary encoder." >&2
-    exit 78
-    ;;
-  0|false|no|off|"") ;;
-  *)
-    echo "X_STREAM_ENABLED must remain disabled." >&2
-    exit 64
-    ;;
-esac
-[[ "$X_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
-  echo "X_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
-  exit 78
-}
-
-[[ "$INSTAGRAM_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
-  echo "INSTAGRAM_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
-  exit 78
-}
-
 TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"
-OUTPUT_LABELS=("YouTube local UDP mirror")
-
-printf 'FGBears Live output: %s.\n' "$(IFS=' + '; echo "${OUTPUT_LABELS[*]}")"
+printf 'FGBears Live output: YouTube local UDP mirror only.
+'
 
 python3 "$AD_OVERLAY_SCRIPT" &
 OVERLAY_PID=$!

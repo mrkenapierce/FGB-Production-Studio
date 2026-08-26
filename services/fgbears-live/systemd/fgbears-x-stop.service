@@ -1,6 +1,0 @@
-[Unit]
-Description=Stop scheduled FGBears X simulcast
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/systemctl stop fgbears-x-relay.service

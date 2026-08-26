@@ -6,7 +6,6 @@ BREAKER_FILE=${FFMPEG_RESTART_BREAKER_FILE:-/srv/fgbears-live/health/restart-bre
 SAMPLE_SECONDS=${STREAM_STATUS_SAMPLE_SECONDS:-20}
 WARN_SPEED=${STREAM_STATUS_WARN_SPEED:-0.95}
 STALE_SECONDS=${STREAM_STATUS_STALE_SECONDS:-90}
-ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 NEWS_STATUS_FILE=${BEARS_NEWS_REFRESH_STATUS_FILE:-/srv/fgbears-live/runtime/bears-news-refresh-status.env}
 NEWS_FEED_FILE=${BEARS_NEWS_LOCAL_FEED_FILE:-/srv/fgbears-live/runtime/fgb-bears-news.xml}
 NEWS_ACTIVE_FILE=${BEARS_NEWS_ACTIVE_FILE:-/srv/fgbears-live/runtime/bears-news-active}
@@ -94,46 +93,6 @@ fi
 available_memory_mb=$(awk '/^MemAvailable:/ { printf "%.0f", $2 / 1024 }' /proc/meminfo)
 load_1m=$(awk '{ print $1 }' /proc/loadavg)
 
-central_hm=$(TZ=America/Chicago date +%H%M)
-central_hm=$((10#$central_hm))
-social_window=0
-(( central_hm >= 900 && central_hm < 1700 )) && social_window=1
-
-social_state() {
-  local platform enabled_key service
-  local enabled=0 active=0 socket=0 pid
-  platform=$1
-  enabled_key=$2
-  service="fgbears-${platform}-relay.service"
-  [[ -r "$ENV_FILE" ]] && grep -Eq "^${enabled_key}=(1|true|yes|on)$" "$ENV_FILE" && enabled=1
-  systemctl is-active --quiet "$service" && active=1 || true
-  pid=$(systemctl show -p MainPID --value "$service" 2>/dev/null || true)
-  if (( active == 1 )) && [[ "$pid" =~ ^[1-9][0-9]*$ ]]; then
-    sudo ss -ntpH state established 2>/dev/null | grep "pid=$pid" | grep -vE '127\.0\.0\.1|\[::1\]' | grep -q ':443' && socket=1 || true
-  fi
-  printf '%s %s %s\n' "$enabled" "$active" "$socket"
-}
-
-read -r x_enabled x_active x_socket < <(social_state x X_RELAY_ENABLED)
-read -r instagram_enabled instagram_active instagram_socket < <(social_state instagram INSTAGRAM_RELAY_ENABLED)
-
-if (( social_window == 1 )); then
-  for platform in x instagram; do
-    [[ "$status" == "OK" ]] || break
-    eval "enabled=\${${platform}_enabled} active=\${${platform}_active} socket=\${${platform}_socket}"
-    if (( enabled == 1 && active == 0 )); then
-      status="WARN"
-      reason="${platform^^}_RELAY_INACTIVE"
-      break
-    fi
-    if (( enabled == 1 && socket == 0 )); then
-      status="WARN"
-      reason="${platform^^}_INGEST_NOT_ESTABLISHED"
-      break
-    fi
-  done
-fi
-
 news_refresh_status="NOT_INITIALIZED"
 news_scan_epoch=0
 news_scan_age=-1
@@ -190,9 +149,6 @@ printf 'INTERVAL_SPEED=%s\n' "$interval_speed"
 printf 'SAMPLE_RESULT=%s\n' "$sample_result"
 printf 'AVAILABLE_MEMORY_MB=%s\n' "$available_memory_mb"
 printf 'LOAD_1M=%s\n' "$load_1m"
-printf 'SOCIAL_WINDOW_ACTIVE=%s\n' "$social_window"
-printf 'X_ENABLED=%s\nX_RELAY_ACTIVE=%s\nX_INGEST_SOCKET=%s\n' "$x_enabled" "$x_active" "$x_socket"
-printf 'INSTAGRAM_ENABLED=%s\nINSTAGRAM_RELAY_ACTIVE=%s\nINSTAGRAM_INGEST_SOCKET=%s\n' "$instagram_enabled" "$instagram_active" "$instagram_socket"
 printf 'NEWS_REFRESH_STATUS=%s\n' "$news_refresh_status"
 printf 'NEWS_SCAN_AGE_SECONDS=%s\n' "$news_scan_age"
 printf 'NEWS_ITEM_COUNT=%s\n' "$news_item_count"
