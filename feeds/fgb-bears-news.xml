@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 26 Aug 2026 00:41:13 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 26 Aug 2026 02:13:31 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -40,6 +40,26 @@
     </item>
 
     <item>
+      <title>The Good and Not So Good From Chicago Bears&apos; Final Public Practice of Training Camp</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Good and Not So Good From Chicago Bears&apos; Final Public Practice of Training Camp</description>
+      <link>https://www.si.com/nfl/bears/onsi/the-good-and-not-so-good-from-chicago-bears-final-public-practice-of-training-camp</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d397d5b043704e5e29f6</guid>
+      <pubDate>Tue, 25 Aug 2026 16:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Ben Johnson Highlights Two Unsettled Chicago Bears Starting Competitions</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Highlights Two Unsettled Chicago Bears Starting Competitions</description>
+      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-highlights-two-unsettled-chicago-bears-starting-competitions</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-25333c6b879c29f049ee</guid>
+      <pubDate>Tue, 25 Aug 2026 16:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>Bears&apos; Nephi Sewell: Placed on injured reserve</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Nephi Sewell: Placed on injured reserve</description>
       <link>https://www.cbssports.com/fantasy/football/news/bears-nephi-sewell-placed-on-injured-reserve/</link>
@@ -60,16 +80,6 @@
     </item>
 
     <item>
-      <title>The Chicago Bears Biggest X-Factors For the 2026 NFL Season</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Chicago Bears Biggest X-Factors For the 2026 NFL Season</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-chicago-bears-biggest-x-factors-for-the-2026-nfl-season</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-043c733646fd3da7da81</guid>
-      <pubDate>Tue, 25 Aug 2026 16:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Bears LT competition still &apos;a hot spot,&apos; Ben Johnson says</title>
       <description>Football&apos;s Greatest Bears news brief from ESPN: Bears LT competition still &apos;a hot spot,&apos; Ben Johnson says</description>
       <link>https://www.espn.com/nfl/story/_/id/49725718/bears-lt-competition-hot-spot-ben-johnson-says</link>
@@ -77,16 +87,6 @@
       <pubDate>Tue, 25 Aug 2026 16:05:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson&apos;s Reaction to New Bears Uniforms Sums It Up Best</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson&apos;s Reaction to New Bears Uniforms Sums It Up Best</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-s-reaction-to-new-bears-uniforms-sums-it-up-best</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ab3399d6fc08ab52bd3b</guid>
-      <pubDate>Tue, 25 Aug 2026 15:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
