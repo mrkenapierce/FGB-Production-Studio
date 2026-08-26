@@ -80,9 +80,16 @@ BASE.image_only_creative = image_creative_uses_full_panel
 
 # Attach the game layer after the image-layout overrides so both advertisements
 # and trivia share exactly the same permanent renderer and broadcast clock.
-from game_overlay import install as install_game_overlay  # noqa: E402
-
-install_game_overlay(BASE)
+# Load it by absolute file path instead of relying on sys.path: the production
+# launcher and the repository's runpy-based image-fit tests execute this wrapper
+# differently, but both should resolve the same sibling module.
+GAME_OVERLAY = HERE / "game_overlay.py"
+game_spec = importlib.util.spec_from_file_location("fgbears_game_overlay", GAME_OVERLAY)
+if game_spec is None or game_spec.loader is None:
+    raise RuntimeError(f"Unable to load trivia game renderer: {GAME_OVERLAY}")
+GAME_MODULE: Any = importlib.util.module_from_spec(game_spec)
+game_spec.loader.exec_module(GAME_MODULE)
+GAME_MODULE.install(BASE)
 
 
 def main() -> None:
