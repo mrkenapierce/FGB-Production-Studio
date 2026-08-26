@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 26 Aug 2026 15:00:47 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 26 Aug 2026 16:33:48 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -20,23 +20,23 @@
     </item>
 
     <item>
-      <title>The Chicago Bears’ left tackle battle may have gotten a little weirder</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Chicago Bears’ left tackle battle may have gotten a little weirder</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-left-tackle-battle-133535650.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-16950bb49c43b4c498cf</guid>
-      <pubDate>Wed, 26 Aug 2026 13:35:35 GMT</pubDate>
+      <title>Ben Johnson Says the Bears Are Writing a ‘New Chapter’ in 2026</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ben Johnson Says the Bears Are Writing a ‘New Chapter’ in 2026</description>
+      <link>https://sports.yahoo.com/articles/ben-johnson-says-bears-writing-150000939.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f284c854cb02327b5283</guid>
+      <pubDate>Wed, 26 Aug 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears insider shares injury update on RT Darnell Wright</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears insider shares injury update on RT Darnell Wright</description>
-      <link>https://sports.yahoo.com/articles/bears-insider-shares-injury-rt-140010396.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-319528211825d9cc00b9</guid>
-      <pubDate>Wed, 26 Aug 2026 07:00:00 GMT</pubDate>
+      <title>The Most Logical Landing Spots For Gervon Dexter and What the Bears Might Get For Him</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Most Logical Landing Spots For Gervon Dexter and What the Bears Might Get For Him</description>
+      <link>https://www.si.com/nfl/bears/onsi/the-most-logical-landing-spots-for-gervon-dexter-and-what-the-bears-might-get-for-him</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-afd3ea8047261be42a89</guid>
+      <pubDate>Wed, 26 Aug 2026 08:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -45,16 +45,6 @@
       <link>https://www.si.com/nfl/bears/onsi/ben-johnson-jordan-van-den-berg-rookie</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-ea82c6f53b69d4a3d355</guid>
       <pubDate>Wed, 26 Aug 2026 06:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>The Bears&apos; Problem Position Most Likely to Be Targeted in Trade</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Bears&apos; Problem Position Most Likely to Be Targeted in Trade</description>
-      <link>https://www.si.com/nfl/bears/onsi/two-bears-positions-concern-ben-johnson-most-as-preseason-winds-down</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6e537fc315cbc5558af4</guid>
-      <pubDate>Wed, 26 Aug 2026 04:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -87,6 +77,16 @@
       <pubDate>Tue, 25 Aug 2026 16:48:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears LT competition still &apos;a hot spot,&apos; Ben Johnson says</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears LT competition still &apos;a hot spot,&apos; Ben Johnson says</description>
+      <link>https://www.espn.com/nfl/story/_/id/49725718/bears-lt-competition-hot-spot-ben-johnson-says</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-315fb4027d22014e2d2d</guid>
+      <pubDate>Tue, 25 Aug 2026 16:05:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
