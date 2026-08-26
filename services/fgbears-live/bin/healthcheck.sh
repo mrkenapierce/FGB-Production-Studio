@@ -20,7 +20,6 @@ NEWS_REFRESH_INTERVAL_SECONDS=${BEARS_NEWS_REFRESH_INTERVAL_SECONDS:-900}
 NEWS_LOCAL_FEED=${BEARS_NEWS_LOCAL_FEED_FILE:-/srv/fgbears-live/runtime/fgb-bears-news.xml}
 NEWS_REFRESH_STATUS=${BEARS_NEWS_REFRESH_STATUS_FILE:-/srv/fgbears-live/runtime/bears-news-refresh-status.env}
 YOUTUBE_RELAY_SERVICE=${YOUTUBE_RELAY_SERVICE:-fgbears-youtube-relay.service}
-YOUTUBE_LOCAL_RTMP_PORT=${YOUTUBE_LOCAL_RTMP_PORT:-1935}
 
 mkdir -p "$HEALTH_STATE_DIR"
 
@@ -56,39 +55,27 @@ guarded_restart() {
   systemctl restart fgbears-live.service
 }
 
-# The primary encoder publishes to a loopback RTMP listener owned by the
-# dedicated YouTube relay. If that relay dies, restarting only the encoder can
-# never recover: FFmpeg keeps reconnecting to a refused local socket until its
-# output clock stalls. Restore the listener first, then restart the encoder once
-# so the new relay receives a complete FLV/H.264 session with codec headers.
+# YouTube consumes a connectionless local MPEG-TS mirror. A relay failure must
+# never restart or interrupt the primary encoder; reset only the relay and let it
+# rejoin the continuously transmitted program at the next keyframe.
 recover_youtube_relay() {
-  local listener_ready=false
   if systemctl is-active --quiet "$YOUTUBE_RELAY_SERVICE"; then
     return 0
   fi
 
-  logger -t fgbears-live-health "YouTube relay is inactive; resetting relay failure state before reconnecting the primary encoder."
+  logger -t fgbears-live-health "YouTube relay is inactive; resetting and restarting the isolated UDP relay without touching the primary encoder."
   systemctl reset-failed "$YOUTUBE_RELAY_SERVICE" || true
-  systemctl restart "$YOUTUBE_RELAY_SERVICE"
+  systemctl restart "$YOUTUBE_RELAY_SERVICE" || true
 
   for _ in {1..20}; do
-    if systemctl is-active --quiet "$YOUTUBE_RELAY_SERVICE" && \
-       ss -ltnH 2>/dev/null | awk -v port=":${YOUTUBE_LOCAL_RTMP_PORT}" '$4 ~ port "$" {found=1} END{exit !found}'; then
-      listener_ready=true
-      break
+    if systemctl is-active --quiet "$YOUTUBE_RELAY_SERVICE"; then
+      return 0
     fi
     sleep 0.25
   done
 
-  if [[ "$listener_ready" != true ]]; then
-    logger -t fgbears-live-health "YouTube relay did not restore its local RTMP listener; leaving the primary encoder untouched for this health cycle."
-    return 1
-  fi
-
-  logger -t fgbears-live-health "YouTube relay listener restored; restarting the primary encoder once to establish a fresh codec-complete relay session."
-  systemctl restart fgbears-live.service
-  rm -f "$HEALTH_SAMPLE_FILE" "$LAG_WARNING_FILE" "$RESTART_BREAKER_FILE"
-  return 0
+  logger -t fgbears-live-health "YouTube relay did not become active after isolated recovery."
+  return 1
 }
 
 run_lag_check() {
@@ -154,12 +141,9 @@ if grep -q '^YOUTUBE_STREAM_KEY=REPLACE_WITH_YOUTUBE_STREAM_KEY$' "$ENV_FILE"; t
   exit 0
 fi
 
-# YouTube relay health is upstream of encoder health. Repair this dependency
-# first; otherwise a normal encoder restart only reconnects to a dead socket.
-if ! systemctl is-active --quiet "$YOUTUBE_RELAY_SERVICE"; then
-  recover_youtube_relay || true
-  exit 0
-fi
+# A failed YouTube relay is isolated from the primary program clock. Recover it
+# independently and continue checking encoder health in the same cycle.
+recover_youtube_relay || true
 
 if ! systemctl is-active --quiet fgbears-live.service; then
   guarded_restart "SERVICE_NOT_ACTIVE"
