@@ -23,9 +23,18 @@ grep -q '^FACEBOOK_SCHEDULE_STOP=17:00$' "$ROOT/config/stream.env.example"
 grep -q '^INSTAGRAM_RELAY_ENABLED=0$' "$ROOT/config/stream.env.example"
 grep -q '^INSTAGRAM_SCHEDULE_START=09:00$' "$ROOT/config/stream.env.example"
 grep -q '^INSTAGRAM_SCHEDULE_STOP=17:00$' "$ROOT/config/stream.env.example"
-grep -q '^YOUTUBE_RTMP_BASE=rtmp://127.0.0.1:1935/live$' "$ROOT/config/stream.env.example"
-grep -q '^YOUTUBE_LOCAL_RTMP_BASE=rtmp://127.0.0.1:1935/live$' "$ROOT/config/stream.env.example"
+grep -Fq 'YOUTUBE_LOCAL_UDP_URL=udp://127.0.0.1:1939?pkt_size=1316' "$ROOT/config/stream.env.example"
 grep -q '^YOUTUBE_UPSTREAM_RTMP_BASE=rtmps://a.rtmps.youtube.com/live2$' "$ROOT/config/stream.env.example"
+
+# YouTube must be a connectionless MPEG-TS mirror just like the other isolated
+# relays. A YouTube-side failure must not create a socket dependency in the
+# primary encoder.
+grep -Fq 'YOUTUBE_LOCAL_UDP_URL' "$ROOT/bin/start-stream.sh"
+grep -Fq '[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"
+if grep -Fq 'rtmp://127.0.0.1:1935' "$ROOT/bin/start-stream.sh"; then
+  echo 'The primary encoder must not depend on a local RTMP YouTube listener.' >&2
+  exit 1
+fi
 
 grep -Fq 'FACEBOOK_LOCAL_UDP_URL' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
@@ -41,6 +50,7 @@ fi
 grep -Fq 'for platform in x facebook instagram' "$ROOT/bin/install.sh"
 grep -Fq 'for unit in relay.service start.service stop.service start.timer stop.timer' "$ROOT/bin/install.sh"
 grep -Fq 'FACEBOOK_STREAM_ENABLED": "0"' "$ROOT/bin/install.sh"
+grep -Fq 'YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316"' "$ROOT/bin/install.sh"
 grep -Fq 'FACEBOOK_RELAY_ENABLED' "$ROOT/bin/configure-facebook.sh"
 if grep -Fq 'systemctl restart fgbears-live.service' "$ROOT/bin/configure-facebook.sh"; then
   echo 'Facebook scheduling must never restart the primary encoder.' >&2
@@ -52,12 +62,17 @@ if grep -Fq 'systemctl restart fgbears-youtube-relay.service' "$ROOT/bin/configu
 fi
 
 if grep -Fq 'FACEBOOK_' "$ROOT/bin/youtube-relay.sh" || grep -Fq -- '-f tee' "$ROOT/bin/youtube-relay.sh"; then
-  echo 'The YouTube relay must remain a dedicated YouTube-only FLV copy-remux process.' >&2
+  echo 'The YouTube relay must remain a dedicated YouTube-only copy-remux process.' >&2
   exit 1
 fi
-grep -Fq -- '-listen 1' "$ROOT/bin/youtube-relay.sh"
+grep -Fq 'YOUTUBE_LOCAL_UDP_URL' "$ROOT/bin/youtube-relay.sh"
+grep -Fq 'fifo_size=1000000&overrun_nonfatal=1&reuse=1' "$ROOT/bin/youtube-relay.sh"
 grep -Fq -- '-c copy' "$ROOT/bin/youtube-relay.sh"
 grep -Fq -- '-f flv -flvflags no_duration_filesize' "$ROOT/bin/youtube-relay.sh"
+if grep -Fq -- '-listen 1' "$ROOT/bin/youtube-relay.sh"; then
+  echo 'The YouTube relay must consume UDP rather than host an RTMP listener.' >&2
+  exit 1
+fi
 
 grep -Fq 'FACEBOOK_LOCAL_UDP_URL' "$ROOT/bin/facebook-relay.sh"
 # shellcheck disable=SC2016
@@ -75,14 +90,17 @@ for platform in x facebook instagram; do
   grep -Fq 'Persistent=true' "$ROOT/systemd/fgbears-$platform-start.timer"
   grep -Fq 'Persistent=true' "$ROOT/systemd/fgbears-$platform-stop.timer"
 done
-grep -Fq 'Persistent=true' "$ROOT/systemd/fgbears-facebook-start.timer"
-grep -Fq 'Persistent=true' "$ROOT/systemd/fgbears-facebook-stop.timer"
 
 grep -Fq 'reconcile_social_relay x X_RELAY_ENABLED' "$ROOT/bin/healthcheck.sh"
 grep -Fq 'reconcile_social_relay facebook FACEBOOK_RELAY_ENABLED' "$ROOT/bin/healthcheck.sh"
 grep -Fq 'reconcile_social_relay instagram INSTAGRAM_RELAY_ENABLED' "$ROOT/bin/healthcheck.sh"
+grep -Fq 'recover_youtube_relay' "$ROOT/bin/healthcheck.sh"
+recover_body=$(sed -n '/^recover_youtube_relay()/,/^}/p' "$ROOT/bin/healthcheck.sh")
+if grep -Fq 'systemctl restart fgbears-live.service' <<<"$recover_body"; then
+  echo 'A YouTube relay recovery must not restart the primary encoder.' >&2
+  exit 1
+fi
 
-grep -Fq 'Wants=network-online.target fgbears-youtube-relay.service' "$ROOT/systemd/fgbears-live.service"
 if grep -Fq 'Requires=fgbears-facebook-relay.service' "$ROOT/systemd/fgbears-live.service"; then
   echo 'Facebook must not be a hard lifecycle dependency of the primary encoder.' >&2
   exit 1
@@ -97,8 +115,9 @@ if grep -Eq 'REPLACE_WITH_(X|FACEBOOK)_STREAM_KEY' "$ROOT/config/stream.env.exam
   exit 1
 fi
 
-# Generate one encoded program, then model the exact packet topology without any
-# external network: local FLV to YouTube and MPEG-TS to all social sidecars.
+# Generate one encoded program, then model the packet topology without any
+# external network. YouTube now uses MPEG-TS locally and remuxes to FLV just like
+# the resilient copy-remux sidecars.
 ffmpeg -hide_banner -loglevel error \
   -f lavfi -i testsrc2=size=320x180:rate=24 \
   -f lavfi -i sine=frequency=440:sample_rate=48000 \
@@ -107,19 +126,19 @@ ffmpeg -hide_banner -loglevel error \
   -c:a aac -b:a 128k \
   -f tee -use_fifo 1 \
   -fifo_options 'attempt_recovery=1:recover_any_error=1:recovery_wait_time=1' \
-  "[f=flv:flvflags=no_duration_filesize:onfail=ignore]$TMP/youtube-local.flv|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/x-local.ts|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/facebook-local.ts|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/instagram-local.ts"
+  "[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/youtube-local.ts|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/x-local.ts|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/facebook-local.ts|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/instagram-local.ts"
 
-ffmpeg -hide_banner -loglevel error -i "$TMP/youtube-local.flv" -map 0:v:0 -map 0:a:0 -c copy -f flv -flvflags no_duration_filesize "$TMP/youtube-upstream.flv"
+ffmpeg -hide_banner -loglevel error -fflags +genpts -probesize 10000000 -analyzeduration 10000000 -i "$TMP/youtube-local.ts" -map 0:v:0 -map 0:a:0 -c copy -f flv -flvflags no_duration_filesize "$TMP/youtube-upstream.flv"
 ffmpeg -hide_banner -loglevel error -i "$TMP/x-local.ts" -map 0:v:0 -map 0:a:0 -c copy -f flv -flvflags no_duration_filesize "$TMP/x-upstream.flv"
 ffmpeg -hide_banner -loglevel error -i "$TMP/facebook-local.ts" -map 0:v:0 -map 0:a:0 -c copy -f flv -flvflags no_duration_filesize "$TMP/facebook-upstream.flv"
 ffmpeg -hide_banner -loglevel error -i "$TMP/instagram-local.ts" -map 0:v:0 -map 0:a:0 \
   -vf 'scale=720:-2:flags=lanczos,pad=720:1280:0:(oh-ih)/2:black,format=yuv420p' \
   -c:v libx264 -preset ultrafast -c:a aac -f flv -flvflags no_duration_filesize "$TMP/instagram-upstream.flv"
 
-for output in "$TMP/youtube-local.flv" "$TMP/youtube-upstream.flv" "$TMP/x-local.ts" "$TMP/x-upstream.flv" "$TMP/facebook-local.ts" "$TMP/facebook-upstream.flv" "$TMP/instagram-local.ts" "$TMP/instagram-upstream.flv"; do
+for output in "$TMP/youtube-local.ts" "$TMP/youtube-upstream.flv" "$TMP/x-local.ts" "$TMP/x-upstream.flv" "$TMP/facebook-local.ts" "$TMP/facebook-upstream.flv" "$TMP/instagram-local.ts" "$TMP/instagram-upstream.flv"; do
   test -s "$output"
   ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1 "$output" | grep -q '^codec_name=aac$'
   ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=nw=1 "$output" | grep -q '^codec_name=h264$'
 done
 
-echo 'FGBears scheduled isolated X, Facebook, and Instagram sidecar tests passed.'
+echo 'FGBears isolated YouTube UDP handoff and scheduled social sidecar tests passed.'
