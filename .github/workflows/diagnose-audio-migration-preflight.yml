@@ -28,38 +28,32 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Read migration invariants
+      - name: Read migration progress
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE' | tee preflight.txt
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE' | tee progress.txt
           set -u
           echo '=== services ==='
           systemctl is-active fgbears-live.service || true
           systemctl is-active fgbears-youtube-relay.service || true
           echo '=== audio filter ==='
           sudo grep -E '^PODCAST_AUDIO_FILTER=' /etc/fgbears-live/stream.env || true
-          echo '=== primary outputs ==='
-          grep -nE 'YouTube local UDP mirror only|1937|1938|1939|X local mirror|Instagram local mirror|Facebook local mirror' /usr/local/bin/fgbears-start-stream || true
-          echo '=== social env ==='
-          sudo grep -E '^(X_|INSTAGRAM_|FACEBOOK_)' /etc/fgbears-live/stream.env || true
-          echo '=== playlist ==='
-          ls -l /srv/fgbears-live/playlist.ffconcat || true
-          sed -n '1,8p' /srv/fgbears-live/playlist.ffconcat || true
-          echo '=== media ==='
-          find /srv/fgbears-live/media -maxdepth 1 -type f -name '*.mp4' -printf '%f\n' | sort -V | tee /tmp/fgb-media-names.txt
-          echo "media_count=$(wc -l < /tmp/fgb-media-names.txt)"
-          echo '=== video signatures ==='
-          while IFS= read -r file; do
-            sig=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt -of json "/srv/fgbears-live/media/$file" | jq -r '.streams[0] | [.codec_name, (.width|tostring), (.height|tostring), .r_frame_rate, .pix_fmt] | join("|")')
-            printf '%s %s\n' "$sig" "$file"
-          done < /tmp/fgb-media-names.txt
-          echo '=== existing audio profile markers ==='
-          find /srv/fgbears-live/media -maxdepth 1 -type f -name '*.mp4.audio-profile.json' -printf '%f\n' | wc -l
+          echo '=== retired social runtime ==='
+          if sudo grep -Eq '^(X_|INSTAGRAM_|FACEBOOK_)' /etc/fgbears-live/stream.env; then echo SOCIAL_ENV_PRESENT; else echo SOCIAL_ENV_NONE; fi
+          if grep -Eq '1937|1938|X local mirror|Instagram local mirror|Facebook local mirror' /usr/local/bin/fgbears-start-stream; then echo SOCIAL_OUTPUT_REFERENCES_PRESENT; else echo SOCIAL_OUTPUT_REFERENCES_NONE; fi
+          echo '=== library progress ==='
+          media_count=$(find /srv/fgbears-live/media -maxdepth 1 -type f -name '*.mp4' | wc -l | tr -d ' ')
+          marker_count=$(find /srv/fgbears-live/media -maxdepth 1 -type f -name '*.mp4.audio-profile.json' | wc -l | tr -d ' ')
+          echo "media_count=$media_count"
+          echo "profile_marker_count=$marker_count"
+          echo '=== current normalization work ==='
+          find /srv/fgbears-live/.audio-migration -maxdepth 1 -type f -printf '%f %s bytes\n' 2>/dev/null || true
+          pgrep -af 'normalize-library|loudnorm|ffmpeg' | tail -n 8 || true
           REMOTE
-      - name: Upload preflight report
+      - name: Upload progress report
         uses: actions/upload-artifact@v4
         with:
-          name: fgb-audio-migration-preflight
-          path: preflight.txt
+          name: fgb-audio-migration-progress
+          path: progress.txt
           retention-days: 1
