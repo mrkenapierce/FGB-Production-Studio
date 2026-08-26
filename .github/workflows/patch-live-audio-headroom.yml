@@ -1,0 +1,444 @@
+name: Patch FGB Live Audio Headroom
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-live-audio-headroom.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install permanent audio health checker
+        run: |
+          cat > services/fgbears-live/bin/audio-health.py <<'PY'
+          #!/usr/bin/env python3
+          """Objective health check for the exact YouTube-bound FGB audio transport."""
+          from __future__ import annotations
+
+          import argparse
+          import array
+          import csv
+          import json
+          import math
+          import os
+          import socket
+          import struct
+          import subprocess
+          import sys
+          import tempfile
+          import time
+          from pathlib import Path
+
+          SAMPLE_RATE = 48000
+          CHANNELS = 2
+          PEAK_LIMIT_DBFS = -1.0
+          CLIP_RATIO_LIMIT = 0.0001
+          SILENCE_RMS_DBFS = -55.0
+          SILENCE_NEARZERO_RATIO = 0.95
+          CHANNEL_IMBALANCE_DB = 6.0
+          DC_LIMIT = 0.02
+          PTS_GAP_SECONDS = 0.08
+
+
+          def channel_metrics(ch: array.array) -> dict[str, float]:
+              peak = max((abs(v) for v in ch), default=0)
+              if not ch:
+                  return {"peak_dbfs": -120.0, "rms_dbfs": -120.0, "clip_ratio": 0.0, "nearzero_ratio": 1.0, "dc": 0.0}
+              rms = math.sqrt(sum(float(v) * v for v in ch) / len(ch))
+              mean = sum(ch) / len(ch)
+              return {
+                  "peak_dbfs": 20.0 * math.log10(max(peak, 1) / 32768.0),
+                  "rms_dbfs": 20.0 * math.log10(max(rms, 1e-9) / 32768.0),
+                  "clip_ratio": sum(abs(v) >= 32760 for v in ch) / len(ch),
+                  "nearzero_ratio": sum(abs(v) <= 8 for v in ch) / len(ch),
+                  "dc": mean / 32768.0,
+              }
+
+
+          def analyze_pcm(raw: bytes) -> tuple[dict[str, float], list[str]]:
+              samples = array.array("h")
+              samples.frombytes(raw)
+              if sys.byteorder != "little":
+                  samples.byteswap()
+              left = samples[0::2]
+              right = samples[1::2]
+              n = min(len(left), len(right))
+              left, right = left[:n], right[:n]
+              if n < SAMPLE_RATE:
+                  raise RuntimeError("decoded audio sample is shorter than one second")
+              lm = channel_metrics(left)
+              rm = channel_metrics(right)
+              l2 = sum(float(v) * v for v in left)
+              r2 = sum(float(v) * v for v in right)
+              dot = sum(float(l) * r for l, r in zip(left, right))
+              corr = dot / math.sqrt(max(l2 * r2, 1.0))
+              metrics = {
+                  "decoded_audio_seconds": n / SAMPLE_RATE,
+                  "left_peak_dbfs": lm["peak_dbfs"],
+                  "right_peak_dbfs": rm["peak_dbfs"],
+                  "left_rms_dbfs": lm["rms_dbfs"],
+                  "right_rms_dbfs": rm["rms_dbfs"],
+                  "channel_rms_difference_db": abs(lm["rms_dbfs"] - rm["rms_dbfs"]),
+                  "left_clip_ratio": lm["clip_ratio"],
+                  "right_clip_ratio": rm["clip_ratio"],
+                  "left_nearzero_ratio": lm["nearzero_ratio"],
+                  "right_nearzero_ratio": rm["nearzero_ratio"],
+                  "left_dc_fraction": lm["dc"],
+                  "right_dc_fraction": rm["dc"],
+                  "lr_correlation": corr,
+              }
+              warnings: list[str] = []
+              if max(lm["peak_dbfs"], rm["peak_dbfs"]) > PEAK_LIMIT_DBFS:
+                  warnings.append("PEAK_TOO_CLOSE_TO_0_DBFS")
+              if max(lm["clip_ratio"], rm["clip_ratio"]) > CLIP_RATIO_LIMIT:
+                  warnings.append("CLIPPING")
+              if (
+                  max(lm["rms_dbfs"], rm["rms_dbfs"]) < SILENCE_RMS_DBFS
+                  and min(lm["nearzero_ratio"], rm["nearzero_ratio"]) > SILENCE_NEARZERO_RATIO
+              ):
+                  warnings.append("NEAR_SILENCE")
+              if metrics["channel_rms_difference_db"] > CHANNEL_IMBALANCE_DB:
+                  warnings.append("CHANNEL_IMBALANCE")
+              if max(abs(lm["dc"]), abs(rm["dc"])) > DC_LIMIT:
+                  warnings.append("DC_OFFSET")
+              return metrics, warnings
+
+
+          def analyze_packet_csv(path: Path) -> tuple[dict[str, float | int], list[str]]:
+              pts: list[float] = []
+              durations: list[float] = []
+              with path.open(newline="") as handle:
+                  for row in csv.reader(handle):
+                      values: list[float] = []
+                      for item in row:
+                          try:
+                              values.append(float(item))
+                          except ValueError:
+                              continue
+                      if values:
+                          pts.append(values[0])
+                          durations.append(values[1] if len(values) > 1 else 0.021333)
+              regressions = 0
+              gaps: list[float] = []
+              for index in range(1, len(pts)):
+                  delta = pts[index] - pts[index - 1]
+                  expected = durations[index - 1] if index - 1 < len(durations) else 0.021333
+                  if delta < -0.001:
+                      regressions += 1
+                  if delta > max(PTS_GAP_SECONDS, expected * 3.0):
+                      gaps.append(delta)
+              metrics: dict[str, float | int] = {
+                  "audio_pts_regressions": regressions,
+                  "audio_large_pts_gaps": len(gaps),
+                  "largest_audio_pts_gap_seconds": max(gaps) if gaps else 0.0,
+              }
+              warnings: list[str] = []
+              if regressions:
+                  warnings.append("PTS_REGRESSION")
+              if gaps:
+                  warnings.append("PTS_GAPS")
+              return metrics, warnings
+
+
+          def capture_loopback(port: int, seconds: float, destination: Path) -> tuple[int, int]:
+              sock = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003))
+              sock.bind(("lo", 0))
+              sock.settimeout(0.5)
+              deadline = time.monotonic() + seconds
+              accepted = duplicates = 0
+              last: bytes | None = None
+              with destination.open("wb") as output:
+                  while time.monotonic() < deadline:
+                      try:
+                          frame, _addr = sock.recvfrom(65535)
+                      except socket.timeout:
+                          continue
+                      ip_offset = None
+                      for offset in (14, 16, 0):
+                          if len(frame) > offset + 28 and frame[offset] >> 4 == 4:
+                              ip_offset = offset
+                              break
+                      if ip_offset is None:
+                          continue
+                      ihl = (frame[ip_offset] & 0x0F) * 4
+                      if len(frame) < ip_offset + ihl + 8 or frame[ip_offset + 9] != 17:
+                          continue
+                      udp = ip_offset + ihl
+                      _src, dst, length = struct.unpack("!HHH", frame[udp : udp + 6])
+                      if dst != port:
+                          continue
+                      payload = frame[udp + 8 : udp + length]
+                      if len(payload) < 188 or payload[0] != 0x47 or len(payload) % 188:
+                          continue
+                      # Linux loopback exposes each packet twice. Drop only an
+                      # immediately repeated identical payload.
+                      if payload == last:
+                          duplicates += 1
+                          continue
+                      last = payload
+                      output.write(payload)
+                      accepted += 1
+              return accepted, duplicates
+
+
+          def run_checked(args: list[str], *, stdout=None) -> subprocess.CompletedProcess:
+              return subprocess.run(args, check=True, stdout=stdout, stderr=subprocess.DEVNULL)
+
+
+          def read_udp_port(env_path: Path) -> int:
+              for line in env_path.read_text(encoding="utf-8").splitlines():
+                  if line.startswith("YOUTUBE_LOCAL_UDP_URL=udp://127.0.0.1:"):
+                      value = line.split(":", 2)[2].split("?", 1)[0]
+                      return int(value)
+              return 1939
+
+
+          def self_test() -> None:
+              healthy = array.array("h")
+              hot = array.array("h")
+              silent = array.array("h")
+              for index in range(SAMPLE_RATE):
+                  sample = int(12000 * math.sin(2 * math.pi * 440 * index / SAMPLE_RATE))
+                  healthy.extend((sample, sample))
+                  hot_sample = int(32767 * math.sin(2 * math.pi * 440 * index / SAMPLE_RATE))
+                  hot.extend((hot_sample, hot_sample))
+                  silent.extend((0, 0))
+              _, healthy_warnings = analyze_pcm(healthy.tobytes())
+              _, hot_warnings = analyze_pcm(hot.tobytes())
+              _, silent_warnings = analyze_pcm(silent.tobytes())
+              assert "PEAK_TOO_CLOSE_TO_0_DBFS" not in healthy_warnings
+              assert "PEAK_TOO_CLOSE_TO_0_DBFS" in hot_warnings
+              assert "NEAR_SILENCE" in silent_warnings
+              print("audio_health_self_test=PASS")
+
+
+          def main() -> int:
+              parser = argparse.ArgumentParser()
+              parser.add_argument("--capture-seconds", type=float, default=8.0)
+              parser.add_argument("--env-file", default="/etc/fgbears-live/stream.env")
+              parser.add_argument("--self-test", action="store_true")
+              args = parser.parse_args()
+              if args.self_test:
+                  self_test()
+                  return 0
+              if os.geteuid() != 0:
+                  print("OVERALL_STATUS=FAIL")
+                  print("REASON=ROOT_REQUIRED_FOR_LOOPBACK_CAPTURE")
+                  return 2
+              env_path = Path(args.env_file)
+              port = read_udp_port(env_path)
+              with tempfile.TemporaryDirectory(prefix="fgb-audio-health-") as tmp:
+                  root = Path(tmp)
+                  capture = root / "sample.ts"
+                  pcm = root / "sample.pcm"
+                  packets = root / "audio-packets.csv"
+                  accepted, duplicates = capture_loopback(port, args.capture_seconds, capture)
+                  if accepted < 100:
+                      print("OVERALL_STATUS=FAIL")
+                      print("REASON=INSUFFICIENT_YOUTUBE_BOUND_PACKETS")
+                      print(f"captured_udp_packets={accepted}")
+                      return 3
+                  probe = subprocess.run(
+                      ["ffprobe", "-v", "fatal", "-select_streams", "a:0", "-show_entries", "stream=codec_name,sample_rate,channels,channel_layout", "-of", "json", str(capture)],
+                      check=True,
+                      stdout=subprocess.PIPE,
+                      stderr=subprocess.DEVNULL,
+                      text=True,
+                  )
+                  streams = json.loads(probe.stdout).get("streams") or []
+                  if not streams:
+                      print("OVERALL_STATUS=FAIL")
+                      print("REASON=AUDIO_STREAM_MISSING")
+                      return 4
+                  stream = streams[0]
+                  format_warnings: list[str] = []
+                  if stream.get("codec_name") != "aac":
+                      format_warnings.append("AUDIO_CODEC_NOT_AAC")
+                  if str(stream.get("sample_rate")) != "48000":
+                      format_warnings.append("AUDIO_SAMPLE_RATE_NOT_48KHZ")
+                  if int(stream.get("channels") or 0) != 2:
+                      format_warnings.append("AUDIO_NOT_STEREO")
+                  with packets.open("wb") as packet_output:
+                      run_checked(
+                          ["ffprobe", "-v", "fatal", "-select_streams", "a:0", "-show_packets", "-show_entries", "packet=pts_time,duration_time", "-of", "csv=p=0", str(capture)],
+                          stdout=packet_output,
+                      )
+                  with pcm.open("wb") as pcm_output:
+                      run_checked(
+                          ["ffmpeg", "-hide_banner", "-v", "fatal", "-i", str(capture), "-vn", "-map", "0:a:0", "-ac", "2", "-ar", "48000", "-f", "s16le", "-"],
+                          stdout=pcm_output,
+                      )
+                  signal_metrics, signal_warnings = analyze_pcm(pcm.read_bytes())
+                  timing_metrics, timing_warnings = analyze_packet_csv(packets)
+                  warnings = format_warnings + signal_warnings + timing_warnings
+                  print(f"captured_udp_packets={accepted}")
+                  print(f"deduplicated_loopback_packets={duplicates}")
+                  print(f"audio_codec={stream.get('codec_name', '')}")
+                  print(f"audio_sample_rate={stream.get('sample_rate', '')}")
+                  print(f"audio_channels={stream.get('channels', '')}")
+                  for key, value in {**signal_metrics, **timing_metrics}.items():
+                      if isinstance(value, float):
+                          print(f"{key}={value:.8f}")
+                      else:
+                          print(f"{key}={value}")
+                  print("AUDIO_WARNINGS=" + (",".join(warnings) if warnings else "NONE"))
+                  print("OVERALL_STATUS=" + ("FAIL" if warnings else "OK"))
+                  return 1 if warnings else 0
+
+
+          if __name__ == "__main__":
+              raise SystemExit(main())
+          PY
+          chmod +x services/fgbears-live/bin/audio-health.py
+
+      - name: Apply live audio headroom and monitoring integration
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path_str: str, old: str, new: str) -> None:
+              path = Path(path_str)
+              text = path.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'Expected text not found in {path_str}: {old!r}')
+              path.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'services/fgbears-live/bin/start-stream.sh',
+              ': "${PODCAST_AUDIO_FILTER:=aresample=48000:first_pts=0}"',
+              ': "${PODCAST_AUDIO_FILTER:=volume=-2dB,aresample=48000:first_pts=0}"',
+          )
+          replace_once(
+              'services/fgbears-live/config/stream.env.example',
+              'PODCAST_AUDIO_FILTER=aresample=48000:first_pts=0',
+              'PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0',
+          )
+          replace_once(
+              'services/fgbears-live/bin/install.sh',
+              'install -m 0755 /opt/fgbears-live/bin/healthcheck.sh /usr/local/bin/fgbears-healthcheck\ninstall -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-stream-status',
+              'install -m 0755 /opt/fgbears-live/bin/healthcheck.sh /usr/local/bin/fgbears-healthcheck\ninstall -m 0755 /opt/fgbears-live/bin/audio-health.py /usr/local/bin/fgbears-audio-health\ninstall -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-stream-status',
+          )
+          replace_once(
+              'services/fgbears-live/bin/install.sh',
+              'updates = {\n    "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",',
+              'updates = {\n    "PODCAST_AUDIO_FILTER": "volume=-2dB,aresample=48000:first_pts=0",\n    "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",',
+          )
+
+          health = Path('services/fgbears-live/bin/healthcheck.sh')
+          text = health.read_text(encoding='utf-8')
+          anchor = 'YOUTUBE_RELAY_SERVICE=${YOUTUBE_RELAY_SERVICE:-fgbears-youtube-relay.service}\n'
+          addition = '''YOUTUBE_RELAY_SERVICE=${YOUTUBE_RELAY_SERVICE:-fgbears-youtube-relay.service}\nAUDIO_HEALTH_BIN=${FGB_AUDIO_HEALTH_BIN:-/usr/local/bin/fgbears-audio-health}\nAUDIO_HEALTH_INTERVAL_SECONDS=${FGB_AUDIO_HEALTH_INTERVAL_SECONDS:-900}\nAUDIO_HEALTH_SAMPLE_SECONDS=${FGB_AUDIO_HEALTH_SAMPLE_SECONDS:-8}\nAUDIO_HEALTH_EPOCH_FILE=${FGB_AUDIO_HEALTH_EPOCH_FILE:-$HEALTH_STATE_DIR/audio-health-epoch}\nAUDIO_HEALTH_STATUS_FILE=${FGB_AUDIO_HEALTH_STATUS_FILE:-$HEALTH_STATE_DIR/audio-health-status}\nAUDIO_HEALTH_WARNING_FILE=${FGB_AUDIO_HEALTH_WARNING_FILE:-$HEALTH_STATE_DIR/audio-health-warning}\n'''
+          if anchor not in text:
+              raise SystemExit('healthcheck env anchor missing')
+          text = text.replace(anchor, addition, 1)
+          fn_anchor = 'reconcile_social_relay() {\n'
+          fn = r'''run_audio_check() {
+  local now last=0 output rc temporary
+  [[ -x "$AUDIO_HEALTH_BIN" ]] || return 0
+  now=$(date +%s)
+  if [[ -s "$AUDIO_HEALTH_EPOCH_FILE" ]]; then
+    last=$(cat "$AUDIO_HEALTH_EPOCH_FILE" 2>/dev/null || printf '0')
+  fi
+  [[ "$last" =~ ^[0-9]+$ ]] || last=0
+  if (( now - last < AUDIO_HEALTH_INTERVAL_SECONDS )); then
+    return 0
+  fi
+
+  if output=$("$AUDIO_HEALTH_BIN" --capture-seconds "$AUDIO_HEALTH_SAMPLE_SECONDS" 2>&1); then
+    rc=0
+  else
+    rc=$?
+  fi
+  temporary="${AUDIO_HEALTH_STATUS_FILE}.partial"
+  printf '%s\n' "$output" > "$temporary"
+  mv -f "$temporary" "$AUDIO_HEALTH_STATUS_FILE"
+  printf '%s\n' "$now" > "${AUDIO_HEALTH_EPOCH_FILE}.partial"
+  mv -f "${AUDIO_HEALTH_EPOCH_FILE}.partial" "$AUDIO_HEALTH_EPOCH_FILE"
+
+  if (( rc != 0 )); then
+    printf '%s rc=%s %s\n' "$now" "$rc" "$(printf '%s\n' "$output" | grep -E '^(AUDIO_WARNINGS|REASON)=' | tr '\n' ' ' || true)" > "$AUDIO_HEALTH_WARNING_FILE"
+    logger -t fgbears-live-health "Audio quality warning: $(printf '%s\n' "$output" | grep -E '^(AUDIO_WARNINGS|REASON)=' | tr '\n' ' ' || true)"
+    return 0
+  fi
+  rm -f "$AUDIO_HEALTH_WARNING_FILE"
+}
+
+'''
+          if fn_anchor not in text:
+              raise SystemExit('healthcheck function anchor missing')
+          text = text.replace(fn_anchor, fn + fn_anchor, 1)
+          call_anchor = 'run_lag_check\nprintf \'%s %s\\n\' "$now" "$out_time_us" > "${HEALTH_SAMPLE_FILE}.partial"'
+          if call_anchor not in text:
+              raise SystemExit('healthcheck call anchor missing')
+          text = text.replace(call_anchor, 'run_lag_check\nrun_audio_check\nprintf \'%s %s\\n\' "$now" "$out_time_us" > "${HEALTH_SAMPLE_FILE}.partial"', 1)
+          health.write_text(text, encoding='utf-8')
+
+          validate = Path('.github/workflows/fgbears-live-validate.yml')
+          text = validate.read_text(encoding='utf-8')
+          anchor = '      - name: Health monitor\n        run: bash services/fgbears-live/tests/test-health-monitor.sh\n'
+          if anchor not in text:
+              raise SystemExit('validate anchor missing')
+          text = text.replace(anchor, anchor + '      - name: Audio health thresholds\n        run: python3 services/fgbears-live/bin/audio-health.py --self-test\n', 1)
+          validate.write_text(text, encoding='utf-8')
+
+          deploy = Path('.github/workflows/fgbears-live-deploy.yml')
+          text = deploy.read_text(encoding='utf-8')
+          anchor = '      - id: crawl_frame\n        name: Decode live rendered crawl frame on Oracle\n'
+          step = '''      - id: audio_health\n        name: Verify YouTube-bound audio headroom and continuity\n        if: always() && steps.install.outcome == 'success'\n        env:\n          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}\n        run: |\n          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo /usr/local/bin/fgbears-audio-health --capture-seconds 10'\n\n'''
+          if anchor not in text:
+              raise SystemExit('deploy crawl anchor missing')
+          text = text.replace(anchor, step + anchor, 1)
+          text = text.replace(
+              '          PROGRAM_CLOCK_OUTCOME: ${{ steps.program_clock.outcome }}\n          CRAWL_FRAME_OUTCOME:',
+              '          PROGRAM_CLOCK_OUTCOME: ${{ steps.program_clock.outcome }}\n          AUDIO_HEALTH_OUTCOME: ${{ steps.audio_health.outcome }}\n          CRAWL_FRAME_OUTCOME:',
+              1,
+          )
+          text = text.replace(
+              '&& "$PROGRAM_CLOCK_OUTCOME" == "success" && "$CRAWL_FRAME_OUTCOME" == "success"',
+              '&& "$PROGRAM_CLOCK_OUTCOME" == "success" && "$AUDIO_HEALTH_OUTCOME" == "success" && "$CRAWL_FRAME_OUTCOME" == "success"',
+              1,
+          )
+          text = text.replace(
+              '            --arg programClockOutcome "$PROGRAM_CLOCK_OUTCOME" \\\n            --arg crawlFrameOutcome',
+              '            --arg programClockOutcome "$PROGRAM_CLOCK_OUTCOME" \\\n            --arg audioHealthOutcome "$AUDIO_HEALTH_OUTCOME" \\\n            --arg crawlFrameOutcome',
+              1,
+          )
+          text = text.replace(
+              'youtubeRelayOutcome:$youtubeRelayOutcome,programClockOutcome:$programClockOutcome,crawlFrameOutcome:',
+              'youtubeRelayOutcome:$youtubeRelayOutcome,programClockOutcome:$programClockOutcome,audioHealthOutcome:$audioHealthOutcome,crawlFrameOutcome:',
+              1,
+          )
+          text = text.replace(
+              'audioBitrateKbps:128,',
+              'audioBitrateKbps:128,audioPeakLimitDbfs:-1.0,audioLiveGainDb:-2.0,audioHealthIntervalSeconds:900,',
+              1,
+          )
+          deploy.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Validate patch before commit
+        run: |
+          python3 -m py_compile services/fgbears-live/bin/audio-health.py
+          python3 services/fgbears-live/bin/audio-health.py --self-test
+          shellcheck --severity=error services/fgbears-live/bin/start-stream.sh services/fgbears-live/bin/install.sh services/fgbears-live/bin/healthcheck.sh
+          git diff --check
+          grep -F 'PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0' services/fgbears-live/config/stream.env.example
+          grep -F 'audioHealthOutcome' .github/workflows/fgbears-live-deploy.yml
+
+      - name: Commit permanent audio repair
+        run: |
+          git config user.name 'FGB Production Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add services/fgbears-live/bin/audio-health.py services/fgbears-live/bin/start-stream.sh services/fgbears-live/bin/install.sh services/fgbears-live/bin/healthcheck.sh services/fgbears-live/config/stream.env.example .github/workflows/fgbears-live-validate.yml .github/workflows/fgbears-live-deploy.yml
+          git commit -m 'Add headroom and audio quality gates to FGB live'
+          git push origin HEAD:main
