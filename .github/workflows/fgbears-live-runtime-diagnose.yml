@@ -1,0 +1,66 @@
+name: Diagnose FGBears Live Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-live-runtime-diagnose.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Measure live encoder cadence and load
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '--- configured cadence ---'
+          sudo grep -E '^(OUTPUT_FPS|VIDEO_GOP|DRAWTEXT_RELOAD_FRAMES|AD_OVERLAY_FPS|CRAWL_OVERLAY_FPS)=' /etc/fgbears-live/stream.env || true
+
+          service_pid=$(systemctl show -p MainPID --value fgbears-live.service)
+          ffmpeg_pid=$(pgrep -P "$service_pid" -x ffmpeg | head -n 1)
+          test -n "$ffmpeg_pid"
+          echo "service_pid=$service_pid ffmpeg_pid=$ffmpeg_pid"
+
+          echo '--- active ffmpeg cadence arguments ---'
+          sudo tr '\0' '\n' < "/proc/$ffmpeg_pid/cmdline" | grep -E '^(24|25|30|48|60|15|ultrafast|zerolatency|libx264)$' || true
+
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          echo '--- progress sample 1 ---'
+          sudo grep -E '^(frame|fps|out_time_us|dup_frames|drop_frames|speed|progress)=' "$progress" || true
+          first=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n 1)
+          sleep 10
+          echo '--- progress sample 2 ---'
+          sudo grep -E '^(frame|fps|out_time_us|dup_frames|drop_frames|speed|progress)=' "$progress" || true
+          second=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n 1)
+          if [[ "$first" =~ ^[0-9]+$ && "$second" =~ ^[0-9]+$ ]]; then
+            delta=$((second-first))
+            echo "program_delta_us_10s=$delta"
+          fi
+
+          echo '--- process load ---'
+          ps -p "$ffmpeg_pid" -o pid=,%cpu=,%mem=,etime=,nlwp=,comm=
+          uptime
+          REMOTE
