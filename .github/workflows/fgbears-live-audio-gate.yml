@@ -1,0 +1,53 @@
+name: FGBears Live Audio Quality Gate
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy FGBears Live"]
+    types: [completed]
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-live-audio-gate.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  audio-quality:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Verify active audio configuration and YouTube-bound signal
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '--- effective audio configuration ---'
+          sudo grep -E '^PODCAST_AUDIO_FILTER=' /etc/fgbears-live/stream.env
+          grep -q '^PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0$' /etc/fgbears-live/stream.env
+          test -x /usr/local/bin/fgbears-audio-health
+          echo '--- exact YouTube-bound audio quality ---'
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 12
+          echo '--- recurring monitor integration ---'
+          grep -q 'run_audio_check' /usr/local/bin/fgbears-healthcheck
+          systemctl is-enabled --quiet fgbears-live-health.timer
+          systemctl is-active --quiet fgbears-live-health.timer
+          REMOTE
