@@ -1,0 +1,23 @@
+name: Discover Latest FGB YouTube Episodes
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgb-youtube-latest-diagnose.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: List recent FGB channel videos
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check yt-dlp
+          yt-dlp --flat-playlist --playlist-end 25 \
+            --print '%(id)s | %(upload_date)s | %(duration_string)s | %(title)s' \
+            'https://www.youtube.com/@FootballsGreatestBears/videos'
