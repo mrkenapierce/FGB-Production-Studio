@@ -1,0 +1,65 @@
+name: Slow EPIC Crawl for Compression Fidelity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/slow-epic-crawl.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply proportional crawl slowdown
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('services/fgbears-live/bin/crawl-overlay.py')
+          text = path.read_text(encoding='utf-8')
+
+          fps_line = 'FPS = max(10, int(os.getenv("CRAWL_OVERLAY_FPS", "15")))\n'
+          scale_line = 'SPEED_SCALE = min(1.0, max(0.25, float(os.getenv("CRAWL_SPEED_SCALE", "0.72"))))\n'
+          if scale_line not in text:
+              if fps_line not in text:
+                  raise SystemExit('Could not locate crawl FPS configuration')
+              text = text.replace(fps_line, fps_line + scale_line, 1)
+
+          old = 'speed_pps = min(400.0, max(20.0, speed_pps))'
+          new = 'speed_pps = min(400.0, max(20.0, speed_pps * SPEED_SCALE))'
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif new not in text:
+              raise SystemExit('Could not locate crawl speed clamp')
+
+          path.write_text(text, encoding='utf-8')
+          PY
+
+          python3 -m py_compile services/fgbears-live/bin/crawl-overlay.py
+          grep -Fq 'CRAWL_SPEED_SCALE", "0.72"' services/fgbears-live/bin/crawl-overlay.py
+          grep -Fq 'speed_pps * SPEED_SCALE' services/fgbears-live/bin/crawl-overlay.py
+          grep -Fq 'quality=96' services/fgbears-live/bin/crawl-overlay.py
+          grep -Fq 'subsampling=0' services/fgbears-live/bin/crawl-overlay.py
+          git diff --check
+
+      - name: Commit crawl slowdown
+        run: |
+          git config user.name 'FGB Production Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add services/fgbears-live/bin/crawl-overlay.py
+          if git diff --cached --quiet; then
+            echo 'Crawl slowdown already applied.'
+            exit 0
+          fi
+          git commit -m 'Slow EPIC crawl to improve stream fidelity'
+          git push origin HEAD:main
