@@ -1,3 +1,4 @@
+# Retriggered after production invariant confirmed RSS/news remained at 90 px/s.
 name: Lock FGB Audio and Align RSS Crawl Style
 
 on:
@@ -46,7 +47,7 @@ jobs:
           s = s.replace('fontcolor=white:fontsize=24:x=18+(239-text_w)/2:y=44', 'fontcolor=white:fontsize=29:x=18+(239-text_w)/2:y=39')
           s = s.replace('[base][newslane]overlay=x=267:y=23:shortest=1', '[base][newslane]overlay=x=277:y=23:shortest=1')
 
-          # YOUTUBE ONLY: remove the residual local X/Instagram tee mirrors from the primary encoder.
+          # YOUTUBE ONLY: remove residual X/Instagram tee mirrors from primary encoder.
           old = '''TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"
 OUTPUT_LABELS=("YouTube local UDP mirror")
 TEE_TARGETS+="|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${X_LOCAL_UDP_URL}"
@@ -63,12 +64,9 @@ OUTPUT_LABELS=("YouTube local UDP mirror")
 
           install = Path('services/fgbears-live/bin/install.sh')
           i = install.read_text()
-          # Never re-inject loudnorm or any other live DSP into persisted config.
           i = i.replace('"PODCAST_AUDIO_FILTER": "loudnorm=I=-14:LRA=11:TP=-1.5,aresample=48000:first_pts=0",', '"PODCAST_AUDIO_FILTER": "volume=-2dB,aresample=48000:first_pts=0",')
-          # Main Crawl speed is canonical for RSS/news crawl as well.
           if '"BEARS_NEWS_SCROLL_PPS": "76",' not in i:
               i = i.replace('updates = {\n', 'updates = {\n    "BEARS_NEWS_SCROLL_PPS": "76",\n')
-          # Social relays stay hard-disabled in persisted environment.
           i = re.sub(r'x_relay_enabled = values\.get\("X_RELAY_ENABLED"\).*?instagram_relay_enabled = values\.get\("INSTAGRAM_RELAY_ENABLED", "0"\)\n', 'x_relay_enabled = "0"\ninstagram_relay_enabled = "0"\n', i, flags=re.S)
           i = i.replace('"X_RELAY_ENABLED": x_relay_enabled,', '"X_RELAY_ENABLED": "0",')
           i = i.replace('"INSTAGRAM_RELAY_ENABLED": instagram_relay_enabled,', '"INSTAGRAM_RELAY_ENABLED": "0",')
@@ -93,7 +91,7 @@ OUTPUT_LABELS=("YouTube local UDP mirror")
               lines.append('BEARS_NEWS_SCROLL_PPS=76')
           env.write_text('\n'.join(lines) + '\n')
 
-          # Invariants: fail before commit if any regression remains.
+          # Invariants before commit.
           s = start.read_text()
           i = install.read_text()
           assert "CANONICAL_AUDIO_FILTER='volume=-2dB,aresample=48000:first_pts=0'" in s
@@ -109,6 +107,7 @@ OUTPUT_LABELS=("YouTube local UDP mirror")
 
           bash -n services/fgbears-live/bin/start-stream.sh
           bash -n services/fgbears-live/bin/install.sh
+          bash services/fgbears-live/tests/test-production-invariants.sh
 
       - name: Commit permanent source fix
         run: |
