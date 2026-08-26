@@ -167,7 +167,7 @@ jobs:
           REMOTE
 
       - id: program_clock
-        name: Verify live program clock is advancing
+        name: Verify live program sustains real time with zero dropped frames
         if: always() && steps.youtube_relay_socket.outcome == 'success'
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -175,18 +175,77 @@ jobs:
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           progress=/srv/fgbears-live/logs/ffmpeg-progress.log
-          for _ in $(seq 1 20); do
-            first=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n 1)
-            [[ "$first" =~ ^[0-9]+$ ]] && break
+          target_fps=$(sudo sed -n 's/^OUTPUT_FPS=\([0-9][0-9]*\)$/\1/p' /etc/fgbears-live/stream.env | tail -n 1)
+          [[ "$target_fps" =~ ^[1-9][0-9]*$ ]] || target_fps=30
+
+          for _ in $(seq 1 30); do
+            first_time=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n 1)
+            first_frame=$(sudo sed -n 's/^frame=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n 1)
+            first_drop=$(sudo sed -n 's/^drop_frames=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n 1)
+            if [[ "$first_time" =~ ^[0-9]+$ && "$first_frame" =~ ^[0-9]+$ && "$first_drop" =~ ^[0-9]+$ ]]; then
+              break
+            fi
             sleep 1
           done
-          [[ "$first" =~ ^[0-9]+$ ]]
-          sleep 5
-          second=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n 1)
-          [[ "$second" =~ ^[0-9]+$ ]]
-          delta=$((second - first))
-          echo "Program clock advanced ${delta} microseconds in 5 seconds."
-          (( delta >= 4000000 ))
+          [[ "$first_time" =~ ^[0-9]+$ ]]
+          [[ "$first_frame" =~ ^[0-9]+$ ]]
+          [[ "$first_drop" =~ ^[0-9]+$ ]]
+
+          wall_start_ns=$(date +%s%N)
+          sleep 10
+          wall_end_ns=$(date +%s%N)
+
+          second_time=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n 1)
+          second_frame=$(sudo sed -n 's/^frame=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n 1)
+          second_drop=$(sudo sed -n 's/^drop_frames=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n 1)
+          latest_speed=$(sudo sed -n 's/^speed=\(.*\)$/\1/p' "$progress" | tail -n 1)
+
+          [[ "$second_time" =~ ^[0-9]+$ ]]
+          [[ "$second_frame" =~ ^[0-9]+$ ]]
+          [[ "$second_drop" =~ ^[0-9]+$ ]]
+
+          program_delta=$((second_time - first_time))
+          frame_delta=$((second_frame - first_frame))
+          wall_us=$(((wall_end_ns - wall_start_ns) / 1000))
+
+          python3 - "$program_delta" "$wall_us" "$frame_delta" "$target_fps" "$second_drop" "$latest_speed" <<'PY'
+          import sys
+
+          program_us = int(sys.argv[1])
+          wall_us = int(sys.argv[2])
+          frame_delta = int(sys.argv[3])
+          target_fps = int(sys.argv[4])
+          dropped = int(sys.argv[5])
+          reported_speed = sys.argv[6]
+
+          if wall_us <= 0:
+              raise SystemExit("Invalid wall-clock sample interval")
+
+          ratio = program_us / wall_us
+          measured_fps = frame_delta / (wall_us / 1_000_000)
+          min_ratio = 0.95
+          min_fps = target_fps * min_ratio
+
+          print(
+              f"Real-time health: program={program_us / 1_000_000:.3f}s "
+              f"wall={wall_us / 1_000_000:.3f}s ratio={ratio:.3f}x "
+              f"measured_fps={measured_fps:.2f}/{target_fps} "
+              f"dropped_frames={dropped} ffmpeg_reported_speed={reported_speed}"
+          )
+
+          if ratio < min_ratio:
+              raise SystemExit(
+                  f"Live program failed real-time cadence gate: {ratio:.3f}x < {min_ratio:.2f}x"
+              )
+          if measured_fps < min_fps:
+              raise SystemExit(
+                  f"Live program failed frame-rate gate: {measured_fps:.2f} < {min_fps:.2f} fps"
+              )
+          if dropped != 0:
+              raise SystemExit(
+                  f"Live program failed dropped-frame gate: cumulative dropped_frames={dropped}"
+              )
+          PY
           REMOTE
 
       - id: crawl_frame
@@ -249,7 +308,7 @@ jobs:
             --arg programClockOutcome "$PROGRAM_CLOCK_OUTCOME" \
             --arg crawlFrameOutcome "$CRAWL_FRAME_OUTCOME" \
             --arg adsOutcome "$ADS_OUTCOME" \
-            '{ok:$ok,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,crawlHealthOutcome:$crawlHealthOutcome,emojiAssetsOutcome:$emojiAssetsOutcome,ffmpegTransportOutcome:$ffmpegTransportOutcome,youtubeRelayOutcome:$youtubeRelayOutcome,programClockOutcome:$programClockOutcome,crawlFrameOutcome:$crawlFrameOutcome,adsOutcome:$adsOutcome,service:"fgbears-live.service",youtubeRelayService:"fgbears-youtube-relay.service",expectedServiceState:"active",emojiRenderer:"twemoji-png",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg",transport:"ffmpeg-tee-local-mpegts-udp+youtube-copy-remux",audioBitrateKbps:128,xSimulcastCapable:true,xAccountHandle:"@epic501c3"}' \
+            '{ok:$ok,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,crawlHealthOutcome:$crawlHealthOutcome,emojiAssetsOutcome:$emojiAssetsOutcome,ffmpegTransportOutcome:$ffmpegTransportOutcome,youtubeRelayOutcome:$youtubeRelayOutcome,programClockOutcome:$programClockOutcome,crawlFrameOutcome:$crawlFrameOutcome,adsOutcome:$adsOutcome,service:"fgbears-live.service",youtubeRelayService:"fgbears-youtube-relay.service",expectedServiceState:"active",programClockMinRealtimeRatio:0.95,programClockZeroDroppedFramesRequired:true,emojiRenderer:"twemoji-png",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg",transport:"ffmpeg-tee-local-mpegts-udp+youtube-copy-remux",audioBitrateKbps:128,xSimulcastCapable:true,xAccountHandle:"@epic501c3"}' \
             > .github/deployment-status/fgbears-live.json
           git config user.name "FGBears Deploy Bot"
           git config user.email "actions@github.com"
