@@ -33,7 +33,7 @@ source "$ENV_FILE"
 : "${FFMPEG_PROGRESS_FILE:=/srv/fgbears-live/logs/ffmpeg-progress.log}"
 : "${AD_FRAME_FILE:=/srv/fgbears-live/runtime/ad-frame.jpg}"
 : "${CRAWL_RUNTIME_DIR:=/srv/fgbears-live/runtime}"
-: "${PODCAST_AUDIO_FILTER:=volume=-2dB,aresample=48000:first_pts=0}"
+: "${PODCAST_AUDIO_FILTER:=loudnorm=I=-14:LRA=11:TP=-1.5,aresample=48000:first_pts=0}"
 : "${TEE_FIFO_OPTIONS:=attempt_recovery=1:recover_any_error=1:recovery_wait_time=5}"
 
 [[ "$YOUTUBE_STREAM_KEY" != "REPLACE_WITH_YOUTUBE_STREAM_KEY" ]] || {
