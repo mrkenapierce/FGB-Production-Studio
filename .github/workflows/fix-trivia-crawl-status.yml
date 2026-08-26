@@ -20,6 +20,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Install renderer test dependency
+        run: python3 -m pip install --quiet pillow
+
       - name: Allow safe trivia status messages in lower crawl
         run: |
           python3 - <<'PY'
