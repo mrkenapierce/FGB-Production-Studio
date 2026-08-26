@@ -1,0 +1,50 @@
+name: Capture FGB Crawl Frame
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/capture-fgb-crawl-frame.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Capture current crawl renderer frame and state
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'curl -fsS http://127.0.0.1:8788/frame.png' > crawl-frame.png
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'curl -fsS http://127.0.0.1:8788/healthz' > crawl-health.json
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'printf "LABEL="; cat /srv/fgbears-live/runtime/crawl-label.txt; printf "MESSAGE="; cat /srv/fgbears-live/runtime/crawl-message.txt' > crawl-state.txt
+          file crawl-frame.png
+          cat crawl-health.json
+          cat crawl-state.txt
+      - name: Upload crawl diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: fgb-crawl-frame
+          path: |
+            crawl-frame.png
+            crawl-health.json
+            crawl-state.txt
+          retention-days: 1
