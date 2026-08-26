@@ -13,7 +13,7 @@ permissions:
 env:
   ORACLE_USER: ubuntu
 
-# Verification capture after the 2026-08-26 crawl visual cleanup. Re-run on demand for fidelity diagnosis.
+# Fidelity capture after RSS/crawl pacing alignment; used to isolate renderer vs encoder pixelation.
 jobs:
   capture:
     runs-on: ubuntu-latest
@@ -35,9 +35,10 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'curl -fsS http://127.0.0.1:8788/frame.png' > crawl-frame.png
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'curl -fsS http://127.0.0.1:8788/frame.jpg' > crawl-frame.jpg
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'curl -fsS http://127.0.0.1:8788/healthz' > crawl-health.json
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'printf "LABEL="; sudo cat /srv/fgbears-live/runtime/crawl-label.txt; printf "MESSAGE="; sudo cat /srv/fgbears-live/runtime/crawl-message.txt' > crawl-state.txt
-          file crawl-frame.png
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'printf "LABEL="; sudo cat /srv/fgbears-live/runtime/crawl-label.txt; printf "MESSAGE="; sudo cat /srv/fgbears-live/runtime/crawl-message.txt; printf "NEWS="; sudo cat /srv/fgbears-live/runtime/bears-news-message.txt; printf "RSS_PPS="; sudo sed -n "s/^BEARS_NEWS_SCROLL_PPS=//p" /etc/fgbears-live/stream.env' > crawl-state.txt
+          file crawl-frame.png crawl-frame.jpg
           cat crawl-health.json
           cat crawl-state.txt
       - name: Upload crawl diagnostic
@@ -46,6 +47,7 @@ jobs:
           name: fgb-crawl-frame
           path: |
             crawl-frame.png
+            crawl-frame.jpg
             crawl-health.json
             crawl-state.txt
           retention-days: 1
