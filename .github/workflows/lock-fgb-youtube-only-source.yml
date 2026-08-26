@@ -20,19 +20,33 @@ jobs:
       - name: Remove retired social transport from active source
         run: |
           set -Eeuo pipefail
-          # The migration utility intentionally contains the retired identifiers it
-          # removes. Exclude that migration utility from the generated source guard
-          # so the guard inspects active transport code rather than its own recipe.
+          # Make the migration utility safe after partial cleanup. The health
+          # watchdog has already had its social block removed, and the utility
+          # itself necessarily contains the retired identifiers it removes.
           python3 - <<'PY'
           from pathlib import Path
           p = Path('services/fgbears-live/bin/finalize-youtube-only.py')
           s = p.read_text()
-          old = "if grep -R -nE 'X_LOCAL_UDP_URL|X_RELAY_ENABLED|X_STREAM_ENABLED|INSTAGRAM_LOCAL_UDP_URL|INSTAGRAM_RELAY_ENABLED|FACEBOOK_LOCAL_UDP_URL|fgbears-(x|instagram|facebook)-relay|X local mirror|Instagram local mirror|Facebook local mirror' \"$ROOT/bin\" \"$ROOT/config\" \"$ROOT/systemd\"; then"
-          new = "if grep -R --exclude=finalize-youtube-only.py -nE 'X_LOCAL_UDP_URL|X_RELAY_ENABLED|X_STREAM_ENABLED|INSTAGRAM_LOCAL_UDP_URL|INSTAGRAM_RELAY_ENABLED|FACEBOOK_LOCAL_UDP_URL|fgbears-(x|instagram|facebook)-relay|X local mirror|Instagram local mirror|Facebook local mirror' \"$ROOT/bin\" \"$ROOT/config\" \"$ROOT/systemd\"; then"
-          if old in s:
-              s = s.replace(old, new)
-          elif '--exclude=finalize-youtube-only.py' not in s:
-              raise SystemExit('Could not patch migration self-check safely')
+
+          old_guard = "if grep -R -nE 'X_LOCAL_UDP_URL|X_RELAY_ENABLED|X_STREAM_ENABLED|INSTAGRAM_LOCAL_UDP_URL|INSTAGRAM_RELAY_ENABLED|FACEBOOK_LOCAL_UDP_URL|fgbears-(x|instagram|facebook)-relay|X local mirror|Instagram local mirror|Facebook local mirror' \"$ROOT/bin\" \"$ROOT/config\" \"$ROOT/systemd\"; then"
+          new_guard = "if grep -R --exclude=finalize-youtube-only.py -nE 'X_LOCAL_UDP_URL|X_RELAY_ENABLED|X_STREAM_ENABLED|INSTAGRAM_LOCAL_UDP_URL|INSTAGRAM_RELAY_ENABLED|FACEBOOK_LOCAL_UDP_URL|fgbears-(x|instagram|facebook)-relay|X local mirror|Instagram local mirror|Facebook local mirror' \"$ROOT/bin\" \"$ROOT/config\" \"$ROOT/systemd\"; then"
+          if old_guard in s:
+              s = s.replace(old_guard, new_guard)
+
+          old_health = '''start = text.find('reconcile_social_relay() {')
+          end = text.find('# News scanning is independent', start)
+          require(start >= 0 and end > start, "Could not locate social health block")
+          text = text[:start] + text[end:]
+          text = re.sub(r'^reconcile_social_relay .*\\n', '', text, flags=re.M)'''
+          new_health = '''start = text.find('reconcile_social_relay() {')
+          if start >= 0:
+              end = text.find('# News scanning is independent', start)
+              require(end > start, "Could not locate end of social health block")
+              text = text[:start] + text[end:]
+          text = re.sub(r'^reconcile_social_relay .*\\n', '', text, flags=re.M)'''
+          if old_health in s:
+              s = s.replace(old_health, new_health)
+
           p.write_text(s)
           PY
           python3 services/fgbears-live/bin/finalize-youtube-only.py
