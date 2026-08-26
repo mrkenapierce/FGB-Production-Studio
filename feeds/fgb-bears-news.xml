@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 26 Aug 2026 10:58:53 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 26 Aug 2026 11:30:27 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -20,6 +20,26 @@
     </item>
 
     <item>
+      <title>Bears Reportedly Listening to Trade Offers for Defensive Starter</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Reportedly Listening to Trade Offers for Defensive Starter</description>
+      <link>https://sports.yahoo.com/articles/bears-reportedly-listening-trade-offers-110034734.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-79957429c3424817cb26</guid>
+      <pubDate>Wed, 26 Aug 2026 04:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>The Bears&apos; Problem Position Most Likely to Be Targeted in Trade</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Bears&apos; Problem Position Most Likely to Be Targeted in Trade</description>
+      <link>https://www.si.com/nfl/bears/onsi/two-bears-positions-concern-ben-johnson-most-as-preseason-winds-down</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6e537fc315cbc5558af4</guid>
+      <pubDate>Wed, 26 Aug 2026 04:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>Bears training camp report: Tuesday, Aug. 25</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears training camp report: Tuesday, Aug. 25</description>
       <link>https://www.chicagobears.com/news/bears-training-camp-report-tuesday-aug-25</link>
@@ -27,16 +47,6 @@
       <pubDate>Wed, 26 Aug 2026 02:14:11 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>‘AWFUL,’ ’Knockoff Baylor Unis’ — Packers and Bears Fans Clash Over Whose 2026 NFL Rivalries Uniform Is Uglier</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: ‘AWFUL,’ ’Knockoff Baylor Unis’ — Packers and Bears Fans Clash Over Whose 2026 NFL Rivalries Uniform Is Uglier</description>
-      <link>https://sports.yahoo.com/articles/awful-knockoff-baylor-unis-packers-084752127.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dd11d0376e92ee2df4b7</guid>
-      <pubDate>Wed, 26 Aug 2026 01:47:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -54,16 +64,6 @@
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Highlights Two Unsettled Chicago Bears Starting Competitions</description>
       <link>https://www.si.com/nfl/bears/onsi/ben-johnson-highlights-two-unsettled-chicago-bears-starting-competitions</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-25333c6b879c29f049ee</guid>
-      <pubDate>Tue, 25 Aug 2026 16:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>The Good and Not So Good From Chicago Bears&apos; Final Public Practice of Training Camp</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Good and Not So Good From Chicago Bears&apos; Final Public Practice of Training Camp</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-good-and-not-so-good-from-chicago-bears-final-public-practice-of-training-camp</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d397d5b043704e5e29f6</guid>
       <pubDate>Tue, 25 Aug 2026 16:59:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
