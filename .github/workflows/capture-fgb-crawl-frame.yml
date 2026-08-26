@@ -13,6 +13,7 @@ permissions:
 env:
   ORACLE_USER: ubuntu
 
+# Verification capture after the 2026-08-26 crawl visual cleanup.
 jobs:
   capture:
     runs-on: ubuntu-latest
