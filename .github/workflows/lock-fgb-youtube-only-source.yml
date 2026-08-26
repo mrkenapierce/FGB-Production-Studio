@@ -20,6 +20,21 @@ jobs:
       - name: Remove retired social transport from active source
         run: |
           set -Eeuo pipefail
+          # The migration utility intentionally contains the retired identifiers it
+          # removes. Exclude that migration utility from the generated source guard
+          # so the guard inspects active transport code rather than its own recipe.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('services/fgbears-live/bin/finalize-youtube-only.py')
+          s = p.read_text()
+          old = "if grep -R -nE 'X_LOCAL_UDP_URL|X_RELAY_ENABLED|X_STREAM_ENABLED|INSTAGRAM_LOCAL_UDP_URL|INSTAGRAM_RELAY_ENABLED|FACEBOOK_LOCAL_UDP_URL|fgbears-(x|instagram|facebook)-relay|X local mirror|Instagram local mirror|Facebook local mirror' \"$ROOT/bin\" \"$ROOT/config\" \"$ROOT/systemd\"; then"
+          new = "if grep -R --exclude=finalize-youtube-only.py -nE 'X_LOCAL_UDP_URL|X_RELAY_ENABLED|X_STREAM_ENABLED|INSTAGRAM_LOCAL_UDP_URL|INSTAGRAM_RELAY_ENABLED|FACEBOOK_LOCAL_UDP_URL|fgbears-(x|instagram|facebook)-relay|X local mirror|Instagram local mirror|Facebook local mirror' \"$ROOT/bin\" \"$ROOT/config\" \"$ROOT/systemd\"; then"
+          if old in s:
+              s = s.replace(old, new)
+          elif '--exclude=finalize-youtube-only.py' not in s:
+              raise SystemExit('Could not patch migration self-check safely')
+          p.write_text(s)
+          PY
           python3 services/fgbears-live/bin/finalize-youtube-only.py
           # Workflow files are handled separately through the connected GitHub
           # app. Keep this Actions commit limited to non-workflow production source.
