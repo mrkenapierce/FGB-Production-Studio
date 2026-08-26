@@ -19,8 +19,16 @@ grep -Fq 'AccuracySec=1s' "$ROOT/systemd/fgbears-live-health.timer"
 grep -Fq 'NEWS_REFRESH_INTERVAL_SECONDS=${BEARS_NEWS_REFRESH_INTERVAL_SECONDS:-900}' "$ROOT/bin/healthcheck.sh"
 grep -Fq 'run_news_refresh' "$ROOT/bin/healthcheck.sh"
 grep -Fq 'NEWS_REFRESH_STALE' "$ROOT/bin/stream-status.sh"
+grep -Fq 'recover_youtube_relay' "$ROOT/bin/healthcheck.sh"
+grep -Fq 'systemctl reset-failed "$YOUTUBE_RELAY_SERVICE"' "$ROOT/bin/healthcheck.sh"
+grep -Fq 'YouTube relay listener restored; restarting the primary encoder once' "$ROOT/bin/healthcheck.sh"
+# The relay dependency must be checked before the generic primary-service and
+# progress-staleness branches, otherwise a dead listener causes restart loops.
+relay_guard_line=$(grep -n 'if ! systemctl is-active --quiet "$YOUTUBE_RELAY_SERVICE"' "$ROOT/bin/healthcheck.sh" | tail -n 1 | cut -d: -f1)
+primary_guard_line=$(grep -n 'if ! systemctl is-active --quiet fgbears-live.service' "$ROOT/bin/healthcheck.sh" | tail -n 1 | cut -d: -f1)
+[[ -n "$relay_guard_line" && -n "$primary_guard_line" && "$relay_guard_line" -lt "$primary_guard_line" ]]
 grep -Fq 'systemctl enable --now fgbears-live-health.timer' "$ROOT/bin/install.sh"
 grep -Fq "cron: '*/5 * * * *'" "$REPO_ROOT/.github/workflows/fgbears-live-monitor.yml"
 grep -Fq "'sudo /usr/local/bin/fgbears-stream-status --sample-seconds 20'" "$REPO_ROOT/.github/workflows/fgbears-live-monitor.yml"
 
-echo 'Scheduled local and independent encoder/news monitoring checks passed.'
+echo 'Scheduled local and independent encoder/news/YouTube-relay monitoring checks passed.'
