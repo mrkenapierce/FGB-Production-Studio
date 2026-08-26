@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-live-monitor.yml'
 
 permissions:
   contents: read
@@ -18,9 +22,9 @@ env:
 
 jobs:
   monitor:
-    name: Check Oracle stream health
+    name: Check Oracle stream and audio health
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
       - name: Require Oracle access secrets
         env:
@@ -43,7 +47,7 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Measure stream health
+      - name: Measure stream and exact YouTube-bound audio health
         id: health
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -52,14 +56,27 @@ jobs:
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
             'sudo /usr/local/bin/fgbears-stream-status --sample-seconds 20' \
             > stream-status.env
-          ssh_status=$?
+          stream_rc=$?
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
+            'sudo /usr/local/bin/fgbears-audio-health --capture-seconds 20' \
+            > audio-status.env
+          audio_rc=$?
           set -e
-          if (( ssh_status != 0 )); then
+
+          if (( stream_rc != 0 )); then
             cat > stream-status.env <<REPORT
           OVERALL_STATUS=CRITICAL
           REASON=SSH_OR_STATUS_COMMAND_FAILED
           CHECKED_AT_EPOCH=$(date +%s)
-          SSH_EXIT_CODE=$ssh_status
+          SSH_EXIT_CODE=$stream_rc
+          REPORT
+          fi
+          if (( audio_rc != 0 )) && ! grep -q '^OVERALL_STATUS=' audio-status.env 2>/dev/null; then
+            cat > audio-status.env <<REPORT
+          OVERALL_STATUS=FAIL
+          REASON=AUDIO_HEALTH_COMMAND_FAILED
+          CHECKED_AT_EPOCH=$(date +%s)
+          SSH_EXIT_CODE=$audio_rc
           REPORT
           fi
 
@@ -67,21 +84,37 @@ jobs:
           reason=$(sed -n 's/^REASON=\([A-Z0-9_]*\)$/\1/p' stream-status.env | tail -n 1)
           [[ -n "$status" ]] || status=CRITICAL
           [[ -n "$reason" ]] || reason=INVALID_STATUS_REPORT
+
+          audio_status=$(sed -n 's/^OVERALL_STATUS=\(OK\|FAIL\)$/\1/p' audio-status.env | tail -n 1)
+          audio_warnings=$(sed -n 's/^AUDIO_WARNINGS=//p' audio-status.env | tail -n 1)
+          if [[ "$audio_status" != "OK" ]]; then
+            status=CRITICAL
+            reason=AUDIO_QUALITY_DEGRADED
+          fi
+
           printf 'status=%s\nreason=%s\n' "$status" "$reason" >> "$GITHUB_OUTPUT"
 
           {
             printf '## FGBears Live: %s\n\n' "$status"
-            printf 'Reason: `%s`\n\n```text\n' "$reason"
+            printf 'Reason: `%s`\n\n' "$reason"
+            printf '### Stream transport\n```text\n'
             cat stream-status.env
+            printf '```\n\n### Exact YouTube-bound audio\n```text\n'
+            cat audio-status.env
             printf '```\n'
+            if [[ -n "$audio_warnings" && "$audio_warnings" != "NONE" ]]; then
+              printf '\nAudio warnings: `%s`\n' "$audio_warnings"
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Archive status report
+      - name: Archive status reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: fgbears-live-status-${{ github.run_id }}
-          path: stream-status.env
+          path: |
+            stream-status.env
+            audio-status.env
           retention-days: 14
 
       - name: Manage stream incident
@@ -103,7 +136,7 @@ jobs:
             if [[ -z "$issue" ]]; then
               {
                 printf 'The independent stream monitor detected `%s`.\n\n' "$reason"
-                printf '[Open the monitoring run](%s/%s/actions/runs/%s) for the full report.\n\n' \
+                printf '[Open the monitoring run](%s/%s/actions/runs/%s) for the full stream and audio reports.\n\n' \
                   "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
                 printf 'The local restart circuit breaker remains authoritative; this monitor does not restart the stream.\n'
               } > incident.md
