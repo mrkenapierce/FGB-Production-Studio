@@ -20,7 +20,7 @@ jobs:
   audio-quality:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
       - name: Configure Oracle SSH
         env:
@@ -40,13 +40,13 @@ jobs:
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          echo '--- effective audio configuration ---'
+          printf '%s\n' '--- effective audio configuration ---'
           sudo grep -E '^PODCAST_AUDIO_FILTER=' /etc/fgbears-live/stream.env
           sudo grep -q '^PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0$' /etc/fgbears-live/stream.env
           test -x /usr/local/bin/fgbears-audio-health
-          echo '--- exact YouTube-bound audio quality ---'
-          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 12
-          echo '--- recurring monitor integration ---'
+          printf '%s\n' '--- exact YouTube-bound audio quality ---'
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 20
+          printf '%s\n' '--- recurring monitor integration ---'
           grep -q 'run_audio_check' /usr/local/bin/fgbears-healthcheck
           systemctl is-enabled --quiet fgbears-live-health.timer
           systemctl is-active --quiet fgbears-live-health.timer
