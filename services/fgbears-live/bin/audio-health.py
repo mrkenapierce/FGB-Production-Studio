@@ -248,7 +248,7 @@ def main() -> int:
         with packets.open("wb") as packet_output:
             run_checked(["ffprobe", "-v", "fatal", "-select_streams", "a:0", "-show_packets", "-show_entries", "packet=pts_time,duration_time", "-of", "csv=p=0", str(capture)], stdout=packet_output)
         with pcm.open("wb") as pcm_output:
-            run_checked(["ffmpeg", "-hide_banner", "-v", "fatal", "-i", str(capture), "-vn", "-map", "0:a:0", "-ac", "2", "-ar", "48000", "-f", "s16le", "-"], stdout=pcm_output)
+            run_checked(["ffmpeg", "-hide_banner", "-nostdin", "-v", "fatal", "-i", str(capture), "-vn", "-map", "0:a:0", "-ac", "2", "-ar", "48000", "-f", "s16le", "-"], stdout=pcm_output)
 
         signal_metrics, signal_warnings = analyze_pcm(pcm.read_bytes())
         timing_metrics, timing_warnings = analyze_packet_csv(packets)
