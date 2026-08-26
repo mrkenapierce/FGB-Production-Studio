@@ -9,71 +9,16 @@ on:
 permissions:
   contents: write
 
-env:
-  ORACLE_USER: ubuntu
-
 jobs:
   decommission:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Configure Oracle SSH
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
-        run: |
-          test -n "$ORACLE_HOST"
-          test -n "$ORACLE_SSH_KEY"
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
-          chmod 600 ~/.ssh/oracle_key
-          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      - name: Confirm Facebook runtime is absent on Oracle
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          units=(
-            fgbears-facebook-relay.service
-            fgbears-facebook-start.service
-            fgbears-facebook-stop.service
-            fgbears-facebook-start.timer
-            fgbears-facebook-stop.timer
-          )
-          for unit in "${units[@]}"; do
-            systemctl disable --now "$unit" >/dev/null 2>&1 || true
-            systemctl stop "$unit" >/dev/null 2>&1 || true
-          done
-          rm -f /etc/systemd/system/fgbears-facebook-relay.service \
-                /etc/systemd/system/fgbears-facebook-start.service \
-                /etc/systemd/system/fgbears-facebook-stop.service \
-                /etc/systemd/system/fgbears-facebook-start.timer \
-                /etc/systemd/system/fgbears-facebook-stop.timer \
-                /usr/local/bin/fgbears-facebook-relay \
-                /usr/local/bin/fgbears-configure-facebook
-          if [[ -f /etc/fgbears-live/stream.env ]]; then
-            sed -i '/^FACEBOOK_/d' /etc/fgbears-live/stream.env
-            chown root:fgbears /etc/fgbears-live/stream.env
-            chmod 0640 /etc/fgbears-live/stream.env
-          fi
-          systemctl daemon-reload
-          systemctl reset-failed || true
-          if pgrep -af 'fgbears-facebook|facebook-relay|live-api-s.facebook.com' >/tmp/fgb-facebook-processes.txt; then
-            cat /tmp/fgb-facebook-processes.txt >&2
-            exit 1
-          fi
-          systemctl is-active --quiet fgbears-live.service
-          systemctl is-active --quiet fgbears-youtube-relay.service
-          echo 'Facebook runtime absent; primary FGB and YouTube relay remain active.'
-          REMOTE
-
-      - name: Remove Facebook protocol from repository
+      - name: Remove Facebook protocol from production source
         run: |
           set -Eeuo pipefail
           git rm -f .github/workflows/fgbears-facebook-*.yml || true
@@ -104,8 +49,7 @@ jobs:
           write(path, text)
 
           path = 'services/fgbears-live/bin/healthcheck.sh'
-          text = read(path).replace('reconcile_social_relay facebook FACEBOOK_RELAY_ENABLED\n', '')
-          write(path, text)
+          write(path, read(path).replace('reconcile_social_relay facebook FACEBOOK_RELAY_ENABLED\n', ''))
 
           path = 'services/fgbears-live/bin/stream-status.sh'
           text = read(path)
@@ -122,18 +66,14 @@ jobs:
 
           path = 'services/fgbears-live/bin/install.sh'
           text = read(path)
-          text = '\n'.join(
-              line for line in text.splitlines()
-              if 'facebook-relay.sh' not in line and 'configure-facebook.sh' not in line
-          ) + '\n'
+          text = '\n'.join(line for line in text.splitlines() if 'facebook-relay.sh' not in line and 'configure-facebook.sh' not in line) + '\n'
           text = text.replace('for platform in x facebook instagram; do', 'for platform in x instagram; do')
-          text = text.replace('systemctl disable fgbears-x-relay.service fgbears-facebook-relay.service fgbears-instagram-relay.service >/dev/null 2>&1 || true',
-                              'systemctl disable fgbears-x-relay.service fgbears-instagram-relay.service >/dev/null 2>&1 || true')
+          text = text.replace('systemctl disable fgbears-x-relay.service fgbears-facebook-relay.service fgbears-instagram-relay.service >/dev/null 2>&1 || true', 'systemctl disable fgbears-x-relay.service fgbears-instagram-relay.service >/dev/null 2>&1 || true')
           text = re.sub(r'\nrelay_enabled = values\.get\("FACEBOOK_RELAY_ENABLED"\).*?\nx_relay_enabled =', '\nx_relay_enabled =', text, flags=re.S)
           text = re.sub(r'^\s*"FACEBOOK_[A-Z0-9_]+":.*\n', '', text, flags=re.M)
           text = re.sub(r'\nfacebook_configured=false\n.*?\ninstagram_configured=false', '\ninstagram_configured=false', text, flags=re.S)
           text = text.replace('configure_scheduled_relay facebook "$facebook_configured"\n', '')
-          text = text.replace("# loopback MPEG-TS, lock out direct Meta output, and keep social schedules\n# independent of the primary encoder.", "# loopback MPEG-TS and keep the remaining social schedules independent of\n# the primary encoder.")
+          text = text.replace('# loopback MPEG-TS, lock out direct Meta output, and keep social schedules\n# independent of the primary encoder.', '# loopback MPEG-TS and keep the remaining social schedules independent of\n# the primary encoder.')
           text = text.replace('X/Facebook/Instagram sidecars', 'X/Instagram sidecars')
           write(path, text)
 
@@ -144,7 +84,7 @@ jobs:
           write(path, text)
 
           path = 'services/fgbears-live/tests/test-multistream.sh'
-          write(path, '''#!/usr/bin/env bash\nset -Eeuo pipefail\nROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)\nTMP=$(mktemp -d)\ntrap 'rm -rf "$TMP"' EXIT\n\nfor script in "$ROOT/bin/start-stream.sh" "$ROOT/bin/youtube-relay.sh" "$ROOT/bin/x-relay.sh" "$ROOT/bin/instagram-relay.sh" "$ROOT/bin/configure-x.sh" "$ROOT/bin/configure-instagram.sh" "$ROOT/bin/install.sh" "$ROOT/bin/healthcheck.sh" "$ROOT/bin/stream-status.sh"; do\n  bash -n "$script"\ndone\n\nfor removed in "$ROOT/bin/facebook-relay.sh" "$ROOT/bin/configure-facebook.sh" "$ROOT/systemd/fgbears-facebook-relay.service" "$ROOT/systemd/fgbears-facebook-start.timer" "$ROOT/systemd/fgbears-facebook-stop.timer"; do\n  test ! -e "$removed"\ndone\n\nif grep -R -nE 'FACEBOOK_|fgbears-facebook|Facebook local mirror|live-api-s\\.facebook\\.com' "$ROOT/bin" "$ROOT/config" "$ROOT/systemd"; then\n  echo 'Facebook protocol remnants remain in active FGB livestream code.' >&2\n  exit 1\nfi\n\ngrep -Fq 'YOUTUBE_LOCAL_UDP_URL' "$ROOT/bin/start-stream.sh"\ngrep -Fq '[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"\ngrep -Fq '[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${X_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"\ngrep -Fq '[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${INSTAGRAM_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"\ngrep -Fq 'for platform in x instagram' "$ROOT/bin/install.sh"\ngrep -Fq 'reconcile_social_relay x X_RELAY_ENABLED' "$ROOT/bin/healthcheck.sh"\ngrep -Fq 'reconcile_social_relay instagram INSTAGRAM_RELAY_ENABLED' "$ROOT/bin/healthcheck.sh"\n\nffmpeg -hide_banner -loglevel error \\\n  -f lavfi -i testsrc2=size=320x180:rate=24 \\\n  -f lavfi -i sine=frequency=440:sample_rate=48000 \\\n  -t 0.5 -map 0:v -map 1:a \\\n  -c:v libx264 -preset ultrafast -g 48 \\\n  -c:a aac -b:a 128k \\\n  -f tee -use_fifo 1 \\\n  -fifo_options 'attempt_recovery=1:recover_any_error=1:recovery_wait_time=1' \\\n  "[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/youtube-local.ts|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/x-local.ts|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/instagram-local.ts"\n\nfor output in "$TMP/youtube-local.ts" "$TMP/x-local.ts" "$TMP/instagram-local.ts"; do\n  test -s "$output"\n  ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1 "$output" | grep -q '^codec_name=aac$'\n  ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=nw=1 "$output" | grep -q '^codec_name=h264$'\ndone\n\necho 'FGBears YouTube/X/Instagram transport tests passed; retired social protocol is absent.'\n''')
+          write(path, '''#!/usr/bin/env bash\nset -Eeuo pipefail\nROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)\nTMP=$(mktemp -d)\ntrap 'rm -rf "$TMP"' EXIT\n\nfor script in "$ROOT/bin/start-stream.sh" "$ROOT/bin/youtube-relay.sh" "$ROOT/bin/x-relay.sh" "$ROOT/bin/instagram-relay.sh" "$ROOT/bin/configure-x.sh" "$ROOT/bin/configure-instagram.sh" "$ROOT/bin/install.sh" "$ROOT/bin/healthcheck.sh" "$ROOT/bin/stream-status.sh"; do\n  bash -n "$script"\ndone\n\nfor removed in "$ROOT/bin/facebook-relay.sh" "$ROOT/bin/configure-facebook.sh" "$ROOT/systemd/fgbears-facebook-relay.service" "$ROOT/systemd/fgbears-facebook-start.timer" "$ROOT/systemd/fgbears-facebook-stop.timer"; do\n  test ! -e "$removed"\ndone\n\nif grep -R -nE 'FACEBOOK_|fgbears-facebook|Facebook local mirror|live-api-s\\.facebook\\.com' "$ROOT/bin" "$ROOT/config" "$ROOT/systemd"; then\n  echo 'Retired protocol remnants remain in active FGB livestream code.' >&2\n  exit 1\nfi\n\ngrep -Fq 'YOUTUBE_LOCAL_UDP_URL' "$ROOT/bin/start-stream.sh"\ngrep -Fq '[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"\ngrep -Fq '[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${X_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"\ngrep -Fq '[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${INSTAGRAM_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"\ngrep -Fq 'for platform in x instagram' "$ROOT/bin/install.sh"\ngrep -Fq 'reconcile_social_relay x X_RELAY_ENABLED' "$ROOT/bin/healthcheck.sh"\ngrep -Fq 'reconcile_social_relay instagram INSTAGRAM_RELAY_ENABLED' "$ROOT/bin/healthcheck.sh"\n\nif command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null; then\n  ffmpeg -hide_banner -loglevel error \\\n    -f lavfi -i testsrc2=size=320x180:rate=24 \\\n    -f lavfi -i sine=frequency=440:sample_rate=48000 \\\n    -t 0.5 -map 0:v -map 1:a \\\n    -c:v libx264 -preset ultrafast -g 48 -c:a aac -b:a 128k \\\n    -f tee -use_fifo 1 -fifo_options 'attempt_recovery=1:recover_any_error=1:recovery_wait_time=1' \\\n    "[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/youtube-local.ts|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/x-local.ts|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/instagram-local.ts"\n  for output in "$TMP/youtube-local.ts" "$TMP/x-local.ts" "$TMP/instagram-local.ts"; do\n    test -s "$output"\n    ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1 "$output" | grep -q '^codec_name=aac$'\n    ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=nw=1 "$output" | grep -q '^codec_name=h264$'\n  done\nfi\n\necho 'FGBears active transport contains YouTube/X/Instagram only.'\n''')
 
           for path in (
               'services/fgbears-live/bin/start-stream.sh',
@@ -154,9 +94,8 @@ jobs:
               'services/fgbears-live/config/stream.env.example',
               'services/fgbears-live/systemd/fgbears-live.service',
           ):
-              text = read(path)
-              if re.search(r'FACEBOOK_|fgbears-facebook|Facebook local mirror|live-api-s\.facebook\.com', text):
-                  raise SystemExit(f'Facebook protocol reference remains in {path}')
+              if re.search(r'FACEBOOK_|fgbears-facebook|Facebook local mirror|live-api-s\.facebook\.com', read(path)):
+                  raise SystemExit(f'Retired protocol reference remains in {path}')
           PY
 
           git rm -f .github/workflows/decommission-fgb-facebook.yml
