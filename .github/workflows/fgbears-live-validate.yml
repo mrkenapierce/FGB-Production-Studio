@@ -28,6 +28,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y shellcheck ffmpeg jq python3-pil qrencode
       - name: ShellCheck
         run: shellcheck --severity=error services/fgbears-live/bin/*.sh services/fgbears-live/tests/*.sh
+      - name: Production invariants
+        run: bash services/fgbears-live/tests/test-production-invariants.sh
       - name: Integration scripts
         run: bash services/fgbears-live/tests/test-scripts.sh
       - name: Multistream and YouTube relay
