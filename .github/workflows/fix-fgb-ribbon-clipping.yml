@@ -1,4 +1,5 @@
 name: Fix FGB Ribbon Clipping
+# Triggered after creation so GitHub executes the registered repair workflow.
 
 on:
   push:
