@@ -20,6 +20,12 @@ NEWS_REFRESH_INTERVAL_SECONDS=${BEARS_NEWS_REFRESH_INTERVAL_SECONDS:-900}
 NEWS_LOCAL_FEED=${BEARS_NEWS_LOCAL_FEED_FILE:-/srv/fgbears-live/runtime/fgb-bears-news.xml}
 NEWS_REFRESH_STATUS=${BEARS_NEWS_REFRESH_STATUS_FILE:-/srv/fgbears-live/runtime/bears-news-refresh-status.env}
 YOUTUBE_RELAY_SERVICE=${YOUTUBE_RELAY_SERVICE:-fgbears-youtube-relay.service}
+AUDIO_HEALTH_BIN=${FGB_AUDIO_HEALTH_BIN:-/usr/local/bin/fgbears-audio-health}
+AUDIO_HEALTH_INTERVAL_SECONDS=${FGB_AUDIO_HEALTH_INTERVAL_SECONDS:-900}
+AUDIO_HEALTH_SAMPLE_SECONDS=${FGB_AUDIO_HEALTH_SAMPLE_SECONDS:-8}
+AUDIO_HEALTH_EPOCH_FILE=${FGB_AUDIO_HEALTH_EPOCH_FILE:-$HEALTH_STATE_DIR/audio-health-epoch}
+AUDIO_HEALTH_STATUS_FILE=${FGB_AUDIO_HEALTH_STATUS_FILE:-$HEALTH_STATE_DIR/audio-health-status}
+AUDIO_HEALTH_WARNING_FILE=${FGB_AUDIO_HEALTH_WARNING_FILE:-$HEALTH_STATE_DIR/audio-health-warning}
 
 mkdir -p "$HEALTH_STATE_DIR"
 
@@ -102,6 +108,37 @@ run_lag_check() {
   fi
 }
 
+run_audio_check() {
+  local now last=0 output rc temporary
+  [[ -x "$AUDIO_HEALTH_BIN" ]] || return 0
+  now=$(date +%s)
+  if [[ -s "$AUDIO_HEALTH_EPOCH_FILE" ]]; then
+    last=$(cat "$AUDIO_HEALTH_EPOCH_FILE" 2>/dev/null || printf '0')
+  fi
+  [[ "$last" =~ ^[0-9]+$ ]] || last=0
+  if (( now - last < AUDIO_HEALTH_INTERVAL_SECONDS )); then
+    return 0
+  fi
+
+  if output=$("$AUDIO_HEALTH_BIN" --capture-seconds "$AUDIO_HEALTH_SAMPLE_SECONDS" 2>&1); then
+    rc=0
+  else
+    rc=$?
+  fi
+  temporary="${AUDIO_HEALTH_STATUS_FILE}.partial"
+  printf '%s\n' "$output" > "$temporary"
+  mv -f "$temporary" "$AUDIO_HEALTH_STATUS_FILE"
+  printf '%s\n' "$now" > "${AUDIO_HEALTH_EPOCH_FILE}.partial"
+  mv -f "${AUDIO_HEALTH_EPOCH_FILE}.partial" "$AUDIO_HEALTH_EPOCH_FILE"
+
+  if (( rc != 0 )); then
+    printf '%s rc=%s %s\n' "$now" "$rc" "$(printf '%s\n' "$output" | grep -E '^(AUDIO_WARNINGS|REASON)=' | tr '\n' ' ' || true)" > "$AUDIO_HEALTH_WARNING_FILE"
+    logger -t fgbears-live-health "Audio quality warning: $(printf '%s\n' "$output" | grep -E '^(AUDIO_WARNINGS|REASON)=' | tr '\n' ' ' || true)"
+    return 0
+  fi
+  rm -f "$AUDIO_HEALTH_WARNING_FILE"
+}
+
 reconcile_social_relay() {
   local platform enabled_key service start_timer stop_timer
   local enabled=false now_hm
@@ -174,6 +211,7 @@ reconcile_social_relay x X_RELAY_ENABLED
 reconcile_social_relay facebook FACEBOOK_RELAY_ENABLED
 reconcile_social_relay instagram INSTAGRAM_RELAY_ENABLED
 run_lag_check
+run_audio_check
 printf '%s %s\n' "$now" "$out_time_us" > "${HEALTH_SAMPLE_FILE}.partial"
 mv -f "${HEALTH_SAMPLE_FILE}.partial" "$HEALTH_SAMPLE_FILE"
 rm -f "$RESTART_BREAKER_FILE"

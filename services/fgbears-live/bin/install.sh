@@ -68,6 +68,7 @@ install -m 0755 /opt/fgbears-live/bin/validate-media.sh /usr/local/bin/fgbears-v
 install -m 0755 /opt/fgbears-live/bin/rebuild-playlist.sh /usr/local/bin/fgbears-rebuild-playlist
 install -m 0755 /opt/fgbears-live/bin/add-episode.sh /usr/local/bin/fgbears-add-episode
 install -m 0755 /opt/fgbears-live/bin/healthcheck.sh /usr/local/bin/fgbears-healthcheck
+install -m 0755 /opt/fgbears-live/bin/audio-health.py /usr/local/bin/fgbears-audio-health
 install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-stream-status
 
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
@@ -122,6 +123,7 @@ if x_relay_enabled is None:
 instagram_relay_enabled = values.get("INSTAGRAM_RELAY_ENABLED", "0")
 
 updates = {
+    "PODCAST_AUDIO_FILTER": "volume=-2dB,aresample=48000:first_pts=0",
     "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
     "X_STREAM_ENABLED": "0",
