@@ -26,6 +26,7 @@ jobs:
 
       - name: Validate migration
         run: |
+          rm -f services/fgbears-live/bin/finalize-youtube-only.py
           bash -n services/fgbears-live/bin/start-stream.sh
           bash -n services/fgbears-live/bin/install.sh
           bash -n services/fgbears-live/bin/healthcheck.sh
@@ -35,7 +36,6 @@ jobs:
 
       - name: Commit YouTube-only architecture
         run: |
-          rm -f services/fgbears-live/bin/finalize-youtube-only.py
           rm -f .github/workflows/decommission-fgb-social-source-v2.yml
           git config user.name 'FGB Production Automation'
           git config user.email 'actions@users.noreply.github.com'
