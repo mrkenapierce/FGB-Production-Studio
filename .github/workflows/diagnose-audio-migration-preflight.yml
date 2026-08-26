@@ -1,4 +1,4 @@
-# Progress sample: post-normalization resume 2
+# Progress sample: migration CPU headroom
 name: Diagnose FGB Audio Migration Preflight
 
 on:
@@ -48,6 +48,10 @@ jobs:
           marker_count=$(find /srv/fgbears-live/media -maxdepth 1 -type f -name '*.mp4.audio-profile.json' | wc -l | tr -d ' ')
           echo "media_count=$media_count"
           echo "profile_marker_count=$marker_count"
+          echo '=== cpu headroom ==='
+          echo "nproc=$(nproc)"
+          uptime
+          ps -eo pid,ni,pcpu,pmem,comm,args --sort=-pcpu | head -n 12
           echo '=== current normalization work ==='
           find /srv/fgbears-live/.audio-migration -maxdepth 1 -type f -printf '%f %s bytes\n' 2>/dev/null || true
           pgrep -af 'normalize-library|loudnorm|ffmpeg' | tail -n 8 || true
