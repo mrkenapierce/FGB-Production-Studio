@@ -1,0 +1,40 @@
+name: Lock FGB Source to YouTube Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/lock-fgb-youtube-only-source.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  lock-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Remove retired social transport from active source
+        run: |
+          set -Eeuo pipefail
+          python3 services/fgbears-live/bin/finalize-youtube-only.py
+          # Workflow files are handled separately through the connected GitHub
+          # app. Keep this Actions commit limited to non-workflow production source.
+          git restore .github/workflows
+          bash services/fgbears-live/tests/test-multistream.sh
+          git diff --check
+      - name: Commit non-workflow source cleanup
+        run: |
+          set -Eeuo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A services/fgbears-live
+          if git diff --cached --quiet; then
+            echo 'YouTube-only source already clean.'
+            exit 0
+          fi
+          git commit -m 'Lock FGB livestream source to YouTube only [skip ci]'
+          git push origin HEAD:main
