@@ -18,7 +18,8 @@ trap cleanup EXIT
 for script in "$ROOT"/bin/*.sh; do
   bash -n "$script"
 done
-python3 -m py_compile "$ROOT/bin/ad-overlay.py" "$ROOT/bin/crawl-overlay.py" "$ROOT/bin/bears-news-feed.py"
+python3 -m py_compile "$ROOT/bin/ad-overlay.py" "$ROOT/bin/ad-overlay-smart.py" "$ROOT/bin/game_overlay.py" "$ROOT/bin/crawl-overlay.py" "$ROOT/bin/bears-news-feed.py"
+python3 "$ROOT/tests/test-game-overlay.py"
 
 # These are intentionally literal shell expressions from start-stream.sh.
 # shellcheck disable=SC2016
@@ -52,20 +53,51 @@ if find "$ROOT" -type f -name 'stream.env' -print -quit | grep -q .; then
 fi
 
 cat > "$TMP/feed.json" <<'JSON'
-{"kind":"house","sponsors":[{"businessName":"FGB","imageUrl":null,"promoMessage":"Bear Down","website":"https://epiccontentcreatorgrants.org/epic-media"}]}
+{"kind":"house","sponsors":[{"businessName":"FGB","imageUrl":null,"promoMessage":"Bear Down","website":"https://epiccontentcreatorgrants.org/epic-media","durationSeconds":7}]}
 JSON
-SPONSOR_FEED_FILE="$TMP/feed.json" AD_FRAME_FILE="$TMP/runtime/ad-frame.jpg" AD_OVERLAY_PORT=18787 python3 "$ROOT/bin/ad-overlay.py" >"$TMP/ad-overlay.log" 2>&1 &
+cat > "$TMP/game.json" <<'JSON'
+{"visible":false,"presentationMode":"crawl_only","adsEnabled":false}
+JSON
+SPONSOR_FEED_FILE="$TMP/feed.json" GAME_SCREEN_FEED_FILE="$TMP/game.json" CRAWL_RUNTIME_DIR="$TMP/runtime" AD_FRAME_FILE="$TMP/runtime/ad-frame.jpg" AD_OVERLAY_PORT=18787 python3 "$ROOT/bin/ad-overlay-smart.py" >"$TMP/ad-overlay.log" 2>&1 &
 OVERLAY_PID=$!
 for _ in {1..40}; do
   curl --silent --fail --max-time 1 http://127.0.0.1:18787/healthz >"$TMP/ad-health.json" && break
   sleep 0.1
 done
-jq -e '.ok == true' "$TMP/ad-health.json" >/dev/null
+if ! jq -e '.ok == true' "$TMP/ad-health.json" >/dev/null; then
+  cat "$TMP/ad-overlay.log" >&2 || true
+  exit 1
+fi
 curl --silent --fail http://127.0.0.1:18787/frame.jpg -o "$TMP/ad-frame.jpg"
 python3 - "$TMP/ad-frame.jpg" <<'PY'
 from PIL import Image
 import sys
 im = Image.open(sys.argv[1]); im.load(); assert im.size == (1280, 720), im.size
+PY
+kill "$OVERLAY_PID"; wait "$OVERLAY_PID" 2>/dev/null || true; OVERLAY_PID=""
+
+# The game feed can replace the central panel without changing the renderer port
+# or FFmpeg input. No external network is required in this test.
+cat > "$TMP/game.json" <<'JSON'
+{"visible":true,"gameId":"test-game","presentationMode":"alternate_game_ads","adsEnabled":false,"title":"ZIP SHOWDOWN","matchup":"61108 VS 61107","currentPrize":"$25","phase":"question","questionNumber":1,"questionCount":1,"prompt":"WHO WAS NICKNAMED SWEETNESS?","choices":[{"key":"A","text":"DICK BUTKUS"},{"key":"B","text":"WALTER PAYTON"}],"participants":12,"standings":[{"zip":"61108","score":4,"players":7}],"playPath":"/fgb/play","gameScreenSeconds":20,"adsPerBreak":1,"keepTriviaCrawlDuringAds":true,"allowPaidAds":true,"allowHouseAds":true}
+JSON
+SPONSOR_FEED_FILE="$TMP/feed.json" GAME_SCREEN_FEED_FILE="$TMP/game.json" CRAWL_RUNTIME_DIR="$TMP/runtime" AD_FRAME_FILE="$TMP/runtime/game-frame.jpg" AD_OVERLAY_PORT=18787 python3 "$ROOT/bin/ad-overlay-smart.py" >"$TMP/game-overlay.log" 2>&1 &
+OVERLAY_PID=$!
+for _ in {1..40}; do
+  curl --silent --fail --max-time 1 http://127.0.0.1:18787/healthz >/dev/null && break
+  sleep 0.1
+done
+if ! curl --silent --fail http://127.0.0.1:18787/frame.jpg -o "$TMP/game-frame.jpg"; then
+  cat "$TMP/game-overlay.log" >&2 || true
+  exit 1
+fi
+python3 - "$TMP/game-frame.jpg" <<'PY'
+from PIL import Image
+import sys
+im = Image.open(sys.argv[1]); im.load(); assert im.size == (1280, 720), im.size
+# A game screen uses the dark central panel rather than the normal white ad card.
+pixel = im.getpixel((500, 200))
+assert sum(pixel) < 250, pixel
 PY
 kill "$OVERLAY_PID"; wait "$OVERLAY_PID" 2>/dev/null || true; OVERLAY_PID=""
 

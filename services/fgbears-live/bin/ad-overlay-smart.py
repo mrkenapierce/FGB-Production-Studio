@@ -8,6 +8,9 @@ center-cropped. Transparent PNG/WebP pixels composite onto the Bears-blue live
 screen instead of turning black or white. Any creative that contains an image
 is treated as a full-panel image creative so it cannot fall back to the legacy
 small mixed-image card layout.
+
+The optional trivia presentation layer decorates this same renderer. It never
+creates a second FFmpeg input or stream path; when inactive it is a no-op.
 """
 from __future__ import annotations
 
@@ -74,6 +77,19 @@ def image_creative_uses_full_panel(_sponsor: dict[str, Any]) -> bool:
 # means every photo uses AD_PANEL_BOX instead of the old 727x185 mixed-card box.
 BASE.paste_image_fill = paste_image_fill
 BASE.image_only_creative = image_creative_uses_full_panel
+
+# Attach the game layer after the image-layout overrides so both advertisements
+# and trivia share exactly the same permanent renderer and broadcast clock.
+# Load it by absolute file path instead of relying on sys.path: the production
+# launcher and the repository's runpy-based image-fit tests execute this wrapper
+# differently, but both should resolve the same sibling module.
+GAME_OVERLAY = HERE / "game_overlay.py"
+game_spec = importlib.util.spec_from_file_location("fgbears_game_overlay", GAME_OVERLAY)
+if game_spec is None or game_spec.loader is None:
+    raise RuntimeError(f"Unable to load trivia game renderer: {GAME_OVERLAY}")
+GAME_MODULE: Any = importlib.util.module_from_spec(game_spec)
+game_spec.loader.exec_module(GAME_MODULE)
+GAME_MODULE.install(BASE)
 
 
 def main() -> None:
