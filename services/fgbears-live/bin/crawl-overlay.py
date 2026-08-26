@@ -274,7 +274,7 @@ class State:
                 else:
                     continue
                 normalized = grapheme_slice(" ".join(text.split()), 600)
-                if enabled and normalized:
+                if enabled and normalized and "rockford zip showdown" not in normalized.casefold():
                     message_parts.append(normalized)
                 if len(message_parts) == 5:
                     break
