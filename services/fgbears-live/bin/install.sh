@@ -110,23 +110,21 @@ if not upstream:
 def truthy(value):
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
-x_relay_enabled = values.get("X_RELAY_ENABLED")
-if x_relay_enabled is None:
-    x_relay_enabled = "1" if values.get("X_STREAM_KEY") else "0"
-
-instagram_relay_enabled = values.get("INSTAGRAM_RELAY_ENABLED", "0")
+x_relay_enabled = "0"
+instagram_relay_enabled = "0"
 
 updates = {
-    "PODCAST_AUDIO_FILTER": "loudnorm=I=-14:LRA=11:TP=-1.5,aresample=48000:first_pts=0",
+    "BEARS_NEWS_SCROLL_PPS": "76",
+    "PODCAST_AUDIO_FILTER": "volume=-2dB,aresample=48000:first_pts=0",
     "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
     "X_STREAM_ENABLED": "0",
-    "X_RELAY_ENABLED": x_relay_enabled,
+    "X_RELAY_ENABLED": "0",
     "X_LOCAL_UDP_URL": "udp://127.0.0.1:1937?pkt_size=1316",
     "X_SCHEDULE_TIMEZONE": "America/Chicago",
     "X_SCHEDULE_START": "09:00",
     "X_SCHEDULE_STOP": "17:00",
-    "INSTAGRAM_RELAY_ENABLED": instagram_relay_enabled,
+    "INSTAGRAM_RELAY_ENABLED": "0",
     "INSTAGRAM_LOCAL_UDP_URL": "udp://127.0.0.1:1938?pkt_size=1316",
     "INSTAGRAM_SCHEDULE_TIMEZONE": "America/Chicago",
     "INSTAGRAM_SCHEDULE_START": "09:00",
