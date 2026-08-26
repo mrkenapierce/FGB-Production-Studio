@@ -13,7 +13,7 @@ permissions:
 env:
   ORACLE_USER: ubuntu
 
-# Verification capture after the 2026-08-26 crawl visual cleanup.
+# Verification capture after the 2026-08-26 crawl visual cleanup. Re-run on demand for fidelity diagnosis.
 jobs:
   capture:
     runs-on: ubuntu-latest
