@@ -291,11 +291,14 @@ class State:
         else:
             message = grapheme_slice(str(payload.get("message") or ""), 600)
         message = grapheme_slice(message, 3200)
-        if trivia_mode:
-            # Trivia questions belong only in the dedicated trivia/QR overlay.
-            # The lower crawl remains present as a label-only "Trivia" lane.
+        if trivia_mode and not message_parts:
+            # Safety fallback: legacy single-message trivia payloads may contain a
+            # question prompt, so never route that fallback through the lower crawl.
+            # The canonical trivia API now supplies a status-only messages[] array
+            # (standings, daily leaderboard, participation, prize, progress), which
+            # is safe and should remain visible in the Trivia crawl.
             message = ""
-        message_count = 0 if trivia_mode else (len(message_parts) if message_parts else (1 if message else 0))
+        message_count = len(message_parts) if message_parts else (0 if trivia_mode else (1 if message else 0))
         value = {
             "active": bool(payload.get("active")),
             "label": label,
