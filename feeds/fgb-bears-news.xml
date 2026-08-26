@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 26 Aug 2026 02:13:31 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 26 Aug 2026 03:17:59 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears training camp report: Tuesday, Aug. 25</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears training camp report: Tuesday, Aug. 25</description>
+      <link>https://www.chicagobears.com/news/bears-training-camp-report-tuesday-aug-25</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-68df3cfb1098a9d8524f</guid>
+      <pubDate>Wed, 26 Aug 2026 02:14:11 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
 
     <item>
       <title>Bears Camp Report: Darnell Wright injured, Corners return, Jordan van den Berg with the ones, and more</title>
@@ -40,20 +50,20 @@
     </item>
 
     <item>
-      <title>The Good and Not So Good From Chicago Bears&apos; Final Public Practice of Training Camp</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Good and Not So Good From Chicago Bears&apos; Final Public Practice of Training Camp</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-good-and-not-so-good-from-chicago-bears-final-public-practice-of-training-camp</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d397d5b043704e5e29f6</guid>
+      <title>Ben Johnson Highlights Two Unsettled Chicago Bears Starting Competitions</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Highlights Two Unsettled Chicago Bears Starting Competitions</description>
+      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-highlights-two-unsettled-chicago-bears-starting-competitions</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-25333c6b879c29f049ee</guid>
       <pubDate>Tue, 25 Aug 2026 16:59:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Ben Johnson Highlights Two Unsettled Chicago Bears Starting Competitions</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Highlights Two Unsettled Chicago Bears Starting Competitions</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-highlights-two-unsettled-chicago-bears-starting-competitions</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-25333c6b879c29f049ee</guid>
+      <title>The Good and Not So Good From Chicago Bears&apos; Final Public Practice of Training Camp</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Good and Not So Good From Chicago Bears&apos; Final Public Practice of Training Camp</description>
+      <link>https://www.si.com/nfl/bears/onsi/the-good-and-not-so-good-from-chicago-bears-final-public-practice-of-training-camp</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d397d5b043704e5e29f6</guid>
       <pubDate>Tue, 25 Aug 2026 16:59:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
@@ -77,16 +87,6 @@
       <pubDate>Tue, 25 Aug 2026 16:48:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears LT competition still &apos;a hot spot,&apos; Ben Johnson says</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears LT competition still &apos;a hot spot,&apos; Ben Johnson says</description>
-      <link>https://www.espn.com/nfl/story/_/id/49725718/bears-lt-competition-hot-spot-ben-johnson-says</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-315fb4027d22014e2d2d</guid>
-      <pubDate>Tue, 25 Aug 2026 16:05:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
