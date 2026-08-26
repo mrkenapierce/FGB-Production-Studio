@@ -10,6 +10,7 @@ on:
 permissions:
   contents: write
 
+# Final source cleanup before deploying the compression-friendly EPIC crawl.
 jobs:
   finalize:
     runs-on: ubuntu-latest
