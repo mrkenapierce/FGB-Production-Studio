@@ -1,0 +1,32 @@
+name: Apply FGB Audio Headroom Repair v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-audio-headroom-v2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply repository patch
+        run: |
+          python3 services/fgbears-live/bin/patch-audio-headroom.py
+          python3 -m py_compile services/fgbears-live/bin/audio-health.py
+          python3 services/fgbears-live/bin/audio-health.py --self-test
+          git diff --check
+      - name: Commit repair
+        run: |
+          git config user.name 'FGB Production Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add services/fgbears-live/bin/start-stream.sh services/fgbears-live/bin/install.sh services/fgbears-live/bin/healthcheck.sh services/fgbears-live/config/stream.env.example .github/workflows/fgbears-live-validate.yml .github/workflows/fgbears-live-deploy.yml
+          git commit -m 'Add audio headroom and transport quality gates'
+          git push origin HEAD:main
