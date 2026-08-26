@@ -262,6 +262,12 @@ class State:
             speed_pps = float(fallback_pps)
         speed_pps = min(400.0, max(20.0, speed_pps * SPEED_SCALE))
         label = grapheme_slice(str(payload.get("label") or "EPIC LIVE"), 24)
+        trivia_mode = (
+            bool(payload.get("triviaActive"))
+            or str(payload.get("mode") or "").strip().casefold() == "trivia"
+            or str(payload.get("type") or "").strip().casefold() == "trivia"
+            or label.strip().casefold() == "trivia"
+        )
         message_parts: list[str] = []
         raw_messages = payload.get("messages")
         if isinstance(raw_messages, list):
@@ -285,7 +291,11 @@ class State:
         else:
             message = grapheme_slice(str(payload.get("message") or ""), 600)
         message = grapheme_slice(message, 3200)
-        message_count = len(message_parts) if message_parts else (1 if message else 0)
+        if trivia_mode:
+            # Trivia questions belong only in the dedicated trivia/QR overlay.
+            # The lower crawl remains present as a label-only "Trivia" lane.
+            message = ""
+        message_count = 0 if trivia_mode else (len(message_parts) if message_parts else (1 if message else 0))
         value = {
             "active": bool(payload.get("active")),
             "label": label,
@@ -295,7 +305,7 @@ class State:
             "speedPps": speed_pps,
             "updatedAt": str(payload.get("updatedAt") or ""),
         }
-        if value["active"] and message:
+        if value["active"] and (label or message):
             prime_emoji_cache(label, message)
         with self.lock:
             self.value = value
@@ -319,7 +329,7 @@ def atomic_text(path: Path, value: str) -> None:
 
 
 def publish_text(value: dict[str, Any]) -> None:
-    active = bool(value["active"] and value["message"])
+    active = bool(value["active"] and (value["label"] or value["message"]))
     label = value["label"].upper() if active else ""
     message = value["message"].upper().strip() if active else ""
     atomic_text(RUNTIME_DIR / "crawl-label.txt", label)
@@ -362,7 +372,7 @@ def frame() -> Image.Image:
     # Keep a single clean orange boundary between the label block and message lane.
     draw.rectangle((262, 15, 266, 122), fill=BEARS_ORANGE)
 
-    if not value["active"] or not value["message"]:
+    if not value["active"]:
         return image
 
     label = value["label"].upper()
@@ -370,6 +380,9 @@ def frame() -> Image.Image:
     label_x = 18 + max(0, (239 - label_width) // 2)
     label_y = 10 + (118 - label_line.height) // 2
     image.paste(label_line, (label_x, label_y), label_line)
+
+    if not value["message"]:
+        return image
 
     message = value["message"].upper().strip()
     message_line, text_width_px = rich_line(message, 31, True, 35)
