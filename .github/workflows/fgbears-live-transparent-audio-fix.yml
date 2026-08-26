@@ -20,6 +20,8 @@ jobs:
           fetch-depth: 0
       - name: Remove destructive live audio processing
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
           python3 -m pip install --quiet --disable-pip-version-check pillow
           python3 - <<'PY'
           from pathlib import Path
