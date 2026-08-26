@@ -1,0 +1,215 @@
+name: Decommission FGB Social Sidecars
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/decommission-fgb-social-sidecars.yml'
+
+permissions:
+  contents: write
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  decommission:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stop and remove X and Instagram runtime on Oracle
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          for platform in x instagram; do
+            for unit in relay.service start.service stop.service start.timer stop.timer; do
+              systemctl disable --now "fgbears-${platform}-${unit}" >/dev/null 2>&1 || true
+              systemctl stop "fgbears-${platform}-${unit}" >/dev/null 2>&1 || true
+              rm -f "/etc/systemd/system/fgbears-${platform}-${unit}"
+            done
+            rm -f "/usr/local/bin/fgbears-${platform}-relay" "/usr/local/bin/fgbears-configure-${platform}"
+          done
+          if [[ -f /etc/fgbears-live/stream.env ]]; then
+            sed -i -e '/^X_/d' -e '/^INSTAGRAM_/d' /etc/fgbears-live/stream.env
+            chown root:fgbears /etc/fgbears-live/stream.env
+            chmod 0640 /etc/fgbears-live/stream.env
+          fi
+          systemctl daemon-reload
+          systemctl reset-failed || true
+          if pgrep -af 'fgbears-x-relay|fgbears-instagram-relay|x-relay.sh|instagram-relay.sh' >/tmp/fgb-social-processes.txt; then
+            cat /tmp/fgb-social-processes.txt >&2
+            exit 1
+          fi
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          echo 'X and Instagram sidecar runtimes removed; FGB and YouTube relay remain active.'
+          REMOTE
+
+      - name: Convert production source to YouTube only
+        run: |
+          set -Eeuo pipefail
+
+          # Delete every workflow capable of activating or configuring the retired sidecars.
+          while IFS= read -r workflow; do
+            [[ "$workflow" == ".github/workflows/decommission-fgb-social-sidecars.yml" ]] && continue
+            git rm -f "$workflow"
+          done < <(grep -IlE 'X_RELAY_ENABLED|INSTAGRAM_RELAY_ENABLED|fgbears-x-relay|fgbears-instagram-relay|configure-x\.sh|configure-instagram\.sh' .github/workflows/*.yml || true)
+
+          git rm -f \
+            services/fgbears-live/bin/x-relay.sh \
+            services/fgbears-live/bin/instagram-relay.sh \
+            services/fgbears-live/bin/configure-x.sh \
+            services/fgbears-live/bin/configure-instagram.sh || true
+
+          git rm -f \
+            services/fgbears-live/systemd/fgbears-x-relay.service \
+            services/fgbears-live/systemd/fgbears-x-start.service \
+            services/fgbears-live/systemd/fgbears-x-stop.service \
+            services/fgbears-live/systemd/fgbears-x-start.timer \
+            services/fgbears-live/systemd/fgbears-x-stop.timer \
+            services/fgbears-live/systemd/fgbears-instagram-relay.service \
+            services/fgbears-live/systemd/fgbears-instagram-start.service \
+            services/fgbears-live/systemd/fgbears-instagram-stop.service \
+            services/fgbears-live/systemd/fgbears-instagram-start.timer \
+            services/fgbears-live/systemd/fgbears-instagram-stop.timer || true
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def read(path):
+              return Path(path).read_text(encoding='utf-8')
+
+          def write(path, text):
+              Path(path).write_text(text, encoding='utf-8')
+
+          # Primary encoder: one and only one transport target, YouTube.
+          path = 'services/fgbears-live/bin/start-stream.sh'
+          text = read(path)
+          text = re.sub(r'^: "\$\{(?:X|INSTAGRAM)_[A-Z0-9_]+.*\n', '', text, flags=re.M)
+          text = re.sub(
+              r'\ncase "\$\{X_STREAM_ENABLED,,\}" in\n.*?\n\[\[ "\$INSTAGRAM_LOCAL_UDP_URL" == udp://127\.0\.0\.1:\* \]\] \|\| \{\n.*?\n\}\n',
+              '\n', text, flags=re.S,
+          )
+          text = re.sub(
+              r'TEE_TARGETS="\[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore\]\$\{YOUTUBE_LOCAL_UDP_URL\}"\nOUTPUT_LABELS=.*?\nprintf \'FGBears Live output: %s\\n\' .*?\n',
+              'TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"\nprintf \'FGBears Live output: YouTube local UDP mirror only.\\n\'\n',
+              text, flags=re.S,
+          )
+          write(path, text)
+
+          # Installer: install only YouTube transport and permanently omit all social service/config machinery.
+          path = 'services/fgbears-live/bin/install.sh'
+          text = read(path)
+          text = '\n'.join(
+              line for line in text.splitlines()
+              if not any(token in line for token in (
+                  '/x-relay.sh', '/instagram-relay.sh', '/configure-x.sh', '/configure-instagram.sh',
+              ))
+          ) + '\n'
+          text = re.sub(r'for platform in x instagram; do\n.*?\ndone\n', '', text, flags=re.S)
+          text = text.replace(
+              '# Preserve credentials, migrate YouTube\'s internal handoff to connectionless\n# loopback MPEG-TS and keep the remaining social schedules independent of\n# the primary encoder.',
+              '# Preserve credentials and keep YouTube on its isolated connectionless\n# loopback MPEG-TS handoff.',
+          )
+          text = re.sub(r'\ndef truthy\(value\):\n.*?\n\n', '\n', text, flags=re.S)
+          text = re.sub(r'\nx_relay_enabled = .*?\ninstagram_relay_enabled = .*?\n', '\n', text, flags=re.S)
+          text = re.sub(r'^\s*"(?:X|INSTAGRAM)_[A-Z0-9_]+":.*\n', '', text, flags=re.M)
+          text = text.replace('"PODCAST_AUDIO_FILTER": "loudnorm=I=-14:LRA=11:TP=-1.5,aresample=48000:first_pts=0",', '"PODCAST_AUDIO_FILTER": "volume=-2dB,aresample=48000:first_pts=0",')
+          text = re.sub(
+              r'systemctl enable fgbears-youtube-relay\.service\n.*?# The YouTube relay remains',
+              'systemctl enable fgbears-youtube-relay.service\n\n# The YouTube relay remains',
+              text, flags=re.S,
+          )
+          text = text.replace(
+              'Installed FGBears Live with one primary encode, isolated YouTube UDP relay, and X/Instagram sidecars scheduled 09:00-17:00 America/Chicago.',
+              'Installed FGBears Live in YouTube-only mode with one primary encode and an isolated YouTube UDP relay.',
+          )
+          write(path, text)
+
+          # Health monitor: YouTube, encoder, audio, news, crawl and ads only.
+          path = 'services/fgbears-live/bin/healthcheck.sh'
+          text = read(path)
+          text = re.sub(r'\nreconcile_social_relay\(\) \{\n.*?\n\}\n', '\n', text, flags=re.S)
+          text = re.sub(r'^reconcile_social_relay (?:x X_RELAY_ENABLED|instagram INSTAGRAM_RELAY_ENABLED)\n', '', text, flags=re.M)
+          write(path, text)
+
+          # Status sampler: remove social window, sidecar state, sockets and warnings.
+          path = 'services/fgbears-live/bin/stream-status.sh'
+          text = read(path)
+          text = re.sub(r'^ENV_FILE=.*\n', '', text, flags=re.M)
+          text = re.sub(
+              r'\ncentral_hm=.*?\nif \(\( social_window == 1 \)\); then\n.*?\nfi\n',
+              '\n', text, flags=re.S,
+          )
+          text = re.sub(r'^printf \'SOCIAL_WINDOW_ACTIVE=.*?\n', '', text, flags=re.M)
+          text = re.sub(r'^printf \'X_ENABLED=.*?\n', '', text, flags=re.M)
+          text = re.sub(r'^printf \'INSTAGRAM_ENABLED=.*?\n', '', text, flags=re.M)
+          write(path, text)
+
+          # Environment template contains no retired social credentials or outputs.
+          path = 'services/fgbears-live/config/stream.env.example'
+          lines = [
+              line for line in read(path).splitlines()
+              if not line.startswith('X_') and not line.startswith('INSTAGRAM_')
+          ]
+          text = '\n'.join(lines) + '\n'
+          text = text.replace('Never commit an actual YouTube, X, or Instagram stream key.', 'Never commit an actual YouTube stream key.')
+          write(path, text)
+
+          # Validation explicitly locks production to YouTube-only.
+          path = 'services/fgbears-live/tests/test-multistream.sh'
+          write(path, '''#!/usr/bin/env bash\nset -Eeuo pipefail\nROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)\nTMP=$(mktemp -d)\ntrap 'rm -rf "$TMP"' EXIT\n\nfor script in "$ROOT/bin/start-stream.sh" "$ROOT/bin/youtube-relay.sh" "$ROOT/bin/install.sh" "$ROOT/bin/healthcheck.sh" "$ROOT/bin/stream-status.sh"; do\n  bash -n "$script"\ndone\n\nfor retired in \\\n  "$ROOT/bin/x-relay.sh" "$ROOT/bin/instagram-relay.sh" \\\n  "$ROOT/bin/configure-x.sh" "$ROOT/bin/configure-instagram.sh" \\\n  "$ROOT/systemd/fgbears-x-relay.service" "$ROOT/systemd/fgbears-x-start.timer" "$ROOT/systemd/fgbears-x-stop.timer" \\\n  "$ROOT/systemd/fgbears-instagram-relay.service" "$ROOT/systemd/fgbears-instagram-start.timer" "$ROOT/systemd/fgbears-instagram-stop.timer" \\\n  "$ROOT/bin/facebook-relay.sh" "$ROOT/bin/configure-facebook.sh"; do\n  test ! -e "$retired"\ndone\n\nif grep -R -nE 'FACEBOOK_|X_RELAY_ENABLED|X_LOCAL_UDP_URL|X_STREAM_ENABLED|INSTAGRAM_|fgbears-(x|instagram|facebook)|[Xx] local mirror|Instagram local mirror' "$ROOT/bin" "$ROOT/config" "$ROOT/systemd"; then\n  echo 'Retired social simulcast protocol remains in active FGB livestream code.' >&2\n  exit 1\nfi\n\ngrep -Fq 'YOUTUBE_LOCAL_UDP_URL' "$ROOT/bin/start-stream.sh"\ngrep -Fq 'TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"' "$ROOT/bin/start-stream.sh"\ngrep -Fq 'YouTube local UDP mirror only' "$ROOT/bin/start-stream.sh"\n\nif command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null; then\n  ffmpeg -hide_banner -loglevel error \\\n    -f lavfi -i testsrc2=size=320x180:rate=24 \\\n    -f lavfi -i sine=frequency=440:sample_rate=48000 \\\n    -t 0.5 -map 0:v -map 1:a \\\n    -c:v libx264 -preset ultrafast -g 48 -c:a aac -b:a 128k \\\n    -f tee -use_fifo 1 -fifo_options 'attempt_recovery=1:recover_any_error=1:recovery_wait_time=1' \\\n    "[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/youtube-local.ts"\n  test -s "$TMP/youtube-local.ts"\n  ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1 "$TMP/youtube-local.ts" | grep -q '^codec_name=aac$'\n  ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=nw=1 "$TMP/youtube-local.ts" | grep -q '^codec_name=h264$'\nfi\n\necho 'FGBears transport is locked to YouTube only.'\n''')
+
+          # Deployment status must no longer advertise any social simulcast capability.
+          path = '.github/workflows/fgbears-live-deploy.yml'
+          if Path(path).exists():
+              text = read(path)
+              text = text.replace(',xSimulcastCapable:true,xAccountHandle:"@epic501c3"', '')
+              write(path, text)
+
+          for path in (
+              'services/fgbears-live/bin/start-stream.sh',
+              'services/fgbears-live/bin/install.sh',
+              'services/fgbears-live/bin/healthcheck.sh',
+              'services/fgbears-live/bin/stream-status.sh',
+              'services/fgbears-live/config/stream.env.example',
+          ):
+              text = read(path)
+              if re.search(r'FACEBOOK_|X_RELAY_ENABLED|X_LOCAL_UDP_URL|X_STREAM_ENABLED|INSTAGRAM_|fgbears-(?:x|instagram|facebook)', text):
+                  raise SystemExit(f'Retired social protocol reference remains in {path}')
+          PY
+
+          git rm -f .github/workflows/decommission-fgb-social-sidecars.yml
+          bash -n services/fgbears-live/bin/start-stream.sh
+          bash -n services/fgbears-live/bin/install.sh
+          bash -n services/fgbears-live/bin/healthcheck.sh
+          bash -n services/fgbears-live/bin/stream-status.sh
+          bash services/fgbears-live/tests/test-multistream.sh
+          git diff --check
+
+      - name: Commit YouTube-only architecture
+        run: |
+          git config user.name 'FGB Production Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'Decommission X and Instagram simulcast'
+          git push origin HEAD:main
