@@ -320,7 +320,7 @@ def atomic_text(path: Path, value: str) -> None:
 def publish_text(value: dict[str, Any]) -> None:
     active = bool(value["active"] and value["message"])
     label = value["label"].upper() if active else ""
-    message = " ".join(value["message"].upper().split()) if active else ""
+    message = value["message"].upper().strip() if active else ""
     atomic_text(RUNTIME_DIR / "crawl-label.txt", label)
     atomic_text(RUNTIME_DIR / "crawl-message.txt", message)
     atomic_text(RUNTIME_DIR / "crawl-active", "1" if active else "0")
@@ -370,7 +370,7 @@ def frame() -> Image.Image:
     label_y = 10 + (118 - label_line.height) // 2
     image.paste(label_line, (label_x, label_y), label_line)
 
-    message = " ".join(value["message"].upper().split())
+    message = value["message"].upper().strip()
     message_line, text_width_px = rich_line(message, 31, True, 35)
     viewport_start = 267
     viewport_top = 15
