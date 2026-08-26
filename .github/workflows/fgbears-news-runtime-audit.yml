@@ -1,5 +1,5 @@
 name: Audit FGBears News Runtime
-# Runtime verification after RSS cache-bypass deployment.
+# Runtime verification after seamless clipping/full-headline deployment.
 
 on:
   workflow_dispatch:
@@ -53,9 +53,12 @@ jobs:
             printf "service=%s\n" "$service"
             printf "active=%s\n" "$active"
             printf "label=%s\n" "$label"
+            printf "message_chars=%s\n" "${#headline}"
             printf "headline=%s\n" "$headline"
             test "$service" = active
             test -n "$label"
             test -n "$headline"
             test "$active" = 1
+            grep -Fq "HOW TO WATCH, LISTEN TO, STREAM BEARS-TITANS PRESEASON WEEK 3 GAME" <<< "$headline"
+            grep -Fq "PREDICTING BEARS' WEEK 1 STARTING LINEUP AFTER PRESEASON WEEK 2 AND NEW TRADE RUMOR" <<< "$headline"
           '
