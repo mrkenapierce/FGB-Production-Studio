@@ -1,4 +1,4 @@
-# Progress sample: status check 2026-08-26T23:latest
+# Progress sample: inventory check for 32-episode library
 name: Diagnose FGB Audio Migration Preflight
 
 on:
@@ -48,6 +48,16 @@ jobs:
           marker_count=$(find /srv/fgbears-live/media -maxdepth 1 -type f -name '*.mp4.audio-profile.json' | wc -l | tr -d ' ')
           echo "media_count=$media_count"
           echo "profile_marker_count=$marker_count"
+          echo '=== production MP4 inventory ==='
+          find /srv/fgbears-live/media -maxdepth 1 -type f -name '*.mp4' -printf '%f\n' | sort -V
+          echo '=== expected episode gaps 01-32 ==='
+          for n in $(seq -w 1 32); do
+            if ! find /srv/fgbears-live/media -maxdepth 1 -type f -name "*Episode-${n}.mp4" -print -quit | grep -q .; then
+              echo "MISSING_EPISODE=$n"
+            fi
+          done
+          echo '=== playlist episode entries ==='
+          sed -n "s#^file '/srv/fgbears-live/media/\(.*\.mp4\)'#\1#p" /srv/fgbears-live/playlist.ffconcat | sort -V || true
           echo '=== cpu headroom ==='
           echo "nproc=$(nproc)"
           uptime
