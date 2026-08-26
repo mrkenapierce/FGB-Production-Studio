@@ -35,7 +35,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'curl -fsS http://127.0.0.1:8788/frame.png' > crawl-frame.png
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'curl -fsS http://127.0.0.1:8788/healthz' > crawl-health.json
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'printf "LABEL="; cat /srv/fgbears-live/runtime/crawl-label.txt; printf "MESSAGE="; cat /srv/fgbears-live/runtime/crawl-message.txt' > crawl-state.txt
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'printf "LABEL="; sudo cat /srv/fgbears-live/runtime/crawl-label.txt; printf "MESSAGE="; sudo cat /srv/fgbears-live/runtime/crawl-message.txt' > crawl-state.txt
           file crawl-frame.png
           cat crawl-health.json
           cat crawl-state.txt
