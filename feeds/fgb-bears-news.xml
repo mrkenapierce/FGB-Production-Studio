@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 26 Aug 2026 14:03:53 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 26 Aug 2026 15:00:47 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears and CDW open nominations for 2026 Classroom Legends program</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears and CDW open nominations for 2026 Classroom Legends program</description>
+      <link>https://www.chicagobears.com/news/chicago-bears-and-cdw-open-nominations-for-2026-classroom-legends-program</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2ab8426c88bf547bde62</guid>
+      <pubDate>Wed, 26 Aug 2026 15:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
 
     <item>
       <title>The Chicago Bears’ left tackle battle may have gotten a little weirder</title>
@@ -20,11 +30,11 @@
     </item>
 
     <item>
-      <title>Ben Johnson had the best reaction to Bears’ new &apos;Rivalries&apos; uniforms</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ben Johnson had the best reaction to Bears’ new &apos;Rivalries&apos; uniforms</description>
-      <link>https://sports.yahoo.com/articles/ben-johnson-had-best-reaction-133218082.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-42262f6ebd06dfc2c407</guid>
-      <pubDate>Wed, 26 Aug 2026 06:32:00 GMT</pubDate>
+      <title>Bears insider shares injury update on RT Darnell Wright</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears insider shares injury update on RT Darnell Wright</description>
+      <link>https://sports.yahoo.com/articles/bears-insider-shares-injury-rt-140010396.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-319528211825d9cc00b9</guid>
+      <pubDate>Wed, 26 Aug 2026 07:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -40,6 +50,16 @@
     </item>
 
     <item>
+      <title>The Bears&apos; Problem Position Most Likely to Be Targeted in Trade</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Bears&apos; Problem Position Most Likely to Be Targeted in Trade</description>
+      <link>https://www.si.com/nfl/bears/onsi/two-bears-positions-concern-ben-johnson-most-as-preseason-winds-down</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6e537fc315cbc5558af4</guid>
+      <pubDate>Wed, 26 Aug 2026 04:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>Bears training camp report: Tuesday, Aug. 25</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears training camp report: Tuesday, Aug. 25</description>
       <link>https://www.chicagobears.com/news/bears-training-camp-report-tuesday-aug-25</link>
@@ -47,26 +67,6 @@
       <pubDate>Wed, 26 Aug 2026 02:14:11 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears announce roster moves</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears announce roster moves</description>
-      <link>https://www.chicagobears.com/news/chicago-bears-announce-roster-moves-august-25-2026</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-786d3fadfe39dd9794b4</guid>
-      <pubDate>Tue, 25 Aug 2026 18:08:12 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>The Good and Not So Good From Chicago Bears&apos; Final Public Practice of Training Camp</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Good and Not So Good From Chicago Bears&apos; Final Public Practice of Training Camp</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-good-and-not-so-good-from-chicago-bears-final-public-practice-of-training-camp</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d397d5b043704e5e29f6</guid>
-      <pubDate>Tue, 25 Aug 2026 16:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
