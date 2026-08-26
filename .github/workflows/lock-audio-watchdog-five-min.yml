@@ -1,0 +1,79 @@
+name: Lock FGB Audio Watchdog to Five Minutes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/lock-audio-watchdog-five-min.yml'
+
+permissions:
+  contents: write
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Make watchdog source YouTube-only and five-minute
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('services/fgbears-live/bin/healthcheck.sh')
+          s = p.read_text()
+          s = s.replace('AUDIO_HEALTH_INTERVAL_SECONDS=${FGB_AUDIO_HEALTH_INTERVAL_SECONDS:-900}',
+                        'AUDIO_HEALTH_INTERVAL_SECONDS=${FGB_AUDIO_HEALTH_INTERVAL_SECONDS:-300}')
+          marker = 'reconcile_social_relay() {'
+          if marker in s:
+              start = s.index(marker)
+              end = s.index('# News scanning is independent of encoder health.', start)
+              s = s[:start] + s[end:]
+          s = s.replace('reconcile_social_relay x X_RELAY_ENABLED\n', '')
+          s = s.replace('reconcile_social_relay instagram INSTAGRAM_RELAY_ENABLED\n', '')
+          p.write_text(s)
+          PY
+          grep -q 'AUDIO_HEALTH_INTERVAL_SECONDS=${FGB_AUDIO_HEALTH_INTERVAL_SECONDS:-300}' services/fgbears-live/bin/healthcheck.sh
+          ! grep -Eq 'reconcile_social_relay|X_RELAY_ENABLED|INSTAGRAM_RELAY_ENABLED' services/fgbears-live/bin/healthcheck.sh
+          git diff --check
+      - name: Commit source guard without triggering a production reinstall
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add services/fgbears-live/bin/healthcheck.sh
+          if ! git diff --cached --quiet; then
+            git commit -m 'Run exact FGB audio watchdog every five minutes [skip ci]'
+            git push origin HEAD:main
+          fi
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Install watchdog only; do not restart encoder
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/healthcheck.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-healthcheck"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          sudo install -m 0755 /tmp/fgbears-healthcheck /usr/local/bin/fgbears-healthcheck
+          rm -f /tmp/fgbears-healthcheck
+          grep -q 'AUDIO_HEALTH_INTERVAL_SECONDS=${FGB_AUDIO_HEALTH_INTERVAL_SECONDS:-300}' /usr/local/bin/fgbears-healthcheck
+          ! grep -Eq 'reconcile_social_relay|X_RELAY_ENABLED|INSTAGRAM_RELAY_ENABLED' /usr/local/bin/fgbears-healthcheck
+          systemctl is-enabled --quiet fgbears-live-health.timer
+          systemctl is-active --quiet fgbears-live-health.timer
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          echo AUDIO_WATCHDOG_FIVE_MINUTES=SUCCESS
+          REMOTE
