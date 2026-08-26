@@ -124,11 +124,6 @@ instagram_relay_enabled = values.get("INSTAGRAM_RELAY_ENABLED", "0")
 updates = {
     "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
-    "OUTPUT_FPS": "30",
-    "VIDEO_GOP": "60",
-    "DRAWTEXT_RELOAD_FRAMES": "30",
-    "AD_OVERLAY_FPS": "30",
-    "CRAWL_OVERLAY_FPS": "30",
     "X_STREAM_ENABLED": "0",
     "X_RELAY_ENABLED": x_relay_enabled,
     "X_LOCAL_UDP_URL": "udp://127.0.0.1:1937?pkt_size=1316",
