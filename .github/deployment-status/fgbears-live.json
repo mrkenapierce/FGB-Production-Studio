@@ -1,8 +1,8 @@
 {
   "ok": true,
-  "deployedSha": "c3b70b738d5c16ccf63478f791d16878ef11129a",
-  "runId": "32955354163",
-  "checkedAt": "2026-08-26T09:53:44Z",
+  "deployedSha": "1e9fe13b842c6f37c1f122a6937a8650187e6633",
+  "runId": "32956019094",
+  "checkedAt": "2026-08-26T10:01:19Z",
   "jobStatus": "success",
   "installOutcome": "success",
   "crawlHealthOutcome": "success",
@@ -15,6 +15,8 @@
   "service": "fgbears-live.service",
   "youtubeRelayService": "fgbears-youtube-relay.service",
   "expectedServiceState": "active",
+  "programClockMinRealtimeRatio": 0.95,
+  "programClockZeroDroppedFramesRequired": true,
   "emojiRenderer": "twemoji-png",
   "emojiSelfTest": [
     "🐻",
