@@ -41,7 +41,7 @@ if [[ $has_audio -eq 1 ]]; then
     -vf "$VIDEO_FILTER" \
     "${COMMON_VIDEO[@]}" \
     "${COMMON_AUDIO[@]}" \
-    -af 'aresample=async=1:first_pts=0' \
+    -af 'aresample=48000:first_pts=0' \
     -shortest -movflags +faststart -map_metadata -1 \
     "$TMP_OUTPUT"
 else
