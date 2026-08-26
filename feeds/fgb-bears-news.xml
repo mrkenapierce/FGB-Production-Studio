@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 26 Aug 2026 20:21:57 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 26 Aug 2026 23:51:20 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -30,13 +30,43 @@
     </item>
 
     <item>
-      <title>2026 NFC North Season Forecast: Chicago Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 2026 NFC North Season Forecast: Chicago Bears</description>
-      <link>https://sports.yahoo.com/articles/2026-nfc-north-season-forecast-180105427.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2953b20da1c94754b55d</guid>
-      <pubDate>Wed, 26 Aug 2026 18:01:05 GMT</pubDate>
+      <title>Pinpointing Two Potential Bears Bubble Players and How They Keep a Job</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Pinpointing Two Potential Bears Bubble Players and How They Keep a Job</description>
+      <link>https://www.si.com/nfl/bears/onsi/pinpointing-two-potential-bears-bubble-players-and-how-they-keep-a-job</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0dc7e0b5ba54075f6f13</guid>
+      <pubDate>Wed, 26 Aug 2026 15:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears Trade Pitch Swaps Gervon Dexter for $64 Million All-Pro Safety</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Trade Pitch Swaps Gervon Dexter for $64 Million All-Pro Safety</description>
+      <link>https://sports.yahoo.com/articles/bears-trade-pitch-swaps-gervon-213158841.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-15ea3ff46629afe91579</guid>
+      <pubDate>Wed, 26 Aug 2026 14:31:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>5 Gervon Dexter Trade Landing Spots After Chicago Bears Rumors Ignite</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 5 Gervon Dexter Trade Landing Spots After Chicago Bears Rumors Ignite</description>
+      <link>https://sports.yahoo.com/articles/5-gervon-dexter-trade-landing-212459470.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-10eedd807c986582ef3a</guid>
+      <pubDate>Wed, 26 Aug 2026 14:24:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears get encouraging injury news on Darnell Wright, Luther Burden III</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears get encouraging injury news on Darnell Wright, Luther Burden III</description>
+      <link>https://www.nytimes.com/athletic/7541138/2026/08/26/bears-injury-news-wright-burden/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-262805b5fa20edaaa44e</guid>
+      <pubDate>Wed, 26 Aug 2026 13:04:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -47,36 +77,6 @@
       <pubDate>Wed, 26 Aug 2026 12:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears&apos; top wide receiver returns to practice</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears&apos; top wide receiver returns to practice</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-top-wide-receiver-190514232.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-23b804740242ba014160</guid>
-      <pubDate>Wed, 26 Aug 2026 12:04:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>How the Bears Can Buck Every Trend in 2026 and Get to the Super Bowl</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: How the Bears Can Buck Every Trend in 2026 and Get to the Super Bowl</description>
-      <link>https://www.si.com/nfl/bears/onsi/how-the-bears-can-buck-every-trend-in-2026-and-get-to-the-super-bowl</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-590289a120722920fd55</guid>
-      <pubDate>Wed, 26 Aug 2026 11:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears LT competition still &apos;a hot spot,&apos; Ben Johnson says</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears LT competition still &apos;a hot spot,&apos; Ben Johnson says</description>
-      <link>https://www.espn.com/nfl/story/_/id/49725718/bears-lt-competition-hot-spot-ben-johnson-says</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-315fb4027d22014e2d2d</guid>
-      <pubDate>Tue, 25 Aug 2026 16:05:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
