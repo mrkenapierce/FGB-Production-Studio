@@ -1,4 +1,5 @@
 name: Verify EPIC Crawl Fidelity Runtime
+# Re-run after trivia label-only crawl deployment.
 
 on:
   push:
