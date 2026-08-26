@@ -28,7 +28,7 @@ grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${AD_OVERLAY_PORT}/overlay.mjpg"' "$
 grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-preset ultrafast' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-progress pipe:3' "$ROOT/bin/start-stream.sh"
-grep -Fq 'PODCAST_AUDIO_FILTER:=aresample=48000:first_pts=0' "$ROOT/bin/start-stream.sh"
+grep -Fq 'PODCAST_AUDIO_FILTER:=volume=-2dB,aresample=48000:first_pts=0' "$ROOT/bin/start-stream.sh"
 if grep -Eq 'PODCAST_AUDIO_FILTER:=.*(highpass=|acompressor=|loudnorm=|afftdn=|deesser=|equalizer=|async=1)' "$ROOT/bin/start-stream.sh"; then
   echo 'The production live chain must preserve mastered episode audio without destructive DSP or async time-stretching.' >&2
   exit 1
