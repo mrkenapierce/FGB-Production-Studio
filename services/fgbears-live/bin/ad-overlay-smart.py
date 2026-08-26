@@ -15,6 +15,7 @@ creates a second FFmpeg input or stream path; when inactive it is a no-op.
 from __future__ import annotations
 
 import importlib.util
+import os
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,12 @@ if spec is None or spec.loader is None:
     raise RuntimeError(f"Unable to load base ad renderer: {BASE_RENDERER}")
 BASE: Any = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(BASE)
+
+# The base renderer historically emitted a fixed 25 fps MJPEG clock. Production
+# FFmpeg now runs at 30 fps, and Oracle carries AD_OVERLAY_FPS alongside the
+# FFmpeg input rate. Keep both sides on exactly the same clock so the full-screen
+# ad/trivia input cannot throttle the entire program to 25/30 real-time speed.
+BASE.FPS = max(1, int(os.getenv("AD_OVERLAY_FPS", "25")))
 
 
 def fit_image_to_panel(creative: Image.Image, size: tuple[int, int]) -> Image.Image:
