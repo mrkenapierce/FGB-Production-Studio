@@ -1,3 +1,3 @@
-2026-08-26T10:22:30Z
-Reason: deploy higher-fidelity crawl MJPEG transport after visible localized pixelation.
-Expected: crawl renderer JPEG quality 96 with 4:4:4 chroma, crawl remains 15fps; preserve stream cadence, trivia, ads, audio, and current YouTube URL.
+2026-08-26T11:07:00Z
+Reason: deploy fixed audio headroom and recurring outbound-audio quality monitoring after live transport measured peaks at 0 dBFS.
+Expected: PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0; exact YouTube-bound AAC remains 48k stereo with no PTS gaps/regressions; recurring audio quality monitor active every 15 minutes; preserve 30fps final video, 15fps overlays, trivia, ads, crawl, and current YouTube URL.
