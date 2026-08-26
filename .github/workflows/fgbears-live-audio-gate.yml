@@ -42,7 +42,7 @@ jobs:
           set -Eeuo pipefail
           echo '--- effective audio configuration ---'
           sudo grep -E '^PODCAST_AUDIO_FILTER=' /etc/fgbears-live/stream.env
-          grep -q '^PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0$' /etc/fgbears-live/stream.env
+          sudo grep -q '^PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0$' /etc/fgbears-live/stream.env
           test -x /usr/local/bin/fgbears-audio-health
           echo '--- exact YouTube-bound audio quality ---'
           sudo /usr/local/bin/fgbears-audio-health --capture-seconds 12
