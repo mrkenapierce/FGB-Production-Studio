@@ -1,6 +1,5 @@
 name: Deploy FGBears Live
-# Deploy restart-safe social codec headers on 2026-08-21.
-# Reconcile social automation deployment on 2026-08-21.
+# Production deploy and end-to-end verification for the isolated live transport.
 
 on:
   workflow_dispatch:
@@ -89,7 +88,6 @@ jobs:
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
             set -Eeuo pipefail
             test "$(systemctl is-active fgbears-live.service)" = "active"
-            test "$(systemctl is-active fgbears-youtube-relay.service)" = "active"
             crawl_health=$(curl --silent --fail --max-time 3 http://127.0.0.1:8788/healthz)
             printf "%s\n" "$crawl_health"
             printf "%s" "$crawl_health" | jq -e ".ok == true and .emojiRenderer == \"twemoji-png\"" >/dev/null
@@ -128,10 +126,15 @@ jobs:
             grep -Fq "http://127.0.0.1:8788/overlay.mjpg" "$encoder_args"
             grep -Fxq "tee" "$encoder_args"
             grep -Fxq "128k" "$encoder_args"
-            grep -Fq "rtmp://127.0.0.1:1935/live/" "$encoder_args"
+            grep -Fq "udp://127.0.0.1:1939?pkt_size=1316" "$encoder_args"
+            if grep -Fq "rtmp://127.0.0.1:1935" "$encoder_args"; then
+              echo "Primary encoder still depends on retired local RTMP transport." >&2
+              exit 1
+            fi
+            grep -Fq "udp://127.0.0.1:1939?fifo_size=1000000" "$relay_args"
             grep -Fxq "copy" "$relay_args"
             grep -Fq "rtmps://a.rtmps.youtube.com/live2/" "$relay_args"
-            echo "FFmpeg transport verified: one primary encode, local RTMP YouTube hop, copy-remux relay, AAC 128k."
+            echo "FFmpeg transport verified: one primary encode, local MPEG-TS/UDP YouTube mirror, copy-remux relay, AAC 128k."
           '
 
       - id: youtube_relay_socket
@@ -161,6 +164,29 @@ jobs:
           rm -f /tmp/fgbears-relay-sockets.txt /tmp/fgbears-youtube-ips.txt
           echo 'YouTube remux relay did not establish RTMPS within the verification window.' >&2
           exit 1
+          REMOTE
+
+      - id: program_clock
+        name: Verify live program clock is advancing
+        if: always() && steps.youtube_relay_socket.outcome == 'success'
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          for _ in $(seq 1 20); do
+            first=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n 1)
+            [[ "$first" =~ ^[0-9]+$ ]] && break
+            sleep 1
+          done
+          [[ "$first" =~ ^[0-9]+$ ]]
+          sleep 5
+          second=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n 1)
+          [[ "$second" =~ ^[0-9]+$ ]]
+          delta=$((second - first))
+          echo "Program clock advanced ${delta} microseconds in 5 seconds."
+          (( delta >= 4000000 ))
           REMOTE
 
       - id: crawl_frame
@@ -197,6 +223,7 @@ jobs:
           EMOJI_ASSETS_OUTCOME: ${{ steps.emoji_assets.outcome }}
           FFMPEG_TRANSPORT_OUTCOME: ${{ steps.ffmpeg_transport.outcome }}
           YOUTUBE_RELAY_OUTCOME: ${{ steps.youtube_relay_socket.outcome }}
+          PROGRAM_CLOCK_OUTCOME: ${{ steps.program_clock.outcome }}
           CRAWL_FRAME_OUTCOME: ${{ steps.crawl_frame.outcome }}
           ADS_OUTCOME: ${{ steps.ads_verify.outcome }}
           JOB_STATUS: ${{ job.status }}
@@ -205,7 +232,7 @@ jobs:
           git checkout -B main origin/main
           mkdir -p .github/deployment-status
           ok=false
-          if [[ "$INSTALL_OUTCOME" == "success" && "$CRAWL_HEALTH_OUTCOME" == "success" && "$EMOJI_ASSETS_OUTCOME" == "success" && "$FFMPEG_TRANSPORT_OUTCOME" == "success" && "$YOUTUBE_RELAY_OUTCOME" == "success" && "$CRAWL_FRAME_OUTCOME" == "success" && "$ADS_OUTCOME" == "success" ]]; then
+          if [[ "$INSTALL_OUTCOME" == "success" && "$CRAWL_HEALTH_OUTCOME" == "success" && "$EMOJI_ASSETS_OUTCOME" == "success" && "$FFMPEG_TRANSPORT_OUTCOME" == "success" && "$YOUTUBE_RELAY_OUTCOME" == "success" && "$PROGRAM_CLOCK_OUTCOME" == "success" && "$CRAWL_FRAME_OUTCOME" == "success" && "$ADS_OUTCOME" == "success" ]]; then
             ok=true
           fi
           jq -n \
@@ -219,9 +246,10 @@ jobs:
             --arg emojiAssetsOutcome "$EMOJI_ASSETS_OUTCOME" \
             --arg ffmpegTransportOutcome "$FFMPEG_TRANSPORT_OUTCOME" \
             --arg youtubeRelayOutcome "$YOUTUBE_RELAY_OUTCOME" \
+            --arg programClockOutcome "$PROGRAM_CLOCK_OUTCOME" \
             --arg crawlFrameOutcome "$CRAWL_FRAME_OUTCOME" \
             --arg adsOutcome "$ADS_OUTCOME" \
-            '{ok:$ok,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,crawlHealthOutcome:$crawlHealthOutcome,emojiAssetsOutcome:$emojiAssetsOutcome,ffmpegTransportOutcome:$ffmpegTransportOutcome,youtubeRelayOutcome:$youtubeRelayOutcome,crawlFrameOutcome:$crawlFrameOutcome,adsOutcome:$adsOutcome,service:"fgbears-live.service",youtubeRelayService:"fgbears-youtube-relay.service",expectedServiceState:"active",emojiRenderer:"twemoji-png",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg",transport:"ffmpeg-tee-local-rtmp+youtube-copy-remux",audioBitrateKbps:128,xSimulcastCapable:true,xAccountHandle:"@epic501c3"}' \
+            '{ok:$ok,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,crawlHealthOutcome:$crawlHealthOutcome,emojiAssetsOutcome:$emojiAssetsOutcome,ffmpegTransportOutcome:$ffmpegTransportOutcome,youtubeRelayOutcome:$youtubeRelayOutcome,programClockOutcome:$programClockOutcome,crawlFrameOutcome:$crawlFrameOutcome,adsOutcome:$adsOutcome,service:"fgbears-live.service",youtubeRelayService:"fgbears-youtube-relay.service",expectedServiceState:"active",emojiRenderer:"twemoji-png",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg",transport:"ffmpeg-tee-local-mpegts-udp+youtube-copy-remux",audioBitrateKbps:128,xSimulcastCapable:true,xAccountHandle:"@epic501c3"}' \
             > .github/deployment-status/fgbears-live.json
           git config user.name "FGBears Deploy Bot"
           git config user.email "actions@github.com"
