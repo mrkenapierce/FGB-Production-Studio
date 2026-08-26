@@ -9,7 +9,7 @@ ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 source "$ENV_FILE"
 
 : "${YOUTUBE_STREAM_KEY:?YOUTUBE_STREAM_KEY is required}"
-: "${YOUTUBE_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"
+: "${YOUTUBE_LOCAL_UDP_URL:=udp://127.0.0.1:1939?pkt_size=1316}"
 : "${X_STREAM_ENABLED:=0}"
 : "${X_RELAY_ENABLED:=0}"
 : "${X_LOCAL_UDP_URL:=udp://127.0.0.1:1937?pkt_size=1316}"
@@ -44,6 +44,11 @@ source "$ENV_FILE"
 [[ -r "$AD_OVERLAY_SCRIPT" ]] || { echo "Ad overlay renderer is missing: $AD_OVERLAY_SCRIPT" >&2; exit 66; }
 [[ -r "$CRAWL_OVERLAY_SCRIPT" ]] || { echo "Crawl overlay renderer is missing: $CRAWL_OVERLAY_SCRIPT" >&2; exit 66; }
 [[ -r "$BEARS_NEWS_SCRIPT" ]] || { echo "Bears news feed poller is missing: $BEARS_NEWS_SCRIPT" >&2; exit 66; }
+
+[[ "$YOUTUBE_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
+  echo "YOUTUBE_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
+  exit 78
+}
 
 case "${X_STREAM_ENABLED,,}" in
   1|true|yes|on)
@@ -83,15 +88,15 @@ esac
   exit 78
 }
 
-YOUTUBE_TARGET="${YOUTUBE_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
-# The YouTube destination is a dedicated loopback relay. Facebook never touches
-# that relay; the primary encoder emits a second local MPEG-TS copy over UDP.
-TEE_TARGETS="[f=flv:flvflags=no_duration_filesize:onfail=ignore]${YOUTUBE_TARGET}"
-OUTPUT_LABELS=("YouTube local relay")
+# YouTube is isolated from the primary encoder by a connectionless loopback
+# MPEG-TS mirror. Repeated transport headers and H.264 extradata at keyframes
+# let a restarted relay join midstream without forcing the encoder to restart.
+TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"
+OUTPUT_LABELS=("YouTube local UDP mirror")
 
 # X is isolated from the primary encoder. The primary process always emits
 # the already-encoded program to loopback UDP mirrors; scheduled sidecars
-# owns the protected X credential and can start/stop without touching YouTube.
+# own the protected X credential and can start/stop without touching YouTube.
 TEE_TARGETS+="|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${X_LOCAL_UDP_URL}"
 OUTPUT_LABELS+=("X local mirror")
 
@@ -197,15 +202,15 @@ FFMPEG_PID=""
 
 # Keep one primary live video clock from the ad renderer. The crawl renderer is
 # consumed as its own small MJPEG lane so emoji can be composited as images.
-# The finished program is encoded once; packet copies feed YouTube, X and the
-# always-safe localhost Facebook mirror.
+# The finished program is encoded once; connectionless packet copies feed the
+# isolated YouTube, X, Facebook, and Instagram relays.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
   -re -stream_loop -1 -fflags +genpts \
   -f concat -safe 0 -i "$PLAYLIST_FILE" \
-  -fflags +genpts -r "$AD_OVERLAY_FPS" -f mpjpeg -i "http://127.0.0.1:${AD_OVERLAY_PORT}/overlay.mjpg" \
-  -fflags +genpts -r "$CRAWL_OVERLAY_FPS" -f mpjpeg -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.mjpg" \
+  -thread_queue_size 64 -fflags +genpts -r "$AD_OVERLAY_FPS" -f mpjpeg -i "http://127.0.0.1:${AD_OVERLAY_PORT}/overlay.mjpg" \
+  -thread_queue_size 64 -fflags +genpts -r "$CRAWL_OVERLAY_FPS" -f mpjpeg -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.mjpg" \
   -filter_complex "[1:v]split=2[base0][news0];[news0]crop=w=990:h=68:x=267:y=23,drawbox=x=0:y=0:w=990:h=68:color=0x07101F@0.98:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/bears-news-message.txt:reload=$DRAWTEXT_RELOAD_FRAMES:expansion=none:fontcolor=white:fontsize=25:x=990-mod(t*$BEARS_NEWS_SCROLL_PPS\,text_w+990):y=(h-text_h)/2[newslane];[base0]drawbox=x=7:y=7:w=1266:h=97:color=0x0B162A:t=fill,drawbox=x=18:y=18:w=1244:h=78:color=0x07101F@0.98:t=fill,drawbox=x=18:y=18:w=244:h=78:color=0xC83803:t=fill,drawbox=x=18:y=18:w=1244:h=5:color=0xC83803:t=fill,drawbox=x=18:y=91:w=1244:h=5:color=0xC83803:t=fill,drawbox=x=18:y=18:w=5:h=78:color=0xC83803:t=fill,drawbox=x=1257:y=18:w=5:h=78:color=0xC83803:t=fill,drawbox=x=257:y=23:w=5:h=68:color=0x0B162A:t=fill,drawbox=x=262:y=23:w=5:h=68:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/bears-news-label.txt:reload=$DRAWTEXT_RELOAD_FRAMES:expansion=none:fontcolor=white:fontsize=24:x=18+(239-text_w)/2:y=44,drawbox=x=7:y=100:w=1266:h=4:color=0x0B162A:t=fill,drawbox=x=7:y=574:w=1266:h=139:color=0x0B162A:t=fill,drawbox=x=18:y=584:w=1244:h=118:color=0x07101F@0.95:t=fill,drawbox=x=18:y=584:w=244:h=118:color=0xC83803:t=fill,drawbox=x=18:y=584:w=1244:h=5:color=0xC83803:t=fill,drawbox=x=18:y=697:w=1244:h=5:color=0xC83803:t=fill,drawbox=x=18:y=584:w=5:h=118:color=0xC83803:t=fill,drawbox=x=1257:y=584:w=5:h=118:color=0xC83803:t=fill,drawbox=x=257:y=589:w=5:h=108:color=0x0B162A:t=fill,drawbox=x=262:y=589:w=5:h=108:color=0xC83803:t=fill,drawbox=x=7:y=574:w=1266:h=4:color=0x0B162A:t=fill[base];[base][newslane]overlay=x=267:y=23:shortest=1[withnews];[withnews][2:v]overlay=x=0:y=574:shortest=1,drawbox=x=0:y=0:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=713:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=0:w=7:h=720:color=0xC83803:t=fill,drawbox=x=1273:y=0:w=7:h=720:color=0xC83803:t=fill,format=yuv420p[v]" \
   -map "[v]" -map 0:a:0 \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
