@@ -358,7 +358,7 @@ def frame() -> Image.Image:
     draw.rectangle((18, 123, 1261, 128), fill=BEARS_ORANGE)
     draw.rectangle((18, 10, 22, 128), fill=BEARS_ORANGE)
     draw.rectangle((1257, 10, 1261, 128), fill=BEARS_ORANGE)
-    draw.rectangle((257, 15, 261, 122), fill=BEARS_BLUE)
+    # Keep a single clean orange boundary between the label block and message lane.
     draw.rectangle((262, 15, 266, 122), fill=BEARS_ORANGE)
 
     if not value["active"] or not value["message"]:
@@ -372,9 +372,11 @@ def frame() -> Image.Image:
 
     message = value["message"].upper().strip()
     message_line, text_width_px = rich_line(message, 31, True, 35)
-    viewport_start = 267
+    # Keep moving glyphs clear of the divider and right border so partial letters
+    # do not appear glued to, or sliced directly against, the frame.
+    viewport_start = 279
     viewport_top = 15
-    viewport_width = 990
+    viewport_width = 966
     viewport_height = 108
     cycle = viewport_width + text_width_px + 120
     x = viewport_width - ((time.monotonic() - STARTED) * float(value["speedPps"]) % cycle)
