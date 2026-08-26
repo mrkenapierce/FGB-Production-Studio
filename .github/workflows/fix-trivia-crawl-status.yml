@@ -1,0 +1,101 @@
+name: Fix Trivia Crawl Status
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-trivia-crawl-status.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Allow safe trivia status messages in lower crawl
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('services/fgbears-live/bin/crawl-overlay.py')
+          s = path.read_text()
+          old = '''        if trivia_mode:\n            # Trivia questions belong only in the dedicated trivia/QR overlay.\n            # The lower crawl remains present as a label-only "Trivia" lane.\n            message = ""\n        message_count = 0 if trivia_mode else (len(message_parts) if message_parts else (1 if message else 0))\n'''
+          new = '''        if trivia_mode and not message_parts:\n            # Safety fallback: legacy single-message trivia payloads may contain a\n            # question prompt, so never route that fallback through the lower crawl.\n            # The canonical trivia API now supplies a status-only messages[] array\n            # (standings, daily leaderboard, participation, prize, progress), which\n            # is safe and should remain visible in the Trivia crawl.\n            message = ""\n        message_count = len(message_parts) if message_parts else (0 if trivia_mode else (1 if message else 0))\n'''
+          if old not in s:
+              raise SystemExit('Expected legacy trivia blanking block not found')
+          s = s.replace(old, new, 1)
+          path.write_text(s)
+          PY
+
+      - name: Regression check
+        run: |
+          python3 - <<'PY'
+          import importlib.util, json, os, tempfile
+          from pathlib import Path
+
+          source = Path('services/fgbears-live/bin/crawl-overlay.py')
+          text = source.read_text()
+          assert 'if trivia_mode and not message_parts:' in text
+          assert 'message_count = len(message_parts) if message_parts else (0 if trivia_mode else (1 if message else 0))' in text
+          assert 'The canonical trivia API now supplies a status-only messages[] array' in text
+
+          with tempfile.TemporaryDirectory() as td:
+              feed = Path(td) / 'feed.json'
+              os.environ['CRAWL_FEED_FILE'] = str(feed)
+              os.environ['CRAWL_RUNTIME_DIR'] = td
+              spec = importlib.util.spec_from_file_location('crawl_overlay', source)
+              mod = importlib.util.module_from_spec(spec)
+              spec.loader.exec_module(mod)
+
+              # Canonical active trivia status array must survive.
+              mod.STATE.update({
+                  'active': True,
+                  'label': 'Trivia',
+                  'messages': [
+                      'LIVE STANDINGS: 1. 61107 120 PTS • 2. 61108 105 PTS',
+                      'DAILY LEADERBOARD: 1. KEN P. 92.50%',
+                      '17 UNIQUE PLAYERS TODAY • 44 COMPLETED ATTEMPTS',
+                      'CURRENT PRIZE $20',
+                      'QUESTION 7 OF 20 • 42 PLAYERS',
+                  ],
+                  'speed': 'normal',
+                  'speedPps': 105,
+              })
+              value, _ = mod.STATE.snapshot()
+              assert value['messageCount'] == 5, value
+              assert 'LIVE STANDINGS' in value['message'], value
+              assert 'DAILY LEADERBOARD' in value['message'], value
+              assert 'CURRENT PRIZE $20' in value['message'], value
+
+              # Legacy single-message trivia payload remains blocked so a question
+              # prompt can never leak into the lower crawl.
+              mod.STATE.update({
+                  'active': True,
+                  'label': 'Trivia',
+                  'message': 'WHO WORE NUMBER 34 FOR THE BEARS?',
+                  'speed': 'normal',
+              })
+              value, _ = mod.STATE.snapshot()
+              assert value['message'] == '', value
+              assert value['messageCount'] == 0, value
+          print('Trivia crawl status regression: PASS')
+          PY
+
+      - name: Commit repair
+        run: |
+          git config user.name 'FGBears Repair Bot'
+          git config user.email 'actions@github.com'
+          git add services/fgbears-live/bin/crawl-overlay.py
+          if git diff --cached --quiet; then
+            echo 'Trivia crawl status repair already present.'
+            exit 0
+          fi
+          git commit -m 'Show standings and prize status in trivia crawl'
+          git push origin HEAD:main
