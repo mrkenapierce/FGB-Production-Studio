@@ -92,7 +92,7 @@ grep -Fq '[news0]crop=w=990:h=68:x=267:y=23' "$ROOT/bin/start-stream.sh"
 grep -Fq '[base][newslane]overlay=x=267:y=23:shortest=1' "$ROOT/bin/start-stream.sh"
 grep -Fq '[withnews][2:v]overlay=x=0:y=574:shortest=1' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
-grep -Fq 'x=990-mod(t*$BEARS_NEWS_SCROLL_PPS\,text_w+990)' "$ROOT/bin/start-stream.sh"
+grep -Fq 'x=990-mod(t*$BEARS_NEWS_SCROLL_PPS\\,text_w+990)' "$ROOT/bin/start-stream.sh"
 
 cat > "$TMP/feed.xml" <<'XML'
 <?xml version="1.0" encoding="UTF-8"?>
