@@ -115,11 +115,10 @@ social_state() {
 }
 
 read -r x_enabled x_active x_socket < <(social_state x X_RELAY_ENABLED)
-read -r facebook_enabled facebook_active facebook_socket < <(social_state facebook FACEBOOK_RELAY_ENABLED)
 read -r instagram_enabled instagram_active instagram_socket < <(social_state instagram INSTAGRAM_RELAY_ENABLED)
 
 if (( social_window == 1 )); then
-  for platform in x facebook instagram; do
+  for platform in x instagram; do
     [[ "$status" == "OK" ]] || break
     eval "enabled=\${${platform}_enabled} active=\${${platform}_active} socket=\${${platform}_socket}"
     if (( enabled == 1 && active == 0 )); then
@@ -193,7 +192,6 @@ printf 'AVAILABLE_MEMORY_MB=%s\n' "$available_memory_mb"
 printf 'LOAD_1M=%s\n' "$load_1m"
 printf 'SOCIAL_WINDOW_ACTIVE=%s\n' "$social_window"
 printf 'X_ENABLED=%s\nX_RELAY_ACTIVE=%s\nX_INGEST_SOCKET=%s\n' "$x_enabled" "$x_active" "$x_socket"
-printf 'FACEBOOK_ENABLED=%s\nFACEBOOK_RELAY_ACTIVE=%s\nFACEBOOK_INGEST_SOCKET=%s\n' "$facebook_enabled" "$facebook_active" "$facebook_socket"
 printf 'INSTAGRAM_ENABLED=%s\nINSTAGRAM_RELAY_ACTIVE=%s\nINSTAGRAM_INGEST_SOCKET=%s\n' "$instagram_enabled" "$instagram_active" "$instagram_socket"
 printf 'NEWS_REFRESH_STATUS=%s\n' "$news_refresh_status"
 printf 'NEWS_SCAN_AGE_SECONDS=%s\n' "$news_scan_age"

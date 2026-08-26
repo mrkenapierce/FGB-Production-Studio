@@ -58,10 +58,8 @@ install -d -o root -g fgbears -m 0750 /etc/fgbears-live
 install -m 0755 /opt/fgbears-live/bin/start-stream.sh /usr/local/bin/fgbears-start-stream
 install -m 0755 /opt/fgbears-live/bin/youtube-relay.sh /usr/local/bin/fgbears-youtube-relay
 install -m 0755 /opt/fgbears-live/bin/x-relay.sh /usr/local/bin/fgbears-x-relay
-install -m 0755 /opt/fgbears-live/bin/facebook-relay.sh /usr/local/bin/fgbears-facebook-relay
 install -m 0755 /opt/fgbears-live/bin/instagram-relay.sh /usr/local/bin/fgbears-instagram-relay
 install -m 0755 /opt/fgbears-live/bin/configure-x.sh /usr/local/bin/fgbears-configure-x
-install -m 0755 /opt/fgbears-live/bin/configure-facebook.sh /usr/local/bin/fgbears-configure-facebook
 install -m 0755 /opt/fgbears-live/bin/configure-instagram.sh /usr/local/bin/fgbears-configure-instagram
 install -m 0755 /opt/fgbears-live/bin/normalize-library.sh /usr/local/bin/fgbears-normalize
 install -m 0755 /opt/fgbears-live/bin/validate-media.sh /usr/local/bin/fgbears-validate
@@ -73,7 +71,7 @@ install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-st
 
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-relay.service /etc/systemd/system/fgbears-youtube-relay.service
-for platform in x facebook instagram; do
+for platform in x instagram; do
   for unit in relay.service start.service stop.service start.timer stop.timer; do
     install -m 0644 "/opt/fgbears-live/systemd/fgbears-${platform}-${unit}" "/etc/systemd/system/fgbears-${platform}-${unit}"
   done
@@ -87,8 +85,8 @@ if [[ ! -e "$ENV_PATH" ]]; then
 fi
 
 # Preserve credentials, migrate YouTube's internal handoff to connectionless
-# loopback MPEG-TS, lock out direct Meta output, and keep social schedules
-# independent of the primary encoder.
+# loopback MPEG-TS and keep the remaining social schedules independent of
+# the primary encoder.
 python3 - "$ENV_PATH" <<'PY'
 from pathlib import Path
 import sys
@@ -112,10 +110,6 @@ if not upstream:
 def truthy(value):
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
-relay_enabled = values.get("FACEBOOK_RELAY_ENABLED")
-if relay_enabled is None:
-    relay_enabled = "1" if truthy(values.get("FACEBOOK_STREAM_ENABLED", "0")) else "0"
-
 x_relay_enabled = values.get("X_RELAY_ENABLED")
 if x_relay_enabled is None:
     x_relay_enabled = "1" if values.get("X_STREAM_KEY") else "0"
@@ -132,12 +126,6 @@ updates = {
     "X_SCHEDULE_TIMEZONE": "America/Chicago",
     "X_SCHEDULE_START": "09:00",
     "X_SCHEDULE_STOP": "17:00",
-    "FACEBOOK_STREAM_ENABLED": "0",
-    "FACEBOOK_RELAY_ENABLED": relay_enabled,
-    "FACEBOOK_LOCAL_UDP_URL": "udp://127.0.0.1:1936?pkt_size=1316",
-    "FACEBOOK_SCHEDULE_TIMEZONE": "America/Chicago",
-    "FACEBOOK_SCHEDULE_START": "09:00",
-    "FACEBOOK_SCHEDULE_STOP": "17:00",
     "INSTAGRAM_RELAY_ENABLED": instagram_relay_enabled,
     "INSTAGRAM_LOCAL_UDP_URL": "udp://127.0.0.1:1938?pkt_size=1316",
     "INSTAGRAM_SCHEDULE_TIMEZONE": "America/Chicago",
@@ -165,7 +153,7 @@ chmod 0640 "$ENV_PATH"
 
 systemctl daemon-reload
 systemctl enable fgbears-youtube-relay.service
-systemctl disable fgbears-x-relay.service fgbears-facebook-relay.service fgbears-instagram-relay.service >/dev/null 2>&1 || true
+systemctl disable fgbears-x-relay.service fgbears-instagram-relay.service >/dev/null 2>&1 || true
 
 now_hm=$(TZ=America/Chicago date +%H%M)
 now_hm=$((10#$now_hm))
@@ -195,13 +183,6 @@ if grep -Eq '^X_RELAY_ENABLED=(1|true|yes|on)$' "$ENV_PATH" && \
   x_configured=true
 fi
 
-facebook_configured=false
-if grep -Eq '^FACEBOOK_RELAY_ENABLED=(1|true|yes|on)$' "$ENV_PATH" && \
-   grep -Eq '^FACEBOOK_RTMP_BASE=rtmps?://.+' "$ENV_PATH" && \
-   awk -F= '/^FACEBOOK_STREAM_KEY=/{if(length(substr($0,index($0,"=")+1))>0) ok=1} END{exit ok?0:1}' "$ENV_PATH"; then
-  facebook_configured=true
-fi
-
 instagram_configured=false
 if grep -Eq '^INSTAGRAM_RELAY_ENABLED=(1|true|yes|on)$' "$ENV_PATH" && \
    grep -Eq '^INSTAGRAM_STREAM_URL=rtmps?://.+' "$ENV_PATH" && \
@@ -210,7 +191,6 @@ if grep -Eq '^INSTAGRAM_RELAY_ENABLED=(1|true|yes|on)$' "$ENV_PATH" && \
 fi
 
 configure_scheduled_relay x "$x_configured"
-configure_scheduled_relay facebook "$facebook_configured"
 configure_scheduled_relay instagram "$instagram_configured"
 
 # The YouTube relay remains a dedicated single-output copy-remux service. It
@@ -219,4 +199,4 @@ systemctl reset-failed fgbears-youtube-relay.service || true
 systemctl restart fgbears-youtube-relay.service
 systemctl enable --now fgbears-live-health.timer
 
-echo "Installed FGBears Live with one primary encode, isolated YouTube UDP relay, and X/Facebook/Instagram sidecars scheduled 09:00-17:00 America/Chicago."
+echo "Installed FGBears Live with one primary encode, isolated YouTube UDP relay, and X/Instagram sidecars scheduled 09:00-17:00 America/Chicago."

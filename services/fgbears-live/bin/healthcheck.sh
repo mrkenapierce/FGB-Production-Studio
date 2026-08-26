@@ -208,7 +208,6 @@ fi
 
 [[ -n "$out_time_us" ]] || exit 0
 reconcile_social_relay x X_RELAY_ENABLED
-reconcile_social_relay facebook FACEBOOK_RELAY_ENABLED
 reconcile_social_relay instagram INSTAGRAM_RELAY_ENABLED
 run_lag_check
 run_audio_check

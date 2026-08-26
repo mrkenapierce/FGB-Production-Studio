@@ -15,8 +15,6 @@ source "$ENV_FILE"
 : "${X_LOCAL_UDP_URL:=udp://127.0.0.1:1937?pkt_size=1316}"
 : "${INSTAGRAM_RELAY_ENABLED:=0}"
 : "${INSTAGRAM_LOCAL_UDP_URL:=udp://127.0.0.1:1938?pkt_size=1316}"
-: "${FACEBOOK_STREAM_ENABLED:=0}"
-: "${FACEBOOK_LOCAL_UDP_URL:=udp://127.0.0.1:1936?pkt_size=1316}"
 : "${PLAYLIST_FILE:=/srv/fgbears-live/playlist.ffconcat}"
 : "${FFMPEG_LOGLEVEL:=warning}"
 : "${OUTPUT_FPS:=30}"
@@ -66,27 +64,12 @@ esac
   exit 78
 }
 
-case "${FACEBOOK_STREAM_ENABLED,,}" in
-  1|true|yes|on)
-    echo "Direct Facebook output is permanently disabled in the primary encoder." >&2
-    exit 78
-    ;;
-  0|false|no|off|"") ;;
-  *)
-    echo "FACEBOOK_STREAM_ENABLED must remain disabled." >&2
-    exit 64
-    ;;
-esac
 
 [[ "$INSTAGRAM_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
   echo "INSTAGRAM_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
   exit 78
 }
 
-[[ "$FACEBOOK_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
-  echo "FACEBOOK_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
-  exit 78
-}
 
 TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"
 OUTPUT_LABELS=("YouTube local UDP mirror")
@@ -94,8 +77,6 @@ TEE_TARGETS+="|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${X_LOCAL
 OUTPUT_LABELS+=("X local mirror")
 TEE_TARGETS+="|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${INSTAGRAM_LOCAL_UDP_URL}"
 OUTPUT_LABELS+=("Instagram local mirror")
-TEE_TARGETS+="|[f=mpegts:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${FACEBOOK_LOCAL_UDP_URL}"
-OUTPUT_LABELS+=("Facebook local mirror")
 
 printf 'FGBears Live output: %s.\n' "$(IFS=' + '; echo "${OUTPUT_LABELS[*]}")"
 
