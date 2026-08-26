@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Optional FGB trivia presentation layer for the existing ad renderer.
 
-This module never owns the FFmpeg/YouTube transport.  It decorates the current
+This module never owns the FFmpeg/YouTube transport. It decorates the current
 ad renderer so a sanitized public game feed can temporarily replace only the
-central advertising panel.  If the game feed is absent, stale, malformed, or
+central advertising panel. If the game feed is absent, stale, malformed, or
 inactive, the original ad renderer continues unchanged.
 """
 from __future__ import annotations
@@ -28,6 +28,12 @@ GAME_FEED_URL = os.getenv(
 GAME_FEED_FILE = os.getenv("GAME_SCREEN_FEED_FILE", "").strip()
 GAME_POLL_SECONDS = max(1, int(os.getenv("GAME_SCREEN_POLL_SECONDS", "2")))
 GAME_PLAY_BASE_URL = os.getenv("GAME_PLAY_BASE_URL", "https://epiccontentcreatorgrants.org").rstrip("/")
+CREATIVE_FEED_URL = os.getenv(
+    "CREATIVE_FEED_URL",
+    "https://epiccontentcreatorgrants.org/api/public/fgbears/creatives",
+)
+CREATIVE_FEED_FILE = os.getenv("CREATIVE_FEED_FILE", "").strip()
+CREATIVE_POLL_SECONDS = max(2, int(os.getenv("CREATIVE_POLL_SECONDS", "5")))
 RUNTIME_DIR = Path(os.getenv("CRAWL_RUNTIME_DIR", "/srv/fgbears-live/runtime"))
 
 BASE: Any = None
@@ -51,8 +57,102 @@ def _integer(value: Any, default: int, low: int, high: int) -> int:
     return max(low, min(high, parsed))
 
 
+def _game_setting(game: dict[str, Any], key: str, default: Any = None) -> Any:
+    """Accept both the flat broadcast contract and the current nested ads block."""
+    if key in game and game.get(key) is not None:
+        return game.get(key)
+    ads = game.get("ads")
+    if isinstance(ads, dict) and key in ads and ads.get(key) is not None:
+        return ads.get(key)
+    return default
+
+
+class DurationState:
+    def __init__(self) -> None:
+        self.lock = threading.Lock()
+        self.by_creative: dict[str, int] = {}
+        self.last_error: str | None = None
+
+    def update(self, payload: dict[str, Any]) -> None:
+        mapping: dict[str, int] = {}
+        entries: list[Any] = []
+        primary = payload.get("primary")
+        if isinstance(primary, list):
+            entries.extend(primary)
+        for key in ("fallback", "interstitial"):
+            entry = payload.get(key)
+            if isinstance(entry, dict):
+                entries.append(entry)
+        for entry in entries:
+            if not isinstance(entry, dict):
+                continue
+            creative_id = str(entry.get("creativeId") or "").strip()
+            if creative_id:
+                mapping[creative_id] = _integer(entry.get("durationSeconds"), 20, 1, 300)
+        with self.lock:
+            self.by_creative = mapping
+            self.last_error = None
+
+    def error(self, exc: Exception) -> None:
+        with self.lock:
+            self.last_error = str(exc)
+
+    def seconds(self, creative_id: str) -> int | None:
+        with self.lock:
+            return self.by_creative.get(creative_id)
+
+
+DURATIONS = DurationState()
+
+
+def _load_json_url(url: str, file_override: str = "") -> dict[str, Any]:
+    if file_override:
+        return json.loads(Path(file_override).read_text(encoding="utf-8"))
+    parsed = urllib.parse.urlsplit(url)
+    query = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+    query.append(("_ts", str(int(time.time()))))
+    fresh = urllib.parse.urlunsplit(
+        (parsed.scheme, parsed.netloc, parsed.path, urllib.parse.urlencode(query), parsed.fragment)
+    )
+    req = urllib.request.Request(
+        fresh,
+        headers={
+            "Accept": "application/json",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+            "User-Agent": "FGBears-Live/2.0",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=8) as response:
+        if response.status != 200:
+            raise RuntimeError(f"feed returned HTTP {response.status}")
+        payload = json.loads(response.read().decode("utf-8"))
+        if not isinstance(payload, dict):
+            raise ValueError("feed must return an object")
+        return payload
+
+
+def load_creative_payload() -> dict[str, Any]:
+    return _load_json_url(CREATIVE_FEED_URL, CREATIVE_FEED_FILE)
+
+
+def poll_creative_feed() -> None:
+    while True:
+        try:
+            DURATIONS.update(load_creative_payload())
+        except Exception as exc:
+            # Timing lookup is additive. Legacy sponsor timing remains a safe fallback.
+            DURATIONS.error(exc)
+        time.sleep(CREATIVE_POLL_SECONDS)
+
+
 def ad_duration_seconds(sponsor: dict[str, Any]) -> int:
-    """Honor the duration already published by the existing FGB ad feed."""
+    """Use V2 resolved timing first, then the legacy sponsor timing as fallback."""
+    creative_id = str(sponsor.get("creativeId") or "").strip()
+    if creative_id:
+        resolved = DURATIONS.seconds(creative_id)
+        if resolved is not None:
+            return _integer(resolved, 20, 1, 300)
     if sponsor.get("durationSeconds") is not None:
         return _integer(sponsor.get("durationSeconds"), 20, 3, 300)
     if sponsor.get("durationMs") is not None:
@@ -81,14 +181,14 @@ class GameState:
         signature = json.dumps(sanitized, sort_keys=True, separators=(",", ":"), default=str)
         identity = json.dumps(
             {
-                "gameId": sanitized.get("gameId"),
+                "gameId": sanitized.get("gameId") or sanitized.get("updatedAt") or sanitized.get("title"),
                 "visible": _truthy(sanitized.get("visible")),
-                "presentationMode": sanitized.get("presentationMode"),
-                "adsEnabled": sanitized.get("adsEnabled"),
-                "gameScreenSeconds": sanitized.get("gameScreenSeconds"),
-                "adsPerBreak": sanitized.get("adsPerBreak"),
-                "allowPaidAds": sanitized.get("allowPaidAds"),
-                "allowHouseAds": sanitized.get("allowHouseAds"),
+                "presentationMode": _game_setting(sanitized, "presentationMode", "crawl_only"),
+                "adsEnabled": _game_setting(sanitized, "adsEnabled", False),
+                "gameScreenSeconds": _game_setting(sanitized, "gameScreenSeconds", 20),
+                "adsPerBreak": _game_setting(sanitized, "adsPerBreak", 1),
+                "allowPaidAds": _game_setting(sanitized, "allowPaidAds", True),
+                "allowHouseAds": _game_setting(sanitized, "allowHouseAds", True),
             },
             sort_keys=True,
             separators=(",", ":"),
@@ -128,25 +228,7 @@ RUNTIME_VALUE: tuple[str, bool] | None = None
 
 
 def load_game_payload() -> dict[str, Any]:
-    if GAME_FEED_FILE:
-        return json.loads(Path(GAME_FEED_FILE).read_text(encoding="utf-8"))
-    parsed = urllib.parse.urlsplit(GAME_FEED_URL)
-    query = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
-    query.append(("_ts", str(int(time.time()))))
-    url = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urllib.parse.urlencode(query), parsed.fragment))
-    req = urllib.request.Request(
-        url,
-        headers={
-            "Accept": "application/json",
-            "Cache-Control": "no-cache",
-            "Pragma": "no-cache",
-            "User-Agent": "FGBears-Live/2.0",
-        },
-    )
-    with urllib.request.urlopen(req, timeout=8) as response:
-        if response.status != 200:
-            raise RuntimeError(f"game-screen feed returned HTTP {response.status}")
-        return json.loads(response.read().decode("utf-8"))
+    return _load_json_url(GAME_FEED_URL, GAME_FEED_FILE)
 
 
 def poll_game_feed() -> None:
@@ -210,12 +292,12 @@ def variable_rotation_slot(
 def _presentation_segments(
     game: dict[str, Any], kind: str, sponsors: list[dict[str, Any]]
 ) -> list[tuple[str, int, int | None]]:
-    game_seconds = _integer(game.get("gameScreenSeconds"), 20, 3, 300)
-    ads_per_break = _integer(game.get("adsPerBreak"), 1, 1, 5)
-    allow_paid = _truthy(game.get("allowPaidAds"), True)
-    allow_house = _truthy(game.get("allowHouseAds"), True)
-    ads_enabled = _truthy(game.get("adsEnabled"), False)
-    mode = str(game.get("presentationMode") or "crawl_only")
+    game_seconds = _integer(_game_setting(game, "gameScreenSeconds", 20), 20, 3, 300)
+    ads_per_break = _integer(_game_setting(game, "adsPerBreak", 1), 1, 1, 5)
+    allow_paid = _truthy(_game_setting(game, "allowPaidAds", True), True)
+    allow_house = _truthy(_game_setting(game, "allowHouseAds", True), True)
+    ads_enabled = _truthy(_game_setting(game, "adsEnabled", False), False)
+    mode = str(_game_setting(game, "presentationMode", "crawl_only") or "crawl_only")
     if not ads_enabled or mode != "alternate_game_ads":
         return [("game", game_seconds, None)]
 
@@ -382,14 +464,14 @@ def current_frame(now: float | None = None) -> Image.Image:
         _write_runtime("inactive", True)
         return ORIGINAL_CURRENT_FRAME(current_time)
 
-    mode = str(game.get("presentationMode") or "crawl_only")
+    mode = str(_game_setting(game, "presentationMode", "crawl_only") or "crawl_only")
     if mode != "alternate_game_ads":
         # Crawl-only trivia deliberately leaves the current ad panel untouched.
         _write_runtime("ad", True)
         return ORIGINAL_CURRENT_FRAME(current_time)
 
     phase, sponsor_index, _segment_index = presentation_slot(current_time, game, kind, sponsors, epoch)
-    keep_crawl = _truthy(game.get("keepTriviaCrawlDuringAds"), True)
+    keep_crawl = _truthy(_game_setting(game, "keepTriviaCrawlDuringAds", True), True)
     _write_runtime(phase, keep_crawl)
     if phase == "game":
         return render_game_screen(game, current_time)
@@ -407,7 +489,7 @@ def jpeg_bytes() -> bytes:
     game, _game_refresh, _game_error, game_revision, epoch = GAME.snapshot()
     now = time.time()
     visible = _truthy(game.get("visible"), False)
-    mode = str(game.get("presentationMode") or "crawl_only")
+    mode = str(_game_setting(game, "presentationMode", "crawl_only") or "crawl_only")
     if visible and mode == "alternate_game_ads":
         phase, sponsor_index, segment_index = presentation_slot(now, game, kind, sponsors, epoch)
         countdown = _iso_countdown(game.get("phaseEndsAt"), now) if phase == "game" else None
@@ -434,7 +516,12 @@ def game_main() -> None:
         GAME.update(load_game_payload())
     except Exception as exc:
         GAME.error(exc)
+    try:
+        DURATIONS.update(load_creative_payload())
+    except Exception as exc:
+        DURATIONS.error(exc)
     threading.Thread(target=poll_game_feed, name="fgb-game-feed-poller", daemon=True).start()
+    threading.Thread(target=poll_creative_feed, name="fgb-creative-feed-poller", daemon=True).start()
     ORIGINAL_MAIN()
 
 
