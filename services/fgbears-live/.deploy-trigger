@@ -1,3 +1,3 @@
-2026-08-26T19:07:00Z
-Reason: verify the Facebook-free FGB production architecture after restoring safe non-destructive audio source defaults.
-Expected: no Facebook relay/timers/configuration/health checks; primary FGB encoder and isolated YouTube relay active at the existing URL; 30 fps real-time cadence, zero dropped frames, crawl and ad checks pass; validation suite passes.
+2026-08-26T20:25:00Z
+Reason: deploy the Trivia Crawl standings/leaderboard/prize-status renderer repair.
+Expected: active Trivia crawl displays safe canonical messages[] status content (live standings, daily leaderboard, participation, prize, progress) while legacy single-message/question fallback remains blocked; YouTube transport and all unrelated behavior remain unchanged.
