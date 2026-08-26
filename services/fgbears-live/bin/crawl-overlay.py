@@ -20,6 +20,7 @@ FEED_FILE = os.getenv("CRAWL_FEED_FILE")
 POLL_SECONDS = max(2, int(os.getenv("CRAWL_POLL_SECONDS", "5")))
 PORT = int(os.getenv("CRAWL_OVERLAY_PORT", "8788"))
 FPS = max(10, int(os.getenv("CRAWL_OVERLAY_FPS", "15")))
+SPEED_SCALE = min(1.0, max(0.25, float(os.getenv("CRAWL_SPEED_SCALE", "0.72"))))
 WIDTH, HEIGHT = 1280, 139
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
@@ -259,7 +260,7 @@ class State:
             speed_pps = float(payload.get("speedPps") or fallback_pps)
         except (TypeError, ValueError):
             speed_pps = float(fallback_pps)
-        speed_pps = min(400.0, max(20.0, speed_pps))
+        speed_pps = min(400.0, max(20.0, speed_pps * SPEED_SCALE))
         label = grapheme_slice(str(payload.get("label") or "EPIC LIVE"), 24)
         message_parts: list[str] = []
         raw_messages = payload.get("messages")
