@@ -1,3 +1,3 @@
 FGB live production repair trigger
-2026-08-26T19:58:30Z
-Deploy the verified production-source correction: make the RSS/news crawl match the Main Crawl canonical 76 px/sec pacing and visual treatment; lock live audio to immutable -2 dB headroom plus 48 kHz resampling with no loudnorm/async DSP override; keep the primary encoder YouTube-only. Preserve the existing YouTube livestream URL.
+2026-08-26T20:10:45Z
+Deploy the verified ribbon repair: remove the internal dark-blue receiving gutters from both Main Crawl and RSS/news so text clips at the actual orange divider/right border; preserve complete RSS headlines; keep canonical 76 px/sec pacing, immutable audio path, YouTube-only runtime, current bitrate/fidelity settings, and the existing YouTube livestream URL.
