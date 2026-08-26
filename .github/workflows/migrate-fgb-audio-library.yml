@@ -49,24 +49,41 @@ jobs:
           NORMALIZER="$REPO/services/fgbears-live/bin/normalize-library.sh"
           VALIDATOR="$REPO/services/fgbears-live/bin/validate-media.sh"
 
-          printf '%s\n' '=== PRE-FLIGHT: preserve current YouTube-only runtime ==='
+          printf '%s\n' '=== PRE-FLIGHT: live services and transparent audio stage ==='
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet fgbears-youtube-relay.service
           sudo grep -q '^PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0$' /etc/fgbears-live/stream.env
-          grep -Fq 'YouTube local UDP mirror only' /usr/local/bin/fgbears-start-stream
-          ! grep -Eq '1937|1938|X local mirror|Instagram local mirror|Facebook local mirror' /usr/local/bin/fgbears-start-stream
-          ! sudo grep -Eq '^(X_|INSTAGRAM_|FACEBOOK_)' /etc/fgbears-live/stream.env
           [[ -s "$PLAYLIST" ]]
           [[ -d "$MEDIA_DIR" ]]
 
-          printf '%s\n' '=== FETCH: audio-hardening source only; no installer ==='
+          printf '%s\n' '=== FETCH: audio hardening + runtime lock only; no installer ==='
           rm -rf "$REPO"
           git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git "$REPO"
           chmod +x "$NORMALIZER" "$VALIDATOR"
           sudo install -m 0755 "$REPO/services/fgbears-live/bin/audio-health.py" /usr/local/bin/fgbears-audio-health
           sudo /usr/local/bin/fgbears-audio-health --self-test
 
-          printf '%s\n' '=== INVENTORY: every playlist asset must be low-cost video-copy eligible ==='
+          printf '%s\n' '=== REPAIR RUNTIME REGRESSION: remove retired social transport ==='
+          sudo python3 "$REPO/.github/scripts/fgb-runtime-youtube-only.py"
+          for unit in \
+            fgbears-x-relay.service fgbears-x-start.service fgbears-x-stop.service fgbears-x-start.timer fgbears-x-stop.timer \
+            fgbears-instagram-relay.service fgbears-instagram-start.service fgbears-instagram-stop.service fgbears-instagram-start.timer fgbears-instagram-stop.timer \
+            fgbears-facebook-relay.service fgbears-facebook-start.service fgbears-facebook-stop.service fgbears-facebook-start.timer fgbears-facebook-stop.timer; do
+            sudo systemctl disable --now "$unit" >/dev/null 2>&1 || true
+          done
+          sudo rm -f \
+            /usr/local/bin/fgbears-x-relay /usr/local/bin/fgbears-instagram-relay /usr/local/bin/fgbears-facebook-relay \
+            /usr/local/bin/fgbears-configure-x /usr/local/bin/fgbears-configure-instagram /usr/local/bin/fgbears-configure-facebook
+          sudo rm -f \
+            /etc/systemd/system/fgbears-x-*.service /etc/systemd/system/fgbears-x-*.timer \
+            /etc/systemd/system/fgbears-instagram-*.service /etc/systemd/system/fgbears-instagram-*.timer \
+            /etc/systemd/system/fgbears-facebook-*.service /etc/systemd/system/fgbears-facebook-*.timer
+          sudo systemctl daemon-reload
+          grep -Fq 'YouTube local UDP mirror only' /usr/local/bin/fgbears-start-stream
+          ! grep -Eq '1937|1938|X local mirror|Instagram local mirror|Facebook local mirror' /usr/local/bin/fgbears-start-stream
+          ! sudo grep -Eq '^(X_|INSTAGRAM_|FACEBOOK_)' /etc/fgbears-live/stream.env
+
+          printf '%s\n' '=== INVENTORY: require low-cost video-copy migration ==='
           mapfile -d '' media_files < <(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4' -print0 | sort -zV)
           [[ ${#media_files[@]} -gt 0 ]] || { echo 'No MP4 media found'; exit 65; }
           printf 'media_files=%d\n' "${#media_files[@]}"
@@ -113,7 +130,6 @@ jobs:
               nice -n 10 bash "$NORMALIZER" "$file" "$output"
             fi
 
-            # Validate the completed temporary asset before replacing production.
             temp_video=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt -of json "$output" | jq -r '.streams[0] | [.codec_name, (.width|tostring), (.height|tostring), .r_frame_rate, .pix_fmt] | join("|")')
             temp_audio=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels -of json "$output" | jq -r '.streams[0] | [.codec_name, .sample_rate, (.channels|tostring)] | join("|")')
             temp_sha=$(sha256sum "$output" | awk '{print $1}')
@@ -121,8 +137,8 @@ jobs:
             [[ "$temp_video" == 'h264|1280|720|30/1|yuv420p' ]]
             [[ "$temp_audio" == 'aac|48000|2' ]]
 
-            # Same filesystem: mv atomically replaces the pathname. A currently
-            # open FFmpeg descriptor can finish the old inode without interruption.
+            # Same filesystem: atomically replace the production pathname only
+            # after the temporary asset and its hash-bound profile pass validation.
             mv -f "$output" "$file"
             mv -f "${output}.audio-profile.json" "$marker"
             migrated=$((migrated + 1))
@@ -138,22 +154,13 @@ jobs:
           [[ "$marker_count" -eq "${#media_files[@]}" ]]
           jq -s '{files:length, min_i_lufs:(map(.measured_i_lufs)|min), max_i_lufs:(map(.measured_i_lufs)|max), max_true_peak_dbtp:(map(.measured_tp_dbtp)|max)}' "$MEDIA_DIR"/*.mp4.audio-profile.json
 
-          # The existing playlist keeps the same filenames and order. Verify each
-          # referenced pathname exists; do not rebuild or reorder it.
-          while IFS= read -r line; do
-            case "$line" in
-              "file '"*"'")
-                path=${line#file \' }
-                ;;
-            esac
-          done < /dev/null
           playlist_missing=0
           while IFS= read -r path; do
             [[ -f "$path" ]] || { echo "Playlist asset missing: $path" >&2; playlist_missing=$((playlist_missing + 1)); }
           done < <(sed -n "s/^file '\(.*\)'$/\1/p" "$PLAYLIST")
           [[ $playlist_missing -eq 0 ]]
 
-          printf '%s\n' '=== ACTIVATE: restart only primary encoder; keep YouTube relay identity unchanged ==='
+          printf '%s\n' '=== ACTIVATE: restart only primary encoder; leave YouTube relay service running ==='
           sudo systemctl restart fgbears-live.service
           for _ in $(seq 1 60); do
             if systemctl is-active --quiet fgbears-live.service && systemctl is-active --quiet fgbears-youtube-relay.service; then
@@ -167,6 +174,7 @@ jobs:
           sudo grep -q '^PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0$' /etc/fgbears-live/stream.env
           grep -Fq 'YouTube local UDP mirror only' /usr/local/bin/fgbears-start-stream
           ! grep -Eq '1937|1938|X local mirror|Instagram local mirror|Facebook local mirror' /usr/local/bin/fgbears-start-stream
+          ! sudo grep -Eq '^(X_|INSTAGRAM_|FACEBOOK_)' /etc/fgbears-live/stream.env
 
           printf '%s\n' '=== EXACT YOUTUBE-BOUND AUDIO GATE ==='
           sudo /usr/local/bin/fgbears-audio-health --capture-seconds 20
