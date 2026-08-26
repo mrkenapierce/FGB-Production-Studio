@@ -1,0 +1,193 @@
+name: Migrate FGB Audio Library Offline
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/migrate-fgb-audio-library.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-production-deploy
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Normalize existing Oracle media and verify YouTube-bound audio
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+
+          REPO=/tmp/fgb-audio-library-migration
+          MEDIA_DIR=/srv/fgbears-live/media
+          PLAYLIST=/srv/fgbears-live/playlist.ffconcat
+          WORK_DIR=/srv/fgbears-live/.audio-migration
+          PROFILE=fgb-podcast-v1
+          NORMALIZER="$REPO/services/fgbears-live/bin/normalize-library.sh"
+          VALIDATOR="$REPO/services/fgbears-live/bin/validate-media.sh"
+
+          printf '%s\n' '=== PRE-FLIGHT: preserve current YouTube-only runtime ==='
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          sudo grep -q '^PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0$' /etc/fgbears-live/stream.env
+          grep -Fq 'YouTube local UDP mirror only' /usr/local/bin/fgbears-start-stream
+          ! grep -Eq '1937|1938|X local mirror|Instagram local mirror|Facebook local mirror' /usr/local/bin/fgbears-start-stream
+          ! sudo grep -Eq '^(X_|INSTAGRAM_|FACEBOOK_)' /etc/fgbears-live/stream.env
+          [[ -s "$PLAYLIST" ]]
+          [[ -d "$MEDIA_DIR" ]]
+
+          printf '%s\n' '=== FETCH: audio-hardening source only; no installer ==='
+          rm -rf "$REPO"
+          git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git "$REPO"
+          chmod +x "$NORMALIZER" "$VALIDATOR"
+          sudo install -m 0755 "$REPO/services/fgbears-live/bin/audio-health.py" /usr/local/bin/fgbears-audio-health
+          sudo /usr/local/bin/fgbears-audio-health --self-test
+
+          printf '%s\n' '=== INVENTORY: every playlist asset must be low-cost video-copy eligible ==='
+          mapfile -d '' media_files < <(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4' -print0 | sort -zV)
+          [[ ${#media_files[@]} -gt 0 ]] || { echo 'No MP4 media found'; exit 65; }
+          printf 'media_files=%d\n' "${#media_files[@]}"
+          for file in "${media_files[@]}"; do
+            signature=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt -of json "$file" | jq -r '.streams[0] | [.codec_name, (.width|tostring), (.height|tostring), .r_frame_rate, .pix_fmt] | join("|")')
+            if [[ "$signature" != 'h264|1280|720|30/1|yuv420p' ]]; then
+              echo "Refusing live migration of nonstandard video because it would require CPU-heavy video re-encode: $file ($signature)" >&2
+              exit 70
+            fi
+          done
+
+          sudo mkdir -p "$WORK_DIR"
+          sudo chown "$USER":"$USER" "$WORK_DIR"
+          find "$WORK_DIR" -mindepth 1 -maxdepth 1 -type f -delete
+
+          migrated=0
+          skipped=0
+          printf '%s\n' '=== MIGRATE: two-pass offline loudness normalization, one file at a time ==='
+          for file in "${media_files[@]}"; do
+            marker="${file}.audio-profile.json"
+            current_sha=$(sha256sum "$file" | awk '{print $1}')
+            if [[ -s "$marker" ]] && jq -e --arg profile "$PROFILE" --arg sha "$current_sha" '.profile == $profile and .sha256 == $sha and ((.measured_i_lufs + 14) | if . < 0 then -. else . end) <= 0.8 and .measured_tp_dbtp <= -1.0' "$marker" >/dev/null 2>&1; then
+              printf 'SKIP already normalized: %s\n' "$file"
+              skipped=$((skipped + 1))
+              continue
+            fi
+
+            base=$(basename "$file")
+            output="$WORK_DIR/$base"
+            rm -f "$output" "${output}.audio-profile.json" "${output%.mp4}.partial.mp4"
+
+            size_kb=$(( ($(stat -c %s "$file") + 1023) / 1024 ))
+            free_kb=$(df -Pk "$WORK_DIR" | awk 'NR==2 {print $4}')
+            required_kb=$((size_kb + 307200))
+            if (( free_kb < required_kb )); then
+              echo "Insufficient free disk for safe atomic normalization of $file: free=${free_kb}KB required=${required_kb}KB" >&2
+              exit 71
+            fi
+
+            printf 'NORMALIZE: %s\n' "$file"
+            if command -v ionice >/dev/null 2>&1; then
+              nice -n 10 ionice -c2 -n7 bash "$NORMALIZER" "$file" "$output"
+            else
+              nice -n 10 bash "$NORMALIZER" "$file" "$output"
+            fi
+
+            # Validate the completed temporary asset before replacing production.
+            temp_video=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt -of json "$output" | jq -r '.streams[0] | [.codec_name, (.width|tostring), (.height|tostring), .r_frame_rate, .pix_fmt] | join("|")')
+            temp_audio=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels -of json "$output" | jq -r '.streams[0] | [.codec_name, .sample_rate, (.channels|tostring)] | join("|")')
+            temp_sha=$(sha256sum "$output" | awk '{print $1}')
+            jq -e --arg profile "$PROFILE" --arg sha "$temp_sha" '.profile == $profile and .sha256 == $sha and ((.measured_i_lufs + 14) | if . < 0 then -. else . end) <= 0.8 and .measured_tp_dbtp <= -1.0' "${output}.audio-profile.json" >/dev/null
+            [[ "$temp_video" == 'h264|1280|720|30/1|yuv420p' ]]
+            [[ "$temp_audio" == 'aac|48000|2' ]]
+
+            # Same filesystem: mv atomically replaces the pathname. A currently
+            # open FFmpeg descriptor can finish the old inode without interruption.
+            mv -f "$output" "$file"
+            mv -f "${output}.audio-profile.json" "$marker"
+            migrated=$((migrated + 1))
+          done
+
+          printf 'migration_count=%d\n' "$migrated"
+          printf 'already_normalized_count=%d\n' "$skipped"
+          printf 'total_media_count=%d\n' "${#media_files[@]}"
+
+          printf '%s\n' '=== VERIFY LIBRARY: format + hash-bound audio profile ==='
+          bash "$VALIDATOR" "$MEDIA_DIR"
+          marker_count=$(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4.audio-profile.json' | wc -l | tr -d ' ')
+          [[ "$marker_count" -eq "${#media_files[@]}" ]]
+          jq -s '{files:length, min_i_lufs:(map(.measured_i_lufs)|min), max_i_lufs:(map(.measured_i_lufs)|max), max_true_peak_dbtp:(map(.measured_tp_dbtp)|max)}' "$MEDIA_DIR"/*.mp4.audio-profile.json
+
+          # The existing playlist keeps the same filenames and order. Verify each
+          # referenced pathname exists; do not rebuild or reorder it.
+          while IFS= read -r line; do
+            case "$line" in
+              "file '"*"'")
+                path=${line#file \' }
+                ;;
+            esac
+          done < /dev/null
+          playlist_missing=0
+          while IFS= read -r path; do
+            [[ -f "$path" ]] || { echo "Playlist asset missing: $path" >&2; playlist_missing=$((playlist_missing + 1)); }
+          done < <(sed -n "s/^file '\(.*\)'$/\1/p" "$PLAYLIST")
+          [[ $playlist_missing -eq 0 ]]
+
+          printf '%s\n' '=== ACTIVATE: restart only primary encoder; keep YouTube relay identity unchanged ==='
+          sudo systemctl restart fgbears-live.service
+          for _ in $(seq 1 60); do
+            if systemctl is-active --quiet fgbears-live.service && systemctl is-active --quiet fgbears-youtube-relay.service; then
+              sleep 3
+              break
+            fi
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          sudo grep -q '^PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0$' /etc/fgbears-live/stream.env
+          grep -Fq 'YouTube local UDP mirror only' /usr/local/bin/fgbears-start-stream
+          ! grep -Eq '1937|1938|X local mirror|Instagram local mirror|Facebook local mirror' /usr/local/bin/fgbears-start-stream
+
+          printf '%s\n' '=== EXACT YOUTUBE-BOUND AUDIO GATE ==='
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 20
+
+          printf '%s\n' '=== STREAM CADENCE GATE ==='
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          first_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_epoch=$(date +%s%N)
+          sleep 10
+          second_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          dropped=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_epoch=$(date +%s%N)
+          awk -v m1="$first_media" -v m2="$second_media" -v f1="$first_frame" -v f2="$second_frame" -v e1="$first_epoch" -v e2="$second_epoch" -v dropped="${dropped:-0}" 'BEGIN { wall=(e2-e1)/1000000000; program=(m2-m1)/1000000; ratio=program/wall; fps=(f2-f1)/wall; printf "FGB audio migration verified: program=%.3fs wall=%.3fs ratio=%.3fx fps=%.2f dropped=%d\n", program, wall, ratio, fps, dropped; if (ratio < 0.95 || fps < 28.5 || dropped != 0) exit 1; }'
+
+          printf '%s\n' '=== RECURRING MONITOR ==='
+          grep -q 'run_audio_check' /usr/local/bin/fgbears-healthcheck
+          systemctl is-enabled --quiet fgbears-live-health.timer
+          systemctl is-active --quiet fgbears-live-health.timer
+
+          rm -rf "$WORK_DIR" "$REPO"
+          printf '%s\n' 'AUDIO_LIBRARY_MIGRATION=SUCCESS'
+          REMOTE
