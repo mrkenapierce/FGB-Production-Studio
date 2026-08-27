@@ -1,0 +1,166 @@
+name: Deploy FGB Direct Audio Path
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-fgb-direct-audio-path.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Send primary program directly to YouTube with source AAC timestamps
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          RUNTIME=/usr/local/bin/fgbears-start-stream
+          OPT=/opt/fgbears-live/bin/start-stream.sh
+          HEALTH=/usr/local/bin/fgbears-healthcheck
+          ENV=/etc/fgbears-live/stream.env
+          BACKUP=/srv/fgbears-live/runtime/direct-audio-path-rollback
+          sudo install -d -m 0755 "$BACKUP"
+          sudo cp -f "$RUNTIME" "$BACKUP/fgbears-start-stream"
+          sudo cp -f "$OPT" "$BACKUP/start-stream.sh"
+          sudo cp -f "$HEALTH" "$BACKUP/fgbears-healthcheck"
+          sudo cp -f "$ENV" "$BACKUP/stream.env"
+
+          rollback() {
+            echo 'DIRECT_AUDIO_PATH_VALIDATION_FAILED — restoring stable relay path.' >&2
+            sudo cp -f "$BACKUP/fgbears-start-stream" "$RUNTIME" || true
+            sudo cp -f "$BACKUP/start-stream.sh" "$OPT" || true
+            sudo cp -f "$BACKUP/fgbears-healthcheck" "$HEALTH" || true
+            sudo cp -f "$BACKUP/stream.env" "$ENV" || true
+            sudo chmod 0755 "$RUNTIME" "$OPT" "$HEALTH" || true
+            sudo chown root:fgbears "$ENV" || true
+            sudo chmod 0640 "$ENV" || true
+            sudo systemctl unmask --runtime fgbears-youtube-relay.service 2>/dev/null || true
+            sudo systemctl daemon-reload || true
+            sudo systemctl reset-failed fgbears-live.service fgbears-youtube-relay.service || true
+            sudo systemctl restart fgbears-live.service || true
+            sleep 2
+            sudo systemctl restart fgbears-youtube-relay.service || true
+          }
+          trap rollback ERR
+
+          # Heavy audio work must never run beside the livestream.
+          sudo pkill -TERM -f 'normalize-resilient\.sh|normalize-library\.sh|/srv/fgbears-live/\.audio-migration|loudnorm=I=-14' || true
+          sleep 2
+          sudo pkill -KILL -f 'normalize-resilient\.sh|normalize-library\.sh|/srv/fgbears-live/\.audio-migration|loudnorm=I=-14' || true
+
+          # Require source-native AAC bitstream copy before changing transport.
+          grep -q -- '-c:a copy' "$RUNTIME"
+          ! grep -q -- '-c:a aac' "$RUNTIME"
+
+          for path in "$RUNTIME" "$OPT"; do
+            sudo python3 - "$path" <<'PY'
+from pathlib import Path
+import sys
+p = Path(sys.argv[1])
+s = p.read_text()
+if 'YOUTUBE_UPSTREAM_URL=' not in s:
+    marker = 'TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"\n'
+    replacement = ': "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"\nYOUTUBE_UPSTREAM_URL="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"\n'
+    if marker not in s:
+        raise SystemExit('local relay target marker not found')
+    s = s.replace(marker, replacement, 1)
+s = s.replace("printf 'FGBears Live output: YouTube local UDP mirror only.\\n'", "printf 'FGBears Live output: direct YouTube RTMPS; source AAC copied unchanged.\\n'")
+old = '  -f tee -use_fifo 1 -fifo_options "$TEE_FIFO_OPTIONS" \\\n  "$TEE_TARGETS" 3> >(progress_sink) &'
+new = '  -f flv "$YOUTUBE_UPSTREAM_URL" 3> >(progress_sink) &'
+if old not in s and new not in s:
+    raise SystemExit('tee output block not found')
+s = s.replace(old, new, 1)
+p.write_text(s)
+PY
+            sudo chmod 0755 "$path"
+          done
+
+          # During the direct-path test the local relay/audio-sniffer are intentionally bypassed.
+          sudo python3 - "$HEALTH" <<'PY'
+from pathlib import Path
+p=Path('/usr/local/bin/fgbears-healthcheck')
+s=p.read_text()
+s=s.replace('recover_youtube_relay || true', ': # direct RTMPS: no relay recovery')
+s=s.replace('run_audio_check\nprintf', ': # direct RTMPS: exact audio monitor temporarily bypassed\nprintf')
+p.write_text(s)
+PY
+          sudo chmod 0755 "$HEALTH"
+
+          sudo python3 - "$ENV" <<'PY'
+from pathlib import Path
+p=Path('/etc/fgbears-live/stream.env')
+lines=[x for x in p.read_text().splitlines() if not x.startswith('YOUTUBE_DIRECT_RTMP=')]
+lines.append('YOUTUBE_DIRECT_RTMP=1')
+p.write_text('\n'.join(lines)+'\n')
+PY
+          sudo chown root:fgbears "$ENV"
+          sudo chmod 0640 "$ENV"
+
+          grep -q '^YOUTUBE_UPSTREAM_URL=' "$RUNTIME"
+          grep -q -- '-f flv "$YOUTUBE_UPSTREAM_URL"' "$RUNTIME"
+          grep -q -- '-c:a copy' "$RUNTIME"
+          ! grep -q -- '-c:a aac' "$RUNTIME"
+          ! grep -q 'TEE_TARGETS=' "$RUNTIME"
+
+          sudo systemctl stop fgbears-youtube-relay.service || true
+          sudo systemctl mask --runtime fgbears-youtube-relay.service
+          sudo systemctl restart fgbears-live.service
+          for _ in $(seq 1 45); do
+            systemctl is-active --quiet fgbears-live.service && break
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-live.service
+          ! systemctl is-active --quiet fgbears-youtube-relay.service
+          sleep 8
+
+          # Require the direct RTMPS process and an established TLS socket.
+          pgrep -af ffmpeg | grep -F -- '-c:a copy' >/dev/null
+          pgrep -af ffmpeg | grep -F -- 'rtmps://' >/dev/null
+          ss -Htn state established | grep -E ':(443|1935)[[:space:]]' >/dev/null
+
+          # Require real-time cadence with no dropped video frames.
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          first_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_epoch=$(date +%s%N)
+          sleep 12
+          second_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          dropped=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_epoch=$(date +%s%N)
+          awk -v m1="$first_media" -v m2="$second_media" -v f1="$first_frame" -v f2="$second_frame" -v e1="$first_epoch" -v e2="$second_epoch" -v dropped="${dropped:-0}" 'BEGIN {wall=(e2-e1)/1000000000;program=(m2-m1)/1000000;ratio=program/wall;fps=(f2-f1)/wall;printf "DIRECT_CADENCE program=%.3fs wall=%.3fs ratio=%.3fx fps=%.2f dropped=%d\n",program,wall,ratio,fps,dropped;if(ratio<0.95||fps<28.5||dropped!=0)exit 1}'
+
+          # No recent primary encoder error is allowed.
+          if sudo journalctl -u fgbears-live.service --since '-30 seconds' --no-pager -o cat | grep -Eiq 'broken pipe|connection refused|invalid argument|error muxing|packet is missing pts|non-monoton'; then
+            echo 'Recent direct encoder log contains a transport error.' >&2
+            exit 1
+          fi
+
+          trap - ERR
+          echo 'DIRECT_AUDIO_PATH=SUCCESS'
+          echo 'VIEWER_PATH=MP4_AAC_COPY_TO_FLV_RTMPS_TO_YOUTUBE'
+          REMOTE
