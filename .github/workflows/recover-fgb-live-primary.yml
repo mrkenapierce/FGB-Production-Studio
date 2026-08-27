@@ -1,0 +1,64 @@
+name: Recover FGB Primary Livestream
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/recover-fgb-live-primary.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Recover primary service without altering audio
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          ENV=/etc/fgbears-live/stream.env
+          grep -q -- '-c:a copy' /usr/local/bin/fgbears-start-stream
+          ! grep -q -- '-c:a aac' /usr/local/bin/fgbears-start-stream
+          sudo sed -i '/^AD_OVERLAY_FPS=/d;/^CRAWL_OVERLAY_FPS=/d' "$ENV"
+          printf 'AD_OVERLAY_FPS=15\nCRAWL_OVERLAY_FPS=15\n' | sudo tee -a "$ENV" >/dev/null
+          sudo chown root:fgbears "$ENV"
+          sudo chmod 0640 "$ENV"
+          sudo systemctl unmask --runtime fgbears-youtube-relay.service 2>/dev/null || true
+          sudo systemctl daemon-reload
+          sudo systemctl reset-failed fgbears-live.service fgbears-youtube-relay.service || true
+          sudo systemctl stop fgbears-live.service || true
+          sleep 2
+          sudo systemctl start fgbears-live.service
+          for _ in $(seq 1 30); do
+            systemctl is-active --quiet fgbears-live.service && break
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-live.service
+          sudo systemctl restart fgbears-youtube-relay.service
+          for _ in $(seq 1 20); do
+            systemctl is-active --quiet fgbears-youtube-relay.service && break
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          sleep 5
+          pgrep -af 'ffmpeg.*overlay\.mjpg' >/dev/null
+          pgrep -af 'ffmpeg.*overlay\.mjpg' | head -n1 | grep -F -- '-c:a copy' >/dev/null
+          echo 'PRIMARY_RECOVERY=SUCCESS'
+          REMOTE
