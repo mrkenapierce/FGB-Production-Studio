@@ -1,0 +1,129 @@
+name: Activate FGB Episodes 14-31
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/activate-fgb-episodes-14-31.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-production
+  cancel-in-progress: false
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Promote staged episodes and verify live stream
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MEDIA=/srv/fgbears-live/media
+          PENDING=/srv/fgbears-live/processed-pending
+          PLAYLIST=/srv/fgbears-live/playlist.ffconcat
+          ROLLBACK=/srv/fgbears-live/runtime/activate-14-31-rollback
+          sudo install -d -o fgbears -g fgbears -m 0755 "$ROLLBACK"
+          sudo cp -f "$PLAYLIST" "$ROLLBACK/playlist.ffconcat"
+          for n in 30 31; do
+            sudo cp -f "$MEDIA/FGBears-Episode-${n}.mp4" "$ROLLBACK/FGBears-Episode-${n}.mp4"
+          done
+
+          rollback() {
+            rc=$?
+            trap - ERR
+            echo 'Activation verification failed; restoring Episodes 01-13 playlist.' >&2
+            sudo cp -f "$ROLLBACK/playlist.ffconcat" "$PLAYLIST" || true
+            for n in 30 31; do
+              [[ -s "$ROLLBACK/FGBears-Episode-${n}.mp4" ]] && sudo cp -f "$ROLLBACK/FGBears-Episode-${n}.mp4" "$MEDIA/FGBears-Episode-${n}.mp4" || true
+            done
+            sudo chown fgbears:fgbears "$PLAYLIST" "$MEDIA"/FGBears-Episode-{30,31}.mp4 2>/dev/null || true
+            sudo systemctl reset-failed fgbears-live.service || true
+            sudo systemctl stop fgbears-live.service || true
+            sleep 2
+            sudo systemctl start fgbears-live.service || true
+            exit "$rc"
+          }
+          trap rollback ERR
+
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          grep -q -- '-c:a copy' /usr/local/bin/fgbears-start-stream
+          ! grep -q -- '-c:a aac' /usr/local/bin/fgbears-start-stream
+          sudo grep -q '^OUTPUT_FPS=30$' /etc/fgbears-live/stream.env
+          sudo grep -q '^AD_OVERLAY_FPS=30$' /etc/fgbears-live/stream.env
+          sudo grep -q '^CRAWL_OVERLAY_FPS=30$' /etc/fgbears-live/stream.env
+
+          for n in $(seq -w 14 31); do
+            f="$PENDING/FGBears-Episode-${n}.mp4"
+            m="${f}.ready.json"
+            [[ -s "$f" && -s "$m" ]]
+            sha=$(sha256sum "$f" | awk '{print $1}')
+            jq -e --arg sha "$sha" --arg ep "$n" '.episode==$ep and .profile=="fgb-stream-copy-v1" and .sha256==$sha' "$m" >/dev/null
+            sudo install -o fgbears -g fgbears -m 0644 "$f" "$MEDIA/FGBears-Episode-${n}.mp4.new"
+            sudo mv -f "$MEDIA/FGBears-Episode-${n}.mp4.new" "$MEDIA/FGBears-Episode-${n}.mp4"
+          done
+
+          tmp=$(mktemp)
+          for n in $(seq -w 1 31); do
+            f="$MEDIA/FGBears-Episode-${n}.mp4"
+            [[ -s "$f" ]]
+            printf "file '%s'\n" "$f" >> "$tmp"
+          done
+          sudo install -o fgbears -g fgbears -m 0644 "$tmp" "$PLAYLIST"
+          rm -f "$tmp"
+          [[ $(grep -c '^file ' "$PLAYLIST") -eq 31 ]]
+
+          sudo systemctl reset-failed fgbears-live.service || true
+          sudo systemctl stop fgbears-live.service
+          sleep 2
+          sudo systemctl start fgbears-live.service
+          for _ in $(seq 1 35); do
+            systemctl is-active --quiet fgbears-live.service && break
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          sleep 8
+
+          echo '=== AUDIO GATE ==='
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 15
+
+          echo '=== VIDEO GATE ==='
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          m1=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          f1=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          d1=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          u1=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          t1=$(date +%s%N)
+          sleep 20
+          m2=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          f2=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          d2=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          u2=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          t2=$(date +%s%N)
+          awk -v m1="$m1" -v m2="$m2" -v f1="$f1" -v f2="$f2" -v d1="${d1:-0}" -v d2="${d2:-0}" -v u1="${u1:-0}" -v u2="${u2:-0}" -v t1="$t1" -v t2="$t2" 'BEGIN{wall=(t2-t1)/1e9;media=(m2-m1)/1e6;ratio=media/wall;fps=(f2-f1)/wall;dd=d2-d1;du=u2-u1;printf "ratio=%.3f fps=%.2f dropped_delta=%d duplicated_delta=%d\n",ratio,fps,dd,du;if(ratio<0.95||fps<28.5||dd!=0||du>5)exit 1}'
+
+          [[ $(grep -c '^file ' "$PLAYLIST") -eq 31 ]]
+          trap - ERR
+          echo 'FGB_EPISODES_01_31_ACTIVATION=SUCCESS'
+          REMOTE
