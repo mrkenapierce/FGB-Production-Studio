@@ -113,10 +113,10 @@ jobs:
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
             set -Eeuo pipefail
-            grep -Fxq "OUTPUT_FPS=30" /etc/fgbears-live/stream.env
-            grep -Fxq "AD_OVERLAY_FPS=15" /etc/fgbears-live/stream.env
-            grep -Fxq "CRAWL_OVERLAY_FPS=30" /etc/fgbears-live/stream.env
-            grep -Fxq "BEARS_NEWS_OVERLAY_FPS=15" /etc/fgbears-live/stream.env
+            sudo grep -Fxq "OUTPUT_FPS=30" /etc/fgbears-live/stream.env
+            sudo grep -Fxq "AD_OVERLAY_FPS=15" /etc/fgbears-live/stream.env
+            sudo grep -Fxq "CRAWL_OVERLAY_FPS=30" /etc/fgbears-live/stream.env
+            sudo grep -Fxq "BEARS_NEWS_OVERLAY_FPS=15" /etc/fgbears-live/stream.env
             health=$(curl --silent --fail --max-time 3 http://127.0.0.1:8789/healthz)
             printf "%s\n" "$health"
             printf "%s" "$health" | jq -e ".ok == true and .active == true and .renderer == \"pillow-mjpeg\" and .fps == 15 and .messageChars > 0" >/dev/null
