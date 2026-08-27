@@ -40,7 +40,7 @@ jobs:
           set -Eeuo pipefail
           MEDIA=/srv/fgbears-live/media
           PLAYLIST=/srv/fgbears-live/playlist.ffconcat
-          TMP=/srv/fgbears-live/playlist.first13.partial
+          TMP=/tmp/fgbears-playlist-first13.partial
 
           # Do not activate while any offline migration process is still running.
           if pgrep -af 'normalize-resilient|normalize-library|\.audio-migration|loudnorm=I=-14' >/dev/null; then
@@ -59,6 +59,7 @@ jobs:
             jq -e --arg sha "$sha" '.profile == "fgb-podcast-v1" and .sha256 == $sha and ((.measured_i_lufs + 14) | if . < 0 then -. else . end) <= 0.8 and .measured_tp_dbtp <= -1.0' "$m" >/dev/null
           done
 
+          rm -f "$TMP"
           {
             echo 'ffconcat version 1.0'
             for n in $(seq -w 1 13); do
