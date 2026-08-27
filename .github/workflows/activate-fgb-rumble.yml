@@ -2,6 +2,10 @@ name: Activate FGBears Rumble Relay
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/activate-fgb-rumble.yml'
 
 permissions:
   contents: read
