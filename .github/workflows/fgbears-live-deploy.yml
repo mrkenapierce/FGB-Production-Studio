@@ -65,9 +65,10 @@ jobs:
             sudo systemctl restart fgbears-youtube-relay.service
             sudo systemctl restart fgbears-live.service
             for i in $(seq 1 60); do
-              if systemctl is-active --quiet fgbears-youtube-relay.service && systemctl is-active --quiet fgbears-live.service && curl --silent --fail --max-time 1 http://127.0.0.1:8787/healthz >/tmp/fgbears-overlay-health.json && curl --silent --fail --max-time 1 http://127.0.0.1:8788/healthz >/tmp/fgbears-crawl-health.json; then
+              if systemctl is-active --quiet fgbears-youtube-relay.service && systemctl is-active --quiet fgbears-live.service && curl --silent --fail --max-time 1 http://127.0.0.1:8787/healthz >/tmp/fgbears-overlay-health.json && curl --silent --fail --max-time 1 http://127.0.0.1:8788/healthz >/tmp/fgbears-crawl-health.json && curl --silent --fail --max-time 1 http://127.0.0.1:8789/healthz >/tmp/fgbears-news-health.json; then
                 cat /tmp/fgbears-overlay-health.json
                 cat /tmp/fgbears-crawl-health.json
+                cat /tmp/fgbears-news-health.json
                 exit 0
               fi
               sleep 1
@@ -104,6 +105,22 @@ jobs:
             sudo -u fgbears python3 -c "import importlib.util; p=\"/opt/fgbears-live/bin/crawl-overlay.py\"; s=importlib.util.spec_from_file_location(\"fgb_crawl\",p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); icons=[\"🐻\",\"🏈\",\"🔥\",\"⬇️\",\"💙\",\"🧡\"]; missing=[e for e in icons if m.emoji_image(e,35) is None]; print(\"emoji self-test:\", \" \".join(icons), \"missing=\", missing); assert not missing, missing"
           '
 
+      - id: news_frame
+        name: Verify image-rendered Bears news on Oracle
+        if: always() && steps.install.outcome == 'success'
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
+            set -Eeuo pipefail
+            health=$(curl --silent --fail --max-time 3 http://127.0.0.1:8789/healthz)
+            printf "%s\n" "$health"
+            printf "%s" "$health" | jq -e ".ok == true and .active == true and .renderer == \"pillow-mjpeg\" and .fps == 30 and .messageChars > 0" >/dev/null
+            curl --silent --fail --max-time 3 http://127.0.0.1:8789/frame.jpg -o /tmp/fgbears-news-frame.jpg
+            test -s /tmp/fgbears-news-frame.jpg
+            python3 -c "from PIL import Image; im=Image.open(\"/tmp/fgbears-news-frame.jpg\"); im.load(); assert im.size == (1280,104), im.size; print(\"news frame:\", im.size, im.format)"
+          '
+
       - id: ffmpeg_transport
         name: Verify encoder and YouTube relay without exposing stream keys
         if: always() && steps.install.outcome == 'success'
@@ -124,8 +141,9 @@ jobs:
             sudo tr "\0" "\n" < "/proc/$ffmpeg_pid/cmdline" > "$encoder_args"
             sudo tr "\0" "\n" < "/proc/$relay_pid/cmdline" > "$relay_args"
             grep -Fq "http://127.0.0.1:8788/overlay.mjpg" "$encoder_args"
+            grep -Fq "http://127.0.0.1:8789/overlay.mjpg" "$encoder_args"
             grep -Fxq "tee" "$encoder_args"
-            grep -Fxq "128k" "$encoder_args"
+            grep -Fxq "copy" "$encoder_args"
             grep -Fq "udp://127.0.0.1:1939?pkt_size=1316" "$encoder_args"
             if grep -Fq "rtmp://127.0.0.1:1935" "$encoder_args"; then
               echo "Primary encoder still depends on retired local RTMP transport." >&2
@@ -134,7 +152,7 @@ jobs:
             grep -Fq "udp://127.0.0.1:1939?fifo_size=1000000" "$relay_args"
             grep -Fxq "copy" "$relay_args"
             grep -Fq "rtmps://a.rtmps.youtube.com/live2/" "$relay_args"
-            echo "FFmpeg transport verified: one primary encode, local MPEG-TS/UDP YouTube mirror, copy-remux relay, AAC 128k."
+            echo "FFmpeg transport verified: one primary encode, image-rendered news/crawl overlays, source audio copy, local MPEG-TS/UDP YouTube mirror, copy-remux relay."
           '
 
       - id: youtube_relay_socket
@@ -280,6 +298,7 @@ jobs:
           INSTALL_OUTCOME: ${{ steps.install.outcome }}
           CRAWL_HEALTH_OUTCOME: ${{ steps.crawl_health.outcome }}
           EMOJI_ASSETS_OUTCOME: ${{ steps.emoji_assets.outcome }}
+          NEWS_FRAME_OUTCOME: ${{ steps.news_frame.outcome }}
           FFMPEG_TRANSPORT_OUTCOME: ${{ steps.ffmpeg_transport.outcome }}
           YOUTUBE_RELAY_OUTCOME: ${{ steps.youtube_relay_socket.outcome }}
           PROGRAM_CLOCK_OUTCOME: ${{ steps.program_clock.outcome }}
@@ -291,7 +310,7 @@ jobs:
           git checkout -B main origin/main
           mkdir -p .github/deployment-status
           ok=false
-          if [[ "$INSTALL_OUTCOME" == "success" && "$CRAWL_HEALTH_OUTCOME" == "success" && "$EMOJI_ASSETS_OUTCOME" == "success" && "$FFMPEG_TRANSPORT_OUTCOME" == "success" && "$YOUTUBE_RELAY_OUTCOME" == "success" && "$PROGRAM_CLOCK_OUTCOME" == "success" && "$CRAWL_FRAME_OUTCOME" == "success" && "$ADS_OUTCOME" == "success" ]]; then
+          if [[ "$INSTALL_OUTCOME" == "success" && "$CRAWL_HEALTH_OUTCOME" == "success" && "$EMOJI_ASSETS_OUTCOME" == "success" && "$NEWS_FRAME_OUTCOME" == "success" && "$FFMPEG_TRANSPORT_OUTCOME" == "success" && "$YOUTUBE_RELAY_OUTCOME" == "success" && "$PROGRAM_CLOCK_OUTCOME" == "success" && "$CRAWL_FRAME_OUTCOME" == "success" && "$ADS_OUTCOME" == "success" ]]; then
             ok=true
           fi
           jq -n \
@@ -303,12 +322,13 @@ jobs:
             --arg installOutcome "$INSTALL_OUTCOME" \
             --arg crawlHealthOutcome "$CRAWL_HEALTH_OUTCOME" \
             --arg emojiAssetsOutcome "$EMOJI_ASSETS_OUTCOME" \
+            --arg newsFrameOutcome "$NEWS_FRAME_OUTCOME" \
             --arg ffmpegTransportOutcome "$FFMPEG_TRANSPORT_OUTCOME" \
             --arg youtubeRelayOutcome "$YOUTUBE_RELAY_OUTCOME" \
             --arg programClockOutcome "$PROGRAM_CLOCK_OUTCOME" \
             --arg crawlFrameOutcome "$CRAWL_FRAME_OUTCOME" \
             --arg adsOutcome "$ADS_OUTCOME" \
-            '{ok:$ok,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,crawlHealthOutcome:$crawlHealthOutcome,emojiAssetsOutcome:$emojiAssetsOutcome,ffmpegTransportOutcome:$ffmpegTransportOutcome,youtubeRelayOutcome:$youtubeRelayOutcome,programClockOutcome:$programClockOutcome,crawlFrameOutcome:$crawlFrameOutcome,adsOutcome:$adsOutcome,service:"fgbears-live.service",youtubeRelayService:"fgbears-youtube-relay.service",expectedServiceState:"active",programClockMinRealtimeRatio:0.95,programClockZeroDroppedFramesRequired:true,emojiRenderer:"twemoji-png",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg",transport:"ffmpeg-tee-local-mpegts-udp+youtube-copy-remux",audioBitrateKbps:128,xSimulcastCapable:true,xAccountHandle:"@epic501c3"}' \
+            '{ok:$ok,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,crawlHealthOutcome:$crawlHealthOutcome,emojiAssetsOutcome:$emojiAssetsOutcome,newsFrameOutcome:$newsFrameOutcome,ffmpegTransportOutcome:$ffmpegTransportOutcome,youtubeRelayOutcome:$youtubeRelayOutcome,programClockOutcome:$programClockOutcome,crawlFrameOutcome:$crawlFrameOutcome,adsOutcome:$adsOutcome,service:"fgbears-live.service",youtubeRelayService:"fgbears-youtube-relay.service",expectedServiceState:"active",programClockMinRealtimeRatio:0.95,programClockZeroDroppedFramesRequired:true,emojiRenderer:"twemoji-png",newsRenderer:"pillow-mjpeg",newsFrameSize:"1280x104",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg",ffmpegNewsInput:"http://127.0.0.1:8789/overlay.mjpg",transport:"ffmpeg-tee-local-mpegts-udp+youtube-copy-remux",audioMode:"copy",xSimulcastCapable:true,xAccountHandle:"@epic501c3"}' \
             > .github/deployment-status/fgbears-live.json
           git config user.name "FGBears Deploy Bot"
           git config user.email "actions@github.com"
