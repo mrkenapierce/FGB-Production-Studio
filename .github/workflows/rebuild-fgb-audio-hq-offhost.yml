@@ -1,0 +1,155 @@
+name: Rebuild FGB Audio HQ Off-Host
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rebuild-fgb-audio-hq-offhost.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Rebuild episodes 01-13 without loudness processing
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          set -Eeuo pipefail
+          mkdir -p source hq
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
+            'sudo install -d -o ubuntu -g ubuntu -m 0755 /srv/fgbears-live/hq-audio-staging'
+
+          for n in $(seq -w 1 13); do
+            echo "EPISODE_${n}_PROCESSING=START"
+            src="FGBears-Episode-${n}.mp4"
+            scp -q -l 20000 -i ~/.ssh/oracle_key \
+              "$ORACLE_USER@$ORACLE_HOST:/home/ubuntu/fgbears-upload/$src" "source/$src"
+
+            ffmpeg -hide_banner -nostdin -y -loglevel warning \
+              -i "source/$src" -map 0:v:0 -map 0:a:0 \
+              -c:v copy \
+              -af 'asetpts=N/SR/TB' \
+              -c:a aac -aac_coder twoloop -b:a 256k -ar 44100 -ac 2 \
+              -movflags +faststart -map_metadata -1 "hq/$src"
+
+            ffprobe -v error -select_streams v:0 \
+              -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt \
+              -of json "hq/$src" | \
+              jq -e '.streams[0].codec_name=="h264" and .streams[0].width==1280 and .streams[0].height==720 and .streams[0].r_frame_rate=="30/1" and .streams[0].pix_fmt=="yuv420p"' >/dev/null
+
+            ffprobe -v error -select_streams a:0 \
+              -show_entries stream=codec_name,sample_rate,channels,bit_rate \
+              -of json "hq/$src" | \
+              jq -e '.streams[0].codec_name=="aac" and .streams[0].sample_rate=="44100" and .streams[0].channels==2 and (.streams[0].bit_rate|tonumber) >= 240000' >/dev/null
+
+            pts_result=$(ffprobe -v error -select_streams a:0 -show_packets \
+              -show_entries packet=pts_time -of csv=p=0 "hq/$src" | \
+              awk 'NR==1{prev=$1;next}{d=$1-prev;if(d>0.08)c++;if(d<0)r++;prev=$1}END{printf "%d:%d",c,r}')
+            [[ "$pts_result" == "0:0" ]] || { echo "EPISODE_${n}_PTS_FAILURE=$pts_result" >&2; exit 1; }
+
+            scp -q -l 20000 -i ~/.ssh/oracle_key "hq/$src" \
+              "$ORACLE_USER@$ORACLE_HOST:/srv/fgbears-live/hq-audio-staging/$src"
+            echo "EPISODE_${n}_PROCESSING=SUCCESS"
+          done
+
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
+            'sudo chown -R fgbears:fgbears /srv/fgbears-live/hq-audio-staging && sudo chmod 0644 /srv/fgbears-live/hq-audio-staging/*.mp4'
+
+  activate:
+    needs: process
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: fgbears-live-production-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Activate high-quality timestamp-repaired audio
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -o ServerAliveInterval=20 -o ServerAliveCountMax=5 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          DIR=/srv/fgbears-live/hq-audio-staging
+          PLAYLIST=/srv/fgbears-live/playlist.ffconcat
+          TMP=/tmp/fgbears-hq-audio.ffconcat
+
+          if pgrep -af 'normalize-resilient|normalize-library|\.audio-migration|loudnorm=I=-14' >/dev/null; then
+            echo 'Offline normalization is running; refusing activation.' >&2
+            exit 75
+          fi
+
+          [[ $(find "$DIR" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4' | wc -l) -eq 13 ]]
+          rm -f "$TMP"
+          {
+            echo 'ffconcat version 1.0'
+            for n in $(seq -w 1 13); do
+              test -s "$DIR/FGBears-Episode-${n}.mp4"
+              printf "file '%s'\n" "$DIR/FGBears-Episode-${n}.mp4"
+            done
+          } > "$TMP"
+          sudo chown fgbears:fgbears "$TMP"
+          sudo chmod 0644 "$TMP"
+          sudo cp -f "$PLAYLIST" "${PLAYLIST}.before-hq-audio"
+          sudo mv -f "$TMP" "$PLAYLIST"
+
+          grep -q -- '-c:a copy' /usr/local/bin/fgbears-start-stream
+          ! grep -q -- '-c:a aac' /usr/local/bin/fgbears-start-stream
+          sudo systemctl restart fgbears-live.service
+          for _ in $(seq 1 45); do
+            if systemctl is-active --quiet fgbears-live.service && systemctl is-active --quiet fgbears-youtube-relay.service; then
+              sleep 3
+              break
+            fi
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+
+          echo '=== EXACT OUTGOING HQ AUDIO ==='
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 20
+
+          echo '=== STREAM CADENCE ==='
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          first_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_epoch=$(date +%s%N)
+          sleep 10
+          second_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          dropped=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_epoch=$(date +%s%N)
+          awk -v m1="$first_media" -v m2="$second_media" -v f1="$first_frame" -v f2="$second_frame" -v e1="$first_epoch" -v e2="$second_epoch" -v dropped="${dropped:-0}" 'BEGIN {wall=(e2-e1)/1000000000;program=(m2-m1)/1000000;ratio=program/wall;fps=(f2-f1)/wall;printf "program=%.3fs wall=%.3fs ratio=%.3fx fps=%.2f dropped=%d\n",program,wall,ratio,fps,dropped;if(ratio<0.95||fps<28.5||dropped!=0)exit 1}'
+
+          echo 'HQ_AUDIO_LIVE=SUCCESS'
+          REMOTE
