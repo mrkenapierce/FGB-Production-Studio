@@ -28,7 +28,7 @@ LOCAL_FEED_FILE = Path(
 POLL_SECONDS = max(30, int(os.getenv("BEARS_NEWS_POLL_SECONDS", "300")))
 MAX_ITEMS = max(1, min(20, int(os.getenv("BEARS_NEWS_MAX_ITEMS", "8"))))
 PORT = int(os.getenv("BEARS_NEWS_OVERLAY_PORT", "8789"))
-FPS = max(10, int(os.getenv("BEARS_NEWS_OVERLAY_FPS", "30")))
+FPS = max(10, int(os.getenv("BEARS_NEWS_OVERLAY_FPS", "15")))
 SCROLL_PPS = max(20, int(os.getenv("BEARS_NEWS_SCROLL_PPS", "76")))
 RUNTIME_DIR = Path(os.getenv("CRAWL_RUNTIME_DIR", "/srv/fgbears-live/runtime"))
 SEPARATOR = "     ◆     "
@@ -173,7 +173,7 @@ def text_bbox(text: str, text_font: ImageFont.ImageFont) -> tuple[int, int, int,
 
 @lru_cache(maxsize=1)
 def base_frame() -> Image.Image:
-    """Build the fixed ribbon geometry once instead of repainting it at 30 fps."""
+    """Build the fixed ribbon geometry once instead of repainting it per frame."""
     image = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
     draw.rectangle((7, 7, 1272, 103), fill=BEARS_BLUE)
@@ -224,9 +224,10 @@ def frame(now: float | None = None) -> Image.Image:
         return Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
 
     # The static Bears ribbon and the full headline strip are pre-rasterized.
-    # Per-frame work is now limited to copying the fixed panel, cropping the
+    # Per-frame work is limited to copying the fixed panel, cropping the
     # already-shaped ticker pixels, and compositing them into the viewport.
-    # FFmpeg still receives a 30 fps image overlay and never shapes news glyphs.
+    # The news overlay refreshes at 15 fps while the final program remains
+    # 30 fps; FFmpeg never shapes or crops individual news glyphs.
     image = base_frame().copy()
     strip, cycle_width = ticker_cycle(message)
     elapsed = max(0.0, now - started)
