@@ -1,0 +1,163 @@
+name: Test FGB Direct YouTube RTMPS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/test-fgb-direct-youtube-rtmps.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Bypass relay and send primary encoder directly to YouTube
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -o ServerAliveInterval=20 -o ServerAliveCountMax=5 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          RUNTIME=/usr/local/bin/fgbears-start-stream
+          OPT=/opt/fgbears-live/bin/start-stream.sh
+          HEALTH=/usr/local/bin/fgbears-healthcheck
+          HEALTH_OPT=/opt/fgbears-live/bin/healthcheck.sh
+          ENV=/etc/fgbears-live/stream.env
+          BACKUP=/srv/fgbears-live/runtime/direct-rtmps-rollback
+          sudo install -d -m 0755 "$BACKUP"
+          sudo cp -f "$RUNTIME" "$BACKUP/fgbears-start-stream"
+          sudo cp -f "$OPT" "$BACKUP/start-stream.sh"
+          sudo cp -f "$HEALTH" "$BACKUP/fgbears-healthcheck"
+          sudo cp -f "$HEALTH_OPT" "$BACKUP/healthcheck.sh"
+          sudo cp -f "$ENV" "$BACKUP/stream.env"
+
+          rollback() {
+            echo 'Direct RTMPS validation failed; restoring prior relay architecture.' >&2
+            sudo cp -f "$BACKUP/fgbears-start-stream" "$RUNTIME"
+            sudo cp -f "$BACKUP/start-stream.sh" "$OPT"
+            sudo cp -f "$BACKUP/fgbears-healthcheck" "$HEALTH"
+            sudo cp -f "$BACKUP/healthcheck.sh" "$HEALTH_OPT"
+            sudo cp -f "$BACKUP/stream.env" "$ENV"
+            sudo chmod 0755 "$RUNTIME" "$OPT" "$HEALTH" "$HEALTH_OPT"
+            sudo systemctl reset-failed fgbears-youtube-relay.service || true
+            sudo systemctl restart fgbears-youtube-relay.service || true
+            sudo systemctl restart fgbears-live.service || true
+          }
+          trap rollback ERR
+
+          if pgrep -af 'normalize-resilient|normalize-library|\.audio-migration|loudnorm=I=-14' >/dev/null; then
+            echo 'Offline audio processing is active; refusing direct-path test.' >&2
+            exit 75
+          fi
+
+          for path in "$RUNTIME" "$OPT"; do
+            sudo python3 - "$path" <<'PY'
+from pathlib import Path
+import sys
+p=Path(sys.argv[1])
+s=p.read_text()
+old='TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"\nprintf \'FGBears Live output: YouTube local UDP mirror only.\\n\''
+new=': "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"\nYOUTUBE_UPSTREAM_URL="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"\nTEE_TARGETS="[f=flv:onfail=ignore]${YOUTUBE_UPSTREAM_URL}|[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"\nprintf \'FGBears Live output: direct YouTube RTMPS plus local monitoring mirror.\\n\''
+if old not in s and 'YOUTUBE_UPSTREAM_URL=' not in s:
+    raise SystemExit('expected local-only tee block not found')
+if old in s:
+    s=s.replace(old,new)
+p.write_text(s)
+PY
+            sudo chmod 0755 "$path"
+          done
+
+          for path in "$HEALTH" "$HEALTH_OPT"; do
+            sudo python3 - "$path" <<'PY'
+from pathlib import Path
+import sys
+p=Path(sys.argv[1])
+s=p.read_text()
+old='recover_youtube_relay || true'
+new='if [[ "${YOUTUBE_DIRECT_RTMP:-0}" != "1" ]]; then\n  recover_youtube_relay || true\nfi'
+if old in s:
+    s=s.replace(old,new)
+elif 'YOUTUBE_DIRECT_RTMP' not in s:
+    raise SystemExit('relay recovery call not found')
+p.write_text(s)
+PY
+            sudo chmod 0755 "$path"
+          done
+
+          sudo python3 - "$ENV" <<'PY'
+from pathlib import Path
+import sys
+p=Path(sys.argv[1])
+lines=p.read_text().splitlines()
+out=[]
+seen=False
+for line in lines:
+    if line.startswith('YOUTUBE_DIRECT_RTMP='):
+        if not seen:
+            out.append('YOUTUBE_DIRECT_RTMP=1')
+            seen=True
+    else:
+        out.append(line)
+if not seen:
+    out.append('YOUTUBE_DIRECT_RTMP=1')
+p.write_text('\n'.join(out)+'\n')
+PY
+          sudo chown root:fgbears "$ENV"
+          sudo chmod 0640 "$ENV"
+
+          grep -q 'YOUTUBE_UPSTREAM_URL=' "$RUNTIME"
+          grep -q -- '-c:a copy' "$RUNTIME"
+          ! grep -q -- '-c:a aac' "$RUNTIME"
+
+          sudo systemctl stop fgbears-youtube-relay.service
+          sudo systemctl restart fgbears-live.service
+          for _ in $(seq 1 45); do
+            systemctl is-active --quiet fgbears-live.service && break
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-live.service
+          ! systemctl is-active --quiet fgbears-youtube-relay.service
+
+          sleep 5
+          pgrep -af ffmpeg | grep -F -- '-c:a copy' >/dev/null
+          # Direct RTMPS uses TLS to YouTube. Require an established outbound TLS socket.
+          ss -tn state established | grep -q ':443'
+
+          echo '=== LOCAL MIRROR OF DIRECT YOUTUBE PROGRAM ==='
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 20
+
+          echo '=== STREAM CADENCE ==='
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          first_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_epoch=$(date +%s%N)
+          sleep 10
+          second_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          dropped=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_epoch=$(date +%s%N)
+          awk -v m1="$first_media" -v m2="$second_media" -v f1="$first_frame" -v f2="$second_frame" -v e1="$first_epoch" -v e2="$second_epoch" -v dropped="${dropped:-0}" 'BEGIN {wall=(e2-e1)/1000000000;program=(m2-m1)/1000000;ratio=program/wall;fps=(f2-f1)/wall;printf "program=%.3fs wall=%.3fs ratio=%.3fx fps=%.2f dropped=%d\n",program,wall,ratio,fps,dropped;if(ratio<0.95||fps<28.5||dropped!=0)exit 1}'
+
+          trap - ERR
+          echo 'DIRECT_YOUTUBE_RTMPS=SUCCESS'
+          REMOTE
