@@ -108,6 +108,8 @@ updates = {
     "OUTPUT_FPS": "30",
     "AD_OVERLAY_FPS": "15",
     "CRAWL_OVERLAY_FPS": "30",
+    "CRAWL_OVERLAY_SCRIPT": "/opt/fgbears-live/bin/crawl-overlay-hq.py",
+    "CRAWL_TEXT_RENDER_SCALE": "2",
     "BEARS_NEWS_OVERLAY_PORT": "8789",
     "BEARS_NEWS_OVERLAY_FPS": "15",
     "BEARS_NEWS_SCROLL_PPS": "76",
