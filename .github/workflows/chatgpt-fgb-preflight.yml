@@ -1,0 +1,27 @@
+name: FGB Patch Preflight
+on:
+  push:
+    branches:
+      - 'chatgpt/fgb-preflight-*'
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install --disable-pip-version-check pillow
+      - name: Compile renderer modules
+        run: |
+          python -m py_compile \
+            services/fgbears-live/bin/game_overlay.py \
+            services/fgbears-live/bin/game_overlay_policy.py \
+            services/fgbears-live/bin/crawl-overlay.py \
+            services/fgbears-live/bin/crawl-overlay-hq.py \
+            services/fgbears-live/bin/ad-overlay-smart.py
+      - name: Run broadcast policy test
+        run: python services/fgbears-live/tests/test-broadcast-policy.py
