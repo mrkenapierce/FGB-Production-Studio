@@ -48,14 +48,15 @@ PY
 grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${AD_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
 grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
+# shellcheck disable=SC2016
+grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-preset ultrafast' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-progress pipe:3' "$ROOT/bin/start-stream.sh"
-grep -Fq "CANONICAL_AUDIO_FILTER='volume=-2dB,aresample=48000:first_pts=0'" "$ROOT/bin/start-stream.sh"
-if grep -Eq 'PODCAST_AUDIO_FILTER:=.*(highpass=|acompressor=|loudnorm=|afftdn=|deesser=|equalizer=|async=1)' "$ROOT/bin/start-stream.sh"; then
-  echo 'The production live chain must preserve mastered episode audio without destructive DSP or async time-stretching.' >&2
+if grep -Fq -- '-af ' "$ROOT/bin/start-stream.sh"; then
+  echo 'The production live chain must preserve mastered episode audio without live DSP.' >&2
   exit 1
 fi
-grep -Fq -- '-c:a aac -b:a 128k -ar 48000 -ac 2' "$ROOT/bin/start-stream.sh"
+grep -Fq -- '-c:a copy' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-f tee -use_fifo 1' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
 grep -Fq 'TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"' "$ROOT/bin/start-stream.sh"

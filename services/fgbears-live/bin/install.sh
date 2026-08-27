@@ -76,7 +76,9 @@ if [[ ! -e "$ENV_PATH" ]]; then
 fi
 
 # Preserve credentials and migrate YouTube's internal handoff to the isolated
-# loopback MPEG-TS relay. Remove all retired social-simulcast keys.
+# loopback MPEG-TS relay. Remove all retired social-simulcast keys. Lock the
+# Bears news overlay to its dedicated local MJPEG renderer so stale host values
+# cannot reactivate the retired FFmpeg drawtext/crop path.
 python3 - "$ENV_PATH" <<'PY'
 from pathlib import Path
 import sys
@@ -101,6 +103,9 @@ updates = {
     "PODCAST_AUDIO_FILTER": "volume=-2dB,aresample=48000:first_pts=0",
     "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
+    "BEARS_NEWS_OVERLAY_PORT": "8789",
+    "BEARS_NEWS_OVERLAY_FPS": "30",
+    "BEARS_NEWS_SCROLL_PPS": "76",
 }
 retired_prefixes = ("X_", "INSTAGRAM_", "FACEBOOK_")
 seen = set()
