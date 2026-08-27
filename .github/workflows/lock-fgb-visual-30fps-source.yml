@@ -1,0 +1,51 @@
+name: Lock FGB Visual Source to 30 FPS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/lock-fgb-visual-30fps-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  lock:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Make 30 fps visual clocks the source defaults
+        run: |
+          set -Eeuo pipefail
+          START=services/fgbears-live/bin/start-stream.sh
+          AD=services/fgbears-live/bin/ad-overlay.py
+          CRAWL=services/fgbears-live/bin/crawl-overlay.py
+
+          sed -i 's/${AD_OVERLAY_FPS:=15}/${AD_OVERLAY_FPS:=30}/' "$START"
+          sed -i 's/${CRAWL_OVERLAY_FPS:=15}/${CRAWL_OVERLAY_FPS:=30}/' "$START"
+          sed -i 's/^FPS = 25$/FPS = max(1, int(os.getenv("AD_OVERLAY_FPS", "30")))/' "$AD"
+          sed -i 's/timestamps this input at 25 fps/timestamps this input at 30 fps/' "$AD"
+          sed -i 's/os.getenv("CRAWL_OVERLAY_FPS", "15")/os.getenv("CRAWL_OVERLAY_FPS", "30")/' "$CRAWL"
+          sed -i 's/renderer at 15 fps/renderer at 30 fps/' "$CRAWL"
+
+          grep -q '${AD_OVERLAY_FPS:=30}' "$START"
+          grep -q '${CRAWL_OVERLAY_FPS:=30}' "$START"
+          grep -q 'AD_OVERLAY_FPS.*30' "$AD"
+          grep -q 'CRAWL_OVERLAY_FPS.*30' "$CRAWL"
+          python3 -m py_compile "$AD" "$CRAWL"
+
+          if git diff --quiet -- "$START" "$AD" "$CRAWL"; then
+            echo 'SOURCE_ALREADY_LOCKED=YES'
+            exit 0
+          fi
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$START" "$AD" "$CRAWL"
+          git commit -m 'Lock FGB visual renderers to 30 fps [skip ci]'
+          git push origin HEAD:main
+          echo 'VISUAL_30FPS_SOURCE_LOCK=SUCCESS'
