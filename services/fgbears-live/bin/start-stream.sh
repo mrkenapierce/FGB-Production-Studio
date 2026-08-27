@@ -10,6 +10,7 @@ source "$ENV_FILE"
 
 : "${YOUTUBE_STREAM_KEY:?YOUTUBE_STREAM_KEY is required}"
 : "${YOUTUBE_LOCAL_UDP_URL:=udp://127.0.0.1:1939?pkt_size=1316}"
+: "${RUMBLE_LOCAL_UDP_URL:=udp://127.0.0.1:1940?pkt_size=1316}"
 : "${PLAYLIST_FILE:=/srv/fgbears-live/playlist.ffconcat}"
 : "${FFMPEG_LOGLEVEL:=warning}"
 : "${OUTPUT_FPS:=30}"
@@ -43,9 +44,13 @@ source "$ENV_FILE"
   echo "YOUTUBE_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
   exit 78
 }
+[[ "$RUMBLE_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
+  echo "RUMBLE_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
+  exit 78
+}
 
-TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"
-printf 'FGBears Live output: YouTube local UDP mirror only.\n'
+TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}|[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${RUMBLE_LOCAL_UDP_URL}"
+printf 'FGBears Live output: isolated YouTube and Rumble local UDP mirrors.\n'
 
 python3 "$AD_OVERLAY_SCRIPT" &
 OVERLAY_PID=$!

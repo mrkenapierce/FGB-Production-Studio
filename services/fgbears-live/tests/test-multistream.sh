@@ -4,7 +4,7 @@ ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
-for script in "$ROOT/bin/start-stream.sh" "$ROOT/bin/youtube-relay.sh" "$ROOT/bin/install.sh" "$ROOT/bin/healthcheck.sh" "$ROOT/bin/stream-status.sh"; do
+for script in "$ROOT/bin/start-stream.sh" "$ROOT/bin/youtube-relay.sh" "$ROOT/bin/rumble-relay.sh" "$ROOT/bin/configure-rumble.sh" "$ROOT/bin/install.sh" "$ROOT/bin/healthcheck.sh" "$ROOT/bin/stream-status.sh"; do
   bash -n "$script"
 done
 
@@ -22,8 +22,11 @@ if grep -R --exclude=finalize-youtube-only.py -nE 'X_LOCAL_UDP_URL|X_RELAY_ENABL
   exit 1
 fi
 
-grep -Fq 'TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"' "$ROOT/bin/start-stream.sh"
-grep -Fq 'YouTube local UDP mirror only' "$ROOT/bin/start-stream.sh"
+grep -Fq '${YOUTUBE_LOCAL_UDP_URL}|[f=mpegts:' "$ROOT/bin/start-stream.sh"
+grep -Fq '${RUMBLE_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"
+grep -Fq 'isolated YouTube and Rumble local UDP mirrors' "$ROOT/bin/start-stream.sh"
+grep -Fq 'rtmp://rtmp.rumble.com/live' "$ROOT/bin/rumble-relay.sh"
+grep -Fq -- '-c copy' "$ROOT/bin/rumble-relay.sh"
 
 if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null; then
   ffmpeg -hide_banner -loglevel error \
@@ -32,10 +35,11 @@ if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null; then
     -t 0.5 -map 0:v -map 1:a \
     -c:v libx264 -preset ultrafast -g 48 -c:a aac -b:a 128k \
     -f tee -use_fifo 1 -fifo_options 'attempt_recovery=1:recover_any_error=1:recovery_wait_time=1' \
-    "[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/youtube-local.ts"
+    "[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/youtube-local.ts|[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/rumble-local.ts"
   test -s "$TMP/youtube-local.ts"
+  test -s "$TMP/rumble-local.ts"
   ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1 "$TMP/youtube-local.ts" | grep -q '^codec_name=aac$'
   ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=nw=1 "$TMP/youtube-local.ts" | grep -q '^codec_name=h264$'
 fi
 
-echo 'FGBears transport is locked to YouTube only.'
+echo 'FGBears transport provides isolated YouTube and Rumble copy-remux relays.'

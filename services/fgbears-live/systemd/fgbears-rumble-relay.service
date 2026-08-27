@@ -1,0 +1,30 @@
+[Unit]
+Description=FGBears Rumble RTMP copy-remux relay
+After=network-online.target fgbears-live.service
+Wants=network-online.target
+StartLimitIntervalSec=30min
+StartLimitBurst=6
+
+[Service]
+Type=simple
+User=fgbears
+Group=fgbears
+EnvironmentFile=/etc/fgbears-live/stream.env
+ExecStart=/usr/local/bin/fgbears-rumble-relay
+Restart=on-failure
+RestartSec=5
+SuccessExitStatus=130 143
+TimeoutStopSec=15
+KillSignal=SIGINT
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/opt/fgbears-live /etc/fgbears-live
+RestrictSUIDSGID=true
+LockPersonality=true
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
