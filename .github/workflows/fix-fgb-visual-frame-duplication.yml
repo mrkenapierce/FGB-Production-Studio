@@ -47,11 +47,11 @@ jobs:
 
           rollback() {
             echo 'Visual FPS verification failed; restoring prior runtime.' >&2
-            sudo cp -f "$BACKUP/stream.env" "$ENV"
-            sudo cp -f "$BACKUP/ad-overlay.py" "$AD"
-            sudo chown root:fgbears "$ENV"
-            sudo chmod 0640 "$ENV"
-            sudo chmod 0755 "$AD"
+            sudo cp -f "$BACKUP/stream.env" "$ENV" || true
+            sudo cp -f "$BACKUP/ad-overlay.py" "$AD" || true
+            sudo chown root:fgbears "$ENV" || true
+            sudo chmod 0640 "$ENV" || true
+            sudo chmod 0755 "$AD" || true
             sudo systemctl restart fgbears-live.service || true
           }
           trap rollback ERR
@@ -60,47 +60,19 @@ jobs:
           grep -q -- '-c:a copy' /usr/local/bin/fgbears-start-stream
           ! grep -q -- '-c:a aac' /usr/local/bin/fgbears-start-stream
 
-          sudo python3 - "$ENV" <<'PY'
-from pathlib import Path
-import sys
-p=Path(sys.argv[1])
-lines=p.read_text().splitlines()
-updates={'AD_OVERLAY_FPS':'30','CRAWL_OVERLAY_FPS':'30'}
-out=[]
-seen=set()
-for line in lines:
-    key=line.split('=',1)[0] if '=' in line else ''
-    if key in updates:
-        if key not in seen:
-            out.append(f'{key}={updates[key]}')
-            seen.add(key)
-    else:
-        out.append(line)
-for key,val in updates.items():
-    if key not in seen:
-        out.append(f'{key}={val}')
-p.write_text('\n'.join(out)+'\n')
-PY
+          # Make both visual clocks match the 30 fps program clock.
+          sudo sed -i '/^AD_OVERLAY_FPS=/d;/^CRAWL_OVERLAY_FPS=/d' "$ENV"
+          printf 'AD_OVERLAY_FPS=30\nCRAWL_OVERLAY_FPS=30\n' | sudo tee -a "$ENV" >/dev/null
           sudo chown root:fgbears "$ENV"
           sudo chmod 0640 "$ENV"
 
-          # The ad renderer previously hard-coded 25 fps and ignored the shared
-          # runtime clock. Make it obey AD_OVERLAY_FPS just like crawl-overlay.
-          sudo python3 - "$AD" <<'PY'
-from pathlib import Path
-import sys
-p=Path(sys.argv[1])
-s=p.read_text()
-old='FPS = 25'
-new='FPS = max(10, int(os.getenv("AD_OVERLAY_FPS", "30")))'
-if old in s:
-    s=s.replace(old,new,1)
-elif new not in s:
-    raise SystemExit('ad overlay FPS declaration not found')
-p.write_text(s)
-PY
+          # ad-overlay.py previously hard-coded 25 fps and ignored AD_OVERLAY_FPS.
+          if grep -q '^FPS = 25$' "$AD"; then
+            sudo sed -i 's/^FPS = 25$/FPS = max(10, int(os.getenv("AD_OVERLAY_FPS", "30")))/' "$AD"
+          fi
+          grep -q 'AD_OVERLAY_FPS.*30' "$AD"
           sudo chmod 0755 "$AD"
-          python3 -m py_compile "$AD"
+          sudo python3 -m py_compile "$AD"
 
           sudo systemctl restart fgbears-live.service
           for _ in $(seq 1 40); do
@@ -113,8 +85,9 @@ PY
 
           echo '=== VISUAL CLOCKS ==='
           grep -E '^(AD_OVERLAY_FPS|CRAWL_OVERLAY_FPS)=' "$ENV"
-          pgrep -af ffmpeg | grep -F -- '-r 30 -f mpjpeg' >/dev/null
-          pgrep -af ffmpeg | grep -F -- '-c:a copy' >/dev/null
+          command_line=$(pgrep -af 'ffmpeg.*overlay\.mjpg' | head -n1)
+          printf '%s\n' "$command_line" | grep -F -- '-r 30 -f mpjpeg' >/dev/null
+          printf '%s\n' "$command_line" | grep -F -- '-c:a copy' >/dev/null
 
           progress=/srv/fgbears-live/logs/ffmpeg-progress.log
           m1=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
