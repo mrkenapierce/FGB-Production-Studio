@@ -39,19 +39,15 @@ jobs:
           ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           ENV=/etc/fgbears-live/stream.env
-          AD=/opt/fgbears-live/bin/ad-overlay.py
           BACKUP=/srv/fgbears-live/runtime/visual-fps-rollback
           sudo install -d -m 0755 "$BACKUP"
           sudo cp -f "$ENV" "$BACKUP/stream.env"
-          sudo cp -f "$AD" "$BACKUP/ad-overlay.py"
 
           rollback() {
             echo 'Visual FPS verification failed; restoring prior runtime.' >&2
             sudo cp -f "$BACKUP/stream.env" "$ENV" || true
-            sudo cp -f "$BACKUP/ad-overlay.py" "$AD" || true
             sudo chown root:fgbears "$ENV" || true
             sudo chmod 0640 "$ENV" || true
-            sudo chmod 0755 "$AD" || true
             sudo systemctl restart fgbears-live.service || true
           }
           trap rollback ERR
@@ -60,19 +56,13 @@ jobs:
           grep -q -- '-c:a copy' /usr/local/bin/fgbears-start-stream
           ! grep -q -- '-c:a aac' /usr/local/bin/fgbears-start-stream
 
-          # Make both visual clocks match the 30 fps program clock.
+          # Both active renderers already read these environment controls.
+          grep -q 'AD_OVERLAY_FPS' /opt/fgbears-live/bin/ad-overlay.py
+          grep -q 'CRAWL_OVERLAY_FPS' /opt/fgbears-live/bin/crawl-overlay.py
           sudo sed -i '/^AD_OVERLAY_FPS=/d;/^CRAWL_OVERLAY_FPS=/d' "$ENV"
           printf 'AD_OVERLAY_FPS=30\nCRAWL_OVERLAY_FPS=30\n' | sudo tee -a "$ENV" >/dev/null
           sudo chown root:fgbears "$ENV"
           sudo chmod 0640 "$ENV"
-
-          # ad-overlay.py previously hard-coded 25 fps and ignored AD_OVERLAY_FPS.
-          if grep -q '^FPS = 25$' "$AD"; then
-            sudo sed -i 's/^FPS = 25$/FPS = max(10, int(os.getenv("AD_OVERLAY_FPS", "30")))/' "$AD"
-          fi
-          grep -q 'AD_OVERLAY_FPS.*30' "$AD"
-          sudo chmod 0755 "$AD"
-          sudo python3 -m py_compile "$AD"
 
           sudo systemctl restart fgbears-live.service
           for _ in $(seq 1 40); do
@@ -84,7 +74,7 @@ jobs:
           sleep 8
 
           echo '=== VISUAL CLOCKS ==='
-          grep -E '^(AD_OVERLAY_FPS|CRAWL_OVERLAY_FPS)=' "$ENV"
+          grep -E '^(AD_OVERLAY_FPS|CRAWL_OVERLAY_FPS|OUTPUT_FPS)=' "$ENV"
           command_line=$(pgrep -af 'ffmpeg.*overlay\.mjpg' | head -n1)
           printf '%s\n' "$command_line" | grep -F -- '-r 30 -f mpjpeg' >/dev/null
           printf '%s\n' "$command_line" | grep -F -- '-c:a copy' >/dev/null
@@ -108,6 +98,7 @@ jobs:
 
           echo '=== CPU AFTER FIX ==='
           ps -eo pid,pcpu,pmem,comm,args --sort=-pcpu | grep -E 'ffmpeg|ad-overlay.py|crawl-overlay.py' | head -n 12 | sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g' || true
+          echo "LOAD_AFTER=$(cut -d' ' -f1-3 /proc/loadavg)"
 
           trap - ERR
           echo 'VISUAL_FRAME_DUPLICATION_FIX=SUCCESS'
