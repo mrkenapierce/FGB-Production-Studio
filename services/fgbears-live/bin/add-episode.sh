@@ -8,7 +8,9 @@ SOURCE=$1
 MEDIA_DIR=${MEDIA_DIR:-/srv/fgbears-live/media}
 OUTPUT="$MEDIA_DIR/$(basename "${SOURCE%.*}").mp4"
 
-/usr/local/bin/fgbears-normalize "$SOURCE" "$OUTPUT"
+NORMALIZER=/usr/local/bin/fgbears-normalize-resilient
+[[ -x "$NORMALIZER" ]] || NORMALIZER=/usr/local/bin/fgbears-normalize
+"$NORMALIZER" "$SOURCE" "$OUTPUT"
 /usr/local/bin/fgbears-validate "$MEDIA_DIR"
 /usr/local/bin/fgbears-rebuild-playlist
 
