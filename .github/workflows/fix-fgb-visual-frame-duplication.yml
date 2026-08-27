@@ -43,12 +43,28 @@ jobs:
           sudo install -d -m 0755 "$BACKUP"
           sudo cp -f "$ENV" "$BACKUP/stream.env"
 
+          start_primary_cleanly() {
+            sudo systemctl reset-failed fgbears-live.service || true
+            sudo systemctl stop fgbears-live.service || true
+            sleep 2
+            sudo systemctl start fgbears-live.service
+            for _ in $(seq 1 35); do
+              systemctl is-active --quiet fgbears-live.service && return 0
+              sleep 1
+            done
+            return 1
+          }
+
           rollback() {
+            rc=$?
+            trap - ERR
             echo 'Visual FPS verification failed; restoring prior runtime.' >&2
             sudo cp -f "$BACKUP/stream.env" "$ENV" || true
             sudo chown root:fgbears "$ENV" || true
             sudo chmod 0640 "$ENV" || true
-            sudo systemctl restart fgbears-live.service || true
+            start_primary_cleanly || true
+            sudo systemctl restart fgbears-youtube-relay.service || true
+            exit "$rc"
           }
           trap rollback ERR
 
@@ -64,20 +80,19 @@ jobs:
           sudo chown root:fgbears "$ENV"
           sudo chmod 0640 "$ENV"
 
-          sudo systemctl restart fgbears-live.service
-          for _ in $(seq 1 40); do
-            systemctl is-active --quiet fgbears-live.service && break
-            sleep 1
-          done
+          start_primary_cleanly
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet fgbears-youtube-relay.service
           sleep 8
 
           echo '=== VISUAL CLOCKS ==='
-          grep -E '^(AD_OVERLAY_FPS|CRAWL_OVERLAY_FPS|OUTPUT_FPS)=' "$ENV"
+          sudo grep -E '^(AD_OVERLAY_FPS|CRAWL_OVERLAY_FPS|OUTPUT_FPS)=' "$ENV"
           command_line=$(pgrep -af 'ffmpeg.*overlay\.mjpg' | head -n1)
           printf '%s\n' "$command_line" | grep -F -- '-r 30 -f mpjpeg' >/dev/null
           printf '%s\n' "$command_line" | grep -F -- '-c:a copy' >/dev/null
+          input_30_count=$(printf '%s\n' "$command_line" | grep -o -- '-r 30 -f mpjpeg' | wc -l)
+          echo "VISUAL_INPUTS_AT_30_FPS=$input_30_count"
+          [[ "$input_30_count" -eq 2 ]]
 
           progress=/srv/fgbears-live/logs/ffmpeg-progress.log
           m1=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
