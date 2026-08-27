@@ -1,0 +1,141 @@
+name: Fix FGB Visual Frame Duplication
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-fgb-visual-frame-duplication.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Align visual renderers to 30 fps and verify
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          ENV=/etc/fgbears-live/stream.env
+          AD=/opt/fgbears-live/bin/ad-overlay.py
+          BACKUP=/srv/fgbears-live/runtime/visual-fps-rollback
+          sudo install -d -m 0755 "$BACKUP"
+          sudo cp -f "$ENV" "$BACKUP/stream.env"
+          sudo cp -f "$AD" "$BACKUP/ad-overlay.py"
+
+          rollback() {
+            echo 'Visual FPS verification failed; restoring prior runtime.' >&2
+            sudo cp -f "$BACKUP/stream.env" "$ENV"
+            sudo cp -f "$BACKUP/ad-overlay.py" "$AD"
+            sudo chown root:fgbears "$ENV"
+            sudo chmod 0640 "$ENV"
+            sudo chmod 0755 "$AD"
+            sudo systemctl restart fgbears-live.service || true
+          }
+          trap rollback ERR
+
+          # Preserve the known-good audio architecture exactly.
+          grep -q -- '-c:a copy' /usr/local/bin/fgbears-start-stream
+          ! grep -q -- '-c:a aac' /usr/local/bin/fgbears-start-stream
+
+          sudo python3 - "$ENV" <<'PY'
+from pathlib import Path
+import sys
+p=Path(sys.argv[1])
+lines=p.read_text().splitlines()
+updates={'AD_OVERLAY_FPS':'30','CRAWL_OVERLAY_FPS':'30'}
+out=[]
+seen=set()
+for line in lines:
+    key=line.split('=',1)[0] if '=' in line else ''
+    if key in updates:
+        if key not in seen:
+            out.append(f'{key}={updates[key]}')
+            seen.add(key)
+    else:
+        out.append(line)
+for key,val in updates.items():
+    if key not in seen:
+        out.append(f'{key}={val}')
+p.write_text('\n'.join(out)+'\n')
+PY
+          sudo chown root:fgbears "$ENV"
+          sudo chmod 0640 "$ENV"
+
+          # The ad renderer previously hard-coded 25 fps and ignored the shared
+          # runtime clock. Make it obey AD_OVERLAY_FPS just like crawl-overlay.
+          sudo python3 - "$AD" <<'PY'
+from pathlib import Path
+import sys
+p=Path(sys.argv[1])
+s=p.read_text()
+old='FPS = 25'
+new='FPS = max(10, int(os.getenv("AD_OVERLAY_FPS", "30")))'
+if old in s:
+    s=s.replace(old,new,1)
+elif new not in s:
+    raise SystemExit('ad overlay FPS declaration not found')
+p.write_text(s)
+PY
+          sudo chmod 0755 "$AD"
+          python3 -m py_compile "$AD"
+
+          sudo systemctl restart fgbears-live.service
+          for _ in $(seq 1 40); do
+            systemctl is-active --quiet fgbears-live.service && break
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          sleep 8
+
+          echo '=== VISUAL CLOCKS ==='
+          grep -E '^(AD_OVERLAY_FPS|CRAWL_OVERLAY_FPS)=' "$ENV"
+          pgrep -af ffmpeg | grep -F -- '-r 30 -f mpjpeg' >/dev/null
+          pgrep -af ffmpeg | grep -F -- '-c:a copy' >/dev/null
+
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          m1=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          f1=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          d1=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          u1=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          t1=$(date +%s%N)
+          sleep 20
+          m2=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          f2=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          d2=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          u2=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          t2=$(date +%s%N)
+          awk -v m1="$m1" -v m2="$m2" -v f1="$f1" -v f2="$f2" -v d1="${d1:-0}" -v d2="${d2:-0}" -v u1="${u1:-0}" -v u2="${u2:-0}" -v t1="$t1" -v t2="$t2" 'BEGIN{wall=(t2-t1)/1e9;media=(m2-m1)/1e6;ratio=media/wall;fps=(f2-f1)/wall;dd=d2-d1;du=u2-u1;printf "program=%.3fs wall=%.3fs ratio=%.3fx fps=%.2f dropped_delta=%d duplicated_delta=%d\n",media,wall,ratio,fps,dd,du;if(ratio<0.95||fps<28.5||dd!=0||du>5)exit 1}'
+
+          echo '=== AUDIO PRESERVATION GATE ==='
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 12
+
+          echo '=== CPU AFTER FIX ==='
+          ps -eo pid,pcpu,pmem,comm,args --sort=-pcpu | grep -E 'ffmpeg|ad-overlay.py|crawl-overlay.py' | head -n 12 | sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g' || true
+
+          trap - ERR
+          echo 'VISUAL_FRAME_DUPLICATION_FIX=SUCCESS'
+          REMOTE
