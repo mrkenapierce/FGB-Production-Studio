@@ -1,0 +1,120 @@
+name: Deploy FGB Audio Bitstream Copy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-fgb-audio-bitstream-copy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Remove live AAC re-encode and verify stream
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -o ServerAliveInterval=20 -o ServerAliveCountMax=5 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          RUNTIME=/usr/local/bin/fgbears-start-stream
+          SOURCE=/opt/fgbears-live/bin/start-stream.sh
+          ENV=/etc/fgbears-live/stream.env
+          BACKUP=/srv/fgbears-live/runtime/audio-copy-rollback
+          sudo install -d -m 0755 "$BACKUP"
+          sudo cp -f "$RUNTIME" "$BACKUP/fgbears-start-stream.before-copy"
+          sudo cp -f "$SOURCE" "$BACKUP/start-stream.sh.before-copy"
+          sudo cp -f "$ENV" "$BACKUP/stream.env.before-copy"
+
+          rollback() {
+            echo 'Bitstream-copy validation failed; restoring prior live audio path.' >&2
+            sudo cp -f "$BACKUP/fgbears-start-stream.before-copy" "$RUNTIME"
+            sudo cp -f "$BACKUP/start-stream.sh.before-copy" "$SOURCE"
+            sudo cp -f "$BACKUP/stream.env.before-copy" "$ENV"
+            sudo chmod 0755 "$RUNTIME" "$SOURCE"
+            sudo systemctl restart fgbears-live.service || true
+          }
+          trap rollback ERR
+
+          # No offline normalization may compete with the live encoder during this change.
+          if pgrep -af 'normalize-resilient|normalize-library|\.audio-migration|loudnorm=I=-14' >/dev/null; then
+            echo 'Offline normalization is running; refusing live audio deployment.' >&2
+            pgrep -af 'normalize-resilient|normalize-library|\.audio-migration|loudnorm=I=-14' >&2 || true
+            exit 75
+          fi
+
+          patch_stream_script() {
+            local path=$1 tmp
+            tmp=$(mktemp)
+            awk '
+              /^CANONICAL_AUDIO_FILTER=/ { next }
+              /^[[:space:]]*-af "\$CANONICAL_AUDIO_FILTER"/ { next }
+              /^[[:space:]]*-c:a aac -b:a 128k -ar 48000 -ac 2/ { sub(/-c:a aac -b:a 128k -ar 48000 -ac 2/, "-c:a copy"); print; next }
+              { print }
+            ' "$path" > "$tmp"
+            sudo install -m 0755 "$tmp" "$path"
+            rm -f "$tmp"
+          }
+
+          patch_stream_script "$RUNTIME"
+          patch_stream_script "$SOURCE"
+          sudo sed -i '/^PODCAST_AUDIO_FILTER=/d' "$ENV"
+
+          grep -q -- '-c:a copy' "$RUNTIME"
+          ! grep -q -- '-c:a aac' "$RUNTIME"
+          ! grep -q -- 'CANONICAL_AUDIO_FILTER' "$RUNTIME"
+          ! grep -q -- 'PODCAST_AUDIO_FILTER=' "$ENV"
+
+          sudo systemctl restart fgbears-live.service
+          for _ in $(seq 1 45); do
+            if systemctl is-active --quiet fgbears-live.service && systemctl is-active --quiet fgbears-youtube-relay.service; then
+              sleep 3
+              break
+            fi
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+
+          # Prove the active FFmpeg command is copying the normalized AAC stream.
+          pgrep -af ffmpeg | grep -F -- '-c:a copy' >/dev/null
+
+          echo '=== EXACT YOUTUBE-BOUND AUDIO AFTER BITSTREAM COPY ==='
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 20
+
+          echo '=== STREAM CADENCE ==='
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          first_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_epoch=$(date +%s%N)
+          sleep 10
+          second_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          dropped=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_epoch=$(date +%s%N)
+          awk -v m1="$first_media" -v m2="$second_media" -v f1="$first_frame" -v f2="$second_frame" -v e1="$first_epoch" -v e2="$second_epoch" -v dropped="${dropped:-0}" 'BEGIN {wall=(e2-e1)/1000000000;program=(m2-m1)/1000000;ratio=program/wall;fps=(f2-f1)/wall;printf "program=%.3fs wall=%.3fs ratio=%.3fx fps=%.2f dropped=%d\n",program,wall,ratio,fps,dropped;if(ratio<0.95||fps<28.5||dropped!=0)exit 1}'
+
+          trap - ERR
+          echo 'AUDIO_BITSTREAM_COPY=SUCCESS'
+          REMOTE
