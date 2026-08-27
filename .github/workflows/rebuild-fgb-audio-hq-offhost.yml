@@ -27,6 +27,13 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
+      - name: Install FFmpeg tooling
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg jq
+          ffmpeg -version | head -n 1
+          ffprobe -version | head -n 1
+
       - name: Rebuild episodes 01-13 without loudness processing
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
