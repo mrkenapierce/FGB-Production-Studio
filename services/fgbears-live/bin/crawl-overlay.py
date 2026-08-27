@@ -303,6 +303,7 @@ class State:
             "active": bool(payload.get("active")),
             "label": label,
             "message": message,
+            "messages": message_parts if message_parts else ([message] if message else []),
             "messageCount": message_count,
             "speed": speed,
             "speedPps": speed_pps,
@@ -321,7 +322,49 @@ class State:
 
 
 STATE = State()
-STARTED = time.monotonic()
+
+
+class CrawlSequence:
+    """Display each informational entry for one uninterrupted crawl pass."""
+
+    def __init__(self) -> None:
+        self.lock = threading.Lock()
+        self.messages: list[str] = []
+        self.current = ""
+        self.index = 0
+        self.started = time.monotonic()
+
+    def select(self, value: dict[str, Any], now: float) -> tuple[str, float]:
+        incoming = [str(item) for item in value.get("messages", []) if str(item).strip()]
+        with self.lock:
+            if not value["active"] or not incoming:
+                self.messages = []
+                self.current = ""
+                self.index = 0
+                self.started = now
+            elif not self.current:
+                self.messages = incoming
+                self.index = 0
+                self.current = incoming[0]
+                self.started = now
+            else:
+                # Refresh future entries without changing the text or measured
+                # width of the segment that is currently crossing the screen.
+                self.messages = incoming
+                self.index %= len(incoming)
+            return self.current, self.started
+
+    def advance_if_complete(self, x: float, text_width_px: int, now: float) -> bool:
+        with self.lock:
+            if not self.messages or x > -text_width_px:
+                return False
+            self.index = (self.index + 1) % len(self.messages)
+            self.current = self.messages[self.index]
+            self.started = now
+            return True
+
+
+SEQUENCE = CrawlSequence()
 
 
 def atomic_text(path: Path, value: str) -> None:
@@ -362,8 +405,11 @@ def load_feed() -> dict[str, Any]:
         return json.loads(response.read().decode("utf-8"))
 
 
-def frame() -> Image.Image:
+def frame(now: float | None = None) -> Image.Image:
+    if now is None:
+        now = time.monotonic()
     value, _ = STATE.snapshot()
+    message, started = SEQUENCE.select(value, now)
     image = Image.new("RGBA", (WIDTH, HEIGHT), BEARS_BLUE)
     draw = ImageDraw.Draw(image)
     draw.rectangle((18, 10, 1261, 128), fill=LANE_BLUE)
@@ -384,10 +430,10 @@ def frame() -> Image.Image:
     label_y = 10 + (118 - label_line.height) // 2
     image.paste(label_line, (label_x, label_y), label_line)
 
-    if not value["message"]:
+    if not message:
         return image
 
-    message = value["message"].upper().strip()
+    message = message.upper().strip()
     message_line, text_width_px = rich_line(message, 31, True, 35)
     # Clip moving glyphs at the actual orange divider/right border so there is
     # no visible dark-blue receiving gutter at either end of the crawl.
@@ -396,7 +442,9 @@ def frame() -> Image.Image:
     viewport_width = 990
     viewport_height = 108
     cycle = viewport_width + text_width_px + 120
-    x = viewport_width - ((time.monotonic() - STARTED) * float(value["speedPps"]) % cycle)
+    x = viewport_width - ((now - started) * float(value["speedPps"]) % cycle)
+    if SEQUENCE.advance_if_complete(x, text_width_px, now):
+        return frame(now)
     ticker = Image.new("RGBA", (viewport_width, viewport_height), (0, 0, 0, 0))
     line_y = (viewport_height - message_line.height) // 2
     ticker.paste(message_line, (int(x), line_y), message_line)

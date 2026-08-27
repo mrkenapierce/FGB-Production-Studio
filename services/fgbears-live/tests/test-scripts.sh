@@ -20,6 +20,28 @@ for script in "$ROOT"/bin/*.sh; do
 done
 python3 -m py_compile "$ROOT/bin/ad-overlay.py" "$ROOT/bin/ad-overlay-smart.py" "$ROOT/bin/game_overlay.py" "$ROOT/bin/crawl-overlay.py" "$ROOT/bin/bears-news-feed.py"
 python3 "$ROOT/tests/test-game-overlay.py"
+python3 - "$ROOT/bin/crawl-overlay.py" <<'PY'
+import runpy
+import sys
+
+module = runpy.run_path(sys.argv[1])
+sequence = module["CrawlSequence"]()
+value = {"active": True, "messages": ["STANDINGS", "LEADERBOARD", "HOW TO PLAY"]}
+message, _ = sequence.select(value, 100.0)
+assert message == "STANDINGS"
+
+# A live-data refresh must not replace or resize the segment already on screen.
+refreshed = {"active": True, "messages": ["UPDATED STANDINGS", "UPDATED LEADERBOARD", "HOW TO PLAY"]}
+message, _ = sequence.select(refreshed, 101.0)
+assert message == "STANDINGS"
+assert not sequence.advance_if_complete(-99, 100, 102.0)
+assert sequence.advance_if_complete(-100, 100, 103.0)
+message, _ = sequence.select(refreshed, 103.0)
+assert message == "UPDATED LEADERBOARD"
+assert sequence.advance_if_complete(-100, 100, 104.0)
+message, _ = sequence.select(refreshed, 104.0)
+assert message == "HOW TO PLAY"
+PY
 
 # These are intentionally literal shell expressions from start-stream.sh.
 # shellcheck disable=SC2016
