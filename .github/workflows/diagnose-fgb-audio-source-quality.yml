@@ -27,35 +27,30 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Inventory stored audio and possible untouched originals
+      - name: Compare untouched originals with normalized production copies
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_USER: ubuntu
         run: |
           ssh -o ServerAliveInterval=20 -o ServerAliveCountMax=5 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          echo '=== ACTIVE EPISODE AUDIO PROFILES 01-13 ==='
+          echo '=== ORIGINAL VS NORMALIZED 01-13 ==='
           for n in $(seq -w 1 13); do
-            f="/srv/fgbears-live/media/FGBears-Episode-${n}.mp4"
-            printf 'EP%s ' "$n"
-            ffprobe -v error -select_streams a:0 \
-              -show_entries stream=codec_name,profile,sample_rate,channels,channel_layout,bit_rate \
-              -of default=nw=1:nk=0 "$f" | tr '\n' ' '
-            printf '\n'
+            orig="/home/ubuntu/fgbears-upload/FGBears-Episode-${n}.mp4"
+            norm="/srv/fgbears-live/media/FGBears-Episode-${n}.mp4"
+            echo "EP${n}"
+            printf ' ORIGINAL '
+            ffprobe -v error \
+              -show_entries stream=index,codec_type,codec_name,width,height,r_frame_rate,pix_fmt,sample_rate,channels,channel_layout,bit_rate \
+              -of compact=p=0:nk=0 "$orig" | tr '\n' ' '; printf '\n'
+            printf ' NORMALZD '
+            ffprobe -v error \
+              -show_entries stream=index,codec_type,codec_name,width,height,r_frame_rate,pix_fmt,sample_rate,channels,channel_layout,bit_rate \
+              -of compact=p=0:nk=0 "$norm" | tr '\n' ' '; printf '\n'
+            printf ' SHA_EQUAL='
+            if [[ $(sha256sum "$orig" | awk '{print $1}') == $(sha256sum "$norm" | awk '{print $1}') ]]; then echo YES; else echo NO; fi
           done
 
-          echo '=== POSSIBLE DUPLICATES / BACKUPS ==='
-          sudo find /srv /opt /home /tmp -type f \
-            \( -iname 'FGBears-Episode-0[1-9]*.mp4' -o -iname 'FGBears-Episode-1[0-3]*.mp4' -o -iname '*Episode*0[1-9]*.mp4' -o -iname '*Episode*1[0-3]*.mp4' \) \
-            2>/dev/null | sort -u
-
-          echo '=== AUDIO MIGRATION DIRECTORIES ==='
-          sudo find /srv/fgbears-live -maxdepth 2 -type d -name '*audio*migration*' -print 2>/dev/null || true
-          sudo find /srv/fgbears-live -maxdepth 2 -type f -path '*audio*migration*' -printf '%p %s bytes\n' 2>/dev/null | sort || true
-
-          echo '=== ROLLBACK / BACKUP DIRECTORIES ==='
-          sudo find /srv/fgbears-live -maxdepth 3 -type f \( -iname '*backup*' -o -iname '*before*' -o -iname '*.bak' \) -printf '%p %s bytes\n' 2>/dev/null | sort || true
-
-          echo '=== CURRENT ACTIVE FFMPEG AUDIO MODE ==='
+          echo '=== ACTIVE AUDIO MODE ==='
           pgrep -af ffmpeg | grep -F -- '-c:a copy' | sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g' || true
           REMOTE
