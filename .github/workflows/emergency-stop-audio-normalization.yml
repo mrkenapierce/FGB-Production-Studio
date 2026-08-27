@@ -1,0 +1,82 @@
+name: Emergency Stop Audio Normalization
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/emergency-stop-audio-normalization.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stabilize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stop offline normalization and verify live cadence
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== BEFORE ==='
+          systemctl is-active fgbears-live.service || true
+          systemctl is-active fgbears-youtube-relay.service || true
+          pgrep -af 'normalize-resilient|normalize-library|\.audio-migration|loudnorm' || true
+
+          # Kill only offline migration/normalization processes. The live encoder path has no loudnorm.
+          sudo pkill -TERM -f 'normalize-resilient\.sh|normalize-library\.sh|/srv/fgbears-live/\.audio-migration|loudnorm=I=-14' || true
+          sleep 3
+          sudo pkill -KILL -f 'normalize-resilient\.sh|normalize-library\.sh|/srv/fgbears-live/\.audio-migration|loudnorm=I=-14' || true
+          sleep 3
+
+          echo '=== AFTER KILL ==='
+          pgrep -af 'normalize-resilient|normalize-library|\.audio-migration|loudnorm' || true
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          sudo grep -q '^PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0$' /etc/fgbears-live/stream.env
+
+          echo '=== CADENCE SAMPLE ==='
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          first_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_epoch=$(date +%s%N)
+          sleep 10
+          second_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          dropped=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_epoch=$(date +%s%N)
+          awk -v m1="$first_media" -v m2="$second_media" -v f1="$first_frame" -v f2="$second_frame" -v e1="$first_epoch" -v e2="$second_epoch" -v dropped="${dropped:-0}" 'BEGIN {wall=(e2-e1)/1000000000;program=(m2-m1)/1000000;ratio=program/wall;fps=(f2-f1)/wall;printf "program=%.3fs wall=%.3fs ratio=%.3fx fps=%.2f dropped=%d\n",program,wall,ratio,fps,dropped;if(ratio<0.95||fps<28.5||dropped!=0)exit 42}' || cadence_rc=$?
+          cadence_rc=${cadence_rc:-0}
+
+          if (( cadence_rc != 0 )); then
+            echo 'Cadence still degraded after removing offline workload; restarting primary encoder once.'
+            sudo systemctl restart fgbears-live.service
+            for _ in $(seq 1 30); do
+              systemctl is-active --quiet fgbears-live.service && systemctl is-active --quiet fgbears-youtube-relay.service && break
+              sleep 1
+            done
+            systemctl is-active --quiet fgbears-live.service
+            systemctl is-active --quiet fgbears-youtube-relay.service
+            sleep 5
+          fi
+
+          echo '=== FINAL SERVICES ==='
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          REMOTE
