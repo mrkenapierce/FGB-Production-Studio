@@ -1,0 +1,89 @@
+name: Restore Stable FGB Audio Runtime
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/restore-fgb-stable-audio-runtime.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Restore last stable relay runtime and verify
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          BACKUP=/srv/fgbears-live/runtime/direct-rtmps-rollback
+          test -s "$BACKUP/fgbears-start-stream"
+          test -s "$BACKUP/start-stream.sh"
+          test -s "$BACKUP/stream.env"
+
+          sudo pkill -TERM -f 'normalize-resilient\.sh|normalize-library\.sh|/srv/fgbears-live/\.audio-migration|loudnorm=I=-14' || true
+          sleep 2
+          sudo pkill -KILL -f 'normalize-resilient\.sh|normalize-library\.sh|/srv/fgbears-live/\.audio-migration|loudnorm=I=-14' || true
+
+          sudo cp -f "$BACKUP/fgbears-start-stream" /usr/local/bin/fgbears-start-stream
+          sudo cp -f "$BACKUP/start-stream.sh" /opt/fgbears-live/bin/start-stream.sh
+          sudo cp -f "$BACKUP/stream.env" /etc/fgbears-live/stream.env
+          sudo chmod 0755 /usr/local/bin/fgbears-start-stream /opt/fgbears-live/bin/start-stream.sh
+          sudo chown root:fgbears /etc/fgbears-live/stream.env
+          sudo chmod 0640 /etc/fgbears-live/stream.env
+          sudo systemctl unmask --runtime fgbears-youtube-relay.service 2>/dev/null || true
+          sudo systemctl daemon-reload
+          sudo systemctl reset-failed fgbears-live.service fgbears-youtube-relay.service || true
+
+          grep -q -- '-c:a copy' /usr/local/bin/fgbears-start-stream
+          ! grep -q -- '-c:a aac' /usr/local/bin/fgbears-start-stream
+
+          sudo systemctl restart fgbears-live.service
+          sleep 3
+          sudo systemctl restart fgbears-youtube-relay.service
+          for _ in $(seq 1 30); do
+            if systemctl is-active --quiet fgbears-live.service && systemctl is-active --quiet fgbears-youtube-relay.service; then
+              break
+            fi
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          sleep 8
+
+          echo '=== AUDIO HEALTH ==='
+          set +e
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 12
+          set -e
+
+          echo '=== CADENCE ==='
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          first_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_epoch=$(date +%s%N)
+          sleep 10
+          second_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          dropped=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_epoch=$(date +%s%N)
+          awk -v m1="$first_media" -v m2="$second_media" -v f1="$first_frame" -v f2="$second_frame" -v e1="$first_epoch" -v e2="$second_epoch" -v dropped="${dropped:-0}" 'BEGIN {wall=(e2-e1)/1000000000;program=(m2-m1)/1000000;ratio=program/wall;fps=(f2-f1)/wall;printf "program=%.3fs wall=%.3fs ratio=%.3fx fps=%.2f dropped=%d\n",program,wall,ratio,fps,dropped;if(ratio<0.90||fps<27.0||dropped!=0)exit 1}'
+          echo 'STABLE_RUNTIME_RESTORED=SUCCESS'
+          REMOTE
