@@ -106,16 +106,20 @@ jobs:
           '
 
       - id: news_frame
-        name: Verify image-rendered Bears news on Oracle
+        name: Verify image-rendered Bears news and frame-rate profile on Oracle
         if: always() && steps.install.outcome == 'success'
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
             set -Eeuo pipefail
+            grep -Fxq "OUTPUT_FPS=30" /etc/fgbears-live/stream.env
+            grep -Fxq "AD_OVERLAY_FPS=15" /etc/fgbears-live/stream.env
+            grep -Fxq "CRAWL_OVERLAY_FPS=30" /etc/fgbears-live/stream.env
+            grep -Fxq "BEARS_NEWS_OVERLAY_FPS=15" /etc/fgbears-live/stream.env
             health=$(curl --silent --fail --max-time 3 http://127.0.0.1:8789/healthz)
             printf "%s\n" "$health"
-            printf "%s" "$health" | jq -e ".ok == true and .active == true and .renderer == \"pillow-mjpeg\" and .fps == 30 and .messageChars > 0" >/dev/null
+            printf "%s" "$health" | jq -e ".ok == true and .active == true and .renderer == \"pillow-mjpeg\" and .fps == 15 and .messageChars > 0" >/dev/null
             curl --silent --fail --max-time 3 http://127.0.0.1:8789/frame.jpg -o /tmp/fgbears-news-frame.jpg
             test -s /tmp/fgbears-news-frame.jpg
             python3 -c "from PIL import Image; im=Image.open(\"/tmp/fgbears-news-frame.jpg\"); im.load(); assert im.size == (1280,104), im.size; print(\"news frame:\", im.size, im.format)"
@@ -328,7 +332,7 @@ jobs:
             --arg programClockOutcome "$PROGRAM_CLOCK_OUTCOME" \
             --arg crawlFrameOutcome "$CRAWL_FRAME_OUTCOME" \
             --arg adsOutcome "$ADS_OUTCOME" \
-            '{ok:$ok,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,crawlHealthOutcome:$crawlHealthOutcome,emojiAssetsOutcome:$emojiAssetsOutcome,newsFrameOutcome:$newsFrameOutcome,ffmpegTransportOutcome:$ffmpegTransportOutcome,youtubeRelayOutcome:$youtubeRelayOutcome,programClockOutcome:$programClockOutcome,crawlFrameOutcome:$crawlFrameOutcome,adsOutcome:$adsOutcome,service:"fgbears-live.service",youtubeRelayService:"fgbears-youtube-relay.service",expectedServiceState:"active",programClockMinRealtimeRatio:0.95,programClockZeroDroppedFramesRequired:true,emojiRenderer:"twemoji-png",newsRenderer:"pillow-mjpeg",newsFrameSize:"1280x104",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg",ffmpegNewsInput:"http://127.0.0.1:8789/overlay.mjpg",transport:"ffmpeg-tee-local-mpegts-udp+youtube-copy-remux",audioMode:"copy",xSimulcastCapable:true,xAccountHandle:"@epic501c3"}' \
+            '{ok:$ok,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,crawlHealthOutcome:$crawlHealthOutcome,emojiAssetsOutcome:$emojiAssetsOutcome,newsFrameOutcome:$newsFrameOutcome,ffmpegTransportOutcome:$ffmpegTransportOutcome,youtubeRelayOutcome:$youtubeRelayOutcome,programClockOutcome:$programClockOutcome,crawlFrameOutcome:$crawlFrameOutcome,adsOutcome:$adsOutcome,service:"fgbears-live.service",youtubeRelayService:"fgbears-youtube-relay.service",expectedServiceState:"active",programClockMinRealtimeRatio:0.95,programClockZeroDroppedFramesRequired:true,outputFps:30,adOverlayFps:15,crawlOverlayFps:30,newsOverlayFps:15,emojiRenderer:"twemoji-png",newsRenderer:"pillow-mjpeg",newsFrameSize:"1280x104",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg",ffmpegNewsInput:"http://127.0.0.1:8789/overlay.mjpg",transport:"ffmpeg-tee-local-mpegts-udp+youtube-copy-remux",audioMode:"copy",xSimulcastCapable:true,xAccountHandle:"@epic501c3"}' \
             > .github/deployment-status/fgbears-live.json
           git config user.name "FGBears Deploy Bot"
           git config user.email "actions@github.com"
