@@ -16,14 +16,14 @@ source "$ENV_FILE"
 : "${VIDEO_GOP:=60}"
 : "${DRAWTEXT_RELOAD_FRAMES:=30}"
 : "${AD_OVERLAY_PORT:=8787}"
-: "${AD_OVERLAY_FPS:=30}"
+: "${AD_OVERLAY_FPS:=15}"
 : "${AD_OVERLAY_SCRIPT:=/opt/fgbears-live/bin/ad-overlay.py}"
 : "${CRAWL_OVERLAY_PORT:=8788}"
 : "${CRAWL_OVERLAY_SCRIPT:=/opt/fgbears-live/bin/crawl-overlay.py}"
 : "${CRAWL_OVERLAY_FPS:=30}"
 : "${BEARS_NEWS_SCRIPT:=/opt/fgbears-live/bin/bears-news-feed.py}"
 : "${BEARS_NEWS_OVERLAY_PORT:=8789}"
-: "${BEARS_NEWS_OVERLAY_FPS:=30}"
+: "${BEARS_NEWS_OVERLAY_FPS:=15}"
 : "${BEARS_NEWS_SCROLL_PPS:=76}"
 : "${FFMPEG_PROGRESS_FILE:=/srv/fgbears-live/logs/ffmpeg-progress.log}"
 : "${AD_FRAME_FILE:=/srv/fgbears-live/runtime/ad-frame.jpg}"
@@ -106,7 +106,9 @@ FFMPEG_PID=""
 
 # All scrolling text is rasterized before FFmpeg. The news ribbon and lower
 # crawl arrive as sharp image overlays, so FFmpeg only composites pixels and
-# cannot clip or reshape individual headline glyphs.
+# cannot clip or reshape individual headline glyphs. Slow-changing ad/news
+# overlays refresh at 15 fps; the final encoded program and lower crawl remain
+# 30 fps for smooth motion while keeping Oracle safely at real-time cadence.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
