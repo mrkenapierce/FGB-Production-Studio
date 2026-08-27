@@ -14,9 +14,9 @@ fail() { echo "PRODUCTION INVARIANT FAILED: $*" >&2; exit 1; }
 grep -Fq 'BEARS_NEWS_SCROLL_PPS:=76' "$START" || fail 'RSS/news crawl speed must remain 76 px/s.'
 grep -Fq 'BEARS_NEWS_SCROLL_PPS=76' "$ENV_EXAMPLE" || fail 'RSS/news default speed must remain 76 px/s.'
 grep -Fq 'BEARS_NEWS_OVERLAY_PORT:=8789' "$START" || fail 'RSS/news dedicated overlay port must remain 8789.'
-grep -Fq 'BEARS_NEWS_OVERLAY_FPS:=30' "$START" || fail 'RSS/news image renderer must remain 30 fps.'
+grep -Fq 'BEARS_NEWS_OVERLAY_FPS:=15' "$START" || fail 'RSS/news image renderer must remain 15 fps.'
 grep -Fq 'BEARS_NEWS_OVERLAY_PORT=8789' "$ENV_EXAMPLE" || fail 'RSS/news overlay port missing from environment defaults.'
-grep -Fq 'BEARS_NEWS_OVERLAY_FPS=30' "$ENV_EXAMPLE" || fail 'RSS/news overlay FPS missing from environment defaults.'
+grep -Fq 'BEARS_NEWS_OVERLAY_FPS=15' "$ENV_EXAMPLE" || fail 'RSS/news overlay FPS missing from environment defaults.'
 # shellcheck disable=SC2016
 grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.mjpg"' "$START" || fail 'FFmpeg must consume the dedicated Bears news MJPEG overlay.'
 grep -Fq '[1:v][3:v]overlay=x=0:y=0:shortest=1[withnews]' "$START" || fail 'Bears news overlay is not composited in the upper ribbon.'
@@ -39,7 +39,7 @@ if grep -Fq -- '-af ' "$START"; then
   fail 'Live audio filters are forbidden in the primary encoder.'
 fi
 
-# RULE 3 — YouTube is the only production transport target.
+# RULE 3 — Retired X and Instagram transport targets stay removed.
 if grep -Fq 'X local mirror' "$START" || grep -Fq 'Instagram local mirror' "$START"; then
   fail 'Social sidecar tee outputs are forbidden in the primary encoder.'
 fi
