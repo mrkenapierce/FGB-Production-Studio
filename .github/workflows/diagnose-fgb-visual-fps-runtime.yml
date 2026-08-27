@@ -33,6 +33,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
+          echo "CHECKED_AT=$(date -u +%FT%TZ)"
           echo "LIVE_SERVICE=$(systemctl is-active fgbears-live.service || true)"
           echo "RELAY_SERVICE=$(systemctl is-active fgbears-youtube-relay.service || true)"
           echo '=== ENV FPS ==='
