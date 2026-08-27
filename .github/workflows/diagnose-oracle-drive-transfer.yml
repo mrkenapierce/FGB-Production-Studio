@@ -1,0 +1,47 @@
+name: Diagnose Oracle Drive Transfer Capability
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-oracle-drive-transfer.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Inspect transfer capability without exposing credentials
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          echo "rclone=$(command -v rclone || true)"
+          echo "gdrive=$(command -v gdrive || true)"
+          echo "curl=$(command -v curl || true)"
+          echo "wget=$(command -v wget || true)"
+          for p in "$HOME/.config/rclone/rclone.conf" /root/.config/rclone/rclone.conf /etc/rclone.conf; do
+            if sudo test -f "$p"; then echo "RCLONE_CONFIG_PRESENT=$p"; fi
+          done
+          echo 'CREDENTIAL_ENV_NAMES:'
+          sudo systemctl show fgbears-live.service --property=Environment --value 2>/dev/null | tr ' ' '\n' | cut -d= -f1 | grep -Ei 'google|drive|gcp|service|oauth' || true
+          sudo find /etc /opt /srv -maxdepth 3 -type f \( -iname '*service*account*.json' -o -iname '*google*credentials*.json' -o -iname '*drive*credentials*.json' \) -print 2>/dev/null | head -n 20 || true
+          REMOTE
