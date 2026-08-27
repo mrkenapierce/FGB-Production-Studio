@@ -1,0 +1,92 @@
+name: Activate FGBears Rumble Relay
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-rumble-production-activation
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Require protected deployment secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          RUMBLE_STREAM_KEY: ${{ secrets.RUMBLE_STREAM_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+          test -n "$RUMBLE_STREAM_KEY" || { echo 'Missing RUMBLE_STREAM_KEY secret'; exit 1; }
+
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Verify isolated Rumble mirror is deployed
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          test -x /usr/local/bin/fgbears-configure-rumble
+          test -x /usr/local/bin/fgbears-rumble-relay
+          test -f /etc/systemd/system/fgbears-rumble-relay.service
+          service_pid=$(systemctl show -p MainPID --value fgbears-live.service)
+          test "$service_pid" -gt 0
+          ffmpeg_pid=$(pgrep -P "$service_pid" -x ffmpeg | head -n 1)
+          test -n "$ffmpeg_pid"
+          sudo tr '\0' '\n' < "/proc/$ffmpeg_pid/cmdline" | grep -Fq 'udp://127.0.0.1:1940?pkt_size=1316'
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          REMOTE
+
+      - name: Install Rumble key and start relay
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          RUMBLE_STREAM_KEY: ${{ secrets.RUMBLE_STREAM_KEY }}
+        run: |
+          printf '%s\n' "$RUMBLE_STREAM_KEY" | ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo /usr/local/bin/fgbears-configure-rumble'
+
+      - name: Verify Rumble relay without exposing the key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          for _ in $(seq 1 45); do
+            relay_pid=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+            if [[ "$relay_pid" =~ ^[1-9][0-9]*$ ]]; then
+              sudo ss -ntpH state established | grep "pid=$relay_pid" > /tmp/fgbears-rumble-sockets.txt || true
+              getent ahostsv4 rtmp.rumble.com | awk '{print $1}' | sort -u > /tmp/fgbears-rumble-ips.txt
+              while IFS= read -r ip; do
+                [[ -n "$ip" ]] || continue
+                if grep -Fq "$ip:1935" /tmp/fgbears-rumble-sockets.txt; then
+                  rm -f /tmp/fgbears-rumble-sockets.txt /tmp/fgbears-rumble-ips.txt
+                  systemctl is-active --quiet fgbears-live.service
+                  systemctl is-active --quiet fgbears-youtube-relay.service
+                  echo 'Rumble RTMP socket established; YouTube services remain active.'
+                  exit 0
+                fi
+              done < /tmp/fgbears-rumble-ips.txt
+            fi
+            sleep 2
+          done
+          rm -f /tmp/fgbears-rumble-sockets.txt /tmp/fgbears-rumble-ips.txt
+          echo 'Rumble relay did not establish RTMP within the verification window.' >&2
+          exit 1
+          REMOTE
