@@ -1,0 +1,48 @@
+name: Diagnose FGB Visual FPS Runtime
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-fgb-visual-fps-runtime.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Inspect visual clock declarations
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo "LIVE_SERVICE=$(systemctl is-active fgbears-live.service || true)"
+          echo "RELAY_SERVICE=$(systemctl is-active fgbears-youtube-relay.service || true)"
+          echo '=== ENV FPS ==='
+          sudo grep -E '^(AD_OVERLAY_FPS|CRAWL_OVERLAY_FPS|OUTPUT_FPS)=' /etc/fgbears-live/stream.env || true
+          echo '=== AD RUNTIME FPS DECLARATION ==='
+          grep -n '^FPS[[:space:]]*=' /opt/fgbears-live/bin/ad-overlay.py || true
+          echo '=== CRAWL RUNTIME FPS DECLARATION ==='
+          grep -n '^FPS[[:space:]]*=' /opt/fgbears-live/bin/crawl-overlay.py || true
+          echo '=== PRIMARY INPUT FPS ==='
+          pgrep -af 'ffmpeg.*overlay\.mjpg' | head -n1 | sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g' || true
+          echo '=== AUDIO MODE ==='
+          grep -q -- '-c:a copy' /usr/local/bin/fgbears-start-stream && echo AUDIO_COPY=YES || echo AUDIO_COPY=NO
+          REMOTE
