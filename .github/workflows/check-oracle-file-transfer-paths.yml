@@ -1,0 +1,48 @@
+name: Check Oracle File Transfer Paths
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/check-oracle-file-transfer-paths.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Check transfer capabilities without exposing credentials
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          command -v rclone >/dev/null && echo RCLONE=YES || echo RCLONE=NO
+          command -v gdrive >/dev/null && echo GDRIVE=YES || echo GDRIVE=NO
+          command -v gcloud >/dev/null && echo GCLOUD=YES || echo GCLOUD=NO
+          command -v aws >/dev/null && echo AWSCLI=YES || echo AWSCLI=NO
+          command -v oci >/dev/null && echo OCI_CLI=YES || echo OCI_CLI=NO
+          [[ -s /home/ubuntu/.config/rclone/rclone.conf ]] && echo RCLONE_CONFIG=YES || echo RCLONE_CONFIG=NO
+          [[ -d /home/ubuntu/.config/gcloud ]] && echo GCLOUD_CONFIG=YES || echo GCLOUD_CONFIG=NO
+          [[ -d /home/ubuntu/.oci ]] && echo OCI_CONFIG=YES || echo OCI_CONFIG=NO
+          [[ -d /home/ubuntu/.aws ]] && echo AWS_CONFIG=YES || echo AWS_CONFIG=NO
+          find /home/ubuntu /etc -maxdepth 4 -type f \( -name '*service-account*.json' -o -name '*credentials*.json' -o -name 'rclone.conf' \) -printf 'CREDENTIAL_FILE_PRESENT=%p\n' 2>/dev/null | sed -E 's#[^/]+\.json$#[REDACTED].json#' | head -n 20 || true
+          echo '=== MOUNT TYPES ==='
+          findmnt -rn -o FSTYPE,TARGET | grep -Ei 'fuse|rclone|gcs|s3|dav|drive' | sed -E 's#(/home/[^/]+/)[^ ]+#\1[REDACTED]#' || true
+          REMOTE
