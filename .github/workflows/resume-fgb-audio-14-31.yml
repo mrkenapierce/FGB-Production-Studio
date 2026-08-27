@@ -1,0 +1,125 @@
+name: Resume FGB Audio 14-31
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/resume-fgb-audio-14-31.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-production-deploy
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  resume:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Resume verified normalization without activation restart
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          REPO=/tmp/fgb-audio-14-31
+          MEDIA_DIR=/srv/fgbears-live/media
+          WORK_DIR=/srv/fgbears-live/.audio-migration-resume
+          PROFILE=fgb-podcast-v1
+
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          sudo grep -q '^PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0$' /etc/fgbears-live/stream.env
+
+          rm -rf "$REPO"
+          git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git "$REPO"
+          BASE="$REPO/services/fgbears-live/bin/normalize-library.sh"
+          RESILIENT="$REPO/services/fgbears-live/bin/normalize-resilient.sh"
+          VALIDATOR="$REPO/services/fgbears-live/bin/validate-media.sh"
+          chmod +x "$BASE" "$RESILIENT" "$VALIDATOR"
+
+          sudo mkdir -p "$WORK_DIR"
+          sudo chown "$USER":"$USER" "$WORK_DIR"
+
+          valid_profile() {
+            local asset=$1 marker=$2 sha
+            [[ -s "$asset" && -s "$marker" ]] || return 1
+            sha=$(sha256sum "$asset" | awk '{print $1}')
+            jq -e --arg profile "$PROFILE" --arg sha "$sha" '.profile == $profile and .sha256 == $sha and ((.measured_i_lufs + 14) | if . < 0 then -. else . end) <= 0.8 and .measured_tp_dbtp <= -1.0' "$marker" >/dev/null 2>&1
+          }
+
+          promote() {
+            local output=$1 target=$2
+            local marker="${output}.audio-profile.json" target_marker="${target}.audio-profile.json"
+            valid_profile "$output" "$marker"
+            sudo chown fgbears:fgbears "$output" "$marker"
+            sudo chmod 0644 "$output" "$marker"
+            sudo mv -f "$output" "$target"
+            sudo mv -f "$marker" "$target_marker"
+          }
+
+          mapfile -d '' media_files < <(find "$MEDIA_DIR" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4' -print0 | sort -zV)
+          [[ ${#media_files[@]} -eq 31 ]] || { echo "Expected current 31 installed episodes, found ${#media_files[@]}" >&2; exit 65; }
+
+          skipped=0
+          normalized=0
+          for file in "${media_files[@]}"; do
+            marker="${file}.audio-profile.json"
+            base=$(basename "$file")
+            if valid_profile "$file" "$marker"; then
+              echo "SKIP verified production asset: $base"
+              skipped=$((skipped + 1))
+              continue
+            fi
+
+            output="$WORK_DIR/$base"
+            rm -f "$output" "${output}.audio-profile.json" "${output%.mp4}.partial.mp4"
+            size_kb=$(( ($(stat -c %s "$file") + 1023) / 1024 ))
+            free_kb=$(df -Pk "$WORK_DIR" | awk 'NR==2 {print $4}')
+            required_kb=$((size_kb + 307200))
+            (( free_kb >= required_kb )) || { echo "Insufficient free disk for $base" >&2; exit 71; }
+
+            echo "NORMALIZE_RESILIENT: $base"
+            if command -v ionice >/dev/null 2>&1; then
+              nice -n 10 ionice -c2 -n7 bash "$RESILIENT" "$file" "$output"
+            else
+              nice -n 10 bash "$RESILIENT" "$file" "$output"
+            fi
+            promote "$output" "$file"
+            normalized=$((normalized + 1))
+          done
+
+          marker_count=$(find "$MEDIA_DIR" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4.audio-profile.json' | wc -l | tr -d ' ')
+          [[ "$marker_count" -eq 31 ]]
+          bash "$VALIDATOR" "$MEDIA_DIR"
+
+          echo "already_verified=$skipped"
+          echo "newly_normalized=$normalized"
+          echo "profile_marker_count=$marker_count"
+          jq -s '{files:length,min_i_lufs:(map(.measured_i_lufs)|min),max_i_lufs:(map(.measured_i_lufs)|max),max_true_peak_dbtp:(map(.measured_tp_dbtp)|max)}' "$MEDIA_DIR"/FGBears-Episode-*.mp4.audio-profile.json
+
+          # Deliberately do not restart production here. Activation waits for Episode 32.
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          sudo grep -q '^PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0$' /etc/fgbears-live/stream.env
+          rm -rf "$WORK_DIR" "$REPO"
+          echo 'FGB_31_INSTALLED_AUDIO_NORMALIZATION=SUCCESS'
+          REMOTE
