@@ -1,0 +1,49 @@
+name: Diagnose FGB Original Audio PTS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-fgb-original-pts.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Measure stored original and normalized packet timing
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          for kind in original normalized; do
+            if [[ "$kind" == original ]]; then
+              f=/home/ubuntu/fgbears-upload/FGBears-Episode-01.mp4
+            else
+              f=/srv/fgbears-live/media/FGBears-Episode-01.mp4
+            fi
+            echo "${kind^^}_EP01"
+            ffprobe -v error -select_streams a:0 -show_packets -show_entries packet=pts_time,duration_time -of csv=p=0 "$f" |
+              awk -F, 'NR==1{prev=$1;pd=$2;next}{d=$1-prev;if(d>0.08){c++;if(d>max)max=d}if(d<0)r++;prev=$1;pd=$2}END{printf "large_gaps=%d max_gap=%.9f regressions=%d\n",c,max,r}'
+          done
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          REMOTE
