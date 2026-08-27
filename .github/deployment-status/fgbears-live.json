@@ -1,15 +1,16 @@
 {
   "ok": false,
-  "deployedSha": "dcc1885a43d5fd30091cd5dd3eacab99024eba85",
-  "runId": "33093190414",
-  "checkedAt": "2026-08-27T16:26:34Z",
+  "deployedSha": "75db6e2d2e732419219d8ff8f6da3b10d0ad715a",
+  "runId": "33093481205",
+  "checkedAt": "2026-08-27T16:30:17Z",
   "jobStatus": "failure",
   "installOutcome": "success",
   "crawlHealthOutcome": "success",
   "emojiAssetsOutcome": "success",
-  "ffmpegTransportOutcome": "failure",
-  "youtubeRelayOutcome": "skipped",
-  "programClockOutcome": "skipped",
+  "newsFrameOutcome": "success",
+  "ffmpegTransportOutcome": "success",
+  "youtubeRelayOutcome": "success",
+  "programClockOutcome": "failure",
   "crawlFrameOutcome": "success",
   "adsOutcome": "success",
   "service": "fgbears-live.service",
@@ -18,6 +19,8 @@
   "programClockMinRealtimeRatio": 0.95,
   "programClockZeroDroppedFramesRequired": true,
   "emojiRenderer": "twemoji-png",
+  "newsRenderer": "pillow-mjpeg",
+  "newsFrameSize": "1280x104",
   "emojiSelfTest": [
     "🐻",
     "🏈",
@@ -27,8 +30,9 @@
     "🧡"
   ],
   "ffmpegCrawlInput": "http://127.0.0.1:8788/overlay.mjpg",
+  "ffmpegNewsInput": "http://127.0.0.1:8789/overlay.mjpg",
   "transport": "ffmpeg-tee-local-mpegts-udp+youtube-copy-remux",
-  "audioBitrateKbps": 128,
+  "audioMode": "copy",
   "xSimulcastCapable": true,
   "xAccountHandle": "@epic501c3"
 }
