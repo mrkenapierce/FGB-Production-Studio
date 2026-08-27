@@ -22,7 +22,7 @@ env:
 
 jobs:
   monitor:
-    name: Check Oracle stream and audio health
+    name: Check Oracle stream, video and audio health
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
@@ -47,7 +47,7 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Measure stream and exact YouTube-bound audio health
+      - name: Measure stream, video pacing and exact YouTube-bound audio health
         id: health
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -57,6 +57,22 @@ jobs:
             'sudo /usr/local/bin/fgbears-stream-status --sample-seconds 20' \
             > stream-status.env
           stream_rc=$?
+
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > video-status.env <<'REMOTE'
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          d1=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          u1=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          f1=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          t1=$(date +%s%N)
+          sleep 10
+          d2=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          u2=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          f2=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          t2=$(date +%s%N)
+          awk -v d1="${d1:-0}" -v d2="${d2:-0}" -v u1="${u1:-0}" -v u2="${u2:-0}" -v f1="${f1:-0}" -v f2="${f2:-0}" -v t1="$t1" -v t2="$t2" 'BEGIN{wall=(t2-t1)/1e9;if(wall<=0||f2<f1||d2<d1||u2<u1){print "OVERALL_STATUS=FAIL";print "REASON=VIDEO_PROGRESS_RESET_OR_INVALID";exit 1}fps=(f2-f1)/wall;dd=d2-d1;du=u2-u1;printf "VIDEO_WINDOW_SECONDS=%.3f\nVIDEO_FPS=%.2f\nVIDEO_DROP_DELTA=%d\nVIDEO_DUP_DELTA=%d\n",wall,fps,dd,du;if(fps<28.5||dd!=0||du>5){print "OVERALL_STATUS=FAIL";print "REASON=VIDEO_FRAME_PACING_DEGRADED";exit 1}print "OVERALL_STATUS=OK";print "REASON=VIDEO_FRAME_PACING_HEALTHY"}'
+          REMOTE
+          video_rc=$?
+
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
             'sudo /usr/local/bin/fgbears-audio-health --capture-seconds 20' \
             > audio-status.env
@@ -69,6 +85,14 @@ jobs:
           REASON=SSH_OR_STATUS_COMMAND_FAILED
           CHECKED_AT_EPOCH=$(date +%s)
           SSH_EXIT_CODE=$stream_rc
+          REPORT
+          fi
+          if (( video_rc != 0 )) && ! grep -q '^OVERALL_STATUS=' video-status.env 2>/dev/null; then
+            cat > video-status.env <<REPORT
+          OVERALL_STATUS=FAIL
+          REASON=VIDEO_HEALTH_COMMAND_FAILED
+          CHECKED_AT_EPOCH=$(date +%s)
+          SSH_EXIT_CODE=$video_rc
           REPORT
           fi
           if (( audio_rc != 0 )) && ! grep -q '^OVERALL_STATUS=' audio-status.env 2>/dev/null; then
@@ -85,6 +109,13 @@ jobs:
           [[ -n "$status" ]] || status=CRITICAL
           [[ -n "$reason" ]] || reason=INVALID_STATUS_REPORT
 
+          video_status=$(sed -n 's/^OVERALL_STATUS=\(OK\|FAIL\)$/\1/p' video-status.env | tail -n 1)
+          video_reason=$(sed -n 's/^REASON=\([A-Z0-9_]*\)$/\1/p' video-status.env | tail -n 1)
+          if [[ "$video_status" != "OK" ]]; then
+            status=CRITICAL
+            reason=${video_reason:-VIDEO_FRAME_PACING_DEGRADED}
+          fi
+
           audio_status=$(sed -n 's/^OVERALL_STATUS=\(OK\|FAIL\)$/\1/p' audio-status.env | tail -n 1)
           audio_warnings=$(sed -n 's/^AUDIO_WARNINGS=//p' audio-status.env | tail -n 1)
           if [[ "$audio_status" != "OK" ]]; then
@@ -99,6 +130,8 @@ jobs:
             printf 'Reason: `%s`\n\n' "$reason"
             printf '### Stream transport\n```text\n'
             cat stream-status.env
+            printf '```\n\n### Video frame pacing\n```text\n'
+            cat video-status.env
             printf '```\n\n### Exact YouTube-bound audio\n```text\n'
             cat audio-status.env
             printf '```\n'
@@ -114,6 +147,7 @@ jobs:
           name: fgbears-live-status-${{ github.run_id }}
           path: |
             stream-status.env
+            video-status.env
             audio-status.env
           retention-days: 14
 
@@ -136,7 +170,7 @@ jobs:
             if [[ -z "$issue" ]]; then
               {
                 printf 'The independent stream monitor detected `%s`.\n\n' "$reason"
-                printf '[Open the monitoring run](%s/%s/actions/runs/%s) for the full stream and audio reports.\n\n' \
+                printf '[Open the monitoring run](%s/%s/actions/runs/%s) for the full stream, video and audio reports.\n\n' \
                   "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
                 printf 'The local restart circuit breaker remains authoritative; this monitor does not restart the stream.\n'
               } > incident.md
