@@ -22,6 +22,8 @@ source "$ENV_FILE"
 : "${CRAWL_OVERLAY_SCRIPT:=/opt/fgbears-live/bin/crawl-overlay.py}"
 : "${CRAWL_OVERLAY_FPS:=30}"
 : "${BEARS_NEWS_SCRIPT:=/opt/fgbears-live/bin/bears-news-feed.py}"
+: "${BEARS_NEWS_OVERLAY_PORT:=8789}"
+: "${BEARS_NEWS_OVERLAY_FPS:=30}"
 : "${BEARS_NEWS_SCROLL_PPS:=76}"
 : "${FFMPEG_PROGRESS_FILE:=/srv/fgbears-live/logs/ffmpeg-progress.log}"
 : "${AD_FRAME_FILE:=/srv/fgbears-live/runtime/ad-frame.jpg}"
@@ -35,7 +37,7 @@ source "$ENV_FILE"
 [[ -s "$PLAYLIST_FILE" ]] || { echo "Playlist is missing or empty: $PLAYLIST_FILE" >&2; exit 66; }
 [[ -r "$AD_OVERLAY_SCRIPT" ]] || { echo "Ad overlay renderer is missing: $AD_OVERLAY_SCRIPT" >&2; exit 66; }
 [[ -r "$CRAWL_OVERLAY_SCRIPT" ]] || { echo "Crawl overlay renderer is missing: $CRAWL_OVERLAY_SCRIPT" >&2; exit 66; }
-[[ -r "$BEARS_NEWS_SCRIPT" ]] || { echo "Bears news feed poller is missing: $BEARS_NEWS_SCRIPT" >&2; exit 66; }
+[[ -r "$BEARS_NEWS_SCRIPT" ]] || { echo "Bears news renderer is missing: $BEARS_NEWS_SCRIPT" >&2; exit 66; }
 
 [[ "$YOUTUBE_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
   echo "YOUTUBE_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
@@ -77,11 +79,12 @@ for _ in {1..30}; do
 done
 curl --silent --fail --max-time 2 "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/healthz" >/dev/null || { echo "Crawl overlay renderer did not become healthy." >&2; exit 70; }
 
-for _ in {1..50}; do
-  if [[ -e "$CRAWL_RUNTIME_DIR/bears-news-label.txt" && -e "$CRAWL_RUNTIME_DIR/bears-news-message.txt" ]]; then break; fi
-  if ! kill -0 "$NEWS_PID" 2>/dev/null; then echo "Bears news feed poller exited before publishing runtime text." >&2; exit 70; fi
+for _ in {1..30}; do
+  if curl --silent --fail --max-time 1 "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/healthz" >/dev/null; then break; fi
+  if ! kill -0 "$NEWS_PID" 2>/dev/null; then echo "Bears news renderer exited before becoming healthy." >&2; exit 70; fi
   sleep 0.2
 done
+curl --silent --fail --max-time 2 "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/healthz" >/dev/null || { echo "Bears news renderer did not become healthy." >&2; exit 70; }
 
 for runtime_file in "$AD_FRAME_FILE" "$CRAWL_RUNTIME_DIR/crawl-label.txt" "$CRAWL_RUNTIME_DIR/crawl-message.txt" "$CRAWL_RUNTIME_DIR/bears-news-label.txt" "$CRAWL_RUNTIME_DIR/bears-news-message.txt"; do
   [[ -e "$runtime_file" ]] || { echo "Runtime overlay file is missing: $runtime_file" >&2; exit 70; }
@@ -101,6 +104,9 @@ progress_sink() {
 
 FFMPEG_PID=""
 
+# All scrolling text is rasterized before FFmpeg. The news ribbon and lower
+# crawl arrive as sharp image overlays, so FFmpeg only composites pixels and
+# cannot clip or reshape individual headline glyphs.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
@@ -108,7 +114,8 @@ ffmpeg \
   -f concat -safe 0 -i "$PLAYLIST_FILE" \
   -thread_queue_size 64 -fflags +genpts -r "$AD_OVERLAY_FPS" -f mpjpeg -i "http://127.0.0.1:${AD_OVERLAY_PORT}/overlay.mjpg" \
   -thread_queue_size 64 -fflags +genpts -r "$CRAWL_OVERLAY_FPS" -f mpjpeg -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.mjpg" \
-  -filter_complex "[1:v]split=2[base0][news0];[news0]crop=w=990:h=68:x=267:y=23,drawbox=x=0:y=0:w=990:h=68:color=0x07101F@0.98:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/bears-news-message.txt:reload=$DRAWTEXT_RELOAD_FRAMES:expansion=none:fontcolor=white:fontsize=31:x=990-mod(t*$BEARS_NEWS_SCROLL_PPS\,text_w+990):y=(h-text_h)/2[newslane];[base0]drawbox=x=7:y=7:w=1266:h=97:color=0x0B162A:t=fill,drawbox=x=18:y=18:w=1244:h=78:color=0x07101F@0.98:t=fill,drawbox=x=18:y=18:w=244:h=78:color=0xC83803:t=fill,drawbox=x=18:y=18:w=1244:h=5:color=0xC83803:t=fill,drawbox=x=18:y=91:w=1244:h=5:color=0xC83803:t=fill,drawbox=x=18:y=18:w=5:h=78:color=0xC83803:t=fill,drawbox=x=1257:y=18:w=5:h=78:color=0xC83803:t=fill,drawbox=x=262:y=23:w=5:h=68:color=0xC83803:t=fill,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:textfile=$CRAWL_RUNTIME_DIR/bears-news-label.txt:reload=$DRAWTEXT_RELOAD_FRAMES:expansion=none:fontcolor=white:fontsize=29:x=18+(239-text_w)/2:y=39,drawbox=x=7:y=100:w=1266:h=4:color=0x0B162A:t=fill,drawbox=x=7:y=574:w=1266:h=139:color=0x0B162A:t=fill,drawbox=x=18:y=584:w=1244:h=118:color=0x07101F@0.95:t=fill,drawbox=x=18:y=584:w=244:h=118:color=0xC83803:t=fill,drawbox=x=18:y=584:w=1244:h=5:color=0xC83803:t=fill,drawbox=x=18:y=697:w=1244:h=5:color=0xC83803:t=fill,drawbox=x=18:y=584:w=5:h=118:color=0xC83803:t=fill,drawbox=x=1257:y=584:w=5:h=118:color=0xC83803:t=fill,drawbox=x=257:y=589:w=5:h=108:color=0x0B162A:t=fill,drawbox=x=262:y=589:w=5:h=108:color=0xC83803:t=fill,drawbox=x=7:y=574:w=1266:h=4:color=0x0B162A:t=fill[base];[base][newslane]overlay=x=267:y=23:shortest=1[withnews];[withnews][2:v]overlay=x=0:y=574:shortest=1,drawbox=x=0:y=0:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=713:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=0:w=7:h=720:color=0xC83803:t=fill,drawbox=x=1273:y=0:w=7:h=720:color=0xC83803:t=fill,format=yuv420p[v]" \
+  -thread_queue_size 64 -fflags +genpts -r "$BEARS_NEWS_OVERLAY_FPS" -f mpjpeg -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.mjpg" \
+  -filter_complex "[1:v][3:v]overlay=x=0:y=0:shortest=1[withnews];[withnews][2:v]overlay=x=0:y=574:shortest=1,drawbox=x=0:y=0:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=713:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=0:w=7:h=720:color=0xC83803:t=fill,drawbox=x=1273:y=0:w=7:h=720:color=0xC83803:t=fill,format=yuv420p[v]" \
   -map "[v]" -map 0:a:0 \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
   -b:v 5000k -maxrate 5500k -bufsize 10000k \
