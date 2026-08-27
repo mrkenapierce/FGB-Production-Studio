@@ -57,6 +57,8 @@ install -d -o root -g fgbears -m 0750 /etc/fgbears-live
 
 install -m 0755 /opt/fgbears-live/bin/start-stream.sh /usr/local/bin/fgbears-start-stream
 install -m 0755 /opt/fgbears-live/bin/youtube-relay.sh /usr/local/bin/fgbears-youtube-relay
+install -m 0755 /opt/fgbears-live/bin/rumble-relay.sh /usr/local/bin/fgbears-rumble-relay
+install -m 0755 /opt/fgbears-live/bin/configure-rumble.sh /usr/local/bin/fgbears-configure-rumble
 install -m 0755 /opt/fgbears-live/bin/normalize-library.sh /usr/local/bin/fgbears-normalize
 install -m 0755 /opt/fgbears-live/bin/validate-media.sh /usr/local/bin/fgbears-validate
 install -m 0755 /opt/fgbears-live/bin/rebuild-playlist.sh /usr/local/bin/fgbears-rebuild-playlist
@@ -67,6 +69,7 @@ install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-st
 
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-relay.service /etc/systemd/system/fgbears-youtube-relay.service
+install -m 0644 /opt/fgbears-live/systemd/fgbears-rumble-relay.service /etc/systemd/system/fgbears-rumble-relay.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.service /etc/systemd/system/fgbears-live-health.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.timer /etc/systemd/system/fgbears-live-health.timer
 
@@ -105,6 +108,8 @@ updates = {
     "PODCAST_AUDIO_FILTER": "volume=-2dB,aresample=48000:first_pts=0",
     "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
+    "RUMBLE_LOCAL_UDP_URL": "udp://127.0.0.1:1940?pkt_size=1316",
+    "RUMBLE_UPSTREAM_RTMP_BASE": "rtmp://rtmp.rumble.com/live",
     "OUTPUT_FPS": "30",
     "AD_OVERLAY_FPS": "15",
     "CRAWL_OVERLAY_FPS": "30",
@@ -131,6 +136,8 @@ for line in lines:
 for key, value in updates.items():
     if key not in seen:
         out.append(f"{key}={value}")
+if not any(line.startswith("RUMBLE_STREAM_KEY=") for line in out):
+    out.append("RUMBLE_STREAM_KEY=REPLACE_WITH_RUMBLE_STREAM_KEY")
 path.write_text("\n".join(out) + "\n", encoding="utf-8")
 PY
 chown root:fgbears "$ENV_PATH"
@@ -144,4 +151,4 @@ systemctl reset-failed fgbears-youtube-relay.service || true
 systemctl restart fgbears-youtube-relay.service
 systemctl enable --now fgbears-live-health.timer
 
-echo "Installed FGBears Live in YouTube-only mode with one primary encode and an isolated YouTube UDP relay."
+echo "Installed FGBears Live with one primary encode and isolated YouTube/Rumble relay support."
