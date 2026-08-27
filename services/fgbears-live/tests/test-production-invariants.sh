@@ -3,40 +3,41 @@ set -Eeuo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 START="$ROOT/bin/start-stream.sh"
-INSTALL="$ROOT/bin/install.sh"
+NEWS="$ROOT/bin/bears-news-feed.py"
 ENV_EXAMPLE="$ROOT/config/stream.env.example"
 
 fail() { echo "PRODUCTION INVARIANT FAILED: $*" >&2; exit 1; }
 
-# RULE 1 — Main Crawl is the visual/motion exemplar for RSS/news.
-# Canonical normal crawl speed after the approved 28% slowdown is 76 px/s.
-grep -Fq 'BEARS_NEWS_SCROLL_PPS:=76' "$START" || fail 'RSS/news crawl speed must match Main Crawl canonical speed (76 px/s).'
+# RULE 1 — Bears news is rasterized before FFmpeg.
+# Canonical normal crawl speed remains 76 px/s and typography remains aligned
+# with the lower crawl, but FFmpeg may only composite completed news pixels.
+grep -Fq 'BEARS_NEWS_SCROLL_PPS:=76' "$START" || fail 'RSS/news crawl speed must remain 76 px/s.'
 grep -Fq 'BEARS_NEWS_SCROLL_PPS=76' "$ENV_EXAMPLE" || fail 'RSS/news default speed must remain 76 px/s.'
+grep -Fq 'BEARS_NEWS_OVERLAY_PORT:=8789' "$START" || fail 'RSS/news dedicated overlay port must remain 8789.'
+grep -Fq 'BEARS_NEWS_OVERLAY_FPS:=30' "$START" || fail 'RSS/news image renderer must remain 30 fps.'
+grep -Fq 'BEARS_NEWS_OVERLAY_PORT=8789' "$ENV_EXAMPLE" || fail 'RSS/news overlay port missing from environment defaults.'
+grep -Fq 'BEARS_NEWS_OVERLAY_FPS=30' "$ENV_EXAMPLE" || fail 'RSS/news overlay FPS missing from environment defaults.'
+# shellcheck disable=SC2016
+grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.mjpg"' "$START" || fail 'FFmpeg must consume the dedicated Bears news MJPEG overlay.'
+grep -Fq '[1:v][3:v]overlay=x=0:y=0:shortest=1[withnews]' "$START" || fail 'Bears news overlay is not composited in the upper ribbon.'
+grep -Fq 'message_font = font(31, bold=True)' "$NEWS" || fail 'RSS/news message typography diverged from the canonical 31px bold treatment.'
+grep -Fq 'label_font = font(29, bold=True)' "$NEWS" || fail 'RSS/news label typography diverged from the canonical 29px bold treatment.'
 
-# Typography and clean single-divider treatment must stay aligned with Main Crawl.
-grep -Fq 'fontsize=31:x=990-mod(t*$BEARS_NEWS_SCROLL_PPS' "$START" || fail 'RSS/news message typography/motion geometry diverged from Main Crawl.'
-grep -Fq 'fontcolor=white:fontsize=29:x=18+(239-text_w)/2:y=39' "$START" || fail 'RSS/news label typography diverged from Main Crawl.'
-if grep -Fq 'drawbox=x=257:y=23:w=5:h=68:color=0x0B162A' "$START"; then
-  fail 'RSS/news crawl reintroduced the old double-divider/notch treatment.'
+if grep -Fq 'textfile=$CRAWL_RUNTIME_DIR/bears-news-message.txt' "$START"; then
+  fail 'RSS/news reintroduced FFmpeg drawtext, which can damage moving glyphs.'
+fi
+if grep -Fq '[news0]crop=' "$START"; then
+  fail 'RSS/news reintroduced the retired FFmpeg crop lane.'
+fi
+if grep -Fq -- '-f rawvideo' "$START"; then
+  fail 'RSS/news must use MJPEG rather than the retired rawvideo transport.'
 fi
 
-if grep -Fq 'crop=w=970:h=68:x=277:y=23' "$START"; then
-  fail 'RSS/news crawl reintroduced the obsolete internal blue clipping gutter.'
+# RULE 2 — The primary encoder copies source audio without live DSP.
+grep -Fq -- '-c:a copy' "$START" || fail 'Primary encoder must preserve source audio by stream copy.'
+if grep -Fq -- '-af ' "$START"; then
+  fail 'Live audio filters are forbidden in the primary encoder.'
 fi
-
-# RULE 2 — Audio is immutable at runtime.
-grep -Fq "CANONICAL_AUDIO_FILTER='volume=-2dB,aresample=48000:first_pts=0'" "$START" || fail 'Canonical live audio filter changed.'
-grep -Fq -- '-af "$CANONICAL_AUDIO_FILTER"' "$START" || fail 'FFmpeg must use the canonical immutable audio filter.'
-if grep -Fq -- '-af "$PODCAST_AUDIO_FILTER"' "$START"; then
-  fail 'Live audio may not be overridden by stream.env.'
-fi
-
-# No destructive or time-warping live DSP may be injected by installer/runtime defaults.
-if grep -Eqi 'loudnorm=|acompressor=|highpass=|afftdn=|deesser=|equalizer=|aresample=[^[:space:]]*async=1' "$START" "$INSTALL" "$ENV_EXAMPLE"; then
-  fail 'Destructive/time-warping live audio DSP is forbidden.'
-fi
-
-grep -Fq '"PODCAST_AUDIO_FILTER": "volume=-2dB,aresample=48000:first_pts=0"' "$INSTALL" || fail 'Installer must preserve the canonical audio rule.'
 
 # RULE 3 — YouTube is the only production transport target.
 if grep -Fq 'X local mirror' "$START" || grep -Fq 'Instagram local mirror' "$START"; then
