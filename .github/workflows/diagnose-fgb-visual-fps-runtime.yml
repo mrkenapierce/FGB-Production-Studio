@@ -37,10 +37,10 @@ jobs:
           echo "RELAY_SERVICE=$(systemctl is-active fgbears-youtube-relay.service || true)"
           echo '=== ENV FPS ==='
           sudo grep -E '^(AD_OVERLAY_FPS|CRAWL_OVERLAY_FPS|OUTPUT_FPS)=' /etc/fgbears-live/stream.env || true
-          echo '=== AD RUNTIME FPS DECLARATION ==='
-          grep -n '^FPS[[:space:]]*=' /opt/fgbears-live/bin/ad-overlay.py || true
-          echo '=== CRAWL RUNTIME FPS DECLARATION ==='
-          grep -n '^FPS[[:space:]]*=' /opt/fgbears-live/bin/crawl-overlay.py || true
+          echo '=== AD RUNTIME TIMING ==='
+          grep -nEi 'fps|frame.*rate|interval|next_frame|sleep\(|overlay\.mjpg|multipart' /opt/fgbears-live/bin/ad-overlay.py | tail -n 80 || true
+          echo '=== CRAWL RUNTIME TIMING ==='
+          grep -nEi 'fps|frame.*rate|interval|next_frame|sleep\(|overlay\.mjpg|multipart' /opt/fgbears-live/bin/crawl-overlay.py | tail -n 80 || true
           echo '=== PRIMARY INPUT FPS ==='
           pgrep -af 'ffmpeg.*overlay\.mjpg' | head -n1 | sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g' || true
           echo '=== AUDIO MODE ==='
