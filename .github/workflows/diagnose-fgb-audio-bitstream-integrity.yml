@@ -1,0 +1,75 @@
+name: Diagnose FGB Audio Bitstream Integrity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-fgb-audio-bitstream-integrity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Verify source AAC survives MPEG-TS and FLV remux unchanged
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          src=/home/ubuntu/fgbears-upload/FGBears-Episode-01.mp4
+          d=$(mktemp -d)
+          trap 'rm -rf "$d"' EXIT
+
+          ffmpeg -hide_banner -nostdin -loglevel error -i "$src" -map 0:a:0 -c:a copy -f adts "$d/source.aac"
+          ffmpeg -hide_banner -nostdin -loglevel error -i "$src" -map 0:v:0 -map 0:a:0 -c copy -f mpegts "$d/stage.ts"
+          ffmpeg -hide_banner -nostdin -loglevel error -i "$d/stage.ts" -map 0:v:0 -map 0:a:0 -c copy -f flv "$d/stage.flv"
+          ffmpeg -hide_banner -nostdin -loglevel error -i "$d/stage.flv" -map 0:a:0 -c:a copy -f adts "$d/after-relay.aac"
+
+          source_sha=$(sha256sum "$d/source.aac" | awk '{print $1}')
+          relay_sha=$(sha256sum "$d/after-relay.aac" | awk '{print $1}')
+          source_size=$(stat -c %s "$d/source.aac")
+          relay_size=$(stat -c %s "$d/after-relay.aac")
+          echo "SOURCE_AAC_BYTES=$source_size"
+          echo "AFTER_RELAY_AAC_BYTES=$relay_size"
+          if [[ "$source_sha" == "$relay_sha" ]]; then
+            echo 'AAC_BITSTREAM_IDENTICAL=YES'
+          else
+            echo 'AAC_BITSTREAM_IDENTICAL=NO'
+            # Compare decoded PCM after discarding encoder priming edge effects.
+            ffmpeg -hide_banner -nostdin -loglevel error -ss 5 -t 30 -i "$src" -map 0:a:0 -f s16le -acodec pcm_s16le -ac 2 -ar 44100 "$d/source.pcm"
+            ffmpeg -hide_banner -nostdin -loglevel error -ss 5 -t 30 -i "$d/stage.flv" -map 0:a:0 -f s16le -acodec pcm_s16le -ac 2 -ar 44100 "$d/relay.pcm"
+            pcm_source_sha=$(sha256sum "$d/source.pcm" | awk '{print $1}')
+            pcm_relay_sha=$(sha256sum "$d/relay.pcm" | awk '{print $1}')
+            if [[ "$pcm_source_sha" == "$pcm_relay_sha" ]]; then
+              echo 'DECODED_PCM_IDENTICAL=YES'
+            else
+              echo 'DECODED_PCM_IDENTICAL=NO'
+              exit 1
+            fi
+          fi
+
+          echo '=== ACTIVE RUNTIME ==='
+          grep -q -- '-c:a copy' /usr/local/bin/fgbears-start-stream && echo 'PRIMARY_AUDIO_MODE=COPY'
+          grep -q -- '-c copy' /usr/local/bin/fgbears-youtube-relay && echo 'RELAY_MODE=COPY'
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          echo 'BITSTREAM_INTEGRITY_DIAGNOSIS=SUCCESS'
+          REMOTE
