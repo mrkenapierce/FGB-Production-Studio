@@ -19,7 +19,7 @@ FEED_URL = os.getenv("CRAWL_FEED_URL", "https://epiccontentcreatorgrants.org/api
 FEED_FILE = os.getenv("CRAWL_FEED_FILE")
 POLL_SECONDS = max(2, int(os.getenv("CRAWL_POLL_SECONDS", "5")))
 PORT = int(os.getenv("CRAWL_OVERLAY_PORT", "8788"))
-FPS = max(10, int(os.getenv("CRAWL_OVERLAY_FPS", "15")))
+FPS = max(10, int(os.getenv("CRAWL_OVERLAY_FPS", "30")))
 SPEED_SCALE = min(1.0, max(0.25, float(os.getenv("CRAWL_SPEED_SCALE", "0.72"))))
 WIDTH, HEIGHT = 1280, 139
 FONT = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
@@ -408,7 +408,7 @@ def jpeg() -> bytes:
     output = io.BytesIO()
     # Preserve sharp high-contrast crawl text and Bears orange/blue edges across
     # the localhost MJPEG transport. 4:4:4 avoids the chroma blockiness caused
-    # by Pillow's default JPEG subsampling while keeping the renderer at 15 fps.
+    # by Pillow's default JPEG subsampling while keeping the renderer at 30 fps.
     frame().convert("RGB").save(
         output,
         format="JPEG",

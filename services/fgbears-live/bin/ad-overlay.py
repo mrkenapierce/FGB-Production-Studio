@@ -36,9 +36,9 @@ FRAME_PUBLISH_SECONDS = max(0.25, float(os.getenv("AD_FRAME_PUBLISH_SECONDS", "0
 PORT = int(os.getenv("AD_OVERLAY_PORT", "8787"))
 WIDTH = 1280
 HEIGHT = 720
-# FFmpeg's multipart JPEG demuxer timestamps this input at 25 fps. Feeding it
+# FFmpeg's multipart JPEG demuxer timestamps this input at 30 fps. Feeding it
 # slower makes the complete broadcast timeline run behind real time.
-FPS = 25
+FPS = max(1, int(os.getenv("AD_OVERLAY_FPS", "30")))
 
 BEARS_BLUE = "#0B162A"
 BEARS_ORANGE = "#C83803"
