@@ -1,0 +1,56 @@
+name: Inventory FGB Remaining Sources
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inventory-fgb-remaining-sources.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Inventory original and production assets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo "LIVE=$(systemctl is-active fgbears-live.service || true)"
+          echo "RELAY=$(systemctl is-active fgbears-youtube-relay.service || true)"
+          echo '=== PLAYLIST ==='
+          sed -n "s#^file '.*FGBears-Episode-\([0-9][0-9]\)\.mp4'#EPISODE=\1#p" /srv/fgbears-live/playlist.ffconcat || true
+          echo '=== SOURCES 14-31 ==='
+          for n in $(seq -w 14 31); do
+            prod="/srv/fgbears-live/media/FGBears-Episode-${n}.mp4"
+            orig="/home/ubuntu/fgbears-upload/FGBears-Episode-${n}.mp4"
+            printf 'EPISODE=%s PROD=%s ORIG=%s ' "$n" "$([[ -s "$prod" ]] && echo YES || echo NO)" "$([[ -s "$orig" ]] && echo YES || echo NO)"
+            src="$orig"; [[ -s "$src" ]] || src="$prod"
+            if [[ -s "$src" ]]; then
+              ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt -of csv=p=0 "$src" | tr '\n' ' '
+              printf ' AUDIO='
+              ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,bit_rate -of csv=p=0 "$src" | tr '\n' ' '
+              printf ' SIZE=%s' "$(stat -c %s "$src")"
+            fi
+            echo
+          done
+          echo '=== ACTIVE CPU ==='
+          pgrep -af 'normalize|loudnorm' || true
+          REMOTE
