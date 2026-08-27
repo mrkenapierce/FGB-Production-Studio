@@ -5,28 +5,78 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 27 Aug 2026 05:45:37 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 27 Aug 2026 17:05:08 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Luther Burden III returns as Chicago Bears close Training Camp 2026</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Luther Burden III returns as Chicago Bears close Training Camp 2026</description>
-      <link>https://sports.yahoo.com/articles/luther-burden-iii-returns-chicago-012523553.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7f65a919296fb26e8959</guid>
-      <pubDate>Thu, 27 Aug 2026 01:25:23 GMT</pubDate>
+      <title>Caleb Williams 2026 NFL futures odds, props: Will the Bears finally have a quarterback throw for 4,000 yards?</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Caleb Williams 2026 NFL futures odds, props: Will the Bears finally have a quarterback throw for 4,000 yards?</description>
+      <link>https://www.cbssports.com/betting/news/caleb-williams-2026-nfl-futures-odds-props-will-the-bears-finally-have-a-quarterback-throw-for-4000-yards/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-99ee8fbebe60e314172b</guid>
+      <pubDate>Thu, 27 Aug 2026 15:15:26 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>PFF snubs Bears RT Darnell Wright in tackle rankings</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: PFF snubs Bears RT Darnell Wright in tackle rankings</description>
+      <link>https://sports.yahoo.com/articles/pff-snubs-bears-rt-darnell-164721530.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-646ba3e9c118d22b3179</guid>
+      <pubDate>Thu, 27 Aug 2026 09:47:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Roger Goodell says Chicago Bears &apos;looking at&apos; Illinois stadium site</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Roger Goodell says Chicago Bears &apos;looking at&apos; Illinois stadium site</description>
-      <link>https://sports.yahoo.com/articles/roger-goodell-says-chicago-bears-010727496.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e7b6e1c19f8606ca7f68</guid>
-      <pubDate>Thu, 27 Aug 2026 01:07:27 GMT</pubDate>
+      <title>If Chicago Bears really are going to Indiana, then go already | Opinion</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: If Chicago Bears really are going to Indiana, then go already | Opinion</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-really-going-indiana-160430653.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-62383d78cd285d0fcb4e</guid>
+      <pubDate>Thu, 27 Aug 2026 09:04:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears Players Who Showed the Most Improvement During Training Camp</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Players Who Showed the Most Improvement During Training Camp</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-players-who-showed-the-most-improvement-during-training-camp</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-adf746f6eb2caf93ada5</guid>
+      <pubDate>Thu, 27 Aug 2026 09:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears Veterans See Dillon Thieneman Picking Up Steam as Training Camp Comes to a Close</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Veterans See Dillon Thieneman Picking Up Steam as Training Camp Comes to a Close</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-veterans-see-dillon-thieneman-picking-up-steam-as-training-camp-comes-to-a-close</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-be3a636c7e82111960b4</guid>
+      <pubDate>Thu, 27 Aug 2026 08:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears head to Tennessee for preseason finale | Bears, etc. Podcast</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears head to Tennessee for preseason finale | Bears, etc. Podcast</description>
+      <link>https://www.chicagobears.com/audio/bears-head-to-tennessee-for-preseason-finale-bears-etc-podcast</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-922867e1d66f5db480a9</guid>
+      <pubDate>Thu, 27 Aug 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Roger Goodell says Illinois still has an opportunity to keep the Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Roger Goodell says Illinois still has an opportunity to keep the Bears</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/roger-goodell-says-illinois-still-has-an-opportunity-to-keep-the-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b7c0df504895d540ff1c</guid>
+      <pubDate>Wed, 26 Aug 2026 21:03:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
@@ -37,46 +87,6 @@
       <pubDate>Wed, 26 Aug 2026 18:44:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears training camp report: Wednesday, Aug. 26</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears training camp report: Wednesday, Aug. 26</description>
-      <link>https://www.chicagobears.com/news/bears-training-camp-report-wednesday-aug-26</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-90363eb0375c80178222</guid>
-      <pubDate>Wed, 26 Aug 2026 18:39:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Will Dennis Allen be on the Hot Seat if Bears&apos; Defense Struggles This Season?</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Will Dennis Allen be on the Hot Seat if Bears&apos; Defense Struggles This Season?</description>
-      <link>https://www.si.com/nfl/bears/onsi/will-dennis-allen-be-on-the-hot-seat-if-bears-defense-struggles-this-season</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2c15a2cc7ef08ea4f9c7</guid>
-      <pubDate>Wed, 26 Aug 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Pinpointing Two Potential Bears Bubble Players and How They Keep a Job</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Pinpointing Two Potential Bears Bubble Players and How They Keep a Job</description>
-      <link>https://www.si.com/nfl/bears/onsi/pinpointing-two-potential-bears-bubble-players-and-how-they-keep-a-job</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0dc7e0b5ba54075f6f13</guid>
-      <pubDate>Wed, 26 Aug 2026 15:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears get encouraging injury news on Darnell Wright, Luther Burden III</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears get encouraging injury news on Darnell Wright, Luther Burden III</description>
-      <link>https://www.nytimes.com/athletic/7541138/2026/08/26/bears-injury-news-wright-burden/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-262805b5fa20edaaa44e</guid>
-      <pubDate>Wed, 26 Aug 2026 13:04:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
