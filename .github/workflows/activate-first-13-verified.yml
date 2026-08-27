@@ -1,0 +1,110 @@
+name: Activate First 13 Verified FGB Episodes
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/activate-first-13-verified.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-production-deploy
+  cancel-in-progress: false
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Activate verified episodes 01-13 only and verify live stream
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -o ServerAliveInterval=20 -o ServerAliveCountMax=5 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MEDIA=/srv/fgbears-live/media
+          PLAYLIST=/srv/fgbears-live/playlist.ffconcat
+          TMP=/srv/fgbears-live/playlist.first13.partial
+
+          # Do not activate while any offline migration process is still running.
+          if pgrep -af 'normalize-resilient|normalize-library|\.audio-migration|loudnorm=I=-14' >/dev/null; then
+            echo 'Offline normalization still running; refusing activation.' >&2
+            pgrep -af 'normalize-resilient|normalize-library|\.audio-migration|loudnorm=I=-14' >&2 || true
+            exit 75
+          fi
+
+          # Require all first 13 assets and their hash-bound verified audio profiles.
+          for n in $(seq -w 1 13); do
+            f="$MEDIA/FGBears-Episode-${n}.mp4"
+            m="${f}.audio-profile.json"
+            test -s "$f"
+            test -s "$m"
+            sha=$(sha256sum "$f" | awk '{print $1}')
+            jq -e --arg sha "$sha" '.profile == "fgb-podcast-v1" and .sha256 == $sha and ((.measured_i_lufs + 14) | if . < 0 then -. else . end) <= 0.8 and .measured_tp_dbtp <= -1.0' "$m" >/dev/null
+          done
+
+          {
+            echo 'ffconcat version 1.0'
+            for n in $(seq -w 1 13); do
+              printf "file '%s'\n" "$MEDIA/FGBears-Episode-${n}.mp4"
+            done
+          } > "$TMP"
+          sudo chown fgbears:fgbears "$TMP"
+          sudo chmod 0644 "$TMP"
+          sudo cp -f "$PLAYLIST" "${PLAYLIST}.before-first13"
+          sudo mv -f "$TMP" "$PLAYLIST"
+
+          [[ $(grep -c '^file ' "$PLAYLIST") -eq 13 ]]
+          grep -q 'FGBears-Episode-01.mp4' "$PLAYLIST"
+          grep -q 'FGBears-Episode-13.mp4' "$PLAYLIST"
+          ! grep -q 'FGBears-Episode-14.mp4' "$PLAYLIST"
+
+          # One controlled restart so the encoder reads the test playlist.
+          sudo systemctl restart fgbears-live.service
+          for _ in $(seq 1 45); do
+            if systemctl is-active --quiet fgbears-live.service && systemctl is-active --quiet fgbears-youtube-relay.service; then
+              sleep 3
+              break
+            fi
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          sudo grep -q '^PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0$' /etc/fgbears-live/stream.env
+
+          echo '=== ACTIVE TEST PLAYLIST ==='
+          grep '^file ' "$PLAYLIST"
+
+          echo '=== EXACT YOUTUBE-BOUND AUDIO ==='
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 20
+
+          echo '=== STREAM CADENCE ==='
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          first_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          first_epoch=$(date +%s%N)
+          sleep 10
+          second_media=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_frame=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          dropped=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          second_epoch=$(date +%s%N)
+          awk -v m1="$first_media" -v m2="$second_media" -v f1="$first_frame" -v f2="$second_frame" -v e1="$first_epoch" -v e2="$second_epoch" -v dropped="${dropped:-0}" 'BEGIN {wall=(e2-e1)/1000000000;program=(m2-m1)/1000000;ratio=program/wall;fps=(f2-f1)/wall;printf "program=%.3fs wall=%.3fs ratio=%.3fx fps=%.2f dropped=%d\n",program,wall,ratio,fps,dropped;if(ratio<0.95||fps<28.5||dropped!=0)exit 1}'
+
+          echo 'FIRST_13_VERIFIED_LIVE=SUCCESS'
+          REMOTE
