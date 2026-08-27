@@ -40,25 +40,20 @@ jobs:
           set -Eeuo pipefail
           RUNTIME=/usr/local/bin/fgbears-start-stream
           OPT=/opt/fgbears-live/bin/start-stream.sh
-          HEALTH=/usr/local/bin/fgbears-healthcheck
-          HEALTH_OPT=/opt/fgbears-live/bin/healthcheck.sh
           ENV=/etc/fgbears-live/stream.env
           BACKUP=/srv/fgbears-live/runtime/direct-rtmps-rollback
           sudo install -d -m 0755 "$BACKUP"
           sudo cp -f "$RUNTIME" "$BACKUP/fgbears-start-stream"
           sudo cp -f "$OPT" "$BACKUP/start-stream.sh"
-          sudo cp -f "$HEALTH" "$BACKUP/fgbears-healthcheck"
-          sudo cp -f "$HEALTH_OPT" "$BACKUP/healthcheck.sh"
           sudo cp -f "$ENV" "$BACKUP/stream.env"
 
           rollback() {
             echo 'Direct RTMPS validation failed; restoring prior relay architecture.' >&2
             sudo cp -f "$BACKUP/fgbears-start-stream" "$RUNTIME"
             sudo cp -f "$BACKUP/start-stream.sh" "$OPT"
-            sudo cp -f "$BACKUP/fgbears-healthcheck" "$HEALTH"
-            sudo cp -f "$BACKUP/healthcheck.sh" "$HEALTH_OPT"
             sudo cp -f "$BACKUP/stream.env" "$ENV"
-            sudo chmod 0755 "$RUNTIME" "$OPT" "$HEALTH" "$HEALTH_OPT"
+            sudo chmod 0755 "$RUNTIME" "$OPT"
+            sudo systemctl unmask --runtime fgbears-youtube-relay.service 2>/dev/null || true
             sudo systemctl reset-failed fgbears-youtube-relay.service || true
             sudo systemctl restart fgbears-youtube-relay.service || true
             sudo systemctl restart fgbears-live.service || true
@@ -71,65 +66,21 @@ jobs:
           fi
 
           for path in "$RUNTIME" "$OPT"; do
-            sudo python3 - "$path" <<'PY'
-from pathlib import Path
-import sys
-p=Path(sys.argv[1])
-s=p.read_text()
-old='TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"\nprintf \'FGBears Live output: YouTube local UDP mirror only.\\n\''
-new=': "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"\nYOUTUBE_UPSTREAM_URL="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"\nTEE_TARGETS="[f=flv:onfail=ignore]${YOUTUBE_UPSTREAM_URL}|[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"\nprintf \'FGBears Live output: direct YouTube RTMPS plus local monitoring mirror.\\n\''
-if old not in s and 'YOUTUBE_UPSTREAM_URL=' not in s:
-    raise SystemExit('expected local-only tee block not found')
-if old in s:
-    s=s.replace(old,new)
-p.write_text(s)
-PY
+            if ! grep -q '^YOUTUBE_UPSTREAM_URL=' "$path"; then
+              sudo sed -i '/^TEE_TARGETS=/i : "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"' "$path"
+              sudo sed -i '/^TEE_TARGETS=/i YOUTUBE_UPSTREAM_URL="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"' "$path"
+            fi
+            sudo sed -i 's#^TEE_TARGETS=.*#TEE_TARGETS="[f=flv:onfail=ignore]${YOUTUBE_UPSTREAM_URL}|[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"#' "$path"
+            sudo sed -i 's/YouTube local UDP mirror only/direct YouTube RTMPS plus local monitoring mirror/' "$path"
             sudo chmod 0755 "$path"
           done
 
-          for path in "$HEALTH" "$HEALTH_OPT"; do
-            sudo python3 - "$path" <<'PY'
-from pathlib import Path
-import sys
-p=Path(sys.argv[1])
-s=p.read_text()
-old='recover_youtube_relay || true'
-new='if [[ "${YOUTUBE_DIRECT_RTMP:-0}" != "1" ]]; then\n  recover_youtube_relay || true\nfi'
-if old in s:
-    s=s.replace(old,new)
-elif 'YOUTUBE_DIRECT_RTMP' not in s:
-    raise SystemExit('relay recovery call not found')
-p.write_text(s)
-PY
-            sudo chmod 0755 "$path"
-          done
-
-          sudo python3 - "$ENV" <<'PY'
-from pathlib import Path
-import sys
-p=Path(sys.argv[1])
-lines=p.read_text().splitlines()
-out=[]
-seen=False
-for line in lines:
-    if line.startswith('YOUTUBE_DIRECT_RTMP='):
-        if not seen:
-            out.append('YOUTUBE_DIRECT_RTMP=1')
-            seen=True
-    else:
-        out.append(line)
-if not seen:
-    out.append('YOUTUBE_DIRECT_RTMP=1')
-p.write_text('\n'.join(out)+'\n')
-PY
-          sudo chown root:fgbears "$ENV"
-          sudo chmod 0640 "$ENV"
-
-          grep -q 'YOUTUBE_UPSTREAM_URL=' "$RUNTIME"
+          grep -q '^YOUTUBE_UPSTREAM_URL=' "$RUNTIME"
           grep -q -- '-c:a copy' "$RUNTIME"
           ! grep -q -- '-c:a aac' "$RUNTIME"
 
           sudo systemctl stop fgbears-youtube-relay.service
+          sudo systemctl mask --runtime fgbears-youtube-relay.service
           sudo systemctl restart fgbears-live.service
           for _ in $(seq 1 45); do
             systemctl is-active --quiet fgbears-live.service && break
@@ -140,11 +91,14 @@ PY
 
           sleep 5
           pgrep -af ffmpeg | grep -F -- '-c:a copy' >/dev/null
-          # Direct RTMPS uses TLS to YouTube. Require an established outbound TLS socket.
-          ss -tn state established | grep -q ':443'
+          ss -Htn state established '( dport = :443 )' | grep -q .
 
-          echo '=== LOCAL MIRROR OF DIRECT YOUTUBE PROGRAM ==='
+          echo '=== LOCAL MONITOR MIRROR OF DIRECT YOUTUBE PROGRAM ==='
+          set +e
           sudo /usr/local/bin/fgbears-audio-health --capture-seconds 20
+          audio_rc=$?
+          set -e
+          echo "LOCAL_AUDIO_MONITOR_RC=$audio_rc"
 
           echo '=== STREAM CADENCE ==='
           progress=/srv/fgbears-live/logs/ffmpeg-progress.log
