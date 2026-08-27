@@ -1,0 +1,201 @@
+name: Process FGB Episodes 14-31 Off Host
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/process-fgb-remaining-14-31-offhost.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgb-remaining-media-processing
+  cancel-in-progress: false
+
+jobs:
+  process:
+    name: Episode ${{ matrix.episode }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        episode: [14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31]
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Install FFmpeg on processing runner
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Process and stage episode
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+          EPISODE_NUMBER: ${{ matrix.episode }}
+        run: |
+          set -Eeuo pipefail
+          ep=$(printf '%02d' "$EPISODE_NUMBER")
+          remote_source=$(ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "bash -s" <<REMOTE
+          set -Eeuo pipefail
+          orig=/home/ubuntu/fgbears-upload/FGBears-Episode-${ep}.mp4
+          prod=/srv/fgbears-live/media/FGBears-Episode-${ep}.mp4
+          if [[ -s \"\$orig\" ]]; then printf '%s' \"\$orig\"; elif [[ -s \"\$prod\" ]]; then printf '%s' \"\$prod\"; else exit 66; fi
+          REMOTE
+          )
+          echo "EPISODE=$ep"
+          echo "SOURCE=$remote_source"
+
+          readarray -t probe < <(ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,pix_fmt,r_frame_rate -of csv=p=0 '$remote_source'; ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels -of csv=p=0 '$remote_source'")
+          [[ ${#probe[@]} -ge 2 ]]
+          video=${probe[0]}
+          audio=${probe[1]}
+          echo "SOURCE_VIDEO=$video"
+          echo "SOURCE_AUDIO=$audio"
+
+          canonical_video=NO
+          canonical_audio=NO
+          [[ "$video" == h264,1280,720,yuv420p,30/1 ]] && canonical_video=YES
+          [[ "$audio" == aac,44100,2 ]] && canonical_audio=YES
+
+          if [[ "$canonical_video" == YES && "$canonical_audio" == YES ]]; then
+            mode=PASSTHROUGH
+            ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "bash -s" <<REMOTE
+            set -Eeuo pipefail
+            src='$remote_source'
+            ep='$ep'
+            pending=/srv/fgbears-live/processed-pending
+            sudo install -d -o fgbears -g fgbears -m 0755 \"\$pending\"
+            sudo cp -f \"\$src\" \"\$pending/FGBears-Episode-\${ep}.mp4.partial\"
+            sudo chown fgbears:fgbears \"\$pending/FGBears-Episode-\${ep}.mp4.partial\"
+            sudo chmod 0644 \"\$pending/FGBears-Episode-\${ep}.mp4.partial\"
+            sudo mv -f \"\$pending/FGBears-Episode-\${ep}.mp4.partial\" \"\$pending/FGBears-Episode-\${ep}.mp4\"
+            REMOTE
+          else
+            mode=TRANSCODE
+            scp -q -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST:$remote_source" source.mp4
+
+            video_args=(-c:v copy)
+            if [[ "$canonical_video" != YES ]]; then
+              video_args=(-vf "scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=30" -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -profile:v high -level:v 4.0 -g 60 -keyint_min 60 -sc_threshold 0)
+            fi
+            audio_args=(-c:a copy)
+            if [[ "$canonical_audio" != YES ]]; then
+              audio_args=(-c:a aac -b:a 256k -ar 44100 -ac 2)
+            fi
+
+            ffmpeg -hide_banner -nostdin -loglevel warning -y \
+              -i source.mp4 -map 0:v:0 -map 0:a:0 -map_metadata -1 -map_chapters -1 \
+              "${video_args[@]}" "${audio_args[@]}" -movflags +faststart output.mp4
+
+            scp -q -i ~/.ssh/oracle_key output.mp4 "$ORACLE_USER@$ORACLE_HOST:/home/ubuntu/fgb-processed-${ep}.mp4"
+            ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "bash -s" <<REMOTE
+            set -Eeuo pipefail
+            ep='$ep'
+            pending=/srv/fgbears-live/processed-pending
+            tmp=/home/ubuntu/fgb-processed-${ep}.mp4
+            sudo install -d -o fgbears -g fgbears -m 0755 \"\$pending\"
+            sudo install -o fgbears -g fgbears -m 0644 \"\$tmp\" \"\$pending/FGBears-Episode-\${ep}.mp4.partial\"
+            rm -f \"\$tmp\"
+            sudo mv -f \"\$pending/FGBears-Episode-\${ep}.mp4.partial\" \"\$pending/FGBears-Episode-\${ep}.mp4\"
+            REMOTE
+          fi
+
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "bash -s" <<REMOTE
+          set -Eeuo pipefail
+          ep='$ep'
+          mode='$mode'
+          f=/srv/fgbears-live/processed-pending/FGBears-Episode-\${ep}.mp4
+          [[ -s \"\$f\" ]]
+          v=\$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,pix_fmt,r_frame_rate -of csv=p=0 \"\$f\")
+          a=\$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels -of csv=p=0 \"\$f\")
+          [[ \"\$v\" == 'h264,1280,720,yuv420p,30/1' ]]
+          [[ \"\$a\" == 'aac,44100,2' ]]
+          ffmpeg -hide_banner -nostdin -v error -i \"\$f\" -map 0:a:0 -f null -
+          python3 - \"\$f\" <<'PY'
+          import subprocess, sys
+          f=sys.argv[1]
+          p=subprocess.Popen(['ffprobe','-v','error','-select_streams','a:0','-show_entries','packet=pts_time','-of','csv=p=0',f],stdout=subprocess.PIPE,text=True)
+          prev=None; regress=0; maxgap=0.0; count=0
+          for raw in p.stdout:
+              s=raw.strip().split(',')[0]
+              if not s or s == 'N/A':
+                  continue
+              try: pts=float(s)
+              except ValueError: continue
+              if prev is not None:
+                  d=pts-prev
+                  if d < -1e-6: regress += 1
+                  if d > maxgap: maxgap=d
+              prev=pts; count += 1
+          rc=p.wait()
+          print(f'AUDIO_PACKET_COUNT={count}')
+          print(f'AUDIO_PTS_REGRESSIONS={regress}')
+          print(f'AUDIO_MAX_PACKET_GAP={maxgap:.6f}')
+          if rc or count < 10 or regress or maxgap > 0.080:
+              sys.exit(1)
+          PY
+          sha=\$(sha256sum \"\$f\" | awk '{print \$1}')
+          size=\$(stat -c %s \"\$f\")
+          cat <<JSON | sudo tee \"\${f}.ready.json\" >/dev/null
+          {"episode":"\$ep","profile":"fgb-stream-copy-v1","mode":"\$mode","sha256":"\$sha","size_bytes":\$size,"video":"h264-1280x720-30-yuv420p","audio":"aac-44100-stereo","processed_at":"\$(date -u +%FT%TZ)"}
+          JSON
+          sudo chown fgbears:fgbears \"\${f}.ready.json\"
+          sudo chmod 0644 \"\${f}.ready.json\"
+          echo "EPISODE_\${ep}_PROCESSING=SUCCESS MODE=\$mode SHA256=\$sha"
+          REMOTE
+
+  gate:
+    name: Verify episodes 14-31 staged
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: process
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Verify all staged assets without touching live playlist
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          p=/srv/fgbears-live/processed-pending
+          count=0
+          for n in $(seq -w 14 31); do
+            f="$p/FGBears-Episode-${n}.mp4"
+            m="${f}.ready.json"
+            [[ -s "$f" && -s "$m" ]]
+            sha=$(sha256sum "$f" | awk '{print $1}')
+            jq -e --arg sha "$sha" --arg ep "$n" '.episode==$ep and .profile=="fgb-stream-copy-v1" and .sha256==$sha' "$m" >/dev/null
+            count=$((count+1))
+          done
+          [[ "$count" -eq 18 ]]
+          echo "FGB_EPISODES_14_31_STAGED=$count"
+          echo 'LIVE_PLAYLIST_UNCHANGED=YES'
+          REMOTE
