@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 26 Aug 2026 23:51:20 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 27 Aug 2026 05:45:37 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Luther Burden III returns as Chicago Bears close Training Camp 2026</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Luther Burden III returns as Chicago Bears close Training Camp 2026</description>
+      <link>https://sports.yahoo.com/articles/luther-burden-iii-returns-chicago-012523553.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7f65a919296fb26e8959</guid>
+      <pubDate>Thu, 27 Aug 2026 01:25:23 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Roger Goodell says Chicago Bears &apos;looking at&apos; Illinois stadium site</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Roger Goodell says Chicago Bears &apos;looking at&apos; Illinois stadium site</description>
+      <link>https://sports.yahoo.com/articles/roger-goodell-says-chicago-bears-010727496.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e7b6e1c19f8606ca7f68</guid>
+      <pubDate>Thu, 27 Aug 2026 01:07:27 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears training camp diaries with Sam Roush, Neville Gallimore | Week 4</title>
@@ -30,6 +50,16 @@
     </item>
 
     <item>
+      <title>Will Dennis Allen be on the Hot Seat if Bears&apos; Defense Struggles This Season?</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Will Dennis Allen be on the Hot Seat if Bears&apos; Defense Struggles This Season?</description>
+      <link>https://www.si.com/nfl/bears/onsi/will-dennis-allen-be-on-the-hot-seat-if-bears-defense-struggles-this-season</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2c15a2cc7ef08ea4f9c7</guid>
+      <pubDate>Wed, 26 Aug 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>Pinpointing Two Potential Bears Bubble Players and How They Keep a Job</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Pinpointing Two Potential Bears Bubble Players and How They Keep a Job</description>
       <link>https://www.si.com/nfl/bears/onsi/pinpointing-two-potential-bears-bubble-players-and-how-they-keep-a-job</link>
@@ -40,26 +70,6 @@
     </item>
 
     <item>
-      <title>Bears Trade Pitch Swaps Gervon Dexter for $64 Million All-Pro Safety</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Trade Pitch Swaps Gervon Dexter for $64 Million All-Pro Safety</description>
-      <link>https://sports.yahoo.com/articles/bears-trade-pitch-swaps-gervon-213158841.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-15ea3ff46629afe91579</guid>
-      <pubDate>Wed, 26 Aug 2026 14:31:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>5 Gervon Dexter Trade Landing Spots After Chicago Bears Rumors Ignite</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 5 Gervon Dexter Trade Landing Spots After Chicago Bears Rumors Ignite</description>
-      <link>https://sports.yahoo.com/articles/5-gervon-dexter-trade-landing-212459470.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-10eedd807c986582ef3a</guid>
-      <pubDate>Wed, 26 Aug 2026 14:24:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Chicago Bears get encouraging injury news on Darnell Wright, Luther Burden III</title>
       <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears get encouraging injury news on Darnell Wright, Luther Burden III</description>
       <link>https://www.nytimes.com/athletic/7541138/2026/08/26/bears-injury-news-wright-burden/</link>
@@ -67,16 +77,6 @@
       <pubDate>Wed, 26 Aug 2026 13:04:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>The Good and Not So Good From Chicago Bears&apos; 18th Practice of Training Camp</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Good and Not So Good From Chicago Bears&apos; 18th Practice of Training Camp</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-good-and-not-so-good-from-chicago-bears-18th-practice-of-training-camp</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9a87088cafe491f0b8da</guid>
-      <pubDate>Wed, 26 Aug 2026 12:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
