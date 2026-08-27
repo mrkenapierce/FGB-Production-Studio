@@ -59,7 +59,9 @@ fi
 grep -Fq -- '-c:a copy' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-f tee -use_fifo 1' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
-grep -Fq 'TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"' "$ROOT/bin/start-stream.sh"
+grep -Fq '${YOUTUBE_LOCAL_UDP_URL}|[f=mpegts:' "$ROOT/bin/start-stream.sh"
+# shellcheck disable=SC2016
+grep -Fq '${RUMBLE_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"
 if grep -Fq 'rtmp://127.0.0.1:1935' "$ROOT/bin/start-stream.sh"; then
   echo 'The primary encoder must not depend on the retired local RTMP YouTube listener.' >&2
   exit 1
