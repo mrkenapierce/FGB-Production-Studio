@@ -42,8 +42,6 @@ jobs:
           TEST=/srv/fgbears-live/original-test
           PLAYLIST=/srv/fgbears-live/playlist.ffconcat
           TMP=/tmp/fgbears-original-test.ffconcat
-          AUDIO_HEALTH=/usr/local/bin/fgbears-audio-health
-          AUDIO_HEALTH_OPT=/opt/fgbears-live/bin/audio-health.py
 
           if pgrep -af 'normalize-resilient|normalize-library|\.audio-migration|loudnorm=I=-14' >/dev/null; then
             echo 'Offline normalization is running; refusing source-quality test.' >&2
@@ -54,41 +52,22 @@ jobs:
           for n in $(seq -w 1 13); do
             f="$SRC/FGBears-Episode-${n}.mp4"
             test -s "$f"
-            sig=$(ffprobe -v error -show_entries stream=index,codec_name,width,height,r_frame_rate,pix_fmt,sample_rate,channels -of compact=p=0:nk=1 "$f" | tr '\n' ';')
-            echo "EP${n} $sig"
-            ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt -of csv=p=0 "$f" | grep -Fx 'h264,1280,720,yuv420p,30/1' >/dev/null || {
-              # Some ffprobe builds order r_frame_rate before pix_fmt in CSV. Use JSON invariant below instead.
-              json=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt -of json "$f")
-              printf '%s' "$json" | jq -e '.streams[0].codec_name=="h264" and .streams[0].width==1280 and .streams[0].height==720 and .streams[0].r_frame_rate=="30/1" and .streams[0].pix_fmt=="yuv420p"' >/dev/null
-            }
-            ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels -of json "$f" | jq -e '.streams[0].codec_name=="aac" and .streams[0].sample_rate=="44100" and .streams[0].channels==2' >/dev/null
+            vjson=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,pix_fmt -of json "$f")
+            printf '%s' "$vjson" | jq -e '.streams[0].codec_name=="h264" and .streams[0].width==1280 and .streams[0].height==720 and .streams[0].r_frame_rate=="30/1" and .streams[0].pix_fmt=="yuv420p"' >/dev/null
+            ajson=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels -of json "$f")
+            printf '%s' "$ajson" | jq -e '.streams[0].codec_name=="aac" and .streams[0].sample_rate=="44100" and .streams[0].channels==2' >/dev/null
             sudo cp -f "$f" "$TEST/FGBears-Episode-${n}.mp4"
             sudo chown fgbears:fgbears "$TEST/FGBears-Episode-${n}.mp4"
             sudo chmod 0644 "$TEST/FGBears-Episode-${n}.mp4"
           done
 
-          # Exact transport monitoring must accept both source-native 44.1 kHz AAC
-          # and normalized 48 kHz AAC. Decoded signal analysis still occurs at 48 kHz.
-          patch_health() {
-            local path=$1
-            [[ -f "$path" ]] || return 0
-            sudo python3 - "$path" <<'PY'
-from pathlib import Path
-import sys
-p=Path(sys.argv[1])
-s=p.read_text()
-old='if str(stream.get("sample_rate")) != "48000":\n            format_warnings.append("AUDIO_SAMPLE_RATE_NOT_48KHZ")'
-new='if str(stream.get("sample_rate")) not in {"44100", "48000"}:\n            format_warnings.append("AUDIO_SAMPLE_RATE_NOT_44_1_OR_48KHZ")'
-if old in s:
-    s=s.replace(old,new)
-elif 'not in {"44100", "48000"}' not in s:
-    raise SystemExit('audio-health sample-rate guard not found')
-p.write_text(s)
-PY
-            sudo chmod 0755 "$path"
-          }
-          patch_health "$AUDIO_HEALTH"
-          patch_health "$AUDIO_HEALTH_OPT"
+          for health in /usr/local/bin/fgbears-audio-health /opt/fgbears-live/bin/audio-health.py; do
+            if [[ -f "$health" ]]; then
+              sudo sed -i 's/if str(stream.get("sample_rate")) != "48000":/if str(stream.get("sample_rate")) not in {"44100", "48000"}:/' "$health"
+              sudo sed -i 's/AUDIO_SAMPLE_RATE_NOT_48KHZ/AUDIO_SAMPLE_RATE_NOT_44_1_OR_48KHZ/' "$health"
+              sudo chmod 0755 "$health"
+            fi
+          done
 
           rm -f "$TMP"
           {
@@ -104,7 +83,6 @@ PY
           [[ $(grep -c '^file ' "$PLAYLIST") -eq 13 ]]
           grep -q '/original-test/FGBears-Episode-01.mp4' "$PLAYLIST"
           grep -q '/original-test/FGBears-Episode-13.mp4' "$PLAYLIST"
-
           grep -q -- '-c:a copy' /usr/local/bin/fgbears-start-stream
           ! grep -q -- '-c:a aac' /usr/local/bin/fgbears-start-stream
 
