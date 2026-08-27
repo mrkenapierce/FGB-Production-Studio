@@ -78,9 +78,9 @@ fi
 # Preserve credentials and migrate YouTube's internal handoff to the isolated
 # loopback MPEG-TS relay. Remove all retired social-simulcast keys. Lock the
 # Bears news overlay to its dedicated local MJPEG renderer so stale host values
-# cannot reactivate the retired FFmpeg drawtext/crop path. The news overlay
-# runs at 15 fps while the final program remains 30 fps, cutting redundant
-# JPEG generation/decode work without changing the encoded stream cadence.
+# cannot reactivate the retired FFmpeg drawtext/crop path. Static/slow-changing
+# ad and news overlays run at 15 fps while the final program and lower crawl
+# remain 30 fps, reducing redundant JPEG work without changing broadcast cadence.
 python3 - "$ENV_PATH" <<'PY'
 from pathlib import Path
 import sys
@@ -105,6 +105,7 @@ updates = {
     "PODCAST_AUDIO_FILTER": "volume=-2dB,aresample=48000:first_pts=0",
     "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
+    "AD_OVERLAY_FPS": "15",
     "BEARS_NEWS_OVERLAY_PORT": "8789",
     "BEARS_NEWS_OVERLAY_FPS": "15",
     "BEARS_NEWS_SCROLL_PPS": "76",
