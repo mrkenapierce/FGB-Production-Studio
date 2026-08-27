@@ -1,0 +1,56 @@
+name: Diagnose FGB Expanded Audio Formats
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-fgb-expanded-audio-formats.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Inventory episode audio formats and loudness
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MEDIA=/srv/fgbears-live/media
+          echo '=== LIVE STATE ==='
+          echo "PLAYLIST_COUNT=$(grep -c '^file ' /srv/fgbears-live/playlist.ffconcat)"
+          grep '^file ' /srv/fgbears-live/playlist.ffconcat | tail -n 3
+          echo '=== EPISODE AUDIO INVENTORY ==='
+          for n in $(seq -w 1 31); do
+            f="$MEDIA/FGBears-Episode-${n}.mp4"
+            [[ -s "$f" ]] || continue
+            a=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,channel_layout,bit_rate,profile -of csv=p=0 "$f")
+            dur=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$f")
+            echo "EPISODE_${n}|AUDIO=${a}|DURATION=${dur}"
+          done
+          echo '=== SAMPLE LOUDNESS 14-31 ==='
+          for n in $(seq -w 14 31); do
+            f="$MEDIA/FGBears-Episode-${n}.mp4"
+            [[ -s "$f" ]] || continue
+            stats=$(ffmpeg -hide_banner -nostdin -v info -ss 60 -t 45 -i "$f" -map 0:a:0 -af volumedetect -f null - 2>&1 | grep -E 'mean_volume|max_volume' | tr '\n' ' ')
+            echo "EPISODE_${n}|${stats}"
+          done
+          REMOTE
