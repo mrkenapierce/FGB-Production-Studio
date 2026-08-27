@@ -10,6 +10,7 @@ import time
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from functools import lru_cache
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -93,7 +94,7 @@ def read_feed_bytes() -> bytes:
         headers={
             "Accept": "application/rss+xml, application/xml, text/xml",
             "Cache-Control": "no-cache",
-            "User-Agent": "FGBears-Live-News/5.0",
+            "User-Agent": "FGBears-Live-News/5.1",
         },
     )
     with urllib.request.urlopen(request, timeout=10) as response:
@@ -170,17 +171,10 @@ def text_bbox(text: str, text_font: ImageFont.ImageFont) -> tuple[int, int, int,
     return ImageDraw.Draw(probe).textbbox((0, 0), text, font=text_font)
 
 
-def frame(now: float | None = None) -> Image.Image:
-    if now is None:
-        now = time.monotonic()
-    message, started, _ = STATE.snapshot()
+@lru_cache(maxsize=1)
+def base_frame() -> Image.Image:
+    """Build the fixed ribbon geometry once instead of repainting it at 30 fps."""
     image = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
-    if not message:
-        return image
-
-    # Recreate the production upper ribbon as pixels before FFmpeg sees it.
-    # This removes drawtext/crop boundary interactions that could destroy glyph
-    # strokes while retaining the existing Bears-blue/orange geometry.
     draw = ImageDraw.Draw(image)
     draw.rectangle((7, 7, 1272, 103), fill=BEARS_BLUE)
     draw.rectangle((PANEL_LEFT, PANEL_TOP, PANEL_RIGHT, PANEL_BOTTOM), fill=LANE_BLUE)
@@ -189,7 +183,10 @@ def frame(now: float | None = None) -> Image.Image:
     draw.rectangle((PANEL_LEFT, PANEL_BOTTOM - 4, PANEL_RIGHT, PANEL_BOTTOM), fill=BEARS_ORANGE)
     draw.rectangle((PANEL_LEFT, PANEL_TOP, PANEL_LEFT + 4, PANEL_BOTTOM), fill=BEARS_ORANGE)
     draw.rectangle((PANEL_RIGHT - 4, PANEL_TOP, PANEL_RIGHT, PANEL_BOTTOM), fill=BEARS_ORANGE)
-    draw.rectangle((DIVIDER_LEFT, VIEWPORT_TOP, DIVIDER_RIGHT, VIEWPORT_TOP + VIEWPORT_HEIGHT - 1), fill=BEARS_ORANGE)
+    draw.rectangle(
+        (DIVIDER_LEFT, VIEWPORT_TOP, DIVIDER_RIGHT, VIEWPORT_TOP + VIEWPORT_HEIGHT - 1),
+        fill=BEARS_ORANGE,
+    )
 
     label = "BEARS NEWS"
     label_font = font(29, bold=True)
@@ -199,23 +196,42 @@ def frame(now: float | None = None) -> Image.Image:
     label_x = PANEL_LEFT + (LABEL_RIGHT - PANEL_LEFT + 1 - label_width) / 2
     label_y = PANEL_TOP + (PANEL_BOTTOM - PANEL_TOP + 1 - label_height) / 2 - label_box[1]
     draw.text((label_x, label_y), label, font=label_font, fill=WHITE)
+    return image
 
+
+@lru_cache(maxsize=4)
+def ticker_cycle(message: str) -> tuple[Image.Image, int]:
+    """Rasterize a complete RSS message once, then reuse it for every scroll frame."""
     message = message.upper().strip()
     message_font = font(31, bold=True)
     message_box = text_bbox(message, message_font)
     text_width = max(1, message_box[2] - message_box[0])
     text_height = message_box[3] - message_box[1]
-    elapsed = max(0.0, now - started)
-    cycle = VIEWPORT_WIDTH + text_width
-    x = VIEWPORT_WIDTH - ((elapsed * SCROLL_PPS) % cycle)
+    cycle_width = VIEWPORT_WIDTH + text_width
     y = (VIEWPORT_HEIGHT - text_height) / 2 - message_box[1]
 
-    # Rasterize the entire headline with Pillow, then clip the finished pixels to
-    # the message lane. FFmpeg only composites this image; it no longer shapes,
-    # reloads, crops, or scrolls individual news glyphs.
-    ticker = Image.new("RGBA", (VIEWPORT_WIDTH, VIEWPORT_HEIGHT), (0, 0, 0, 0))
-    ticker_draw = ImageDraw.Draw(ticker)
-    ticker_draw.text((int(x), y), message, font=message_font, fill=WHITE)
+    strip = Image.new("RGBA", (cycle_width, VIEWPORT_HEIGHT), (0, 0, 0, 0))
+    strip_draw = ImageDraw.Draw(strip)
+    strip_draw.text((VIEWPORT_WIDTH, y), message, font=message_font, fill=WHITE)
+    return strip, cycle_width
+
+
+def frame(now: float | None = None) -> Image.Image:
+    if now is None:
+        now = time.monotonic()
+    message, started, _ = STATE.snapshot()
+    if not message:
+        return Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
+
+    # The static Bears ribbon and the full headline strip are pre-rasterized.
+    # Per-frame work is now limited to copying the fixed panel, cropping the
+    # already-shaped ticker pixels, and compositing them into the viewport.
+    # FFmpeg still receives a 30 fps image overlay and never shapes news glyphs.
+    image = base_frame().copy()
+    strip, cycle_width = ticker_cycle(message)
+    elapsed = max(0.0, now - started)
+    offset = int((elapsed * SCROLL_PPS) % cycle_width)
+    ticker = strip.crop((offset, 0, offset + VIEWPORT_WIDTH, VIEWPORT_HEIGHT))
     image.alpha_composite(ticker, (VIEWPORT_LEFT, VIEWPORT_TOP))
     return image
 
@@ -239,7 +255,7 @@ def png() -> bytes:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "FGBearsNewsOverlay/5.0"
+    server_version = "FGBearsNewsOverlay/5.1"
 
     def log_message(self, *_args: Any) -> None:
         return
@@ -253,6 +269,7 @@ class Handler(BaseHTTPRequestHandler):
                     "active": bool(message),
                     "lastError": error,
                     "renderer": "pillow-mjpeg",
+                    "renderCache": "static-panel+precomposed-ticker",
                     "messageChars": len(message),
                     "fps": FPS,
                 }
