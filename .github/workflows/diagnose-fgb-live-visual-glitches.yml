@@ -1,0 +1,90 @@
+name: Diagnose FGB Live Visual Glitches
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-fgb-live-visual-glitches.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Sample live video pacing and renderer health
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo "SAMPLED_AT=$(date -u +%FT%TZ)"
+          echo "NPROC=$(nproc)"
+          echo "LOAD=$(cut -d' ' -f1-3 /proc/loadavg)"
+          free -m | awk 'NR==2{printf "MEM_AVAILABLE_MB=%s\n",$7}'
+          echo "LIVE_SERVICE=$(systemctl is-active fgbears-live.service || true)"
+          echo "RELAY_SERVICE=$(systemctl is-active fgbears-youtube-relay.service || true)"
+
+          echo '=== ACTIVE COMMANDS ==='
+          pgrep -af 'ffmpeg|ad-overlay.py|crawl-overlay.py|bears-news-feed.py' | \
+            sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g; s#([A-Za-z0-9_-]{20,})#REDACTED_TOKEN#g' || true
+
+          echo '=== CPU ==='
+          ps -eo pid,ppid,pcpu,pmem,etime,comm,args --sort=-pcpu | \
+            grep -E 'ffmpeg|ad-overlay.py|crawl-overlay.py|bears-news-feed.py' | head -n 20 | \
+            sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g; s#([A-Za-z0-9_-]{20,})#REDACTED_TOKEN#g' || true
+
+          echo '=== RUNTIME AUDIO/VIDEO MODE ==='
+          grep -E -- '-c:v|-preset|-b:v|-maxrate|-bufsize|-r \"?\$OUTPUT_FPS|-fps_mode|-c:a|TEE_TARGETS|YOUTUBE_UPSTREAM' /usr/local/bin/fgbears-start-stream | \
+            sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g' || true
+
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          echo '=== PROGRESS START ==='
+          sudo cat "$progress" 2>/dev/null || true
+          m1=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          f1=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          d1=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          u1=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          t1=$(date +%s%N)
+          sleep 20
+          m2=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          f2=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          d2=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          u2=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
+          t2=$(date +%s%N)
+          awk -v m1="${m1:-0}" -v m2="${m2:-0}" -v f1="${f1:-0}" -v f2="${f2:-0}" -v d1="${d1:-0}" -v d2="${d2:-0}" -v u1="${u1:-0}" -v u2="${u2:-0}" -v t1="$t1" -v t2="$t2" 'BEGIN{wall=(t2-t1)/1e9; media=(m2-m1)/1e6; fps=(f2-f1)/wall; printf "WINDOW_WALL=%.3f\nWINDOW_MEDIA=%.3f\nWINDOW_RATIO=%.3f\nWINDOW_FPS=%.2f\nWINDOW_DROP_DELTA=%d\nWINDOW_DUP_DELTA=%d\n",wall,media,media/wall,fps,d2-d1,u2-u1}'
+          echo '=== PROGRESS END ==='
+          sudo cat "$progress" 2>/dev/null || true
+
+          echo '=== OVERLAY LATENCY ==='
+          for port in 8787 8788; do
+            total=0
+            failures=0
+            for i in $(seq 1 10); do
+              x=$(curl -sS -o /dev/null --max-time 2 -w '%{time_total}' "http://127.0.0.1:${port}/healthz" || echo FAIL)
+              if [[ "$x" == *FAIL* ]]; then failures=$((failures+1)); else total=$(awk -v a="$total" -v b="$x" 'BEGIN{printf "%.6f",a+b}'); fi
+            done
+            echo "PORT_${port}_FAILURES=$failures"
+            awk -v t="$total" 'BEGIN{printf "PORT_'"$port"'_AVG_HEALTH_SECONDS=%.6f\n",t/10}'
+          done
+
+          echo '=== RECENT VIDEO WARNINGS ==='
+          sudo journalctl -u fgbears-live.service --since '10 minutes ago' --no-pager 2>/dev/null | \
+            grep -Ei 'drop|dup|queue|buffer|non-monoton|timestamp|dts|pts|speed=|past duration|corrupt|error|warning|broken|delay' | tail -n 120 || true
+          REMOTE
