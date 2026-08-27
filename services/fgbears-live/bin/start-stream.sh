@@ -26,7 +26,6 @@ source "$ENV_FILE"
 : "${FFMPEG_PROGRESS_FILE:=/srv/fgbears-live/logs/ffmpeg-progress.log}"
 : "${AD_FRAME_FILE:=/srv/fgbears-live/runtime/ad-frame.jpg}"
 : "${CRAWL_RUNTIME_DIR:=/srv/fgbears-live/runtime}"
-CANONICAL_AUDIO_FILTER='volume=-2dB,aresample=48000:first_pts=0'
 : "${TEE_FIFO_OPTIONS:=attempt_recovery=1:recover_any_error=1:recovery_wait_time=5}"
 
 [[ "$YOUTUBE_STREAM_KEY" != "REPLACE_WITH_YOUTUBE_STREAM_KEY" ]] || {
@@ -44,8 +43,7 @@ CANONICAL_AUDIO_FILTER='volume=-2dB,aresample=48000:first_pts=0'
 }
 
 TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}"
-printf 'FGBears Live output: YouTube local UDP mirror only.
-'
+printf 'FGBears Live output: YouTube local UDP mirror only.\n'
 
 python3 "$AD_OVERLAY_SCRIPT" &
 OVERLAY_PID=$!
@@ -115,8 +113,7 @@ ffmpeg \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
   -b:v 5000k -maxrate 5500k -bufsize 10000k \
   -g "$VIDEO_GOP" -keyint_min "$VIDEO_GOP" -sc_threshold 0 -r "$OUTPUT_FPS" -fps_mode cfr -threads 0 \
-  -af "$CANONICAL_AUDIO_FILTER" \
-  -c:a aac -b:a 128k -ar 48000 -ac 2 \
+  -c:a copy \
   -f tee -use_fifo 1 -fifo_options "$TEE_FIFO_OPTIONS" \
   "$TEE_TARGETS" 3> >(progress_sink) &
 FFMPEG_PID=$!
