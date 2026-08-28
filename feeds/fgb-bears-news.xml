@@ -5,38 +5,78 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 28 Aug 2026 13:11:09 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 28 Aug 2026 23:01:13 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Devan Kaney: Bears fans’ passion was obvious from the start</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Devan Kaney: Bears fans’ passion was obvious from the start</description>
-      <link>https://sports.yahoo.com/articles/devan-kaney-bears-fans-passion-120000363.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7a9e78aaa4138b12ed32</guid>
-      <pubDate>Fri, 28 Aug 2026 12:00:00 GMT</pubDate>
+      <title>Bears vs Titans Preseason: How to watch, start time, odds, and more</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs Titans Preseason: How to watch, start time, odds, and more</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-titans-preseason-watch-220000506.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-94730550968d125689e0</guid>
+      <pubDate>Fri, 28 Aug 2026 22:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears QB Caleb Williams Gives Honest Advice to Titans’ Cam Ward</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears QB Caleb Williams Gives Honest Advice to Titans’ Cam Ward</description>
-      <link>https://sports.yahoo.com/articles/bears-qb-caleb-williams-gives-123417327.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b9c388a6cbfa553518b0</guid>
-      <pubDate>Fri, 28 Aug 2026 05:33:00 GMT</pubDate>
+      <title>Bears thrilled to support Chicago State University football program</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears thrilled to support Chicago State University football program</description>
+      <link>https://www.chicagobears.com/news/bears-thrilled-to-support-chicago-state-university-football-program</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3add3b92c124c50a6137</guid>
+      <pubDate>Fri, 28 Aug 2026 19:58:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears-Titans game preview, joint practice recap | Bears Weekly</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears-Titans game preview, joint practice recap | Bears Weekly</description>
+      <link>https://www.chicagobears.com/audio/bears-titans-game-preview-joint-practice-recap-bears-weekly</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-51564fb49dc9102495ec</guid>
+      <pubDate>Fri, 28 Aug 2026 15:24:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Step Aside, Cowboys: The Bears Are Now ‘America’s Team’</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Step Aside, Cowboys: The Bears Are Now ‘America’s Team’</description>
+      <link>https://sports.yahoo.com/articles/step-aside-cowboys-bears-now-215546965.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-fba3acc79d77b881e78f</guid>
+      <pubDate>Fri, 28 Aug 2026 14:55:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Grady Jarrett on Big Bears Hit: &apos;We&apos;ve Got to Play Our Style of Defense&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Grady Jarrett on Big Bears Hit: &apos;We&apos;ve Got to Play Our Style of Defense&apos;</description>
-      <link>https://www.si.com/nfl/bears/onsi/grady-jarrett-on-big-bears-hit-we-ve-got-to-play-our-style-of-defense</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0e06b966cc617a3c0848</guid>
-      <pubDate>Fri, 28 Aug 2026 05:30:00 GMT</pubDate>
+      <title>The Bears Won&apos;t Get an Illinois Stadium Until One Obstacle Is Removed</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Bears Won&apos;t Get an Illinois Stadium Until One Obstacle Is Removed</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-stadium-obstacle-nfl</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7a5cf5e938aded8971aa</guid>
+      <pubDate>Fri, 28 Aug 2026 13:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears and Broncos Are Ideal Trade Partners With Cutdown Day Looming</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears and Broncos Are Ideal Trade Partners With Cutdown Day Looming</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-and-broncos-are-ideal-trade-partners-with-cutdown-day-looming</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-55e0bd7156f1e7f45780</guid>
+      <pubDate>Fri, 28 Aug 2026 09:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Titans WR Wan&apos;Dale Robinson evaluated for concussion after &apos;cheap&apos; hit in practice with Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Titans WR Wan&apos;Dale Robinson evaluated for concussion after &apos;cheap&apos; hit in practice with Bears</description>
+      <link>https://www.nfl.com/news/titans-wr-wan-dale-robinson-evaluated-for-concussion-after-cheap-hit-in-joint-practice-with-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-058d0f2f84bc4ce87ee7</guid>
+      <pubDate>Fri, 28 Aug 2026 04:19:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
@@ -47,46 +87,6 @@
       <pubDate>Fri, 28 Aug 2026 03:59:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Former Titan&apos;s &apos;cheap&apos; hit on Wan&apos;Dale Robinson sparks Bears fight in joint practice; WR tested for concussion</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Former Titan&apos;s &apos;cheap&apos; hit on Wan&apos;Dale Robinson sparks Bears fight in joint practice; WR tested for concussion</description>
-      <link>https://www.cbssports.com/nfl/news/titans-bears-fight-wandale-robinson-concussion/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c074dc5068f586a6918f</guid>
-      <pubDate>Thu, 27 Aug 2026 20:57:36 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears training camp report: Joint practice with Titans | Thursday, Aug. 27</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears training camp report: Joint practice with Titans | Thursday, Aug. 27</description>
-      <link>https://www.chicagobears.com/news/bears-training-camp-report-joint-practice-with-titans-thursday-aug-27</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d81cc5b5fe816bee7587</guid>
-      <pubDate>Thu, 27 Aug 2026 20:56:46 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Key Storylines to Watch in the Chicago Bears Preseason Finale Against the Titans</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Key Storylines to Watch in the Chicago Bears Preseason Finale Against the Titans</description>
-      <link>https://www.si.com/nfl/bears/onsi/key-storylines-to-watch-in-the-chicago-bears-preseason-finale-against-the-titans</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f071d1deb14d1bdd9fed</guid>
-      <pubDate>Thu, 27 Aug 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams 2026 NFL futures odds, props: Will the Bears finally have a quarterback throw for 4,000 yards?</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Caleb Williams 2026 NFL futures odds, props: Will the Bears finally have a quarterback throw for 4,000 yards?</description>
-      <link>https://www.cbssports.com/betting/news/caleb-williams-2026-nfl-futures-odds-props-will-the-bears-finally-have-a-quarterback-throw-for-4000-yards/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-99ee8fbebe60e314172b</guid>
-      <pubDate>Thu, 27 Aug 2026 15:15:26 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
