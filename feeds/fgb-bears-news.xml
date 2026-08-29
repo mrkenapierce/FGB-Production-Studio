@@ -5,19 +5,9 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 28 Aug 2026 23:01:13 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 29 Aug 2026 04:07:57 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
-
-    <item>
-      <title>Bears vs Titans Preseason: How to watch, start time, odds, and more</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs Titans Preseason: How to watch, start time, odds, and more</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-titans-preseason-watch-220000506.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-94730550968d125689e0</guid>
-      <pubDate>Fri, 28 Aug 2026 22:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
 
     <item>
       <title>Bears thrilled to support Chicago State University football program</title>
@@ -27,6 +17,16 @@
       <pubDate>Fri, 28 Aug 2026 19:58:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears Caleb Williams Draws Polarizing Comparison To Super Bowl QB</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Caleb Williams Draws Polarizing Comparison To Super Bowl QB</description>
+      <link>https://sports.yahoo.com/articles/bears-caleb-williams-draws-polarizing-000648651.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-69bc549837667650afdf</guid>
+      <pubDate>Fri, 28 Aug 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -60,11 +60,11 @@
     </item>
 
     <item>
-      <title>Bears and Broncos Are Ideal Trade Partners With Cutdown Day Looming</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears and Broncos Are Ideal Trade Partners With Cutdown Day Looming</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-and-broncos-are-ideal-trade-partners-with-cutdown-day-looming</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-55e0bd7156f1e7f45780</guid>
-      <pubDate>Fri, 28 Aug 2026 09:30:00 GMT</pubDate>
+      <title>Biggest Questions and Projected Answers for Bears Roster Cutdown Day</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Biggest Questions and Projected Answers for Bears Roster Cutdown Day</description>
+      <link>https://www.si.com/nfl/bears/onsi/biggest-questions-and-projected-answers-for-bears-roster-cutdown-day</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-40ccc00dbcf45cb088b1</guid>
+      <pubDate>Fri, 28 Aug 2026 11:34:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -80,13 +80,13 @@
     </item>
 
     <item>
-      <title>Chicago Bears 2026 season: What you need to know to watch Caleb Williams’ crew</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears 2026 season: What you need to know to watch Caleb Williams’ crew</description>
-      <link>https://www.nytimes.com/athletic/7523114/2026/08/28/chicago-bears-caleb-williams-how-to-watch-2026/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-32f71b3886e61b843f52</guid>
-      <pubDate>Fri, 28 Aug 2026 03:59:00 GMT</pubDate>
+      <title>Former Titan&apos;s &apos;cheap&apos; hit on Wan&apos;Dale Robinson sparks Bears fight in joint practice; WR tested for concussion</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Former Titan&apos;s &apos;cheap&apos; hit on Wan&apos;Dale Robinson sparks Bears fight in joint practice; WR tested for concussion</description>
+      <link>https://www.cbssports.com/nfl/news/titans-bears-fight-wandale-robinson-concussion/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c074dc5068f586a6918f</guid>
+      <pubDate>Thu, 27 Aug 2026 20:57:36 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
