@@ -32,4 +32,7 @@ else
   echo "YouTube stream router unavailable/disabled; using safe copy relay." >&2
 fi
 
-exec "$LEGACY"
+# Full installs preserve repository blob modes, and newly created fallback
+# scripts can arrive as 0644. Invoke through Bash so fallback remains usable
+# even when the file itself lacks an execute bit.
+exec /usr/bin/bash "$LEGACY"
