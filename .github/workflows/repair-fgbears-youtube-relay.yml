@@ -1,0 +1,89 @@
+name: Repair FGBears YouTube Relay
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-fgbears-youtube-relay.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stage known-good copy relay
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/youtube-relay-legacy.sh \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-youtube-relay-known-good.sh"
+
+      - name: Inspect and repair YouTube relay only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== before ==='
+          echo "master=$(systemctl is-active fgbears-live.service || true) pid=$(systemctl show -p MainPID --value fgbears-live.service)"
+          echo "youtube=$(systemctl is-active fgbears-youtube-relay.service || true) pid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)"
+          echo "rumble=$(systemctl is-active fgbears-rumble-relay.service || true) pid=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)"
+          echo '=== recent YouTube journal ==='
+          journalctl -u fgbears-youtube-relay.service --since '-20 minutes' --no-pager | tail -160 || true
+          echo '=== installed relay checksum ==='
+          sha256sum /usr/local/bin/fgbears-youtube-relay /opt/fgbears-live/bin/youtube-relay.sh || true
+
+          MASTER_PID=$(systemctl show -p MainPID --value fgbears-live.service)
+          RUMBLE_PID=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          [[ "$MASTER_PID" != "0" ]]
+          [[ "$RUMBLE_PID" != "0" ]]
+
+          # Put the proven copy/remux relay back in both locations regardless of
+          # what failed. This file performs no video encoding.
+          sudo install -o root -g root -m 0755 \
+            /tmp/fgbears-youtube-relay-known-good.sh \
+            /opt/fgbears-live/bin/youtube-relay.sh
+          sudo install -o root -g root -m 0755 \
+            /tmp/fgbears-youtube-relay-known-good.sh \
+            /usr/local/bin/fgbears-youtube-relay
+
+          sudo systemctl reset-failed fgbears-youtube-relay.service || true
+          sudo systemctl restart fgbears-youtube-relay.service
+          sleep 8
+
+          echo '=== after restart ==='
+          systemctl is-active fgbears-youtube-relay.service
+          YT_PID=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          [[ "$YT_PID" != "0" ]]
+          ps -p "$YT_PID" -o pid=,pcpu=,pmem=,etime=,args=
+          journalctl -u fgbears-youtube-relay.service --since '-2 minutes' --no-pager | tail -100 || true
+
+          # Confirm shared master and Rumble were not restarted.
+          [[ "$(systemctl show -p MainPID --value fgbears-live.service)" == "$MASTER_PID" ]]
+          [[ "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" == "$RUMBLE_PID" ]]
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-rumble-relay.service
+          uptime
+          echo 'youtube_copy_relay_repaired=yes'
+          REMOTE
