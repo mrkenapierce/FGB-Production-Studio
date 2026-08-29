@@ -198,7 +198,8 @@ jobs:
           read_ticks() { awk '{print $14+$15}' "/proc/$1/stat"; }
           R1=$(read_ticks "$ROUTER_PID"); F1=$(read_ticks "$TRANSPORT_PID"); T1=$(date +%s%N)
           sleep 15
-          kill -0 "$ROUTER_PID"; kill -0 "$TRANSPORT_PID"
+          [[ -d "/proc/$ROUTER_PID" ]]
+          [[ -d "/proc/$TRANSPORT_PID" ]]
           R2=$(read_ticks "$ROUTER_PID"); F2=$(read_ticks "$TRANSPORT_PID"); T2=$(date +%s%N)
           python3 - "$R1" "$F1" "$R2" "$F2" "$CLK" "$T1" "$T2" <<'PY'
           import sys
@@ -223,8 +224,8 @@ jobs:
 
           echo '=== sustained process check ==='
           sleep 10
-          kill -0 "$ROUTER_PID"
-          kill -0 "$TRANSPORT_PID"
+          [[ -d "/proc/$ROUTER_PID" ]]
+          [[ -d "/proc/$TRANSPORT_PID" ]]
           systemctl is-active fgbears-youtube-relay.service
 
           [[ "$(systemctl show -p MainPID --value fgbears-live.service)" == "$MASTER_PID" ]]
