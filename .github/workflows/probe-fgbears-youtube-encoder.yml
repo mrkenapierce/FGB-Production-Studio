@@ -1,0 +1,80 @@
+name: Probe FGBears YouTube Encoder Capacity
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-fgbears-youtube-encoder.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require Oracle deployment secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+
+      - name: Trust Oracle host key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Probe hardware encoding and live headroom
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== PLATFORM ==='
+          uname -a
+          printf 'arch='; uname -m
+          printf 'cpu='; awk -F: '/model name|Hardware/ {gsub(/^ +/,"",$2); print $2; exit}' /proc/cpuinfo || true
+
+          echo '=== VIDEO DEVICES ==='
+          if command -v lspci >/dev/null 2>&1; then
+            lspci -nn | grep -Ei 'VGA|3D|Display' || true
+          else
+            echo 'lspci unavailable'
+          fi
+          ls -l /dev/dri 2>/dev/null || echo '/dev/dri absent'
+          if command -v nvidia-smi >/dev/null 2>&1; then
+            nvidia-smi --query-gpu=name,driver_version,utilization.gpu,utilization.encoder --format=csv,noheader || true
+          else
+            echo 'nvidia-smi absent'
+          fi
+
+          echo '=== FFMPEG HARDWARE ENCODERS ==='
+          ffmpeg -hide_banner -encoders 2>/dev/null | grep -E 'h264_(nvenc|qsv|vaapi)|hevc_(nvenc|qsv|vaapi)' || true
+          echo '=== FFMPEG HWACCELS ==='
+          ffmpeg -hide_banner -hwaccels 2>/dev/null || true
+
+          echo '=== LIVE PROCESSES ==='
+          systemctl is-active fgbears-live.service || true
+          systemctl is-active fgbears-youtube-relay.service || true
+          systemctl is-active fgbears-rumble-relay.service || true
+          ps -eo pid,pcpu,pmem,comm,args --sort=-pcpu | head -n 12
+
+          echo '=== CPU SNAPSHOT ==='
+          uptime
+          vmstat 1 4
+          REMOTE
