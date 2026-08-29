@@ -241,27 +241,40 @@ jobs:
           target_fps=$(sudo sed -n 's/^OUTPUT_FPS=\([0-9][0-9]*\)$/\1/p' /etc/fgbears-live/stream.env | tail -n 1)
           [[ "$target_fps" =~ ^[1-9][0-9]*$ ]] || target_fps=30
 
-          for _ in $(seq 1 30); do
-            first_time=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n 1)
-            first_frame=$(sudo sed -n 's/^frame=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n 1)
-            first_drop=$(sudo sed -n 's/^drop_frames=\([0-9][0-9]*\)$/\1/p' "$progress" 2>/dev/null | tail -n 1)
-            if [[ "$first_time" =~ ^[0-9]+$ && "$first_frame" =~ ^[0-9]+$ && "$first_drop" =~ ^[0-9]+$ ]]; then
+          # Align the first sample to a fresh FFmpeg progress update. Sampling an
+          # arbitrary point in the file's update cycle can undercount a short
+          # wall-clock interval even while FFmpeg is running at 1.0x.
+          previous_time=
+          for _ in $(seq 1 100); do
+            snapshot=$(sudo tail -n 20 "$progress" 2>/dev/null || true)
+            first_time=$(printf '%s\n' "$snapshot" | sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' | tail -n 1)
+            first_frame=$(printf '%s\n' "$snapshot" | sed -n 's/^frame=\([0-9][0-9]*\)$/\1/p' | tail -n 1)
+            first_drop=$(printf '%s\n' "$snapshot" | sed -n 's/^drop_frames=\([0-9][0-9]*\)$/\1/p' | tail -n 1)
+            if [[ "$first_time" =~ ^[0-9]+$ && "$first_frame" =~ ^[0-9]+$ && "$first_drop" =~ ^[0-9]+$ && "$previous_time" =~ ^[0-9]+$ && "$first_time" -gt "$previous_time" ]]; then
               break
             fi
-            sleep 1
+            previous_time=$first_time
+            sleep 0.2
           done
           [[ "$first_time" =~ ^[0-9]+$ ]]
           [[ "$first_frame" =~ ^[0-9]+$ ]]
           [[ "$first_drop" =~ ^[0-9]+$ ]]
+          [[ "$previous_time" =~ ^[0-9]+$ ]]
+          [[ "$first_time" -gt "$previous_time" ]]
 
           wall_start_ns=$(date +%s%N)
-          sleep 10
+          for _ in $(seq 1 150); do
+            sleep 0.2
+            snapshot=$(sudo tail -n 20 "$progress")
+            second_time=$(printf '%s\n' "$snapshot" | sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' | tail -n 1)
+            second_frame=$(printf '%s\n' "$snapshot" | sed -n 's/^frame=\([0-9][0-9]*\)$/\1/p' | tail -n 1)
+            second_drop=$(printf '%s\n' "$snapshot" | sed -n 's/^drop_frames=\([0-9][0-9]*\)$/\1/p' | tail -n 1)
+            latest_speed=$(printf '%s\n' "$snapshot" | sed -n 's/^speed=\(.*\)$/\1/p' | tail -n 1)
+            if [[ "$second_time" =~ ^[0-9]+$ && $((second_time - first_time)) -ge 10000000 ]]; then
+              break
+            fi
+          done
           wall_end_ns=$(date +%s%N)
-
-          second_time=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n 1)
-          second_frame=$(sudo sed -n 's/^frame=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n 1)
-          second_drop=$(sudo sed -n 's/^drop_frames=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n 1)
-          latest_speed=$(sudo sed -n 's/^speed=\(.*\)$/\1/p' "$progress" | tail -n 1)
 
           [[ "$second_time" =~ ^[0-9]+$ ]]
           [[ "$second_frame" =~ ^[0-9]+$ ]]
