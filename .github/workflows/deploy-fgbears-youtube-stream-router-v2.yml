@@ -1,0 +1,207 @@
+name: Deploy FGBears YouTube Stream Router v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-fgbears-youtube-stream-router-v2.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build locked YouTube trivia card asset
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg
+          python3 -m pip install --quiet pillow qrcode
+          mkdir -p /tmp/fgb-router-deploy
+          python3 services/fgbears-live/tools/build-youtube-rumble-trivia-card.py \
+            /tmp/fgb-router-deploy/youtube-rumble-trivia.png
+          ffmpeg -hide_banner -loglevel error -y \
+            -loop 1 -framerate 30 -i /tmp/fgb-router-deploy/youtube-rumble-trivia.png \
+            -t 1 -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p \
+            -profile:v high -level 4.0 -g 30 -keyint_min 30 -sc_threshold 0 -bf 0 \
+            -x264-params 'repeat-headers=1:aud=1' \
+            -f h264 /tmp/fgb-router-deploy/youtube-rumble-trivia.h264
+          test -s /tmp/fgb-router-deploy/youtube-rumble-trivia.h264
+
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Record production baseline
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          systemctl is-active fgbears-rumble-relay.service
+          MASTER_PID=$(systemctl show -p MainPID --value fgbears-live.service)
+          RUMBLE_PID=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          YOUTUBE_PID=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          [[ "$MASTER_PID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$RUMBLE_PID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$YOUTUBE_PID" =~ ^[1-9][0-9]*$ ]]
+          printf 'MASTER_PID=%s\nRUMBLE_PID=%s\nYOUTUBE_PID=%s\n' "$MASTER_PID" "$RUMBLE_PID" "$YOUTUBE_PID" | tee /tmp/fgb-router-baseline.env
+          curl -fsS --max-time 5 -H 'Accept: application/json' -H 'Cache-Control: no-cache' \
+            https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing \
+            | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("platforms",{}).get("youtube") is True; print(json.dumps({k:d.get(k) for k in ("version","activePreset","platforms","trivia","components")}, sort_keys=True))'
+          uptime
+          REMOTE
+
+      - name: Stage router files
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'rm -rf /tmp/fgb-router-deploy && mkdir -p /tmp/fgb-router-deploy'
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/youtube-stream-router.py \
+            services/fgbears-live/bin/youtube-relay.sh \
+            services/fgbears-live/bin/youtube-relay-legacy.sh \
+            /tmp/fgb-router-deploy/youtube-rumble-trivia.h264 \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-router-deploy/"
+
+      - name: Validate and deploy only the YouTube relay
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          source /tmp/fgb-router-baseline.env
+          STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          BACKUP="/var/backups/fgbears-youtube-router-$STAMP"
+
+          rollback() {
+            rc=$?
+            set +e
+            echo "ROLLBACK: installing known-good FFmpeg copy relay (rc=$rc)" >&2
+            sudo install -o root -g root -m 0755 \
+              /tmp/fgb-router-deploy/youtube-relay-legacy.sh \
+              /usr/local/bin/fgbears-youtube-relay
+            sudo install -o root -g root -m 0755 \
+              /tmp/fgb-router-deploy/youtube-relay-legacy.sh \
+              /opt/fgbears-live/bin/youtube-relay.sh
+            sudo systemctl reset-failed fgbears-youtube-relay.service || true
+            sudo systemctl restart fgbears-youtube-relay.service
+            sleep 5
+            echo "YouTube=$(systemctl is-active fgbears-youtube-relay.service 2>/dev/null)"
+            echo "Master=$(systemctl is-active fgbears-live.service 2>/dev/null)"
+            echo "Rumble=$(systemctl is-active fgbears-rumble-relay.service 2>/dev/null)"
+            exit "$rc"
+          }
+          trap rollback ERR
+
+          for element in input-selector tsdemux h264parse aacparse flvmux udpsrc queue appsrc rtmpsink; do
+            gst-inspect-1.0 "$element" >/dev/null
+          done
+          python3 /tmp/fgb-router-deploy/youtube-stream-router.py \
+            --card /tmp/fgb-router-deploy/youtube-rumble-trivia.h264 --validate-card
+
+          sudo install -d -m 0700 "$BACKUP"
+          sudo cp -a /usr/local/bin/fgbears-youtube-relay "$BACKUP/usr-local-fgbears-youtube-relay"
+          sudo cp -a /opt/fgbears-live/bin/youtube-relay.sh "$BACKUP/opt-youtube-relay.sh"
+
+          sudo install -d -o root -g root -m 0755 /opt/fgbears-live/assets
+          sudo install -o root -g root -m 0755 \
+            /tmp/fgb-router-deploy/youtube-stream-router.py \
+            /opt/fgbears-live/bin/youtube-stream-router.py
+          sudo install -o root -g root -m 0755 \
+            /tmp/fgb-router-deploy/youtube-relay-legacy.sh \
+            /opt/fgbears-live/bin/youtube-relay-legacy.sh
+          sudo install -o root -g root -m 0644 \
+            /tmp/fgb-router-deploy/youtube-rumble-trivia.h264 \
+            /opt/fgbears-live/assets/youtube-rumble-trivia.h264
+          sudo install -o root -g root -m 0755 \
+            /tmp/fgb-router-deploy/youtube-relay.sh \
+            /opt/fgbears-live/bin/youtube-relay.sh
+          sudo install -o root -g root -m 0755 \
+            /tmp/fgb-router-deploy/youtube-relay.sh \
+            /usr/local/bin/fgbears-youtube-relay
+
+          sudo systemctl reset-failed fgbears-youtube-relay.service || true
+          sudo systemctl restart fgbears-youtube-relay.service
+          sleep 8
+          systemctl is-active fgbears-youtube-relay.service
+
+          MASTER_AFTER=$(systemctl show -p MainPID --value fgbears-live.service)
+          RUMBLE_AFTER=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          [[ "$MASTER_AFTER" == "$MASTER_PID" ]] || { echo "master PID changed: $MASTER_PID -> $MASTER_AFTER" >&2; false; }
+          [[ "$RUMBLE_AFTER" == "$RUMBLE_PID" ]] || { echo "Rumble PID changed: $RUMBLE_PID -> $RUMBLE_AFTER" >&2; false; }
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-rumble-relay.service
+
+          UNIT_PID=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          ROUTER_PID=$(pgrep -P "$UNIT_PID" -f 'youtube-stream-router.py' | head -1 || true)
+          if [[ -z "$ROUTER_PID" ]] && ps -p "$UNIT_PID" -o args= | grep -q 'youtube-stream-router.py'; then
+            ROUTER_PID="$UNIT_PID"
+          fi
+          [[ -n "$ROUTER_PID" ]] || { echo 'packet router is not active; wrapper invoked fallback' >&2; false; }
+          echo "YouTube unit PID=$UNIT_PID router PID=$ROUTER_PID"
+
+          journalctl -u fgbears-youtube-relay.service --since '-2 minutes' --no-pager | tail -160
+          journalctl -u fgbears-youtube-relay.service --since '-2 minutes' --no-pager | grep -q 'linked live video pad'
+          journalctl -u fgbears-youtube-relay.service --since '-2 minutes' --no-pager | grep -q 'linked live audio pad'
+          journalctl -u fgbears-youtube-relay.service --since '-2 minutes' --no-pager | grep -q 'routing config version='
+
+          CLK=$(getconf CLK_TCK)
+          read -r U1 S1 < <(awk '{print $14, $15}' "/proc/$ROUTER_PID/stat")
+          T1=$(date +%s%N)
+          sleep 10
+          kill -0 "$ROUTER_PID"
+          read -r U2 S2 < <(awk '{print $14, $15}' "/proc/$ROUTER_PID/stat")
+          T2=$(date +%s%N)
+          python3 - "$U1" "$S1" "$U2" "$S2" "$CLK" "$T1" "$T2" <<'PY'
+          import sys
+          u1,s1,u2,s2,clk,t1,t2=map(int,sys.argv[1:])
+          elapsed=(t2-t1)/1e9
+          cpu=((u2+s2)-(u1+s1))/clk/elapsed*100 if elapsed else 999
+          print(f'router_cpu_percent_one_core={cpu:.2f}')
+          if cpu > 25.0:
+              raise SystemExit(f'router CPU {cpu:.2f}% exceeds 25% safety threshold')
+          PY
+          awk '/VmRSS|VmHWM/ {print}' "/proc/$ROUTER_PID/status"
+
+          # Confirm the RTMPS socket is owned by the YouTube service cgroup.
+          found_socket=0
+          for _ in $(seq 1 20); do
+            if sudo ss -ntpH state established | grep -E ':(443) ' | grep -q "pid=$ROUTER_PID"; then
+              found_socket=1
+              break
+            fi
+            sleep 1
+          done
+          [[ "$found_socket" == "1" ]] || { echo 'router RTMPS socket not established' >&2; false; }
+
+          [[ "$(systemctl show -p MainPID --value fgbears-live.service)" == "$MASTER_PID" ]]
+          [[ "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" == "$RUMBLE_PID" ]]
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-rumble-relay.service
+          systemctl is-active fgbears-youtube-relay.service
+          curl -fsS --max-time 5 -H 'Accept: application/json' -H 'Cache-Control: no-cache' \
+            https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing \
+            | python3 -c 'import json,sys; d=json.load(sys.stdin); print("routing_version=", d.get("version"), "trivia=", d.get("trivia"), "redirect=", d.get("components",{}).get("redirectCta"))'
+          uptime
+          echo "backup=$BACKUP"
+          echo 'deployment_ok=yes'
+          trap - ERR
+          REMOTE
