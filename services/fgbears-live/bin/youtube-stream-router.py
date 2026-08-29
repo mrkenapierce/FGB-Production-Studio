@@ -7,6 +7,11 @@ input-selector to choose between the already-encoded live H.264 video and a
 pre-encoded full-screen YouTube→Rumble trivia card. No live video decode or
 encode occurs here.
 
+GStreamer performs only packet parsing, keyframe-safe selection, and MPEG-TS
+muxing. A child FFmpeg process receives that selected MPEG-TS on loopback and
+performs copy/remux transport to YouTube RTMPS. This preserves the proven FFmpeg
+TLS path without adding a second video encoder.
+
 The router polls the sanitized Lovable routing endpoint. Any endpoint failure or
 stale trivia state fails open to the normal live program. Changes are made at an
 H.264 keyframe boundary to minimize decoder disturbance.
@@ -19,6 +24,7 @@ import logging
 import os
 import re
 import signal
+import subprocess
 import threading
 import urllib.request
 from pathlib import Path
@@ -34,6 +40,7 @@ Gst.init(None)
 
 DEFAULT_ROUTING_URL = "https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing"
 DEFAULT_CARD = "/opt/fgbears-live/assets/youtube-rumble-trivia.h264"
+DEFAULT_OUTPUT_PORT = 2941
 FRAME_DURATION = Gst.SECOND // 30
 
 
@@ -124,6 +131,7 @@ class StreamRouter:
     def __init__(
         self,
         input_port: int,
+        output_port: int,
         card_path: str,
         routing_url: str,
         upstream_target: str | None,
@@ -132,6 +140,7 @@ class StreamRouter:
         runtime: float = 0.0,
     ) -> None:
         self.input_port = input_port
+        self.output_port = output_port
         self.card_path = Path(card_path)
         self.routing_url = routing_url
         self.upstream_target = upstream_target
@@ -159,6 +168,7 @@ class StreamRouter:
         self._poll_inflight = False
         self._stopping = False
         self._last_config_version: Any = None
+        self.ffmpeg: subprocess.Popen[bytes] | None = None
         self._build_pipeline()
 
     @staticmethod
@@ -199,7 +209,7 @@ class StreamRouter:
         self.live_caps = self.make("capsfilter", "live_h264_caps")
         self.live_caps.set_property(
             "caps",
-            Gst.Caps.from_string("video/x-h264,stream-format=(string)avc,alignment=(string)au"),
+            Gst.Caps.from_string("video/x-h264,stream-format=(string)byte-stream,alignment=(string)au"),
         )
 
         # Audio never switches: YouTube continues to hear the master program.
@@ -227,7 +237,7 @@ class StreamRouter:
         self.card_caps = self.make("capsfilter", "card_h264_caps")
         self.card_caps.set_property(
             "caps",
-            Gst.Caps.from_string("video/x-h264,stream-format=(string)avc,alignment=(string)au"),
+            Gst.Caps.from_string("video/x-h264,stream-format=(string)byte-stream,alignment=(string)au"),
         )
         self.card_queue = self.make("queue", "card_video_queue")
         self.card_queue.set_property("max-size-time", 2 * Gst.SECOND)
@@ -236,21 +246,24 @@ class StreamRouter:
 
         self.output_parse = self.make("h264parse", "selected_h264_parse")
         self.output_parse.set_property("config-interval", -1)
-        self.mux = self.make("flvmux", "youtube_flvmux")
-        self.mux.set_property("streamable", True)
-        if self.mux.find_property("enforce-increasing-timestamps"):
-            self.mux.set_property("enforce-increasing-timestamps", True)
-        if self.mux.find_property("skip-backwards-streams"):
-            self.mux.set_property("skip-backwards-streams", True)
+        self.output_caps = self.make("capsfilter", "selected_h264_caps")
+        self.output_caps.set_property(
+            "caps",
+            Gst.Caps.from_string("video/x-h264,stream-format=(string)byte-stream,alignment=(string)au"),
+        )
+        self.mux = self.make("mpegtsmux", "youtube_mpegtsmux")
+        if self.mux.find_property("alignment"):
+            self.mux.set_property("alignment", 7)
 
         if self.test_mode:
             self.sink = self.make("fakesink", "test_sink")
             self.sink.set_property("sync", True)
         else:
-            self.sink = self.make("rtmpsink", "youtube_rtmps")
-            if not self.upstream_target:
-                raise ValueError("YouTube upstream target is required outside test mode")
-            self.sink.set_property("location", f"{self.upstream_target} live=1")
+            self.sink = self.make("udpsink", "selected_program_udp")
+            self.sink.set_property("host", "127.0.0.1")
+            self.sink.set_property("port", self.output_port)
+            self.sink.set_property("sync", True)
+            self.sink.set_property("async", False)
 
         for element in (
             self.src,
@@ -267,6 +280,7 @@ class StreamRouter:
             self.card_queue,
             self.selector,
             self.output_parse,
+            self.output_caps,
             self.mux,
             self.sink,
         ):
@@ -296,14 +310,14 @@ class StreamRouter:
         if self.card_queue.get_static_pad("src").link(self.card_selector_pad) != Gst.PadLinkReturn.OK:
             raise RuntimeError("could not link card video to selector")
 
-        if not self.selector.link(self.output_parse):
+        if not self.selector.link(self.output_parse) or not self.output_parse.link(self.output_caps):
             raise RuntimeError("could not link selector output")
-        if not self.output_parse.link(self.mux):
-            raise RuntimeError("could not link video into FLV mux")
+        if not self.output_caps.link(self.mux):
+            raise RuntimeError("could not link video into MPEG-TS mux")
         if not self.audio_parse.link(self.mux):
-            raise RuntimeError("could not link audio into FLV mux")
+            raise RuntimeError("could not link audio into MPEG-TS mux")
         if not self.mux.link(self.sink):
-            raise RuntimeError("could not link FLV mux to sink")
+            raise RuntimeError("could not link MPEG-TS mux to sink")
 
         self.selector.set_property("active-pad", self.live_selector_pad)
         self.demux.connect("pad-added", self._on_demux_pad)
@@ -313,6 +327,54 @@ class StreamRouter:
         bus = self.pipeline.get_bus()
         bus.add_signal_watch()
         bus.connect("message", self._on_bus_message)
+
+    def _start_ffmpeg_transport(self) -> None:
+        if self.test_mode:
+            return
+        if not self.upstream_target:
+            raise ValueError("YouTube upstream target is required outside test mode")
+        local_input = (
+            f"udp://127.0.0.1:{self.output_port}"
+            "?fifo_size=1000000&overrun_nonfatal=1&reuse=1"
+        )
+        command = [
+            "ffmpeg",
+            "-hide_banner",
+            "-nostdin",
+            "-loglevel",
+            os.getenv("FFMPEG_LOGLEVEL", "warning"),
+            "-fflags",
+            "+genpts",
+            "-probesize",
+            "10000000",
+            "-analyzeduration",
+            "10000000",
+            "-i",
+            local_input,
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a:0",
+            "-c",
+            "copy",
+            "-f",
+            "flv",
+            "-flvflags",
+            "no_duration_filesize",
+            self.upstream_target,
+        ]
+        LOG.info("starting FFmpeg copy/remux RTMPS transport on loopback port %d", self.output_port)
+        self.ffmpeg = subprocess.Popen(command)
+        threading.Thread(target=self._monitor_ffmpeg, daemon=True, name="ffmpeg-transport").start()
+
+    def _monitor_ffmpeg(self) -> None:
+        child = self.ffmpeg
+        if child is None:
+            return
+        rc = child.wait()
+        if not self._stopping:
+            LOG.error("FFmpeg RTMPS transport exited unexpectedly rc=%d", rc)
+            GLib.idle_add(self.stop, 70)
 
     def _on_demux_pad(self, _demux: Gst.Element, pad: Gst.Pad) -> None:
         caps = pad.get_current_caps() or pad.query_caps(None)
@@ -391,7 +453,7 @@ class StreamRouter:
                     "Accept": "application/json",
                     "Cache-Control": "no-cache",
                     "Pragma": "no-cache",
-                    "User-Agent": "FGBears-YouTube-Stream-Router/1.0",
+                    "User-Agent": "FGBears-YouTube-Stream-Router/1.1",
                 },
             )
             with urllib.request.urlopen(request, timeout=1.5) as response:
@@ -452,13 +514,22 @@ class StreamRouter:
         except Exception:
             pass
         self.pipeline.set_state(Gst.State.NULL)
+        child = self.ffmpeg
+        if child is not None and child.poll() is None:
+            try:
+                child.send_signal(signal.SIGINT)
+                child.wait(timeout=5)
+            except Exception:
+                child.kill()
         if self.loop.is_running():
             self.loop.quit()
 
     def run(self) -> int:
         self.exit_code = 0
+        self._start_ffmpeg_transport()
         result = self.pipeline.set_state(Gst.State.PLAYING)
         if result == Gst.StateChangeReturn.FAILURE:
+            self.stop(exit_code=70)
             raise RuntimeError("GStreamer pipeline failed to enter PLAYING")
         # H.264 is already encoded; this timer only pushes encoded access units.
         GLib.timeout_add(33, self._push_card_frame)
@@ -474,6 +545,13 @@ class StreamRouter:
             self.loop.run()
         finally:
             self.pipeline.set_state(Gst.State.NULL)
+            child = self.ffmpeg
+            if child is not None and child.poll() is None:
+                try:
+                    child.send_signal(signal.SIGINT)
+                    child.wait(timeout=5)
+                except Exception:
+                    child.kill()
         return self.exit_code
 
 
@@ -497,6 +575,7 @@ def validate_card(path: str) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input-port", type=int, default=0)
+    parser.add_argument("--output-port", type=int, default=int(os.getenv("FGB_YOUTUBE_ROUTER_OUTPUT_PORT", str(DEFAULT_OUTPUT_PORT))))
     parser.add_argument("--card", default=os.getenv("FGB_YOUTUBE_TRIVIA_CARD_H264", DEFAULT_CARD))
     parser.add_argument("--routing-url", default=os.getenv("FGB_STREAM_ROUTING_URL", DEFAULT_ROUTING_URL))
     parser.add_argument("--test", action="store_true")
@@ -528,6 +607,7 @@ def main() -> int:
 
     router = StreamRouter(
         input_port=port,
+        output_port=args.output_port,
         card_path=args.card,
         routing_url=args.routing_url,
         upstream_target=target,
