@@ -1,0 +1,79 @@
+name: Probe FGBears Stream Routing
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-fgbears-stream-routing.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Probe routing endpoint and encoded-stream switching tools
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== production services ==='
+          systemctl is-active fgbears-live.service || true
+          systemctl is-active fgbears-youtube-relay.service || true
+          systemctl is-active fgbears-rumble-relay.service || true
+          echo '=== host load ==='
+          uptime
+          nproc
+          free -m | sed -n '1,2p'
+          echo '=== routing endpoints ==='
+          for url in \
+            'https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing' \
+            'https://grant-gems-today.lovable.app/api/public/fgbears/stream-routing'
+          do
+            echo "URL=$url"
+            set +e
+            body=$(curl -fsS --max-time 10 -H 'Accept: application/json' -H 'Cache-Control: no-cache' "$url")
+            rc=$?
+            set -e
+            echo "curl_rc=$rc"
+            if [[ $rc -eq 0 ]]; then
+              printf '%s' "$body" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(json.dumps({k:d.get(k) for k in ("version","activePreset","mediaEngineCapable","platforms","trivia","components")}, sort_keys=True))'
+            fi
+          done
+          echo '=== gstreamer ==='
+          command -v gst-launch-1.0 || true
+          command -v gst-inspect-1.0 || true
+          if command -v gst-inspect-1.0 >/dev/null 2>&1; then
+            for element in input-selector mpegtsdemux tsdemux h264parse aacparse flvmux rtmpsink rtmpsink2 udpsrc queue filesrc identity; do
+              if gst-inspect-1.0 "$element" >/dev/null 2>&1; then
+                echo "$element=present"
+              else
+                echo "$element=absent"
+              fi
+            done
+            gst-launch-1.0 --version | head -2
+          fi
+          echo '=== ffmpeg ==='
+          ffmpeg -version | head -2
+          echo '=== installed relay ==='
+          sed -n '1,120p' /opt/fgbears-live/bin/youtube-relay.sh 2>/dev/null || true
+          echo 'production_untouched=yes'
+          REMOTE
