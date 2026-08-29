@@ -108,6 +108,16 @@ updates = {
     "PODCAST_AUDIO_FILTER": "volume=-2dB,aresample=48000:first_pts=0",
     "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
+    "YOUTUBE_VIDEO_BITRATE": "5000k",
+    "YOUTUBE_VIDEO_MAXRATE": "5500k",
+    "YOUTUBE_VIDEO_BUFSIZE": "10000k",
+    "YOUTUBE_TRIVIA_OVERLAY_SCRIPT": "/opt/fgbears-live/bin/youtube-trivia-overlay.py",
+    "YOUTUBE_TRIVIA_OVERLAY_PORT": "8790",
+    "YOUTUBE_TRIVIA_OVERLAY_FPS": "2",
+    "YOUTUBE_TRIVIA_POLL_SECONDS": "2",
+    "YOUTUBE_TRIVIA_STALE_SECONDS": "10",
+    "RUMBLE_TRIVIA_URL": "https://rumble.com/v7eqrsu-chicago-bears-live-trivia-every-20-minutes-cash-prizes-fgb.html",
+    "RUMBLE_TRIVIA_DISPLAY_URL": "rumble.com/v7eqrsu",
     "RUMBLE_LOCAL_UDP_URL": "udp://127.0.0.1:1940?pkt_size=1316",
     "RUMBLE_UPSTREAM_RTMP_BASE": "rtmp://rtmp.rumble.com/live",
     "OUTPUT_FPS": "30",
@@ -145,10 +155,11 @@ chmod 0640 "$ENV_PATH"
 
 systemctl daemon-reload
 systemctl enable fgbears-youtube-relay.service
-# The YouTube relay remains a dedicated single-output copy-remux service. It
-# waits on the connectionless local UDP program and can restart independently.
+# The YouTube relay remains a dedicated single-output service. It consumes the
+# isolated local program, applies the YouTube-only trivia card, preserves audio
+# by bitstream copy, and can restart independently of the primary/Rumble path.
 systemctl reset-failed fgbears-youtube-relay.service || true
 systemctl restart fgbears-youtube-relay.service
 systemctl enable --now fgbears-live-health.timer
 
-echo "Installed FGBears Live with one primary encode and isolated YouTube/Rumble relay support."
+echo "Installed FGBears Live with an isolated YouTube trivia overlay and untouched Rumble copy-remux relay."

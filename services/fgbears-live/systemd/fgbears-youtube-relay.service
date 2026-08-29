@@ -1,5 +1,5 @@
 [Unit]
-Description=FGBears YouTube RTMP copy-remux relay
+Description=FGBears YouTube RTMP relay with platform-only trivia overlay
 After=network-online.target
 Wants=network-online.target
 StartLimitIntervalSec=30min
