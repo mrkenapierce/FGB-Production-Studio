@@ -1,4 +1,4 @@
-# Read-only Oracle encoder/capacity probe.
+# Read-only Oracle control-plane access probe.
 name: Probe FGBears YouTube Encoder Capacity
 
 on:
@@ -17,61 +17,69 @@ env:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
-      - name: Require Oracle deployment secrets
+      - name: Configure SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
-          test -n "$ORACLE_HOST"
-          test -n "$ORACLE_SSH_KEY"
-
-      - name: Configure SSH
-        env:
-          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
-        run: |
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Trust Oracle host key
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      - name: Probe shape and OCI control-plane access
+      - name: Test OCI instance-principal access without production changes
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          echo '=== INSTANCE SHAPE ==='
           metadata=$(curl -fsS -H 'Authorization: Bearer Oracle' http://169.254.169.254/opc/v2/instance/)
-          printf '%s' "$metadata" | python3 -c 'import json,sys; d=json.load(sys.stdin); sc=d.get("shapeConfig") or {}; print("shape="+str(d.get("shape"))); print("ocpus="+str(sc.get("ocpus"))); print("memory_gb="+str(sc.get("memoryInGBs"))); print("region="+str(d.get("region"))); print("availability_domain="+str(d.get("availabilityDomain")))'
           instance_id=$(printf '%s' "$metadata" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+          printf '%s' "$metadata" | python3 -c 'import json,sys; d=json.load(sys.stdin); sc=d.get("shapeConfig") or {}; print("shape="+str(d.get("shape"))+" ocpus="+str(sc.get("ocpus"))+" memory_gb="+str(sc.get("memoryInGBs")))'
 
-          echo '=== OCI CLI ==='
-          if command -v oci >/dev/null 2>&1; then
-            echo 'oci_cli=present'
+          if python3 -c 'import oci' >/dev/null 2>&1; then
+            echo 'oci_python_sdk=present'
+          else
+            echo 'oci_python_sdk=absent'
+          fi
+          if python3 -m venv --help >/dev/null 2>&1; then
+            echo 'python_venv=present'
+          else
+            echo 'python_venv=absent'
+          fi
+          if python3 -m pip --version >/dev/null 2>&1; then
+            echo 'python_pip=present'
+          else
+            echo 'python_pip=absent'
+          fi
+          [[ -f "$HOME/.oci/config" ]] && echo 'user_oci_config=present' || echo 'user_oci_config=absent'
+          [[ -f /etc/oci/config ]] && echo 'system_oci_config=present' || echo 'system_oci_config=absent'
+
+          # If SDK is already installed, attempt only a read via instance principal.
+          if python3 -c 'import oci' >/dev/null 2>&1; then
             set +e
-            result=$(oci compute instance get --instance-id "$instance_id" --auth instance_principal --query 'data.{shape:shape,ocpus:"shape-config".ocpus,memory:"shape-config"."memory-in-gbs",state:"lifecycle-state"}' --raw-output 2>&1)
+            python3 - "$instance_id" <<'PY'
+import sys
+import oci
+instance_id=sys.argv[1]
+try:
+    signer=oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
+    client=oci.core.ComputeClient(config={}, signer=signer)
+    obj=client.get_instance(instance_id).data
+    print(f'instance_principal_read=success shape={obj.shape} ocpus={obj.shape_config.ocpus} memory_gb={obj.shape_config.memory_in_gbs} state={obj.lifecycle_state}')
+except Exception as exc:
+    print('instance_principal_read=failed type='+type(exc).__name__)
+    raise SystemExit(7)
+PY
             rc=$?
             set -e
             echo "instance_principal_read_rc=$rc"
-            if [[ $rc -eq 0 ]]; then
-              printf '%s\n' "$result"
-            else
-              printf '%s\n' "$result" | sed -E 's/(request-id:)[^ ]+/\1[REDACTED]/Ig' | head -n 12
-            fi
-          else
-            echo 'oci_cli=absent'
           fi
-
-          echo '=== LOCAL CAPACITY ==='
-          printf 'nproc='; nproc
-          free -g | awk '/^Mem:/ {print "memory_total_gb=" $2 " memory_available_gb=" $7}'
-          systemctl is-active fgbears-live.service
-          systemctl is-active fgbears-youtube-relay.service
-          systemctl is-active fgbears-rumble-relay.service
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          echo 'production_untouched=yes'
           REMOTE
