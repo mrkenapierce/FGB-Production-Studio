@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 29 Aug 2026 18:50:31 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 29 Aug 2026 21:22:41 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Titans vs. Bears open game thread</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Titans vs. Bears open game thread</description>
+      <link>https://sports.yahoo.com/articles/titans-vs-bears-open-game-210000253.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-821c03acfc6bbc87e01e</guid>
+      <pubDate>Sat, 29 Aug 2026 21:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears vs Titans Prediction, Picks &amp; Odds for Tonight&apos;s NFL Preseason Game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs Titans Prediction, Picks &amp; Odds for Tonight&apos;s NFL Preseason Game</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-titans-prediction-picks-180400814.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e8187db094425a1a03dd</guid>
+      <pubDate>Sat, 29 Aug 2026 19:15:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>6 Bears players to watch in preseason game vs. Titans</title>
@@ -17,6 +37,16 @@
       <pubDate>Sat, 29 Aug 2026 14:44:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Ben Johnson&apos;s Best Course of Action for the Bears&apos; Preseason Finale</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson&apos;s Best Course of Action for the Bears&apos; Preseason Finale</description>
+      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-s-best-course-of-action-for-the-bears-preseason-finale-01m16vat9prk</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ea81deb4a0369b87504c</guid>
+      <pubDate>Sat, 29 Aug 2026 12:03:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -30,26 +60,6 @@
     </item>
 
     <item>
-      <title>Final predictions for the Bears&apos; 53-man roster</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Final predictions for the Bears&apos; 53-man roster</description>
-      <link>https://sports.yahoo.com/articles/final-predictions-bears-53-man-174541553.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c85d9d1577160e18f730</guid>
-      <pubDate>Sat, 29 Aug 2026 10:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>5 Chicago Bears players who likely won&apos;t make the 53-man roster</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 5 Chicago Bears players who likely won&apos;t make the 53-man roster</description>
-      <link>https://sports.yahoo.com/articles/5-chicago-bears-players-likely-173021787.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-20a1f544f6bf95228b81</guid>
-      <pubDate>Sat, 29 Aug 2026 10:31:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Bears vs. Titans prediction, odds, time: 2026 NFL Week 3 preseason picks by proven expert</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears vs. Titans prediction, odds, time: 2026 NFL Week 3 preseason picks by proven expert</description>
       <link>https://www.cbssports.com/betting/news/bears-vs-titans-prediction-odds-time-2026-nfl-week-3-preseason-picks-best-bets/</link>
@@ -57,16 +67,6 @@
       <pubDate>Sat, 29 Aug 2026 10:24:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Rating Chicago Bears Rookie Class Momentum as Preseason Concludes</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Rating Chicago Bears Rookie Class Momentum as Preseason Concludes</description>
-      <link>https://www.si.com/nfl/bears/onsi/rating-chicago-bears-rookie-class-momentum-as-preseason-concludes</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a1dcb18899dd35f4dc60</guid>
-      <pubDate>Sat, 29 Aug 2026 10:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
