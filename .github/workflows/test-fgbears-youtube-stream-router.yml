@@ -1,0 +1,114 @@
+name: Test FGBears YouTube Stream Router
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'services/fgbears-live/bin/youtube-stream-router.py'
+      - 'services/fgbears-live/tools/build-youtube-rumble-trivia-card.py'
+      - '.github/workflows/test-fgbears-youtube-stream-router.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  test-router:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build exact card asset and synthetic MPEG-TS input
+        run: |
+          python3 -m pip install --quiet pillow qrcode
+          mkdir -p /tmp/fgb-router-assets
+          python3 services/fgbears-live/tools/build-youtube-rumble-trivia-card.py \
+            /tmp/fgb-router-assets/youtube-rumble-trivia.png
+          ffmpeg -hide_banner -loglevel error -y \
+            -loop 1 -framerate 30 -i /tmp/fgb-router-assets/youtube-rumble-trivia.png \
+            -t 1 -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p \
+            -profile:v high -level 4.0 -g 30 -keyint_min 30 -sc_threshold 0 -bf 0 \
+            -x264-params 'repeat-headers=1:aud=1' \
+            -f h264 /tmp/fgb-router-assets/youtube-rumble-trivia.h264
+          ffmpeg -hide_banner -loglevel error -y \
+            -f lavfi -i 'testsrc2=size=1280x720:rate=30' \
+            -f lavfi -i 'sine=frequency=880:sample_rate=48000' \
+            -t 6 -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
+            -g 60 -keyint_min 60 -sc_threshold 0 -bf 0 \
+            -c:a aac -b:a 128k -ar 48000 -ac 2 \
+            -f mpegts /tmp/fgb-router-assets/synthetic.ts
+          ffprobe -v error -show_entries stream=codec_name,profile,width,height,r_frame_rate \
+            -of compact /tmp/fgb-router-assets/synthetic.ts
+          ls -lh /tmp/fgb-router-assets/*
+
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stage test files
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'rm -rf /tmp/fgb-router-test && mkdir -p /tmp/fgb-router-test'
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/youtube-stream-router.py \
+            /tmp/fgb-router-assets/youtube-rumble-trivia.h264 \
+            /tmp/fgb-router-assets/synthetic.ts \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-router-test/"
+
+      - name: Run isolated packet-switch test on port 2939
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          test -x /usr/bin/gst-launch-1.0
+          python3 /tmp/fgb-router-test/youtube-stream-router.py \
+            --card /tmp/fgb-router-test/youtube-rumble-trivia.h264 --validate-card
+
+          cleanup() {
+            if [[ -n "${SENDER_PID:-}" ]]; then kill "$SENDER_PID" 2>/dev/null || true; fi
+          }
+          trap cleanup EXIT
+
+          ffmpeg -hide_banner -nostdin -loglevel error \
+            -stream_loop -1 -re -i /tmp/fgb-router-test/synthetic.ts \
+            -map 0:v:0 -map 0:a:0 -c copy -f mpegts \
+            'udp://127.0.0.1:2939?pkt_size=1316' \
+            >/tmp/fgb-router-test/sender.log 2>&1 &
+          SENDER_PID=$!
+          sleep 1
+
+          set +e
+          python3 /tmp/fgb-router-test/youtube-stream-router.py \
+            --input-port 2939 \
+            --card /tmp/fgb-router-test/youtube-rumble-trivia.h264 \
+            --test --test-cycle 2 --runtime 10 \
+            >/tmp/fgb-router-test/router.log 2>&1
+          rc=$?
+          set -e
+          cat /tmp/fgb-router-test/router.log
+          [[ $rc -eq 0 ]]
+          grep -q 'linked live video pad' /tmp/fgb-router-test/router.log
+          grep -q 'linked live audio pad' /tmp/fgb-router-test/router.log
+          grep -q 'video route switched: live -> card' /tmp/fgb-router-test/router.log
+          grep -q 'video route switched: card -> live' /tmp/fgb-router-test/router.log
+
+          echo '=== production isolation check ==='
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          systemctl is-active fgbears-rumble-relay.service
+          uptime
+          echo 'production_ports_touched=no'
+          REMOTE
