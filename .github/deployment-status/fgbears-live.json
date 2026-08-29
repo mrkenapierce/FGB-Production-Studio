@@ -2,7 +2,7 @@
   "ok": false,
   "deployedSha": "c28ad56ffc323c466548c16809a391b16abec69b",
   "runId": "33269563781",
-  "checkedAt": "2026-08-29T18:56:41Z",
+  "checkedAt": "2026-08-29T18:58:30Z",
   "jobStatus": "failure",
   "installOutcome": "success",
   "crawlHealthOutcome": "success",
