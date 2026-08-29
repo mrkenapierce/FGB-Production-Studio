@@ -1,4 +1,4 @@
-# Read-only Oracle encoder capability probe.
+# Read-only Oracle encoder/capacity probe.
 name: Probe FGBears YouTube Encoder Capacity
 
 on:
@@ -40,58 +40,38 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Probe hardware encoding and live headroom
+      - name: Probe shape and OCI control-plane access
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          echo '=== PLATFORM ==='
-          uname -a
-          printf 'arch='; uname -m
+          echo '=== INSTANCE SHAPE ==='
+          metadata=$(curl -fsS -H 'Authorization: Bearer Oracle' http://169.254.169.254/opc/v2/instance/)
+          printf '%s' "$metadata" | python3 -c 'import json,sys; d=json.load(sys.stdin); sc=d.get("shapeConfig") or {}; print("shape="+str(d.get("shape"))); print("ocpus="+str(sc.get("ocpus"))); print("memory_gb="+str(sc.get("memoryInGBs"))); print("region="+str(d.get("region"))); print("availability_domain="+str(d.get("availabilityDomain")))'
+          instance_id=$(printf '%s' "$metadata" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+
+          echo '=== OCI CLI ==='
+          if command -v oci >/dev/null 2>&1; then
+            echo 'oci_cli=present'
+            set +e
+            result=$(oci compute instance get --instance-id "$instance_id" --auth instance_principal --query 'data.{shape:shape,ocpus:"shape-config".ocpus,memory:"shape-config"."memory-in-gbs",state:"lifecycle-state"}' --raw-output 2>&1)
+            rc=$?
+            set -e
+            echo "instance_principal_read_rc=$rc"
+            if [[ $rc -eq 0 ]]; then
+              printf '%s\n' "$result"
+            else
+              printf '%s\n' "$result" | sed -E 's/(request-id:)[^ ]+/\1[REDACTED]/Ig' | head -n 12
+            fi
+          else
+            echo 'oci_cli=absent'
+          fi
+
+          echo '=== LOCAL CAPACITY ==='
           printf 'nproc='; nproc
-          lscpu | grep -E '^(Architecture|CPU\(s\)|Model name|Vendor ID|Thread|Core|Socket)' || true
-
-          echo '=== VIDEO DEVICES ==='
-          if command -v lspci >/dev/null 2>&1; then
-            lspci -nn | grep -Ei 'VGA|3D|Display' || true
-          else
-            echo 'lspci unavailable'
-          fi
-          ls -l /dev/dri 2>/dev/null || echo '/dev/dri absent'
-          if command -v vainfo >/dev/null 2>&1; then
-            vainfo --display drm --device /dev/dri/renderD128 2>&1 | head -n 80 || true
-          else
-            echo 'vainfo absent'
-          fi
-          if command -v nvidia-smi >/dev/null 2>&1; then
-            nvidia-smi --query-gpu=name,driver_version,utilization.gpu,utilization.encoder --format=csv,noheader || true
-          else
-            echo 'nvidia-smi absent'
-          fi
-
-          echo '=== FFMPEG HARDWARE ENCODERS ==='
-          ffmpeg -hide_banner -encoders 2>/dev/null | grep -E 'h264_(nvenc|qsv|vaapi)|hevc_(nvenc|qsv|vaapi)' || true
-          echo '=== VAAPI FUNCTIONAL TEST ==='
-          set +e
-          ffmpeg -hide_banner -loglevel error \
-            -vaapi_device /dev/dri/renderD128 \
-            -f lavfi -i color=c=black:s=1280x720:r=30 \
-            -vf 'format=nv12,hwupload' \
-            -frames:v 30 -c:v h264_vaapi -f null - >/tmp/fgbears-vaapi-test.out 2>&1
-          vaapi_rc=$?
-          set -e
-          echo "vaapi_test_rc=$vaapi_rc"
-          sed -n '1,80p' /tmp/fgbears-vaapi-test.out
-          rm -f /tmp/fgbears-vaapi-test.out
-
-          echo '=== LIVE PROCESSES ==='
-          systemctl is-active fgbears-live.service || true
-          systemctl is-active fgbears-youtube-relay.service || true
-          systemctl is-active fgbears-rumble-relay.service || true
-          ps -eo pid,pcpu,pmem,comm,args --sort=-pcpu | head -n 12 | sed -E 's#(rtmps?://[^/ ]+/live2?/)[^ ]+#\1[REDACTED]#g'
-
-          echo '=== CPU SNAPSHOT ==='
-          uptime
-          vmstat 1 4
+          free -g | awk '/^Mem:/ {print "memory_total_gb=" $2 " memory_available_gb=" $7}'
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          systemctl is-active fgbears-rumble-relay.service
           REMOTE
