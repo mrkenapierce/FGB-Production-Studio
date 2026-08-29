@@ -27,10 +27,11 @@ grep -Fq '${RUMBLE_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"
 grep -Fq 'isolated YouTube and Rumble local UDP mirrors' "$ROOT/bin/start-stream.sh"
 grep -Fq 'rtmp://rtmp.rumble.com/live' "$ROOT/bin/rumble-relay.sh"
 grep -Fq -- '-c copy' "$ROOT/bin/rumble-relay.sh"
-grep -Fq 'YOUTUBE_TRIVIA_OVERLAY_PORT:=8790' "$ROOT/bin/youtube-relay.sh"
-grep -Fq 'http://127.0.0.1:${YOUTUBE_TRIVIA_OVERLAY_PORT}/overlay.rgba' "$ROOT/bin/youtube-relay.sh"
-grep -Fq -- '-c:v libx264' "$ROOT/bin/youtube-relay.sh"
-grep -Fq -- '-c:a copy' "$ROOT/bin/youtube-relay.sh"
+grep -Fq -- '-c copy' "$ROOT/bin/youtube-relay.sh"
+if grep -Fq 'YOUTUBE_TRIVIA_OVERLAY' "$ROOT/bin/youtube-relay.sh" || grep -Fq -- '-c:v libx264' "$ROOT/bin/youtube-relay.sh"; then
+  echo 'CPU-heavy YouTube trivia encoder remains active on the capacity-limited Oracle host.' >&2
+  exit 1
+fi
 if grep -Fq 'YOUTUBE_TRIVIA_OVERLAY' "$ROOT/bin/rumble-relay.sh"; then
   echo 'YouTube-only trivia overlay leaked into the Rumble relay.' >&2
   exit 1
@@ -50,4 +51,4 @@ if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null; then
   ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=nw=1 "$TMP/youtube-local.ts" | grep -q '^codec_name=h264$'
 fi
 
-echo 'FGBears transport provides a YouTube-only trivia overlay and an untouched Rumble copy-remux relay.'
+echo 'FGBears transport provides isolated YouTube and Rumble copy-remux relays with no second live encoder.'

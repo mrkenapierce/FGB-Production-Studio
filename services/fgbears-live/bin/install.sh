@@ -156,10 +156,10 @@ chmod 0640 "$ENV_PATH"
 systemctl daemon-reload
 systemctl enable fgbears-youtube-relay.service
 # The YouTube relay remains a dedicated single-output service. It consumes the
-# isolated local program, applies the YouTube-only trivia card, preserves audio
-# by bitstream copy, and can restart independently of the primary/Rumble path.
+# isolated local program and bitstream-copies video and audio so the
+# capacity-limited Oracle host does not run a second live video encoder.
 systemctl reset-failed fgbears-youtube-relay.service || true
 systemctl restart fgbears-youtube-relay.service
 systemctl enable --now fgbears-live-health.timer
 
-echo "Installed FGBears Live with an isolated YouTube trivia overlay and untouched Rumble copy-remux relay."
+echo "Installed FGBears Live with isolated YouTube and Rumble copy-remux relays."
