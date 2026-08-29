@@ -1,0 +1,88 @@
+name: Install FGBears Stream Router Dependencies
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/install-fgbears-stream-router-deps.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Install packet-routing runtime without touching stream services
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== before ==='
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          systemctl is-active fgbears-rumble-relay.service
+          uptime
+
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            gstreamer1.0-tools \
+            gstreamer1.0-plugins-base \
+            gstreamer1.0-plugins-good \
+            gstreamer1.0-plugins-bad \
+            python3-gi \
+            python3-gst-1.0 \
+            gir1.2-gstreamer-1.0
+
+          echo '=== required elements ==='
+          missing=0
+          for element in input-selector tsdemux h264parse aacparse flvmux udpsrc queue filesrc appsrc; do
+            if gst-inspect-1.0 "$element" >/dev/null 2>&1; then
+              echo "$element=present"
+            else
+              echo "$element=absent"
+              missing=1
+            fi
+          done
+          # At least one RTMP sink implementation must exist.
+          if gst-inspect-1.0 rtmpsink >/dev/null 2>&1; then
+            echo 'rtmpsink=present'
+          elif gst-inspect-1.0 rtmp2sink >/dev/null 2>&1; then
+            echo 'rtmp2sink=present'
+          else
+            echo 'rtmp_sink=absent'
+            missing=1
+          fi
+
+          python3 - <<'PY'
+          import gi
+          gi.require_version('Gst', '1.0')
+          from gi.repository import Gst
+          Gst.init(None)
+          print('python_gst=present', Gst.version_string())
+          PY
+
+          echo '=== after ==='
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          systemctl is-active fgbears-rumble-relay.service
+          uptime
+          echo 'stream_services_restarted=no'
+          exit "$missing"
+          REMOTE
