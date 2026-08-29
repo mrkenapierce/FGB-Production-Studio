@@ -22,9 +22,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg
+          python3 -m pip install --quiet pillow qrcode
+
       - name: Build exact card asset and synthetic MPEG-TS input
         run: |
-          python3 -m pip install --quiet pillow qrcode
           mkdir -p /tmp/fgb-router-assets
           python3 services/fgbears-live/tools/build-youtube-rumble-trivia-card.py \
             /tmp/fgb-router-assets/youtube-rumble-trivia.png
