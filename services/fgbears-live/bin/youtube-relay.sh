@@ -6,37 +6,30 @@ ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 
-: "${YOUTUBE_STREAM_KEY:?YOUTUBE_STREAM_KEY is required}"
-: "${YOUTUBE_LOCAL_UDP_URL:=udp://127.0.0.1:1939?pkt_size=1316}"
-: "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"
-: "${FFMPEG_LOGLEVEL:=warning}"
+ROUTER=/opt/fgbears-live/bin/youtube-stream-router.py
+CARD=${FGB_YOUTUBE_TRIVIA_CARD_H264:-/opt/fgbears-live/assets/youtube-rumble-trivia.h264}
+LEGACY=/opt/fgbears-live/bin/youtube-relay-legacy.sh
+: "${FGB_YOUTUBE_PACKET_ROUTER_ENABLE:=1}"
 
-[[ "$YOUTUBE_STREAM_KEY" != "REPLACE_WITH_YOUTUBE_STREAM_KEY" ]] || {
-  echo "Replace the placeholder YouTube stream key in $ENV_FILE" >&2
-  exit 78
-}
-[[ "$YOUTUBE_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
-  echo "YOUTUBE_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
-  exit 78
-}
-[[ "$YOUTUBE_UPSTREAM_RTMP_BASE" == rtmp://* || "$YOUTUBE_UPSTREAM_RTMP_BASE" == rtmps://* ]] || {
-  echo "YOUTUBE_UPSTREAM_RTMP_BASE must be an RTMP or RTMPS URL." >&2
-  exit 78
-}
-# Sender options such as pkt_size are not useful to the receiving socket. Keep
-# the same loopback host/port, but give the receiver a deep FIFO so short CPU or
-# network stalls do not drop the local program. MPEG-TS headers and H.264 SPS/PPS
-# are resent by the primary encoder at keyframes, so this process can restart and
-# rejoin the live program independently.
-LOCAL_BASE=${YOUTUBE_LOCAL_UDP_URL%%\?*}
-LOCAL_INPUT="${LOCAL_BASE}?fifo_size=1000000&overrun_nonfatal=1&reuse=1"
-UPSTREAM_TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
+if [[ "$FGB_YOUTUBE_PACKET_ROUTER_ENABLE" == "1" \
+      && -r "$ROUTER" \
+      && -r "$CARD" \
+      && -x /usr/bin/python3 \
+      && -x /usr/bin/gst-launch-1.0 ]]; then
+  echo "Starting low-CPU YouTube stream router (legacy copy relay armed as fallback)." >&2
+  set +e
+  /usr/bin/python3 "$ROUTER" --card "$CARD"
+  rc=$?
+  set -e
 
-exec ffmpeg \
-  -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
-  -fflags +genpts -probesize 10000000 -analyzeduration 10000000 \
-  -i "$LOCAL_INPUT" \
-  -map 0:v:0 -map 0:a:0 \
-  -c copy \
-  -f flv -flvflags no_duration_filesize \
-  "$UPSTREAM_TARGET"
+  # A clean exit is a normal systemd stop. Do not resurrect the relay while the
+  # unit is intentionally being stopped.
+  if [[ $rc -eq 0 || $rc -eq 130 || $rc -eq 143 ]]; then
+    exit "$rc"
+  fi
+  echo "YouTube stream router exited rc=$rc; falling back to safe copy relay." >&2
+else
+  echo "YouTube stream router unavailable/disabled; using safe copy relay." >&2
+fi
+
+exec "$LEGACY"
