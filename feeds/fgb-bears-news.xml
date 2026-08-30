@@ -5,38 +5,78 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 30 Aug 2026 12:29:42 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 30 Aug 2026 16:55:02 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Notes: Bears close out preseason with strong win</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Notes: Bears close out preseason with strong win</description>
-      <link>https://sports.yahoo.com/articles/notes-bears-close-preseason-strong-120000293.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7d173d295ee8cd025352</guid>
-      <pubDate>Sun, 30 Aug 2026 12:00:00 GMT</pubDate>
+      <title>Chicago Bears 2026 53-Man Roster Transaction Tracker</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears 2026 53-Man Roster Transaction Tracker</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-2026-53-man-013000132.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5a2b134ced7c92fce058</guid>
+      <pubDate>Sun, 30 Aug 2026 15:46:44 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears third-round pick Zavion Thomas scores 97-yard touchdown on his first NFL play</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears third-round pick Zavion Thomas scores 97-yard touchdown on his first NFL play</description>
-      <link>https://sports.yahoo.com/articles/bears-third-round-pick-zavion-095824792.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4924798b1898cdf088a8</guid>
-      <pubDate>Sun, 30 Aug 2026 09:58:24 GMT</pubDate>
+      <title>2026 Chicago Bears Practice Squad Rules, News, and Rumor Tracker</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 2026 Chicago Bears Practice Squad Rules, News, and Rumor Tracker</description>
+      <link>https://sports.yahoo.com/articles/2026-chicago-bears-practice-squad-153000706.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-479f6efeedcf493e3dd3</guid>
+      <pubDate>Sun, 30 Aug 2026 15:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Tyson Bagent on Zavion Thomas&apos; Bears Debut: &apos;Greatest Start in NFL History&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Tyson Bagent on Zavion Thomas&apos; Bears Debut: &apos;Greatest Start in NFL History&apos;</description>
-      <link>https://www.si.com/nfl/bears/onsi/tyson-bagent-on-zavion-thomas-bears-debut-greatest-start-in-nfl-history-01m186xv174n</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a56335abdcdbb8ef92b3</guid>
-      <pubDate>Sun, 30 Aug 2026 05:00:00 GMT</pubDate>
+      <title>Bears-Falcons trade grades: Gervon Dexter Sr. bolsters Atlanta&apos;s defensive front, Chicago adds CB depth</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears-Falcons trade grades: Gervon Dexter Sr. bolsters Atlanta&apos;s defensive front, Chicago adds CB depth</description>
+      <link>https://www.cbssports.com/nfl/news/bears-falcons-trade-grades-gervon-dexter-sr/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cd9ffd9134a5dea65f90</guid>
+      <pubDate>Sun, 30 Aug 2026 14:49:09 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Final 53-Man Roster Predictions Following Preseason Finale</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Final 53-Man Roster Predictions Following Preseason Finale</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-final-53-man-roster-predictions-following-preseason-finale</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-faf1c8df26bd42226df3</guid>
+      <pubDate>Sun, 30 Aug 2026 08:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Clark Phillips: Traded to Chicago</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Clark Phillips: Traded to Chicago</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-clark-phillips-traded-to-chicago/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6ee974a17b12cb88b458</guid>
+      <pubDate>Sun, 30 Aug 2026 08:28:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Who Won the Gervon Dexter Trade Between Bears and Falcons?</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Who Won the Gervon Dexter Trade Between Bears and Falcons?</description>
+      <link>https://www.si.com/nfl/bears/onsi/who-won-gervon-dexter-trade-bears-falcons</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1e68d9d1f000128c975f</guid>
+      <pubDate>Sun, 30 Aug 2026 06:10:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Sources: Falcons add Gervon Dexter Sr. in trade with Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Sources: Falcons add Gervon Dexter Sr. in trade with Bears</description>
+      <link>https://www.espn.com/nfl/story/_/id/49771892/sources-falcons-add-gervon-dexter-sr-trade-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-eb2c358d6bc44d687dc9</guid>
+      <pubDate>Sun, 30 Aug 2026 05:51:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
@@ -47,46 +87,6 @@
       <pubDate>Sun, 30 Aug 2026 04:13:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Potential Surprise Roster Cuts the Chicago Bears Should Monitor Closely</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Potential Surprise Roster Cuts the Chicago Bears Should Monitor Closely</description>
-      <link>https://www.si.com/nfl/bears/onsi/potential-surprise-roster-cuts-the-chicago-bears-should-monitor-closely</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9cd0651e86dc3ec25071</guid>
-      <pubDate>Sun, 30 Aug 2026 04:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Tyson Bagent leads Bears past Titans 24-15 in preseason finale</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Tyson Bagent leads Bears past Titans 24-15 in preseason finale</description>
-      <link>https://www.cbssports.com/nfl/news/tyson-bagent-leads-bears-past-titans-24-15-in-preseason-finale/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1c87cfe832afd4958046</guid>
-      <pubDate>Sat, 29 Aug 2026 19:39:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Jahdae Walker: One catch to close preseason</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Jahdae Walker: One catch to close preseason</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-jahdae-walker-one-catch-to-close-preseason/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6dc9d7752beb93274629</guid>
-      <pubDate>Sat, 29 Aug 2026 18:55:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears vs. Titans highlights | Preseason Week 3</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears vs. Titans highlights | Preseason Week 3</description>
-      <link>https://www.nfl.com/videos/bears-vs-titans-highlights-preseason-week-3-x3129</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-eff2bef476201031605e</guid>
-      <pubDate>Sat, 29 Aug 2026 18:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
   </channel>
 </rss>
