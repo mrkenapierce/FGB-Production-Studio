@@ -128,18 +128,18 @@ jobs:
 
           STATUS_FILE=/srv/fgbears-live/runtime/bears-news-refresh-status.env
           FEED_FILE=/srv/fgbears-live/runtime/fgb-bears-news.xml
-          test -s "$STATUS_FILE"
-          test -s "$FEED_FILE"
-          grep -Fx 'STATUS=OK' "$STATUS_FILE"
-          LAST_SCAN=$(awk -F= '$1=="LAST_SCAN_EPOCH"{print $2}' "$STATUS_FILE")
-          ITEM_COUNT=$(awk -F= '$1=="ITEM_COUNT"{print $2}' "$STATUS_FILE")
+          sudo test -s "$STATUS_FILE"
+          sudo test -s "$FEED_FILE"
+          sudo grep -Fx 'STATUS=OK' "$STATUS_FILE"
+          LAST_SCAN=$(sudo awk -F= '$1=="LAST_SCAN_EPOCH"{print $2}' "$STATUS_FILE")
+          ITEM_COUNT=$(sudo awk -F= '$1=="ITEM_COUNT"{print $2}' "$STATUS_FILE")
           NOW=$(date +%s)
           [[ "$LAST_SCAN" =~ ^[0-9]+$ ]]
           [[ "$ITEM_COUNT" =~ ^[0-9]+$ ]]
           (( NOW - LAST_SCAN >= 0 && NOW - LAST_SCAN <= 180 ))
           (( ITEM_COUNT >= 3 && ITEM_COUNT <= 8 ))
 
-          python3 - "$FEED_FILE" <<'PY'
+          sudo python3 - "$FEED_FILE" <<'PY'
           import sys
           import xml.etree.ElementTree as ET
           path = sys.argv[1]
@@ -167,7 +167,7 @@ jobs:
           systemctl is-active fgbears-rumble-relay.service
 
           curl -fsS --max-time 5 http://127.0.0.1:8789/healthz             | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("ok") is True and d.get("active") is True and d.get("renderer")=="pillow-mjpeg"; print(json.dumps(d, sort_keys=True))'
-          test -s /srv/fgbears-live/runtime/bears-news-message.txt
+          sudo test -s /srv/fgbears-live/runtime/bears-news-message.txt
 
           echo '=== installed timer ==='
           systemctl list-timers fgbears-news-refresh.timer --all --no-pager
