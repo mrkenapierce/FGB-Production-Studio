@@ -1,0 +1,24 @@
+[Unit]
+Description=Refresh FGBears local news feed
+Wants=network-online.target
+After=network-online.target
+ConditionPathIsExecutable=/opt/fgbears-live/bin/refresh-bears-news.py
+
+[Service]
+Type=oneshot
+User=fgbears
+Group=fgbears
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/fgbears-live/bin/refresh-bears-news.py --interval-seconds 900 --force
+TimeoutStartSec=5min
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/opt/fgbears-live /etc/fgbears-live
+ReadWritePaths=/srv/fgbears-live/runtime
+ProtectKernelTunables=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
