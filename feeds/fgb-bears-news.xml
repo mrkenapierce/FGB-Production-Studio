@@ -5,28 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 30 Aug 2026 01:25:36 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 30 Aug 2026 06:56:33 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears close preseason with a nearly flawless performance by Tyson Bagent</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears close preseason with a nearly flawless performance by Tyson Bagent</description>
-      <link>https://sports.yahoo.com/articles/bears-close-preseason-nearly-flawless-010001919.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3bf7edcfe947cfdfd4b0</guid>
-      <pubDate>Sun, 30 Aug 2026 01:00:01 GMT</pubDate>
+      <title>Game Recap: Bears close preseason with victory over Titans</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Recap: Bears close preseason with victory over Titans</description>
+      <link>https://www.chicagobears.com/news/game-recap-bears-close-preseason-with-victory-over-titans-week-3-2026</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9e62c3f144536ecf4c59</guid>
+      <pubDate>Sun, 30 Aug 2026 04:13:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>NFL Waiver Wire Rules: Chicago Bears are 25th</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Waiver Wire Rules: Chicago Bears are 25th</description>
+      <link>https://sports.yahoo.com/articles/nfl-waiver-wire-rules-chicago-020000764.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-877954c105ea36120e69</guid>
+      <pubDate>Sun, 30 Aug 2026 02:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Chicago Bears vs. Tennessee Titans Preseason Game Discussion</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. Tennessee Titans Preseason Game Discussion</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-vs-tennessee-titans-213310125.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c4710fab195f9417f922</guid>
-      <pubDate>Sat, 29 Aug 2026 21:33:10 GMT</pubDate>
+      <title>Chicago Bears 2026 53-Man Roster Transaction Tracker</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears 2026 53-Man Roster Transaction Tracker</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-2026-53-man-013000132.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5a2b134ced7c92fce058</guid>
+      <pubDate>Sun, 30 Aug 2026 01:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Tyson Bagent leads Bears past Titans 24-15 in preseason finale</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Tyson Bagent leads Bears past Titans 24-15 in preseason finale</description>
+      <link>https://www.cbssports.com/nfl/news/tyson-bagent-leads-bears-past-titans-24-15-in-preseason-finale/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1c87cfe832afd4958046</guid>
+      <pubDate>Sat, 29 Aug 2026 19:39:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Jahdae Walker: One catch to close preseason</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Jahdae Walker: One catch to close preseason</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-jahdae-walker-one-catch-to-close-preseason/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6dc9d7752beb93274629</guid>
+      <pubDate>Sat, 29 Aug 2026 18:55:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears vs. Titans highlights | Preseason Week 3</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears vs. Titans highlights | Preseason Week 3</description>
+      <link>https://www.nfl.com/videos/bears-vs-titans-highlights-preseason-week-3-x3129</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-eff2bef476201031605e</guid>
+      <pubDate>Sat, 29 Aug 2026 18:31:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
@@ -47,46 +87,6 @@
       <pubDate>Sat, 29 Aug 2026 17:28:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Biggest Takeaways From Chicago Bears Preseason Week 3 Win over Tennessee Titans</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Biggest Takeaways From Chicago Bears Preseason Week 3 Win over Tennessee Titans</description>
-      <link>https://www.si.com/nfl/bears/onsi/biggest-takeaways-chicago-bears-preseason-week-3-tennessee-titans</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d737a084edc17a24c30a</guid>
-      <pubDate>Sat, 29 Aug 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>6 Bears players to watch in preseason game vs. Titans</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 6 Bears players to watch in preseason game vs. Titans</description>
-      <link>https://www.chicagobears.com/news/6-bears-players-to-watch-in-preseason-game-vs-titans</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6aae9e043f255afefd3b</guid>
-      <pubDate>Sat, 29 Aug 2026 14:44:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears 53-Man Roster Cuts Tracker: Rumored and Confirmed Moves Before Cutdown Deadline</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears 53-Man Roster Cuts Tracker: Rumored and Confirmed Moves Before Cutdown Deadline</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-53-man-roster-cuts-tracker-cutdown-deadline</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3af69423e1e31a4c010f</guid>
-      <pubDate>Sat, 29 Aug 2026 14:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears vs. Titans prediction, odds, time: 2026 NFL Week 3 preseason picks by proven expert</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears vs. Titans prediction, odds, time: 2026 NFL Week 3 preseason picks by proven expert</description>
-      <link>https://www.cbssports.com/betting/news/bears-vs-titans-prediction-odds-time-2026-nfl-week-3-preseason-picks-best-bets/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2fe1281aa68e1aae4f95</guid>
-      <pubDate>Sat, 29 Aug 2026 13:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
