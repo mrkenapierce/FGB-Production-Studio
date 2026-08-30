@@ -5,9 +5,39 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 30 Aug 2026 19:34:34 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 30 Aug 2026 22:04:24 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears announce roster moves</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears announce roster moves</description>
+      <link>https://www.chicagobears.com/news/chicago-bears-announce-roster-moves-initial-53-man-2026</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c96b2ae285ed6ce08912</guid>
+      <pubDate>Sun, 30 Aug 2026 22:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Roster Moves: Chicago Bears agree to acquire fifth-round pick and DB Clark Phillips III in trade with Atlanta</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Roster Moves: Chicago Bears agree to acquire fifth-round pick and DB Clark Phillips III in trade with Atlanta</description>
+      <link>https://www.chicagobears.com/news/roster-moves-chicago-bears-agree-to-acquire-fifth-round-pick-and-db-clark-phillips-iii-in-trade-with-atlanta</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c9f0b3b70954866cf13b</guid>
+      <pubDate>Sun, 30 Aug 2026 22:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears 53 Man Roster Analysis</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears 53 Man Roster Analysis</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-53-man-roster-214500145.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-fb548a0984772e63286d</guid>
+      <pubDate>Sun, 30 Aug 2026 21:45:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears-Falcons trade grades: Gervon Dexter Sr. bolsters Atlanta&apos;s defensive front, Chicago adds CB depth</title>
@@ -20,53 +50,33 @@
     </item>
 
     <item>
-      <title>Ben Johnson and Bears get bad news in NFL analyst&apos;s take</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ben Johnson and Bears get bad news in NFL analyst&apos;s take</description>
-      <link>https://sports.yahoo.com/articles/ben-johnson-bears-bad-news-191137195.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1591b5b95ad8a39a5dbf</guid>
-      <pubDate>Sun, 30 Aug 2026 12:11:00 GMT</pubDate>
+      <title>Former Bears DT Gervon Dexter reacts to trade to Falcons</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Former Bears DT Gervon Dexter reacts to trade to Falcons</description>
+      <link>https://sports.yahoo.com/articles/former-bears-dt-gervon-dexter-212027352.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d75f32111b008ae09f82</guid>
+      <pubDate>Sun, 30 Aug 2026 14:20:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears expected to waive top undrafted free agent offensive lineman</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears expected to waive top undrafted free agent offensive lineman</description>
-      <link>https://sports.yahoo.com/articles/bears-expected-waive-top-undrafted-190817075.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e5786ba3a6671a14777b</guid>
-      <pubDate>Sun, 30 Aug 2026 12:07:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>How Will the Bears&apos; Addition of Clark Phillips Affect Malik Muhammad&apos;s Role?</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: How Will the Bears&apos; Addition of Clark Phillips Affect Malik Muhammad&apos;s Role?</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-bears-will-be-relying-heavily-on-rookie-cb-malik-muhammad-ii-early-this-season</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-91bb9bbf7e8bea16b6cc</guid>
-      <pubDate>Sun, 30 Aug 2026 12:00:00 GMT</pubDate>
+      <title>Gervon Dexter Says Goodbye to Bears in Heartfelt Post After Trade to Falcons</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Gervon Dexter Says Goodbye to Bears in Heartfelt Post After Trade to Falcons</description>
+      <link>https://www.si.com/nfl/bears/onsi/gervon-dexter-goodbye-to-bears-heartfelt-post-trade-falcons</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-fea6c626a46e79aa6930</guid>
+      <pubDate>Sun, 30 Aug 2026 14:17:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Luther Burden Injury Update From Ben Johnson All But Confirms Bears WR&apos;s Week 1 status</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Luther Burden Injury Update From Ben Johnson All But Confirms Bears WR&apos;s Week 1 status</description>
-      <link>https://www.si.com/nfl/bears/onsi/luther-burden-injury-update-from-ben-johnson-all-but-confirms-bears-wr-s-week-1-status</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0f42681e5684b967edba</guid>
-      <pubDate>Sun, 30 Aug 2026 10:00:00 GMT</pubDate>
+      <title>Chicago Bears&apos; Updated List of 2027 NFL Draft Picks After Gervon Dexter Trade</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears&apos; Updated List of 2027 NFL Draft Picks After Gervon Dexter Trade</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-updated-list-of-2027-nfl-draft-picks-after-gervon-dexter-trade</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cfe6042dae79d5897e6e</guid>
+      <pubDate>Sun, 30 Aug 2026 13:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Clark Phillips: Traded to Chicago</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Clark Phillips: Traded to Chicago</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-clark-phillips-traded-to-chicago/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6ee974a17b12cb88b458</guid>
-      <pubDate>Sun, 30 Aug 2026 08:28:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -77,16 +87,6 @@
       <pubDate>Sun, 30 Aug 2026 07:11:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
-      <title>Sources: Falcons add Gervon Dexter Sr. in trade with Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Sources: Falcons add Gervon Dexter Sr. in trade with Bears</description>
-      <link>https://www.espn.com/nfl/story/_/id/49771892/sources-falcons-add-gervon-dexter-sr-trade-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-eb2c358d6bc44d687dc9</guid>
-      <pubDate>Sun, 30 Aug 2026 05:51:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
