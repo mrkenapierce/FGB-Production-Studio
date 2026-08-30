@@ -5,29 +5,9 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 30 Aug 2026 16:55:02 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 30 Aug 2026 19:34:34 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
-
-    <item>
-      <title>Chicago Bears 2026 53-Man Roster Transaction Tracker</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears 2026 53-Man Roster Transaction Tracker</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-2026-53-man-013000132.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5a2b134ced7c92fce058</guid>
-      <pubDate>Sun, 30 Aug 2026 15:46:44 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>2026 Chicago Bears Practice Squad Rules, News, and Rumor Tracker</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 2026 Chicago Bears Practice Squad Rules, News, and Rumor Tracker</description>
-      <link>https://sports.yahoo.com/articles/2026-chicago-bears-practice-squad-153000706.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-479f6efeedcf493e3dd3</guid>
-      <pubDate>Sun, 30 Aug 2026 15:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
 
     <item>
       <title>Bears-Falcons trade grades: Gervon Dexter Sr. bolsters Atlanta&apos;s defensive front, Chicago adds CB depth</title>
@@ -40,11 +20,41 @@
     </item>
 
     <item>
-      <title>Chicago Bears Final 53-Man Roster Predictions Following Preseason Finale</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Final 53-Man Roster Predictions Following Preseason Finale</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-final-53-man-roster-predictions-following-preseason-finale</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-faf1c8df26bd42226df3</guid>
-      <pubDate>Sun, 30 Aug 2026 08:30:00 GMT</pubDate>
+      <title>Ben Johnson and Bears get bad news in NFL analyst&apos;s take</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ben Johnson and Bears get bad news in NFL analyst&apos;s take</description>
+      <link>https://sports.yahoo.com/articles/ben-johnson-bears-bad-news-191137195.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1591b5b95ad8a39a5dbf</guid>
+      <pubDate>Sun, 30 Aug 2026 12:11:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears expected to waive top undrafted free agent offensive lineman</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears expected to waive top undrafted free agent offensive lineman</description>
+      <link>https://sports.yahoo.com/articles/bears-expected-waive-top-undrafted-190817075.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e5786ba3a6671a14777b</guid>
+      <pubDate>Sun, 30 Aug 2026 12:07:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>How Will the Bears&apos; Addition of Clark Phillips Affect Malik Muhammad&apos;s Role?</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: How Will the Bears&apos; Addition of Clark Phillips Affect Malik Muhammad&apos;s Role?</description>
+      <link>https://www.si.com/nfl/bears/onsi/the-bears-will-be-relying-heavily-on-rookie-cb-malik-muhammad-ii-early-this-season</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-91bb9bbf7e8bea16b6cc</guid>
+      <pubDate>Sun, 30 Aug 2026 12:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Luther Burden Injury Update From Ben Johnson All But Confirms Bears WR&apos;s Week 1 status</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Luther Burden Injury Update From Ben Johnson All But Confirms Bears WR&apos;s Week 1 status</description>
+      <link>https://www.si.com/nfl/bears/onsi/luther-burden-injury-update-from-ben-johnson-all-but-confirms-bears-wr-s-week-1-status</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0f42681e5684b967edba</guid>
+      <pubDate>Sun, 30 Aug 2026 10:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -60,13 +70,13 @@
     </item>
 
     <item>
-      <title>Who Won the Gervon Dexter Trade Between Bears and Falcons?</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Who Won the Gervon Dexter Trade Between Bears and Falcons?</description>
-      <link>https://www.si.com/nfl/bears/onsi/who-won-gervon-dexter-trade-bears-falcons</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1e68d9d1f000128c975f</guid>
-      <pubDate>Sun, 30 Aug 2026 06:10:00 GMT</pubDate>
+      <title>Bears release former first-round OT Jedrick Wills</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears release former first-round OT Jedrick Wills</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-release-former-first-round-ot-jedrick-wills</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-61552a2d4ea7e31eb63e</guid>
+      <pubDate>Sun, 30 Aug 2026 07:11:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
@@ -77,16 +87,6 @@
       <pubDate>Sun, 30 Aug 2026 05:51:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Game Recap: Bears close preseason with victory over Titans</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Recap: Bears close preseason with victory over Titans</description>
-      <link>https://www.chicagobears.com/news/game-recap-bears-close-preseason-with-victory-over-titans-week-3-2026</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9e62c3f144536ecf4c59</guid>
-      <pubDate>Sun, 30 Aug 2026 04:13:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
