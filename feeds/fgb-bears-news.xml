@@ -5,9 +5,39 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 30 Aug 2026 06:56:33 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 30 Aug 2026 12:29:42 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Notes: Bears close out preseason with strong win</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Notes: Bears close out preseason with strong win</description>
+      <link>https://sports.yahoo.com/articles/notes-bears-close-preseason-strong-120000293.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7d173d295ee8cd025352</guid>
+      <pubDate>Sun, 30 Aug 2026 12:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears third-round pick Zavion Thomas scores 97-yard touchdown on his first NFL play</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears third-round pick Zavion Thomas scores 97-yard touchdown on his first NFL play</description>
+      <link>https://sports.yahoo.com/articles/bears-third-round-pick-zavion-095824792.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4924798b1898cdf088a8</guid>
+      <pubDate>Sun, 30 Aug 2026 09:58:24 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Tyson Bagent on Zavion Thomas&apos; Bears Debut: &apos;Greatest Start in NFL History&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Tyson Bagent on Zavion Thomas&apos; Bears Debut: &apos;Greatest Start in NFL History&apos;</description>
+      <link>https://www.si.com/nfl/bears/onsi/tyson-bagent-on-zavion-thomas-bears-debut-greatest-start-in-nfl-history-01m186xv174n</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a56335abdcdbb8ef92b3</guid>
+      <pubDate>Sun, 30 Aug 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
 
     <item>
       <title>Game Recap: Bears close preseason with victory over Titans</title>
@@ -20,23 +50,13 @@
     </item>
 
     <item>
-      <title>NFL Waiver Wire Rules: Chicago Bears are 25th</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Waiver Wire Rules: Chicago Bears are 25th</description>
-      <link>https://sports.yahoo.com/articles/nfl-waiver-wire-rules-chicago-020000764.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-877954c105ea36120e69</guid>
-      <pubDate>Sun, 30 Aug 2026 02:00:00 GMT</pubDate>
+      <title>Potential Surprise Roster Cuts the Chicago Bears Should Monitor Closely</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Potential Surprise Roster Cuts the Chicago Bears Should Monitor Closely</description>
+      <link>https://www.si.com/nfl/bears/onsi/potential-surprise-roster-cuts-the-chicago-bears-should-monitor-closely</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9cd0651e86dc3ec25071</guid>
+      <pubDate>Sun, 30 Aug 2026 04:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears 2026 53-Man Roster Transaction Tracker</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears 2026 53-Man Roster Transaction Tracker</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-2026-53-man-013000132.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5a2b134ced7c92fce058</guid>
-      <pubDate>Sun, 30 Aug 2026 01:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -64,27 +84,7 @@
       <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears vs. Titans highlights | Preseason Week 3</description>
       <link>https://www.nfl.com/videos/bears-vs-titans-highlights-preseason-week-3-x3129</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-eff2bef476201031605e</guid>
-      <pubDate>Sat, 29 Aug 2026 18:31:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears vs. Tennessee Titans: Game Highlights</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Chicago Bears vs. Tennessee Titans: Game Highlights</description>
-      <link>https://www.espn.com/video/clip/_/id/49767821/game-highlights</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-61a3735ed0b399466a91</guid>
-      <pubDate>Sat, 29 Aug 2026 18:10:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Santos expands Bears&apos; lead to 15 with 37-yard FG</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Santos expands Bears&apos; lead to 15 with 37-yard FG</description>
-      <link>https://www.nfl.com/videos/santos-expands-bears-lead-to-15-with-37-yard-fg</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-387232090e7f2ee9c179</guid>
-      <pubDate>Sat, 29 Aug 2026 17:28:00 GMT</pubDate>
+      <pubDate>Sat, 29 Aug 2026 18:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
