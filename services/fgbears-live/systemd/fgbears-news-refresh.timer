@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the FGBears news refresh at 15-minute clock intervals
+
+[Timer]
+OnCalendar=*-*-* *:00/15:00
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=true
+Unit=fgbears-news-refresh.service
+
+[Install]
+WantedBy=timers.target
