@@ -1,0 +1,182 @@
+name: Deploy FGBears 15-Minute News Refresh
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'services/fgbears-live/bin/refresh-bears-news.py'
+      - 'services/fgbears-live/systemd/fgbears-news-refresh.service'
+      - 'services/fgbears-live/systemd/fgbears-news-refresh.timer'
+      - '.github/workflows/deploy-fgbears-news-refresh.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate isolated refresh assets
+        run: |
+          python3 -m py_compile services/fgbears-live/bin/refresh-bears-news.py
+          grep -Fx 'OnCalendar=*-*-* *:00/15:00' services/fgbears-live/systemd/fgbears-news-refresh.timer
+          grep -Fq -- '--interval-seconds 900 --force' services/fgbears-live/systemd/fgbears-news-refresh.service
+          if grep -Eiq 'systemctl[[:space:]]+(restart|try-restart|reload-or-restart)[[:space:]]+fgbears-(live|youtube-relay|rumble-relay)'             services/fgbears-live/systemd/fgbears-news-refresh.service             services/fgbears-live/systemd/fgbears-news-refresh.timer; then
+            echo 'Refresh units must never restart a live-stream service.' >&2
+            exit 1
+          fi
+
+      - name: Configure protected Oracle connection
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stage refresh script and timer units
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST"             'rm -rf /tmp/fgb-news-refresh-deploy && mkdir -p /tmp/fgb-news-refresh-deploy'
+          scp -i ~/.ssh/oracle_key             services/fgbears-live/bin/refresh-bears-news.py             services/fgbears-live/systemd/fgbears-news-refresh.service             services/fgbears-live/systemd/fgbears-news-refresh.timer             "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-news-refresh-deploy/"
+
+      - name: Install and verify without restarting the livestream
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          systemctl is-active fgbears-rumble-relay.service
+          MASTER_PID=$(systemctl show -p MainPID --value fgbears-live.service)
+          YOUTUBE_PID=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          RUMBLE_PID=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          [[ "$MASTER_PID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$YOUTUBE_PID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$RUMBLE_PID" =~ ^[1-9][0-9]*$ ]]
+
+          PRE_TIMER_ENABLED=$(systemctl is-enabled fgbears-news-refresh.timer 2>/dev/null || true)
+          PRE_TIMER_ACTIVE=$(systemctl is-active fgbears-news-refresh.timer 2>/dev/null || true)
+          STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          BACKUP="/var/backups/fgbears-news-refresh-$STAMP"
+          sudo install -d -o root -g root -m 0700 "$BACKUP"
+
+          backup_one() {
+            local source=$1 name=$2
+            if sudo test -e "$source"; then
+              sudo cp -a "$source" "$BACKUP/$name"
+            else
+              sudo touch "$BACKUP/$name.missing"
+            fi
+          }
+          restore_one() {
+            local target=$1 name=$2
+            if sudo test -e "$BACKUP/$name.missing"; then
+              sudo rm -f "$target"
+            else
+              sudo cp -a "$BACKUP/$name" "$target"
+            fi
+          }
+          backup_one /opt/fgbears-live/bin/refresh-bears-news.py refresh-bears-news.py
+          backup_one /etc/systemd/system/fgbears-news-refresh.service fgbears-news-refresh.service
+          backup_one /etc/systemd/system/fgbears-news-refresh.timer fgbears-news-refresh.timer
+
+          rollback() {
+            rc=$?
+            set +e
+            echo "ROLLBACK: restoring the previous isolated news-refresh files (rc=$rc)" >&2
+            sudo systemctl disable --now fgbears-news-refresh.timer >/dev/null 2>&1 || true
+            restore_one /opt/fgbears-live/bin/refresh-bears-news.py refresh-bears-news.py
+            restore_one /etc/systemd/system/fgbears-news-refresh.service fgbears-news-refresh.service
+            restore_one /etc/systemd/system/fgbears-news-refresh.timer fgbears-news-refresh.timer
+            sudo systemctl daemon-reload
+            if [[ "$PRE_TIMER_ENABLED" == "enabled" ]]; then
+              sudo systemctl enable fgbears-news-refresh.timer >/dev/null 2>&1 || true
+            fi
+            if [[ "$PRE_TIMER_ACTIVE" == "active" ]]; then
+              sudo systemctl start fgbears-news-refresh.timer >/dev/null 2>&1 || true
+            fi
+            exit "$rc"
+          }
+          trap rollback ERR
+
+          sudo install -d -o root -g root -m 0755 /opt/fgbears-live/bin
+          sudo install -o root -g root -m 0755             /tmp/fgb-news-refresh-deploy/refresh-bears-news.py             /opt/fgbears-live/bin/refresh-bears-news.py
+          sudo install -o root -g root -m 0644             /tmp/fgb-news-refresh-deploy/fgbears-news-refresh.service             /etc/systemd/system/fgbears-news-refresh.service
+          sudo install -o root -g root -m 0644             /tmp/fgb-news-refresh-deploy/fgbears-news-refresh.timer             /etc/systemd/system/fgbears-news-refresh.timer
+
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now fgbears-news-refresh.timer
+          sudo systemctl start fgbears-news-refresh.service
+
+          systemctl is-enabled fgbears-news-refresh.timer
+          systemctl is-active fgbears-news-refresh.timer
+          [[ "$(systemctl show -p Result --value fgbears-news-refresh.service)" == "success" ]]
+
+          STATUS_FILE=/srv/fgbears-live/runtime/bears-news-refresh-status.env
+          FEED_FILE=/srv/fgbears-live/runtime/fgb-bears-news.xml
+          test -s "$STATUS_FILE"
+          test -s "$FEED_FILE"
+          grep -Fx 'STATUS=OK' "$STATUS_FILE"
+          LAST_SCAN=$(awk -F= '$1=="LAST_SCAN_EPOCH"{print $2}' "$STATUS_FILE")
+          ITEM_COUNT=$(awk -F= '$1=="ITEM_COUNT"{print $2}' "$STATUS_FILE")
+          NOW=$(date +%s)
+          [[ "$LAST_SCAN" =~ ^[0-9]+$ ]]
+          [[ "$ITEM_COUNT" =~ ^[0-9]+$ ]]
+          (( NOW - LAST_SCAN >= 0 && NOW - LAST_SCAN <= 180 ))
+          (( ITEM_COUNT >= 3 && ITEM_COUNT <= 8 ))
+
+          python3 - "$FEED_FILE" <<'PY'
+          import sys
+          import xml.etree.ElementTree as ET
+          path = sys.argv[1]
+          root = ET.parse(path).getroot()
+          items = root.findall("./channel/item")
+          assert 3 <= len(items) <= 8, len(items)
+          assert all((item.findtext("title") or "").strip() for item in items)
+          print(f"local_feed_items={len(items)}")
+          PY
+
+          NEXT=$(systemctl show -p NextElapseUSecRealtime --value fgbears-news-refresh.timer)
+          test -n "$NEXT"
+          NEXT_EPOCH=$(date -d "$NEXT" +%s)
+          NOW=$(date +%s)
+          DELAY=$((NEXT_EPOCH - NOW))
+          (( DELAY >= 0 && DELAY <= 901 ))
+          echo "next_refresh=$NEXT"
+          echo "seconds_until_next_refresh=$DELAY"
+
+          [[ "$(systemctl show -p MainPID --value fgbears-live.service)" == "$MASTER_PID" ]]
+          [[ "$(systemctl show -p MainPID --value fgbears-youtube-relay.service)" == "$YOUTUBE_PID" ]]
+          [[ "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" == "$RUMBLE_PID" ]]
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          systemctl is-active fgbears-rumble-relay.service
+
+          curl -fsS --max-time 5 http://127.0.0.1:8789/healthz             | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("ok") is True and d.get("active") is True and d.get("renderer")=="pillow-mjpeg"; print(json.dumps(d, sort_keys=True))'
+          test -s /srv/fgbears-live/runtime/bears-news-message.txt
+
+          echo '=== installed timer ==='
+          systemctl list-timers fgbears-news-refresh.timer --all --no-pager
+          echo '=== refresh journal ==='
+          journalctl -u fgbears-news-refresh.service -n 30 --no-pager
+          echo "master_pid_unchanged=$MASTER_PID"
+          echo "youtube_pid_unchanged=$YOUTUBE_PID"
+          echo "rumble_pid_unchanged=$RUMBLE_PID"
+          echo "backup=$BACKUP"
+          echo 'deployment_ok=yes'
+          trap - ERR
+          REMOTE
