@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 30 Aug 2026 22:04:24 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 31 Aug 2026 00:34:36 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -30,13 +30,43 @@
     </item>
 
     <item>
-      <title>Chicago Bears 53 Man Roster Analysis</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears 53 Man Roster Analysis</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-53-man-roster-214500145.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fb548a0984772e63286d</guid>
-      <pubDate>Sun, 30 Aug 2026 21:45:00 GMT</pubDate>
+      <title>Former Spartan OL earns spot on Chicago Bears active roster</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Former Spartan OL earns spot on Chicago Bears active roster</description>
+      <link>https://sports.yahoo.com/articles/former-spartan-ol-earns-spot-234455444.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-01e016c5c60e6e1b06d3</guid>
+      <pubDate>Sun, 30 Aug 2026 16:44:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Projecting Bears Practice Squad After Roster Cutdowns, Including Two Fan-Favorites</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Projecting Bears Practice Squad After Roster Cutdowns, Including Two Fan-Favorites</description>
+      <link>https://www.si.com/nfl/bears/onsi/projecting-bears-practice-squad-after-roster-cutdowns-including-two-fan-favorites</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-899bba4ad975e1dbd6e9</guid>
+      <pubDate>Sun, 30 Aug 2026 15:45:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears attempted to trade Kiran Amegadjie</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears attempted to trade Kiran Amegadjie</description>
+      <link>https://sports.yahoo.com/articles/bears-attempted-trade-kiran-amegadjie-222024505.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c3eb18cb7d6c71a4568f</guid>
+      <pubDate>Sun, 30 Aug 2026 15:20:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Finalize Initial 53-Man Roster as Cutdown Deadline Passes</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Finalize Initial 53-Man Roster as Cutdown Deadline Passes</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-initial-53-man-roster-cutdown-deadline</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4787722743443e91e1c5</guid>
+      <pubDate>Sun, 30 Aug 2026 15:08:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -50,41 +80,11 @@
     </item>
 
     <item>
-      <title>Former Bears DT Gervon Dexter reacts to trade to Falcons</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Former Bears DT Gervon Dexter reacts to trade to Falcons</description>
-      <link>https://sports.yahoo.com/articles/former-bears-dt-gervon-dexter-212027352.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d75f32111b008ae09f82</guid>
-      <pubDate>Sun, 30 Aug 2026 14:20:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Gervon Dexter Says Goodbye to Bears in Heartfelt Post After Trade to Falcons</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Gervon Dexter Says Goodbye to Bears in Heartfelt Post After Trade to Falcons</description>
-      <link>https://www.si.com/nfl/bears/onsi/gervon-dexter-goodbye-to-bears-heartfelt-post-trade-falcons</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fea6c626a46e79aa6930</guid>
-      <pubDate>Sun, 30 Aug 2026 14:17:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears&apos; Updated List of 2027 NFL Draft Picks After Gervon Dexter Trade</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears&apos; Updated List of 2027 NFL Draft Picks After Gervon Dexter Trade</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-updated-list-of-2027-nfl-draft-picks-after-gervon-dexter-trade</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cfe6042dae79d5897e6e</guid>
-      <pubDate>Sun, 30 Aug 2026 13:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears release former first-round OT Jedrick Wills</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears release former first-round OT Jedrick Wills</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-release-former-first-round-ot-jedrick-wills</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-61552a2d4ea7e31eb63e</guid>
-      <pubDate>Sun, 30 Aug 2026 07:11:00 GMT</pubDate>
+      <title>Kyler Gordon stays on PUP as Bears drop to 53 players</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Kyler Gordon stays on PUP as Bears drop to 53 players</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/kyler-gordon-stays-on-pup-as-bears-drop-to-53-players</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3839f7f37653413d51fd</guid>
+      <pubDate>Sun, 30 Aug 2026 11:09:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
