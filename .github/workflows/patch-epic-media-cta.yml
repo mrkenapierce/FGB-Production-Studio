@@ -27,35 +27,41 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-
           path = Path('services/fgbears-live/bin/ad-overlay.py')
-          text = path.read_text(encoding='utf-8')
-          old = '''        cta = "PLACE YOUR AD"
-        cta_font = font(22, bold=True)
-        cta_box = draw.textbbox((0, 0), cta, font=cta_font)
-        draw.text((qr_x + (qr_size - (cta_box[2] - cta_box[0])) / 2, qr_y + qr_size + 22), cta, font=cta_font, fill=BEARS_BLUE)
-        url = "epiccontentcreatorgrants.org/epic-media"
-        url_font = fit_text(draw, url, qr_size - 16, 16, 12)
-        url_box = draw.textbbox((0, 0), url, font=url_font)
-        draw.text((qr_x + (qr_size - (url_box[2] - url_box[0])) / 2, qr_y + qr_size + 60), url, font=url_font, fill=BEARS_ORANGE)
-'''
-          new = '''        cta_font = font(20, bold=True)
-        cta_lines = (
-            ("Place Your Ad", qr_y + qr_size + 17),
-            ("Share EPIC Prizes", qr_y + qr_size + 43),
-        )
-        for cta, cta_y in cta_lines:
-            cta_box = draw.textbbox((0, 0), cta, font=cta_font)
-            draw.text((qr_x + (qr_size - (cta_box[2] - cta_box[0])) / 2, cta_y), cta, font=cta_font, fill=BEARS_BLUE)
-        url = "epiccontentcreatorgrants.org/epic-media"
-        url_font = fit_text(draw, url, qr_size - 16, 16, 12)
-        url_box = draw.textbbox((0, 0), url, font=url_font)
-        draw.text((qr_x + (qr_size - (url_box[2] - url_box[0])) / 2, qr_y + qr_size + 72), url, font=url_font, fill=BEARS_ORANGE)
-'''
-          if old in text:
-              path.write_text(text.replace(old, new, 1), encoding='utf-8')
-          elif 'Share EPIC Prizes' not in text:
-              raise SystemExit('Expected QR CTA block was not found; refusing an unsafe patch.')
+          lines = path.read_text(encoding='utf-8').splitlines()
+          target = '        cta = "PLACE YOUR AD"'
+          if target in lines:
+              start = lines.index(target)
+              expected = [
+                  '        cta = "PLACE YOUR AD"',
+                  '        cta_font = font(22, bold=True)',
+                  '        cta_box = draw.textbbox((0, 0), cta, font=cta_font)',
+                  '        draw.text((qr_x + (qr_size - (cta_box[2] - cta_box[0])) / 2, qr_y + qr_size + 22), cta, font=cta_font, fill=BEARS_BLUE)',
+                  '        url = "epiccontentcreatorgrants.org/epic-media"',
+                  '        url_font = fit_text(draw, url, qr_size - 16, 16, 12)',
+                  '        url_box = draw.textbbox((0, 0), url, font=url_font)',
+                  '        draw.text((qr_x + (qr_size - (url_box[2] - url_box[0])) / 2, qr_y + qr_size + 60), url, font=url_font, fill=BEARS_ORANGE)',
+              ]
+              if lines[start:start + len(expected)] != expected:
+                  raise SystemExit('QR CTA source did not match the expected safe patch target.')
+              replacement = [
+                  '        cta_font = font(20, bold=True)',
+                  '        cta_lines = (',
+                  '            ("Place Your Ad", qr_y + qr_size + 17),',
+                  '            ("Share EPIC Prizes", qr_y + qr_size + 43),',
+                  '        )',
+                  '        for cta, cta_y in cta_lines:',
+                  '            cta_box = draw.textbbox((0, 0), cta, font=cta_font)',
+                  '            draw.text((qr_x + (qr_size - (cta_box[2] - cta_box[0])) / 2, cta_y), cta, font=cta_font, fill=BEARS_BLUE)',
+                  '        url = "epiccontentcreatorgrants.org/epic-media"',
+                  '        url_font = fit_text(draw, url, qr_size - 16, 16, 12)',
+                  '        url_box = draw.textbbox((0, 0), url, font=url_font)',
+                  '        draw.text((qr_x + (qr_size - (url_box[2] - url_box[0])) / 2, qr_y + qr_size + 72), url, font=url_font, fill=BEARS_ORANGE)',
+              ]
+              lines[start:start + len(expected)] = replacement
+              path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
+          elif not any('Share EPIC Prizes' in line for line in lines):
+              raise SystemExit('Expected QR CTA source was not found; refusing an unsafe patch.')
           PY
           python3 -m py_compile services/fgbears-live/bin/ad-overlay.py
           grep -F '"Place Your Ad"' services/fgbears-live/bin/ad-overlay.py
