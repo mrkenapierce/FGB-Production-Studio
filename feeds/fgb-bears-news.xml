@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 31 Aug 2026 00:34:36 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 31 Aug 2026 06:09:05 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -30,6 +30,26 @@
     </item>
 
     <item>
+      <title>Gervon Dexter Pens Candid Message After Bears-Falcons Trade</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Gervon Dexter Pens Candid Message After Bears-Falcons Trade</description>
+      <link>https://sports.yahoo.com/articles/gervon-dexter-pens-candid-message-003119881.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2208bb9e8e1a04b2ab86</guid>
+      <pubDate>Sun, 30 Aug 2026 17:31:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Updated Chicago Bears Depth Chart After Roster Cuts</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Updated Chicago Bears Depth Chart After Roster Cuts</description>
+      <link>https://www.si.com/nfl/bears/onsi/updated-chicago-bears-depth-chart-after-roster-cuts</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cce3cbda1eb36005a1cc</guid>
+      <pubDate>Sun, 30 Aug 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>Former Spartan OL earns spot on Chicago Bears active roster</title>
       <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Former Spartan OL earns spot on Chicago Bears active roster</description>
       <link>https://sports.yahoo.com/articles/former-spartan-ol-earns-spot-234455444.html</link>
@@ -45,26 +65,6 @@
       <link>https://www.si.com/nfl/bears/onsi/projecting-bears-practice-squad-after-roster-cutdowns-including-two-fan-favorites</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-899bba4ad975e1dbd6e9</guid>
       <pubDate>Sun, 30 Aug 2026 15:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears attempted to trade Kiran Amegadjie</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears attempted to trade Kiran Amegadjie</description>
-      <link>https://sports.yahoo.com/articles/bears-attempted-trade-kiran-amegadjie-222024505.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c3eb18cb7d6c71a4568f</guid>
-      <pubDate>Sun, 30 Aug 2026 15:20:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Finalize Initial 53-Man Roster as Cutdown Deadline Passes</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Finalize Initial 53-Man Roster as Cutdown Deadline Passes</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-initial-53-man-roster-cutdown-deadline</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4787722743443e91e1c5</guid>
-      <pubDate>Sun, 30 Aug 2026 15:08:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
