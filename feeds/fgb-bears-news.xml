@@ -5,16 +5,36 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 31 Aug 2026 19:40:23 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 31 Aug 2026 23:23:05 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Eagles to sign former Bears’ OT to practice squad</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Eagles to sign former Bears’ OT to practice squad</description>
-      <link>https://sports.yahoo.com/articles/eagles-sign-former-bears-ot-185946231.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e9e0f72ab13bc2ccb93f</guid>
-      <pubDate>Mon, 31 Aug 2026 18:59:46 GMT</pubDate>
+      <title>2026 Chicago Bears Practice Squad Rules and Rumor Tracker</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 2026 Chicago Bears Practice Squad Rules and Rumor Tracker</description>
+      <link>https://sports.yahoo.com/articles/2026-chicago-bears-practice-squad-153000706.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-479f6efeedcf493e3dd3</guid>
+      <pubDate>Mon, 31 Aug 2026 22:39:58 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Takeaways From Bears Personnel Moves Leading into the Final Roster</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Takeaways From Bears Personnel Moves Leading into the Final Roster</description>
+      <link>https://www.si.com/nfl/bears/onsi/takeaways-bears-personnel-moves-final-roster</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-351be92effa5611445f6</guid>
+      <pubDate>Mon, 31 Aug 2026 15:45:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears Landing Spot for Packers’ Breakout Pass-Rusher After Cut</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Landing Spot for Packers’ Breakout Pass-Rusher After Cut</description>
+      <link>https://sports.yahoo.com/articles/bears-landing-spot-packers-breakout-213030687.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e396b498452d37f80b1a</guid>
+      <pubDate>Mon, 31 Aug 2026 14:29:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -25,26 +45,6 @@
       <link>https://www.si.com/nfl/bears/onsi/what-the-final-chicago-bears-roster-says-about-the-front-office-s-vision</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-3d8fc560419ba60f2570</guid>
       <pubDate>Mon, 31 Aug 2026 12:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears Top Takeaways From Initial 53-man Roster: Another Failed Day 2 Pick</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Top Takeaways From Initial 53-man Roster: Another Failed Day 2 Pick</description>
-      <link>https://sports.yahoo.com/articles/bears-top-takeaways-initial-53-183826126.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2ac4421fc54dfabc9a8b</guid>
-      <pubDate>Mon, 31 Aug 2026 11:39:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Practice Squad Tracker: Every Rumored and Confirmed Signing</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Practice Squad Tracker: Every Rumored and Confirmed Signing</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-practice-squad-tracker-every-rumored-and-confirmed-signing</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5f8eaadc87a992902ddf</guid>
-      <pubDate>Mon, 31 Aug 2026 10:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
