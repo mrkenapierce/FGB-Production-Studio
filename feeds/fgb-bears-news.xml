@@ -5,9 +5,59 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 31 Aug 2026 06:09:05 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 31 Aug 2026 13:40:51 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Recapping the Chicago Bears&apos; busy day of roster changes</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Recapping the Chicago Bears&apos; busy day of roster changes</description>
+      <link>https://sports.yahoo.com/articles/recapping-chicago-bears-busy-day-130513394.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-59ff3aaa9d37383b9778</guid>
+      <pubDate>Mon, 31 Aug 2026 06:05:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Biggest Surprises From Final Chicago Bears Roster Cuts</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Biggest Surprises From Final Chicago Bears Roster Cuts</description>
+      <link>https://www.si.com/nfl/bears/onsi/biggest-surprises-from-final-chicago-bears-roster-cuts</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e406a6438f6457c8e0cf</guid>
+      <pubDate>Mon, 31 Aug 2026 06:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears&apos; 2026 practice squad tracker</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears&apos; 2026 practice squad tracker</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-2026-practice-squad-123431027.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2aa5e8344a1f90c304a4</guid>
+      <pubDate>Mon, 31 Aug 2026 05:34:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Every Position Where Bears Could Still Add Help After 53-Man Roster Cuts</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Every Position Where Bears Could Still Add Help After 53-Man Roster Cuts</description>
+      <link>https://www.si.com/nfl/bears/onsi/every-position-where-bears-could-still-add-help-after-53-man-roster-cuts</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6f30878a2be58c2e81b6</guid>
+      <pubDate>Mon, 31 Aug 2026 05:15:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears DT Jordan van den Berg makes Gervon Dexter expendable</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears DT Jordan van den Berg makes Gervon Dexter expendable</description>
+      <link>https://www.espn.com/nfl/story/_/id/49776754/bears-dt-jordan-van-den-berg-makes-gervon-dexter-expendable</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-74e5119d7f1b1fb7aed2</guid>
+      <pubDate>Mon, 31 Aug 2026 04:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
 
     <item>
       <title>Chicago Bears announce roster moves</title>
@@ -30,46 +80,6 @@
     </item>
 
     <item>
-      <title>Gervon Dexter Pens Candid Message After Bears-Falcons Trade</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Gervon Dexter Pens Candid Message After Bears-Falcons Trade</description>
-      <link>https://sports.yahoo.com/articles/gervon-dexter-pens-candid-message-003119881.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2208bb9e8e1a04b2ab86</guid>
-      <pubDate>Sun, 30 Aug 2026 17:31:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Updated Chicago Bears Depth Chart After Roster Cuts</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Updated Chicago Bears Depth Chart After Roster Cuts</description>
-      <link>https://www.si.com/nfl/bears/onsi/updated-chicago-bears-depth-chart-after-roster-cuts</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cce3cbda1eb36005a1cc</guid>
-      <pubDate>Sun, 30 Aug 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Former Spartan OL earns spot on Chicago Bears active roster</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Former Spartan OL earns spot on Chicago Bears active roster</description>
-      <link>https://sports.yahoo.com/articles/former-spartan-ol-earns-spot-234455444.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-01e016c5c60e6e1b06d3</guid>
-      <pubDate>Sun, 30 Aug 2026 16:44:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Projecting Bears Practice Squad After Roster Cutdowns, Including Two Fan-Favorites</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Projecting Bears Practice Squad After Roster Cutdowns, Including Two Fan-Favorites</description>
-      <link>https://www.si.com/nfl/bears/onsi/projecting-bears-practice-squad-after-roster-cutdowns-including-two-fan-favorites</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-899bba4ad975e1dbd6e9</guid>
-      <pubDate>Sun, 30 Aug 2026 15:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Bears-Falcons trade grades: Gervon Dexter Sr. bolsters Atlanta&apos;s defensive front, Chicago adds CB depth</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears-Falcons trade grades: Gervon Dexter Sr. bolsters Atlanta&apos;s defensive front, Chicago adds CB depth</description>
       <link>https://www.cbssports.com/nfl/news/bears-falcons-trade-grades-gervon-dexter-sr/</link>
@@ -77,16 +87,6 @@
       <pubDate>Sun, 30 Aug 2026 14:49:09 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Kyler Gordon stays on PUP as Bears drop to 53 players</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Kyler Gordon stays on PUP as Bears drop to 53 players</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/kyler-gordon-stays-on-pup-as-bears-drop-to-53-players</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3839f7f37653413d51fd</guid>
-      <pubDate>Sun, 30 Aug 2026 11:09:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
