@@ -5,48 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 31 Aug 2026 13:40:51 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 31 Aug 2026 19:40:23 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Recapping the Chicago Bears&apos; busy day of roster changes</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Recapping the Chicago Bears&apos; busy day of roster changes</description>
-      <link>https://sports.yahoo.com/articles/recapping-chicago-bears-busy-day-130513394.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-59ff3aaa9d37383b9778</guid>
-      <pubDate>Mon, 31 Aug 2026 06:05:00 GMT</pubDate>
+      <title>Eagles to sign former Bears’ OT to practice squad</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Eagles to sign former Bears’ OT to practice squad</description>
+      <link>https://sports.yahoo.com/articles/eagles-sign-former-bears-ot-185946231.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e9e0f72ab13bc2ccb93f</guid>
+      <pubDate>Mon, 31 Aug 2026 18:59:46 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Biggest Surprises From Final Chicago Bears Roster Cuts</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Biggest Surprises From Final Chicago Bears Roster Cuts</description>
-      <link>https://www.si.com/nfl/bears/onsi/biggest-surprises-from-final-chicago-bears-roster-cuts</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e406a6438f6457c8e0cf</guid>
-      <pubDate>Mon, 31 Aug 2026 06:00:00 GMT</pubDate>
+      <title>What the Final Chicago Bears Roster Says About the Front Office&apos;s Vision</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: What the Final Chicago Bears Roster Says About the Front Office&apos;s Vision</description>
+      <link>https://www.si.com/nfl/bears/onsi/what-the-final-chicago-bears-roster-says-about-the-front-office-s-vision</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3d8fc560419ba60f2570</guid>
+      <pubDate>Mon, 31 Aug 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Chicago Bears&apos; 2026 practice squad tracker</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears&apos; 2026 practice squad tracker</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-2026-practice-squad-123431027.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2aa5e8344a1f90c304a4</guid>
-      <pubDate>Mon, 31 Aug 2026 05:34:00 GMT</pubDate>
+      <title>Bears Top Takeaways From Initial 53-man Roster: Another Failed Day 2 Pick</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Top Takeaways From Initial 53-man Roster: Another Failed Day 2 Pick</description>
+      <link>https://sports.yahoo.com/articles/bears-top-takeaways-initial-53-183826126.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2ac4421fc54dfabc9a8b</guid>
+      <pubDate>Mon, 31 Aug 2026 11:39:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Every Position Where Bears Could Still Add Help After 53-Man Roster Cuts</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Every Position Where Bears Could Still Add Help After 53-Man Roster Cuts</description>
-      <link>https://www.si.com/nfl/bears/onsi/every-position-where-bears-could-still-add-help-after-53-man-roster-cuts</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6f30878a2be58c2e81b6</guid>
-      <pubDate>Mon, 31 Aug 2026 05:15:00 GMT</pubDate>
+      <title>Chicago Bears Practice Squad Tracker: Every Rumored and Confirmed Signing</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Practice Squad Tracker: Every Rumored and Confirmed Signing</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-practice-squad-tracker-every-rumored-and-confirmed-signing</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5f8eaadc87a992902ddf</guid>
+      <pubDate>Mon, 31 Aug 2026 10:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Noah Sewell: Moved to reserve/PUP list</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Noah Sewell: Moved to reserve/PUP list</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-noah-sewell-moved-to-reservepup-list/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-00a775c822d509c47d2a</guid>
+      <pubDate>Mon, 31 Aug 2026 09:32:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Shemar Turner: Moved to reserve/PUP list</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Shemar Turner: Moved to reserve/PUP list</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-shemar-turner-moved-to-reservepup-list/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ed1f00ff528236666ec4</guid>
+      <pubDate>Mon, 31 Aug 2026 09:27:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -67,26 +87,6 @@
       <pubDate>Sun, 30 Aug 2026 22:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Roster Moves: Chicago Bears agree to acquire fifth-round pick and DB Clark Phillips III in trade with Atlanta</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Roster Moves: Chicago Bears agree to acquire fifth-round pick and DB Clark Phillips III in trade with Atlanta</description>
-      <link>https://www.chicagobears.com/news/roster-moves-chicago-bears-agree-to-acquire-fifth-round-pick-and-db-clark-phillips-iii-in-trade-with-atlanta</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c9f0b3b70954866cf13b</guid>
-      <pubDate>Sun, 30 Aug 2026 22:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears-Falcons trade grades: Gervon Dexter Sr. bolsters Atlanta&apos;s defensive front, Chicago adds CB depth</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears-Falcons trade grades: Gervon Dexter Sr. bolsters Atlanta&apos;s defensive front, Chicago adds CB depth</description>
-      <link>https://www.cbssports.com/nfl/news/bears-falcons-trade-grades-gervon-dexter-sr/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cd9ffd9134a5dea65f90</guid>
-      <pubDate>Sun, 30 Aug 2026 14:49:09 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
