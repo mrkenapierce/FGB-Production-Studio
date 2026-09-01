@@ -1,4 +1,5 @@
 name: Fetch FGB Episode 32 Source on Oracle
+# Trigger Oracle-side acquisition after workflow registration.
 
 on:
   push:
