@@ -62,10 +62,12 @@ jobs:
           cp -p "$PLAYLIST" "$BACKUP/playlist.ffconcat.before"
 
           echo '=== TEMPORARILY REMOVE EPISODES 14-32 FROM ROTATION ==='
-          python3 - "$PLAYLIST" <<'PY'
+          quarantine_tmp=$(mktemp /tmp/fgb-playlist-remediation.XXXXXX)
+          python3 - "$PLAYLIST" "$quarantine_tmp" <<'PY'
           import re, sys
           from pathlib import Path
           p=Path(sys.argv[1])
+          out_path=Path(sys.argv[2])
           lines=p.read_text().splitlines(True)
           out=[]
           skip_duration=False
@@ -79,11 +81,10 @@ jobs:
                   continue
               skip_duration=False
               out.append(line)
-          tmp=p.with_suffix('.ffconcat.remediation')
-          tmp.write_text(''.join(out))
-          tmp.replace(p)
+          out_path.write_text(''.join(out))
           PY
-          sudo chown fgbears:fgbears "$PLAYLIST"
+          sudo install -o fgbears -g fgbears -m 0644 "$quarantine_tmp" "$PLAYLIST"
+          rm -f "$quarantine_tmp"
           sudo systemctl restart fgbears-live.service
           sleep 5
           systemctl is-active --quiet fgbears-live.service
