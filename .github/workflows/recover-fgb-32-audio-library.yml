@@ -1,4 +1,5 @@
 name: Recover FGB 32-Episode Audio Library
+# 2026-09-01: Re-run to normalize the complete livestream rotation and activate Episode 32.
 
 on:
   push:
