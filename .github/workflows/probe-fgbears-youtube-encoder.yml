@@ -17,36 +17,41 @@ env:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
-      - name: Test Episode 32 with PO-token provider
+      - name: Test existing YouTube authentication for Episode 32
+        env:
+          YOUTUBE_COOKIES: ${{ secrets.YOUTUBE_COOKIES }}
+          YT_COOKIES: ${{ secrets.YT_COOKIES }}
+          YOUTUBE_COOKIES_TXT: ${{ secrets.YOUTUBE_COOKIES_TXT }}
         run: |
           set -Eeuo pipefail
-          python3 -m pip install --disable-pip-version-check --quiet --upgrade yt-dlp bgutil-ytdlp-pot-provider
-          rm -rf /tmp/bgutil-ytdlp-pot-provider
-          git clone --quiet --depth 1 --branch 1.3.2 https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git /tmp/bgutil-ytdlp-pot-provider
-          pushd /tmp/bgutil-ytdlp-pot-provider/server >/dev/null
-          npm ci --silent
-          npx tsc
-          node build/main.js >/tmp/bgutil-provider.log 2>&1 &
-          provider_pid=$!
-          popd >/dev/null
-          trap 'kill "$provider_pid" 2>/dev/null || true; cat /tmp/bgutil-provider.log || true' EXIT
-          for _ in $(seq 1 30); do
-            if ss -ltn | grep -q ':4416 '; then
-              break
-            fi
-            sleep 1
-          done
-          ss -ltn | grep -q ':4416 '
-          python3 -m yt_dlp -v \
+          cookies=''
+          source_name=''
+          if [[ -n "$YOUTUBE_COOKIES" ]]; then
+            cookies="$YOUTUBE_COOKIES"; source_name=YOUTUBE_COOKIES
+          elif [[ -n "$YT_COOKIES" ]]; then
+            cookies="$YT_COOKIES"; source_name=YT_COOKIES
+          elif [[ -n "$YOUTUBE_COOKIES_TXT" ]]; then
+            cookies="$YOUTUBE_COOKIES_TXT"; source_name=YOUTUBE_COOKIES_TXT
+          fi
+          if [[ -z "$cookies" ]]; then
+            echo 'YOUTUBE_COOKIE_SECRET=ABSENT'
+            exit 0
+          fi
+          echo "YOUTUBE_COOKIE_SECRET=PRESENT:$source_name"
+          printf '%s' "$cookies" > /tmp/youtube-cookies.txt
+          chmod 600 /tmp/youtube-cookies.txt
+          python3 -m pip install --disable-pip-version-check --quiet --upgrade yt-dlp
+          python3 -m yt_dlp \
+            --cookies /tmp/youtube-cookies.txt \
             --no-playlist \
             --simulate \
             --js-runtimes node \
-            --extractor-args 'youtube:player_client=mweb' \
             --print '%(id)s|%(title)s' \
             'https://www.youtube.com/watch?v=PUsi9hNXnhw'
-          echo 'EPISODE_32_PO_TOKEN_ACCESS=READY'
+          rm -f /tmp/youtube-cookies.txt
+          echo 'EPISODE_32_AUTHENTICATED_ACCESS=READY'
 
       - name: Configure SSH
         env:
@@ -59,7 +64,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Verify production remains untouched
+      - name: Verify production remains active
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -70,5 +75,5 @@ jobs:
           echo "PLAYLIST_EPISODES=$(grep -c '^file .*FGBears-Episode-' /srv/fgbears-live/playlist.ffconcat || true)"
           echo "PROFILE_COUNT=$(find /srv/fgbears-live/media -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4.audio-profile.json' | wc -l | tr -d ' ')"
           pgrep -af 'normalize|loudnorm|FGBears-Episode' || true
-          echo 'production_untouched=yes'
+          echo 'production_active=yes'
           REMOTE
