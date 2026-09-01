@@ -30,40 +30,40 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Inspect live audio and episode inventory
+      - name: Inspect normalization progress and Episode 32 access
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          echo '--- live audio environment ---'
-          sudo grep -E '^(PODCAST_AUDIO_FILTER|OUTPUT_FPS|AD_OVERLAY_FPS|CRAWL_OVERLAY_FPS)=' /etc/fgbears-live/stream.env || true
+          MEDIA=/srv/fgbears-live/media
+          echo "LIVE=$(systemctl is-active fgbears-live.service || true)"
+          echo "RELAY=$(systemctl is-active fgbears-youtube-relay.service || true)"
+          echo "PLAYLIST_EPISODES=$(grep -c '^file .*FGBears-Episode-' /srv/fgbears-live/playlist.ffconcat || true)"
+          echo "PROFILE_COUNT=$(find "$MEDIA" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4.audio-profile.json' | wc -l | tr -d ' ')"
+          echo '--- PROFILE EPISODES ---'
+          find "$MEDIA" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4.audio-profile.json' -printf '%f\n' | sort -V
+          echo '--- NORMALIZATION PROCESSES ---'
+          pgrep -af 'normalize|loudnorm|FGBears-Episode' || true
+          echo '--- EPISODE 32 STORED SOURCE ---'
+          if [[ -s /home/ubuntu/fgbears-upload/FGBears-Episode-32.mp4 ]]; then
+            echo 'EPISODE_32_SOURCE=YES'
+          else
+            echo 'EPISODE_32_SOURCE=NO'
+          fi
 
-          service_pid=$(systemctl show -p MainPID --value fgbears-live.service)
-          ffmpeg_pid=$(pgrep -P "$service_pid" -x ffmpeg | head -n 1)
-          test -n "$ffmpeg_pid"
-          echo "service_pid=$service_pid ffmpeg_pid=$ffmpeg_pid"
-          echo '--- active ffmpeg audio-related args ---'
-          sudo tr '\0' '\n' < "/proc/$ffmpeg_pid/cmdline" | awk 'prev=="-af"{print "-af"; print; prev=""; next} prev=="-c:a"{print "-c:a"; print; prev=""; next} prev=="-b:a"{print "-b:a"; print; prev=""; next} prev=="-ar"{print "-ar"; print; prev=""; next} prev=="-ac"{print "-ac"; print; prev=""; next} {if($0=="-af"||$0=="-c:a"||$0=="-b:a"||$0=="-ar"||$0=="-ac") prev=$0}' || true
-
-          echo '--- recent live service audio/PTS messages ---'
-          sudo journalctl -u fgbears-live.service --since '-20 min' --no-pager | grep -Ei 'audio|aac|timestamp|non.monoton|dts|pts|queue|buffer|drop|error|warning' | tail -n 100 || true
-
-          echo '--- production playlist ---'
-          sudo cat /srv/fgbears-live/playlist.ffconcat || true
-
-          echo '--- recent media files ---'
-          sudo find /srv/fgbears-live -maxdepth 3 -type f \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.mkv' -o -iname '*.m4v' \) -printf '%TY-%Tm-%Td %TH:%TM:%TS %s %p\n' 2>/dev/null | sort -r | head -n 30 || true
-
-          echo '--- playlist source probes ---'
-          while IFS= read -r line; do
-            case "$line" in
-              file\ *)
-                p=${line#file }
-                p=${p#\'}; p=${p%\'}
-                echo "FILE=$p"
-                sudo ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,channel_layout,bit_rate -show_entries format=duration -of default=noprint_wrappers=1 "$p" || true
-                ;;
-            esac
-          done < /srv/fgbears-live/playlist.ffconcat
+          echo '--- EPISODE 32 YOUTUBE RESOLUTION PROBE ---'
+          tool=/tmp/yt-dlp-fgb-probe
+          curl -fsSL --retry 2 https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o "$tool"
+          chmod +x "$tool"
+          access=BLOCKED
+          for client in web_embedded web_safari tv ios android_vr; do
+            echo "TRY_CLIENT=$client"
+            if "$tool" --no-playlist --simulate --js-runtimes node --extractor-args "youtube:player_client=${client}" --print '%(id)s|%(title)s' 'https://www.youtube.com/watch?v=PUsi9hNXnhw'; then
+              access=READY
+              break
+            fi
+          done
+          echo "EPISODE_32_YOUTUBE_ACCESS=$access"
+          rm -f "$tool"
           REMOTE
