@@ -1,5 +1,5 @@
 name: Recover FGB 32-Episode Audio Library
-# 2026-09-01: Re-run to normalize the complete livestream rotation and activate Episode 32.
+# 2026-09-01: Acquire Episode 32 on Oracle, normalize it offline, then activate only after all 32 assets validate.
 
 on:
   push:
@@ -17,7 +17,6 @@ concurrency:
 
 env:
   ORACLE_USER: ubuntu
-  EPISODE_32_URL: https://www.youtube.com/watch?v=PUsi9hNXnhw
 
 jobs:
   recover:
@@ -36,42 +35,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Fetch owned Episode 32 source
-        run: |
-          set -Eeuo pipefail
-          python3 -m pip install --disable-pip-version-check --quiet yt-dlp
-          rm -rf /tmp/fgb-episode32
-          mkdir -p /tmp/fgb-episode32
-          ok=0
-          for client in web_embedded web_safari; do
-            echo "Trying YouTube client: $client"
-            rm -f /tmp/fgb-episode32/FGBears-Episode-32.source.*
-            if python3 -m yt_dlp \
-              --no-playlist \
-              --js-runtimes node \
-              --extractor-args "youtube:player_client=${client}" \
-              --merge-output-format mp4 \
-              -f 'bv*[height<=720]+ba/b[height<=720]' \
-              -o '/tmp/fgb-episode32/FGBears-Episode-32.source.%(ext)s' \
-              "$EPISODE_32_URL"; then
-              ok=1
-              break
-            fi
-          done
-          [[ "$ok" -eq 1 ]]
-          source_file=$(find /tmp/fgb-episode32 -maxdepth 1 -type f -name 'FGBears-Episode-32.source.*' ! -name '*.part' | head -n1)
-          test -s "$source_file"
-          ffprobe -v error -select_streams v:0 -show_entries stream=index -of csv=p=0 "$source_file" | grep -q .
-          ffprobe -v error -select_streams a:0 -show_entries stream=index -of csv=p=0 "$source_file" | grep -q .
-          mv "$source_file" /tmp/FGBears-Episode-32.source.mp4
-
-      - name: Transfer Episode 32 source to Oracle
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          scp -i ~/.ssh/oracle_key /tmp/FGBears-Episode-32.source.mp4 "$ORACLE_USER@$ORACLE_HOST:/tmp/FGBears-Episode-32.source.mp4"
-
-      - name: Complete normalization and verify production
+      - name: Acquire Episode 32, complete normalization, and verify production
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -79,15 +43,64 @@ jobs:
           set -Eeuo pipefail
           REPO=/tmp/fgb-32-recovery
           MEDIA_DIR=/srv/fgbears-live/media
+          UPLOAD_DIR=/home/ubuntu/fgbears-upload
           WORK_DIR=/srv/fgbears-live/.audio-recovery-32
           PLAYLIST=/srv/fgbears-live/playlist.ffconcat
           PROFILE=fgb-podcast-v1
-          SOURCE32=/tmp/FGBears-Episode-32.source.mp4
+          SOURCE32="$UPLOAD_DIR/FGBears-Episode-32.mp4"
+          EPISODE_32_URL='https://www.youtube.com/watch?v=PUsi9hNXnhw'
+          YTDLP=/tmp/yt-dlp-fgb32
+          DOWNLOAD_DIR=/tmp/fgb-episode32-download
 
+          # Production preflight. Nothing below changes the live playlist until
+          # Episode 32 exists and every normalized asset has passed admission.
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet fgbears-youtube-relay.service
           sudo grep -q '^PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0$' /etc/fgbears-live/stream.env
           ! sudo grep -Eq '^(X_|INSTAGRAM_|FACEBOOK_)' /etc/fgbears-live/stream.env
+
+          mkdir -p "$UPLOAD_DIR"
+          if [[ ! -s "$SOURCE32" ]]; then
+            echo 'EPISODE_32_SOURCE=ACQUIRE_ON_ORACLE'
+            rm -rf "$DOWNLOAD_DIR"
+            mkdir -p "$DOWNLOAD_DIR"
+            curl -fsSL --retry 3 --retry-delay 2 \
+              https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+              -o "$YTDLP"
+            chmod +x "$YTDLP"
+            "$YTDLP" --version
+
+            ok=0
+            for client in web_embedded web_safari tv ios android_vr; do
+              echo "EPISODE_32_TRY_CLIENT=$client"
+              rm -f "$DOWNLOAD_DIR"/source.* "$DOWNLOAD_DIR"/*.part
+              if "$YTDLP" \
+                --no-playlist \
+                --js-runtimes node \
+                --extractor-args "youtube:player_client=${client}" \
+                --merge-output-format mp4 \
+                -f 'bv*[height<=720]+ba/b[height<=720]' \
+                -o "$DOWNLOAD_DIR/source.%(ext)s" \
+                "$EPISODE_32_URL"; then
+                ok=1
+                break
+              fi
+            done
+            [[ "$ok" -eq 1 ]] || { echo 'EPISODE_32_SOURCE=BLOCKED_BY_YOUTUBE' >&2; exit 72; }
+            source_download=$(find "$DOWNLOAD_DIR" -maxdepth 1 -type f -name 'source.*' ! -name '*.part' -print -quit)
+            test -s "$source_download"
+            ffprobe -v error -select_streams v:0 -show_entries stream=index -of csv=p=0 "$source_download" | grep -q .
+            ffprobe -v error -select_streams a:0 -show_entries stream=index -of csv=p=0 "$source_download" | grep -q .
+            install -m 0644 "$source_download" "$SOURCE32"
+            rm -rf "$DOWNLOAD_DIR" "$YTDLP"
+            echo 'EPISODE_32_SOURCE=READY'
+          else
+            echo 'EPISODE_32_SOURCE=ALREADY_PRESENT'
+          fi
+
+          # Verify Episode 32 source before touching production media.
+          ffprobe -v error -select_streams v:0 -show_entries stream=index -of csv=p=0 "$SOURCE32" | grep -q .
+          ffprobe -v error -select_streams a:0 -show_entries stream=index -of csv=p=0 "$SOURCE32" | grep -q .
 
           rm -rf "$REPO"
           git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git "$REPO"
@@ -123,25 +136,27 @@ jobs:
               nice -n 10 bash "$NORMALIZER" "$input" "$output"
             fi
             valid_profile "$output" "${output}.audio-profile.json"
-            echo "VERIFIED normalized asset: $base"
+            echo "VERIFIED_NORMALIZED=$base"
           }
 
+          # Normalize Episode 32 into staging first; only a verified file can be promoted.
           target32="$MEDIA_DIR/FGBears-Episode-32.mp4"
           if ! valid_profile "$target32" "${target32}.audio-profile.json"; then
-            test -s "$SOURCE32"
             out32="$WORK_DIR/FGBears-Episode-32.mp4"
             normalize_asset "$SOURCE32" "$out32" FGBears-Episode-32.mp4
             promote "$out32" "$target32"
           fi
 
-          mapfile -d '' media_files < <(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4' -print0 | sort -zV)
+          # If the preceding 14-31 job already completed, these will all skip.
+          # Otherwise this provides a second safe admission gate for any remaining asset.
+          mapfile -d '' media_files < <(find "$MEDIA_DIR" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4' -print0 | sort -zV)
           [[ ${#media_files[@]} -eq 32 ]] || { echo "Expected 32 production MP4 files, found ${#media_files[@]}" >&2; exit 65; }
 
           for file in "${media_files[@]}"; do
             marker="${file}.audio-profile.json"
             base=$(basename "$file")
             if valid_profile "$file" "$marker"; then
-              echo "SKIP verified production asset: $base"
+              echo "SKIP_VERIFIED=$base"
               continue
             fi
             output="$WORK_DIR/$base"
@@ -150,12 +165,13 @@ jobs:
           done
 
           bash "$VALIDATOR" "$MEDIA_DIR"
-          marker_count=$(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4.audio-profile.json' | wc -l | tr -d ' ')
+          marker_count=$(find "$MEDIA_DIR" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4.audio-profile.json' | wc -l | tr -d ' ')
           [[ "$marker_count" -eq 32 ]]
           for n in $(seq -w 1 32); do
             test -s "$MEDIA_DIR/FGBears-Episode-${n}.mp4"
           done
 
+          # Install the same enforced ingestion path for all future episodes.
           sudo install -m 0755 "$REPO/services/fgbears-live/bin/normalize-library.sh" /usr/local/bin/fgbears-normalize
           sudo install -m 0755 "$REPO/services/fgbears-live/bin/normalize-resilient.sh" /usr/local/bin/fgbears-normalize-resilient
           sudo install -m 0755 "$VALIDATOR" /usr/local/bin/fgbears-validate
@@ -170,9 +186,9 @@ jobs:
           grep -q "FGBears-Episode-32.mp4" "$PLAYLIST"
 
           echo '=== 32-EPISODE PROFILE SUMMARY ==='
-          jq -s '{files:length,min_i_lufs:(map(.measured_i_lufs)|min),max_i_lufs:(map(.measured_i_lufs)|max),max_true_peak_dbtp:(map(.measured_tp_dbtp)|max)}' "$MEDIA_DIR"/*.mp4.audio-profile.json
+          jq -s '{files:length,min_i_lufs:(map(.measured_i_lufs)|min),max_i_lufs:(map(.measured_i_lufs)|max),max_true_peak_dbtp:(map(.measured_tp_dbtp)|max)}' "$MEDIA_DIR"/FGBears-Episode-*.mp4.audio-profile.json
 
-          # Activate once, only after all 32 assets have passed admission.
+          # One controlled activation, only after every asset and the playlist pass validation.
           sudo systemctl restart fgbears-live.service
           for _ in $(seq 1 60); do
             if systemctl is-active --quiet fgbears-live.service && systemctl is-active --quiet fgbears-youtube-relay.service; then
@@ -201,7 +217,6 @@ jobs:
           second_epoch=$(date +%s%N)
           awk -v m1="$first_media" -v m2="$second_media" -v f1="$first_frame" -v f2="$second_frame" -v e1="$first_epoch" -v e2="$second_epoch" -v dropped="${dropped:-0}" 'BEGIN {wall=(e2-e1)/1000000000;program=(m2-m1)/1000000;ratio=program/wall;fps=(f2-f1)/wall;printf "program=%.3fs wall=%.3fs ratio=%.3fx fps=%.2f dropped=%d\n",program,wall,ratio,fps,dropped;if(ratio<0.95||fps<28.5||dropped!=0)exit 1}'
 
-          rm -f "$SOURCE32"
-          rm -rf "$WORK_DIR" "$REPO" /srv/fgbears-live/.audio-migration
+          rm -rf "$WORK_DIR" "$REPO" "$DOWNLOAD_DIR"
           echo 'FGB_32_EPISODE_LIBRARY=SUCCESS'
           REMOTE
