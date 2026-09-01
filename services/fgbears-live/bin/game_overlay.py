@@ -403,7 +403,7 @@ def render_game_screen(game: dict[str, Any], now: float | None = None) -> Image.
 
     standings = game.get("standings") if isinstance(game.get("standings"), list) else []
     if phase == "scoreboard" or not game.get("prompt"):
-        draw.text((x1 + 24, y1 + 105), "ZIP STANDINGS", font=BASE.font(31, bold=True), fill=BASE.WHITE)
+        draw.text((x1 + 24, y1 + 105), "GAME STANDINGS", font=BASE.font(31, bold=True), fill=BASE.WHITE)
         y = y1 + 155
         for rank, row in enumerate(standings[:5], 1):
             if not isinstance(row, dict):
