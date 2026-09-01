@@ -1,0 +1,219 @@
+name: Remediate FGB Episodes 14-32
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/remediate-fgb-episodes-14-32.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgb-remediate-episodes-14-32
+  cancel-in-progress: false
+
+jobs:
+  remediate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Quarantine, rebuild, verify, and promote Episodes 14-32
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+
+          MEDIA=/srv/fgbears-live/media
+          PLAYLIST=/srv/fgbears-live/playlist.ffconcat
+          ROOT=/srv/fgbears-live/remediation-14-32
+          STAGE="$ROOT/stage"
+          BACKUP="$ROOT/backup-$(date -u +%Y%m%dT%H%M%SZ)"
+          REPO=/tmp/fgb-remediation-repo
+          PROFILE=fgb-podcast-v1
+
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          sudo install -d -o "$USER" -g "$USER" -m 0755 "$ROOT" "$STAGE" "$BACKUP"
+
+          echo '=== PRESERVE CURRENT EPISODES 14-32 ==='
+          for n in $(seq -w 14 32); do
+            f="$MEDIA/FGBears-Episode-${n}.mp4"
+            m="${f}.audio-profile.json"
+            [[ -s "$f" ]] && cp -p "$f" "$BACKUP/"
+            [[ -s "$m" ]] && cp -p "$m" "$BACKUP/"
+          done
+          cp -p "$PLAYLIST" "$BACKUP/playlist.ffconcat.before"
+
+          echo '=== TEMPORARILY REMOVE EPISODES 14-32 FROM ROTATION ==='
+          python3 - "$PLAYLIST" <<'PY'
+          import re, sys
+          from pathlib import Path
+          p=Path(sys.argv[1])
+          lines=p.read_text().splitlines(True)
+          out=[]
+          skip_duration=False
+          pat=re.compile(r"FGBears-Episode-(1[4-9]|2[0-9]|3[0-2])\.mp4")
+          for line in lines:
+              if line.startswith('file ') and pat.search(line):
+                  skip_duration=True
+                  continue
+              if skip_duration and line.startswith('duration '):
+                  skip_duration=False
+                  continue
+              skip_duration=False
+              out.append(line)
+          tmp=p.with_suffix('.ffconcat.remediation')
+          tmp.write_text(''.join(out))
+          tmp.replace(p)
+          PY
+          sudo chown fgbears:fgbears "$PLAYLIST"
+          sudo systemctl restart fgbears-live.service
+          sleep 5
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          ! grep -Eq 'FGBears-Episode-(1[4-9]|2[0-9]|3[0-2])\.mp4' "$PLAYLIST"
+          echo 'ROTATION_14_32=QUARANTINED'
+
+          rm -rf "$REPO"
+          git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git "$REPO"
+          NORMALIZER="$REPO/services/fgbears-live/bin/normalize-library.sh"
+          chmod +x "$NORMALIZER"
+
+          valid_profile() {
+            local asset=$1 marker=$2 sha
+            [[ -s "$asset" && -s "$marker" ]] || return 1
+            sha=$(sha256sum "$asset" | awk '{print $1}')
+            jq -e --arg profile "$PROFILE" --arg sha "$sha" '
+              .profile == $profile and .sha256 == $sha and
+              ((.measured_i_lufs + 14) | if . < 0 then -. else . end) <= 0.8 and
+              .measured_tp_dbtp <= -1.0
+            ' "$marker" >/dev/null 2>&1
+          }
+
+          normalize_one() {
+            local src=$1 out=$2 ep=$3 tp rc dyn
+            rm -f "$out" "${out}.audio-profile.json" "${out%.mp4}.partial.mp4"
+            for tp in -1.5 -2.5 -3.5 -5.0; do
+              echo "EPISODE=$ep NORMALIZE_TARGET_TP=$tp SOURCE=$src"
+              rm -f "$out" "${out}.audio-profile.json" "${out%.mp4}.partial.mp4"
+              rc=0
+              if [[ "$tp" == "-1.5" ]]; then
+                if command -v ionice >/dev/null 2>&1; then
+                  nice -n 10 ionice -c2 -n7 bash "$NORMALIZER" "$src" "$out" || rc=$?
+                else
+                  nice -n 10 bash "$NORMALIZER" "$src" "$out" || rc=$?
+                fi
+              else
+                dyn="$ROOT/normalize-dynamic-${ep}.sh"
+                sed 's/linear=true:print_format=summary/linear=false:print_format=summary/' "$NORMALIZER" > "$dyn"
+                chmod +x "$dyn"
+                if command -v ionice >/dev/null 2>&1; then
+                  env FGB_LOUDNESS_TARGET_TP="$tp" nice -n 10 ionice -c2 -n7 bash "$dyn" "$src" "$out" || rc=$?
+                else
+                  env FGB_LOUDNESS_TARGET_TP="$tp" nice -n 10 bash "$dyn" "$src" "$out" || rc=$?
+                fi
+              fi
+              if (( rc == 0 )) && valid_profile "$out" "${out}.audio-profile.json"; then
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          echo '=== SOURCE INVENTORY AND STRICT NORMALIZATION ==='
+          : > "$ROOT/results.tsv"
+          for n in $(seq -w 14 32); do
+            orig="/home/ubuntu/fgbears-upload/FGBears-Episode-${n}.mp4"
+            hq="/srv/fgbears-live/hq-audio-staging/FGBears-Episode-${n}.mp4"
+            src=''
+            source_kind=''
+            if [[ -s "$orig" ]]; then
+              src="$orig"; source_kind=ORIGINAL_MASTER
+            elif [[ -s "$hq" ]]; then
+              src="$hq"; source_kind=HQ_STAGING
+            fi
+
+            if [[ -z "$src" ]]; then
+              printf '%s\tSOURCE_MISSING\tNONE\n' "$n" | tee -a "$ROOT/results.tsv"
+              continue
+            fi
+
+            out="$STAGE/FGBears-Episode-${n}.mp4"
+            if normalize_one "$src" "$out" "$n"; then
+              printf '%s\tPASS\t%s\n' "$n" "$source_kind" | tee -a "$ROOT/results.tsv"
+            else
+              printf '%s\tNORMALIZATION_FAILED\t%s\n' "$n" "$source_kind" | tee -a "$ROOT/results.tsv"
+            fi
+          done
+
+          echo '=== PROMOTE ONLY STRICTLY VERIFIED REPLACEMENTS ==='
+          promoted=0
+          for n in $(seq -w 14 32); do
+            out="$STAGE/FGBears-Episode-${n}.mp4"
+            marker="${out}.audio-profile.json"
+            target="$MEDIA/FGBears-Episode-${n}.mp4"
+            target_marker="${target}.audio-profile.json"
+            if valid_profile "$out" "$marker"; then
+              sudo install -o fgbears -g fgbears -m 0644 "$out" "$target"
+              sudo install -o fgbears -g fgbears -m 0644 "$marker" "$target_marker"
+              valid_profile "$target" "$target_marker"
+              promoted=$((promoted+1))
+              echo "EPISODE_${n}_PROMOTED=YES"
+            else
+              echo "EPISODE_${n}_PROMOTED=NO"
+            fi
+          done
+
+          echo '=== REBUILD ROTATION FROM VERIFIED PRODUCTION ASSETS ==='
+          tmp="$ROOT/playlist.new"
+          printf 'ffconcat version 1.0\n' > "$tmp"
+          verified=0
+          for n in $(seq -w 1 32); do
+            f="$MEDIA/FGBears-Episode-${n}.mp4"
+            m="${f}.audio-profile.json"
+            if valid_profile "$f" "$m"; then
+              printf "file '%s'\n" "$f" >> "$tmp"
+              verified=$((verified+1))
+            fi
+          done
+          sudo install -o fgbears -g fgbears -m 0644 "$tmp" "$PLAYLIST"
+          sudo systemctl restart fgbears-live.service
+          sleep 5
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+
+          echo '=== FINAL STRICT PROFILE STATUS ==='
+          for n in $(seq -w 1 32); do
+            f="$MEDIA/FGBears-Episode-${n}.mp4"
+            m="${f}.audio-profile.json"
+            if valid_profile "$f" "$m"; then
+              echo "EPISODE_${n}=PASS"
+            else
+              echo "EPISODE_${n}=NOT_VERIFIED"
+            fi
+          done
+          echo "STRICT_VERIFIED_COUNT=$verified"
+          echo "NEWLY_PROMOTED_14_32=$promoted"
+          echo "BACKUP_DIR=$BACKUP"
+          echo '=== REMEDIATION RESULTS ==='
+          cat "$ROOT/results.tsv"
+
+          rm -rf "$REPO"
+          REMOTE
