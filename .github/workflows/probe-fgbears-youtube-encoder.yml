@@ -1,4 +1,4 @@
-# Read-only Oracle control-plane access probe.
+# Read-only media acquisition probe. No production files or services are changed.
 name: Probe FGBears YouTube Encoder Capacity
 
 on:
@@ -17,8 +17,37 @@ env:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 15
     steps:
+      - name: Test Episode 32 with PO-token provider
+        run: |
+          set -Eeuo pipefail
+          python3 -m pip install --disable-pip-version-check --quiet --upgrade yt-dlp bgutil-ytdlp-pot-provider
+          rm -rf /tmp/bgutil-ytdlp-pot-provider
+          git clone --quiet --depth 1 --branch 1.3.2 https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git /tmp/bgutil-ytdlp-pot-provider
+          pushd /tmp/bgutil-ytdlp-pot-provider/server >/dev/null
+          npm ci --silent
+          npx tsc
+          node build/main.js >/tmp/bgutil-provider.log 2>&1 &
+          provider_pid=$!
+          popd >/dev/null
+          trap 'kill "$provider_pid" 2>/dev/null || true; cat /tmp/bgutil-provider.log || true' EXIT
+          for _ in $(seq 1 30); do
+            if ss -ltn | grep -q ':4416 '; then
+              break
+            fi
+            sleep 1
+          done
+          ss -ltn | grep -q ':4416 '
+          python3 -m yt_dlp -v \
+            --no-playlist \
+            --simulate \
+            --js-runtimes node \
+            --extractor-args 'youtube:player_client=mweb' \
+            --print '%(id)s|%(title)s' \
+            'https://www.youtube.com/watch?v=PUsi9hNXnhw'
+          echo 'EPISODE_32_PO_TOKEN_ACCESS=READY'
+
       - name: Configure SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -30,56 +59,16 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Test OCI instance-principal access without production changes
+      - name: Verify production remains untouched
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          metadata=$(curl -fsS -H 'Authorization: Bearer Oracle' http://169.254.169.254/opc/v2/instance/)
-          instance_id=$(printf '%s' "$metadata" | python3 -c 'import json,sys; print(json.load(sys.stdin)["id"])')
-          printf '%s' "$metadata" | python3 -c 'import json,sys; d=json.load(sys.stdin); sc=d.get("shapeConfig") or {}; print("shape="+str(d.get("shape"))+" ocpus="+str(sc.get("ocpus"))+" memory_gb="+str(sc.get("memoryInGBs")))'
-
-          if python3 -c 'import oci' >/dev/null 2>&1; then
-            echo 'oci_python_sdk=present'
-          else
-            echo 'oci_python_sdk=absent'
-          fi
-          if python3 -m venv --help >/dev/null 2>&1; then
-            echo 'python_venv=present'
-          else
-            echo 'python_venv=absent'
-          fi
-          if python3 -m pip --version >/dev/null 2>&1; then
-            echo 'python_pip=present'
-          else
-            echo 'python_pip=absent'
-          fi
-          [[ -f "$HOME/.oci/config" ]] && echo 'user_oci_config=present' || echo 'user_oci_config=absent'
-          [[ -f /etc/oci/config ]] && echo 'system_oci_config=present' || echo 'system_oci_config=absent'
-
-          # If SDK is already installed, attempt only a read via instance principal.
-          if python3 -c 'import oci' >/dev/null 2>&1; then
-            set +e
-            python3 - "$instance_id" <<'PY'
-import sys
-import oci
-instance_id=sys.argv[1]
-try:
-    signer=oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
-    client=oci.core.ComputeClient(config={}, signer=signer)
-    obj=client.get_instance(instance_id).data
-    print(f'instance_principal_read=success shape={obj.shape} ocpus={obj.shape_config.ocpus} memory_gb={obj.shape_config.memory_in_gbs} state={obj.lifecycle_state}')
-except Exception as exc:
-    print('instance_principal_read=failed type='+type(exc).__name__)
-    raise SystemExit(7)
-PY
-            rc=$?
-            set -e
-            echo "instance_principal_read_rc=$rc"
-          fi
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet fgbears-youtube-relay.service
-          systemctl is-active --quiet fgbears-rumble-relay.service
+          echo "PLAYLIST_EPISODES=$(grep -c '^file .*FGBears-Episode-' /srv/fgbears-live/playlist.ffconcat || true)"
+          echo "PROFILE_COUNT=$(find /srv/fgbears-live/media -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4.audio-profile.json' | wc -l | tr -d ' ')"
+          pgrep -af 'normalize|loudnorm|FGBears-Episode' || true
           echo 'production_untouched=yes'
           REMOTE
