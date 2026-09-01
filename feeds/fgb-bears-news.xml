@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 01 Sep 2026 01:54:51 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 01 Sep 2026 06:58:53 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -20,16 +20,6 @@
     </item>
 
     <item>
-      <title>2026 Chicago Bears Practice Squad Rules and Rumor Tracker</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 2026 Chicago Bears Practice Squad Rules and Rumor Tracker</description>
-      <link>https://sports.yahoo.com/articles/2026-chicago-bears-practice-squad-153000706.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-479f6efeedcf493e3dd3</guid>
-      <pubDate>Mon, 31 Aug 2026 22:39:58 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Bears&apos; Jaylon Jones: Placed on injured reserve</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Jaylon Jones: Placed on injured reserve</description>
       <link>https://www.cbssports.com/fantasy/football/news/bears-jaylon-jones-placed-on-injured-reserve-635656/</link>
@@ -37,6 +27,16 @@
       <pubDate>Mon, 31 Aug 2026 17:08:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears Fans Divided on GM Ryan Poles After Key Roster Cuts</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Fans Divided on GM Ryan Poles After Key Roster Cuts</description>
+      <link>https://sports.yahoo.com/articles/bears-fans-divided-gm-ryan-045013203.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-84a4fb72bc4ec6b0f105</guid>
+      <pubDate>Mon, 31 Aug 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
