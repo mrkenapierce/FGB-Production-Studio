@@ -1,5 +1,5 @@
 name: Resume FGB Audio 14-31
-# 2026-09-01: Resume offline normalization for the currently unprofiled episodes.
+# 2026-09-01: Run the resilient offline normalizer through -3/-6/-9 dBTP fallbacks as needed.
 
 on:
   push:
