@@ -1,4 +1,5 @@
 name: Resume FGB Audio Library Migration
+# 2026-09-01: Normalize the current 31-episode production library before Episode 32 admission.
 
 on:
   push:
@@ -107,9 +108,6 @@ jobs:
               return 0
             fi
 
-            # Rare AAC/intersample overshoot fallback. Re-run loudnorm in its
-            # dynamic mode with additional true-peak headroom. This remains
-            # entirely offline and never enters the real-time encoder path.
             echo "Primary normalization rejected for $base (rc=$rc); retrying offline with dynamic loudnorm and -3.0 dBTP target"
             rm -f "$output" "${output}.audio-profile.json" "${output%.mp4}.partial.mp4"
             DYNAMIC_NORMALIZER="$WORK_DIR/normalize-dynamic.sh"
