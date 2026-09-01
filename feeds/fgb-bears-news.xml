@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 01 Sep 2026 19:41:05 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 01 Sep 2026 22:01:26 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>What is your grade and assessment of the Chicago Bears Offseason?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: What is your grade and assessment of the Chicago Bears Offseason?</description>
+      <link>https://sports.yahoo.com/articles/grade-assessment-chicago-bears-offseason-200000676.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a4947e8a936f35072a2e</guid>
+      <pubDate>Tue, 01 Sep 2026 20:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>8 things we learned from Bears GM Ryan Poles</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 8 things we learned from Bears GM Ryan Poles</description>
+      <link>https://www.chicagobears.com/news/8-things-we-learned-from-bears-gm-ryan-poles-53-man-roster-2026</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-347a15bb885fa51c4978</guid>
+      <pubDate>Tue, 01 Sep 2026 19:41:51 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
 
     <item>
       <title>Chicago Bears Sign 3 More Players to 2026 Practice Squad</title>
@@ -30,16 +50,6 @@
     </item>
 
     <item>
-      <title>Ryan Poles: I don&apos;t know if Kyler Gordon will play for the Bears again</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ryan Poles: I don&apos;t know if Kyler Gordon will play for the Bears again</description>
-      <link>https://sports.yahoo.com/articles/ryan-poles-dont-know-kyler-184259632.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-725519e818c9e0d726d4</guid>
-      <pubDate>Tue, 01 Sep 2026 18:42:59 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Betting the Bears in 2026: See how Chicago&apos;s win total, Super Bowl odds are trending and our best bets</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Betting the Bears in 2026: See how Chicago&apos;s win total, Super Bowl odds are trending and our best bets</description>
       <link>https://www.cbssports.com/betting/news/betting-the-bears-in-2026-see-how-chicagos-win-total-super-bowl-odds-are-trending-and-our-best-bets/</link>
@@ -50,41 +60,31 @@
     </item>
 
     <item>
-      <title>GM has &apos;hope&apos; CB Kyler Gordon (calf) plays with Bears again</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: GM has &apos;hope&apos; CB Kyler Gordon (calf) plays with Bears again</description>
-      <link>https://www.espn.com/nfl/story/_/id/49795043/gm-hope-cb-kyler-gordon-calf-plays-bears-again</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-83871afd57358bd3c94a</guid>
-      <pubDate>Tue, 01 Sep 2026 11:22:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Kyle Monangai Injury Update From Ben Johnson Puts Bears RB&apos;s Week 1 Status in Doubt</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyle Monangai Injury Update From Ben Johnson Puts Bears RB&apos;s Week 1 Status in Doubt</description>
-      <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-following-chicago-bears-53-man-roster-cuts</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a5e579866adf0d49c71f</guid>
-      <pubDate>Tue, 01 Sep 2026 11:00:00 GMT</pubDate>
+      <title>Luther Burden Injury Update From Bears Brings More Optimism For Week 1 Status</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Luther Burden Injury Update From Bears Brings More Optimism For Week 1 Status</description>
+      <link>https://www.si.com/nfl/bears/onsi/luther-burden-injury-update-from-bears-brings-more-optimism-for-week-1-status</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-48b0004b1aacbc4f30f8</guid>
+      <pubDate>Tue, 01 Sep 2026 13:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Ryan Poles: I don’t know if Kyler Gordon will play for the Bears again</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Ryan Poles: I don’t know if Kyler Gordon will play for the Bears again</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/ryan-poles-i-dont-know-if-kyler-gordon-will-play-for-the-bears-again</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-35c448c21d8249992ae6</guid>
-      <pubDate>Tue, 01 Sep 2026 07:42:00 GMT</pubDate>
+      <title>Could Kyler Gordon miss the entire season? Bears don’t rule it out</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Could Kyler Gordon miss the entire season? Bears don’t rule it out</description>
+      <link>https://www.nytimes.com/athletic/7556241/2026/09/01/bears-kyler-gordon-2026-season-status/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-72f8a8a8680c18954496</guid>
+      <pubDate>Tue, 01 Sep 2026 12:09:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
-      <title>Skyler Thomas&apos; Elite Grade Might Not Save Him From the Bears&apos; Roster Crunch</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Skyler Thomas&apos; Elite Grade Might Not Save Him From the Bears&apos; Roster Crunch</description>
-      <link>https://www.si.com/nfl/bears/onsi/skyler-thomas-bears-53-man-roster-pff-grades</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-47cf32836af0cca31249</guid>
-      <pubDate>Tue, 01 Sep 2026 07:30:00 GMT</pubDate>
+      <title>Ryan Poles Defines Bears&apos; Trade of Gervon Dexter as Ideal Timing</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ryan Poles Defines Bears&apos; Trade of Gervon Dexter as Ideal Timing</description>
+      <link>https://www.si.com/nfl/bears/onsi/ryan-poles-defines-bears-trade-of-gervon-dexter-as-ideal-timing</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-eb83320d43bff2ae2208</guid>
+      <pubDate>Tue, 01 Sep 2026 12:07:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
