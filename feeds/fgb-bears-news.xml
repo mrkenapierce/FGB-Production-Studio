@@ -5,38 +5,38 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 01 Sep 2026 06:58:53 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 01 Sep 2026 12:23:39 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears Players Who Starting The Regular Season on PUP List</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Players Who Starting The Regular Season on PUP List</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-players-starting-regular-110042149.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ca50e120aa2e339b1a15</guid>
+      <pubDate>Tue, 01 Sep 2026 04:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Chicago Bears Have Signed 11 Players to Their Initial 2026 Practice Squad</title>
       <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Have Signed 11 Players to Their Initial 2026 Practice Squad</description>
       <link>https://sports.yahoo.com/articles/chicago-bears-signed-11-players-000535834.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-e9df245fc683c4bf1e72</guid>
-      <pubDate>Tue, 01 Sep 2026 00:05:35 GMT</pubDate>
+      <pubDate>Tue, 01 Sep 2026 04:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears&apos; Jaylon Jones: Placed on injured reserve</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Jaylon Jones: Placed on injured reserve</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-jaylon-jones-placed-on-injured-reserve-635656/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0d42b4fb50dcc7a17c84</guid>
-      <pubDate>Mon, 31 Aug 2026 17:08:00 GMT</pubDate>
+      <title>Jordan van den Berg&apos;s Rookie Bears Task Now Includes Rare Pressure</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Jordan van den Berg&apos;s Rookie Bears Task Now Includes Rare Pressure</description>
+      <link>https://www.si.com/nfl/bears/onsi/jordan-van-den-berg-rookie-task-includes-rare-pressure</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-eb6861fea217d07af3af</guid>
+      <pubDate>Tue, 01 Sep 2026 04:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears Fans Divided on GM Ryan Poles After Key Roster Cuts</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Fans Divided on GM Ryan Poles After Key Roster Cuts</description>
-      <link>https://sports.yahoo.com/articles/bears-fans-divided-gm-ryan-045013203.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-84a4fb72bc4ec6b0f105</guid>
-      <pubDate>Mon, 31 Aug 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -50,36 +50,6 @@
     </item>
 
     <item>
-      <title>What the Final Chicago Bears Roster Says About the Front Office&apos;s Vision</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: What the Final Chicago Bears Roster Says About the Front Office&apos;s Vision</description>
-      <link>https://www.si.com/nfl/bears/onsi/what-the-final-chicago-bears-roster-says-about-the-front-office-s-vision</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3d8fc560419ba60f2570</guid>
-      <pubDate>Mon, 31 Aug 2026 12:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Noah Sewell: Moved to reserve/PUP list</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Noah Sewell: Moved to reserve/PUP list</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-noah-sewell-moved-to-reservepup-list/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-00a775c822d509c47d2a</guid>
-      <pubDate>Mon, 31 Aug 2026 09:32:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears DT Jordan van den Berg makes Gervon Dexter expendable</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears DT Jordan van den Berg makes Gervon Dexter expendable</description>
-      <link>https://www.espn.com/nfl/story/_/id/49776754/bears-dt-jordan-van-den-berg-makes-gervon-dexter-expendable</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-74e5119d7f1b1fb7aed2</guid>
-      <pubDate>Mon, 31 Aug 2026 04:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
       <title>Chicago Bears announce roster moves</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears announce roster moves</description>
       <link>https://www.chicagobears.com/news/chicago-bears-announce-roster-moves-initial-53-man-2026</link>
@@ -87,6 +57,26 @@
       <pubDate>Sun, 30 Aug 2026 22:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Roster Moves: Chicago Bears agree to acquire fifth-round pick and DB Clark Phillips III in trade with Atlanta</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Roster Moves: Chicago Bears agree to acquire fifth-round pick and DB Clark Phillips III in trade with Atlanta</description>
+      <link>https://www.chicagobears.com/news/roster-moves-chicago-bears-agree-to-acquire-fifth-round-pick-and-db-clark-phillips-iii-in-trade-with-atlanta</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c9f0b3b70954866cf13b</guid>
+      <pubDate>Sun, 30 Aug 2026 22:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears-Falcons trade grades: Gervon Dexter Sr. bolsters Atlanta&apos;s defensive front, Chicago adds CB depth</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears-Falcons trade grades: Gervon Dexter Sr. bolsters Atlanta&apos;s defensive front, Chicago adds CB depth</description>
+      <link>https://www.cbssports.com/nfl/news/bears-falcons-trade-grades-gervon-dexter-sr/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cd9ffd9134a5dea65f90</guid>
+      <pubDate>Sun, 30 Aug 2026 14:49:09 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
