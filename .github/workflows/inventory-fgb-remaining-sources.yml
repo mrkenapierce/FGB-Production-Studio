@@ -13,7 +13,7 @@ permissions:
 jobs:
   inventory:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - name: Configure Oracle SSH
         env:
@@ -26,6 +26,47 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Acquire Episode 32 source on Oracle without touching live media
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -o ServerAliveInterval=30 -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          URL='https://www.youtube.com/watch?v=PUsi9hNXnhw'
+          OUT='/home/ubuntu/fgbears-upload/FGBears-Episode-32.mp4'
+          TMP='/tmp/fgb-episode32-source'
+          TOOL='/tmp/yt-dlp-fgb'
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          if [[ -s "$OUT" ]]; then
+            echo 'EPISODE_32_SOURCE=ALREADY_PRESENT'
+            exit 0
+          fi
+          mkdir -p /home/ubuntu/fgbears-upload "$TMP"
+          rm -f "$TMP"/*
+          curl -fsSL --retry 3 --retry-delay 2 https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o "$TOOL"
+          chmod +x "$TOOL"
+          ok=0
+          for client in web_embedded web_safari tv ios android_vr; do
+            echo "TRY_CLIENT=$client"
+            rm -f "$TMP"/source.* "$TMP"/*.part
+            if "$TOOL" --no-playlist --js-runtimes node --extractor-args "youtube:player_client=${client}" --merge-output-format mp4 -f 'bv*[height<=720]+ba/b[height<=720]' -o "$TMP/source.%(ext)s" "$URL"; then
+              ok=1
+              break
+            fi
+          done
+          [[ "$ok" -eq 1 ]]
+          src=$(find "$TMP" -maxdepth 1 -type f -name 'source.*' ! -name '*.part' -print -quit)
+          test -s "$src"
+          ffprobe -v error -select_streams v:0 -show_entries stream=index -of csv=p=0 "$src" | grep -q .
+          ffprobe -v error -select_streams a:0 -show_entries stream=index -of csv=p=0 "$src" | grep -q .
+          install -m 0644 "$src" "$OUT"
+          echo 'EPISODE_32_SOURCE=READY'
+          rm -rf "$TMP" "$TOOL"
+          REMOTE
+
       - name: Inventory original and production assets
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -54,6 +95,4 @@ jobs:
           done
           echo '=== EPISODE 32 CANDIDATES ==='
           sudo find /home/ubuntu /srv/fgbears-live -maxdepth 4 -type f \( -iname '*Episode*32*.mp4' -o -iname '*episode*32*.mp4' -o -iname '*32*.m4a' -o -iname '*32*.aac' \) -printf '%s %p\n' 2>/dev/null | sort -nr | head -n 30 || true
-          echo '=== ACTIVE CPU ==='
-          pgrep -af 'normalize|loudnorm' || true
           REMOTE
