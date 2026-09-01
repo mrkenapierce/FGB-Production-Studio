@@ -5,26 +5,36 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 01 Sep 2026 16:47:42 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 01 Sep 2026 19:41:05 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>10 Bears Takes: Breakout Candidates, Patience for the Rookies, Kyler Gordon, and more</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 10 Bears Takes: Breakout Candidates, Patience for the Rookies, Kyler Gordon, and more</description>
-      <link>https://sports.yahoo.com/articles/10-bears-takes-breakout-candidates-160000643.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d816cbd8ed8566e735a3</guid>
-      <pubDate>Tue, 01 Sep 2026 16:00:00 GMT</pubDate>
+      <title>Chicago Bears Sign 3 More Players to 2026 Practice Squad</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Sign 3 More Players to 2026 Practice Squad</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-signed-11-players-000535834.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e9df245fc683c4bf1e72</guid>
+      <pubDate>Tue, 01 Sep 2026 19:18:43 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Chicago Bears Roster Moves: Coby Bryant to IR, Jack Sanborn signed</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Roster Moves: Coby Bryant to IR, Jack Sanborn signed</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-roster-moves-coby-154108363.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e79d9b22b908d8a405dc</guid>
-      <pubDate>Tue, 01 Sep 2026 15:41:08 GMT</pubDate>
+      <title>Chicago Bears announce roster moves</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears announce roster moves</description>
+      <link>https://www.chicagobears.com/news/chicago-bears-announce-roster-moves-practice-squad-2026</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-59b4f0508b5126cdd443</guid>
+      <pubDate>Tue, 01 Sep 2026 19:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Ryan Poles: I don&apos;t know if Kyler Gordon will play for the Bears again</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ryan Poles: I don&apos;t know if Kyler Gordon will play for the Bears again</description>
+      <link>https://sports.yahoo.com/articles/ryan-poles-dont-know-kyler-184259632.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-725519e818c9e0d726d4</guid>
+      <pubDate>Tue, 01 Sep 2026 18:42:59 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -40,6 +50,36 @@
     </item>
 
     <item>
+      <title>GM has &apos;hope&apos; CB Kyler Gordon (calf) plays with Bears again</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: GM has &apos;hope&apos; CB Kyler Gordon (calf) plays with Bears again</description>
+      <link>https://www.espn.com/nfl/story/_/id/49795043/gm-hope-cb-kyler-gordon-calf-plays-bears-again</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-83871afd57358bd3c94a</guid>
+      <pubDate>Tue, 01 Sep 2026 11:22:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Kyle Monangai Injury Update From Ben Johnson Puts Bears RB&apos;s Week 1 Status in Doubt</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyle Monangai Injury Update From Ben Johnson Puts Bears RB&apos;s Week 1 Status in Doubt</description>
+      <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-following-chicago-bears-53-man-roster-cuts</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a5e579866adf0d49c71f</guid>
+      <pubDate>Tue, 01 Sep 2026 11:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Ryan Poles: I don’t know if Kyler Gordon will play for the Bears again</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Ryan Poles: I don’t know if Kyler Gordon will play for the Bears again</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/ryan-poles-i-dont-know-if-kyler-gordon-will-play-for-the-bears-again</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-35c448c21d8249992ae6</guid>
+      <pubDate>Tue, 01 Sep 2026 07:42:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
+    </item>
+
+    <item>
       <title>Skyler Thomas&apos; Elite Grade Might Not Save Him From the Bears&apos; Roster Crunch</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Skyler Thomas&apos; Elite Grade Might Not Save Him From the Bears&apos; Roster Crunch</description>
       <link>https://www.si.com/nfl/bears/onsi/skyler-thomas-bears-53-man-roster-pff-grades</link>
@@ -47,46 +87,6 @@
       <pubDate>Tue, 01 Sep 2026 07:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Steal RB From Minnesota Vikings Among 13 Practice Squad Signings</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Steal RB From Minnesota Vikings Among 13 Practice Squad Signings</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-practice-squad-signings-vikings-running-back</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c5a5fcd355be825da285</guid>
-      <pubDate>Tue, 01 Sep 2026 06:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Jaylon Jones: Placed on injured reserve</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Jaylon Jones: Placed on injured reserve</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-jaylon-jones-placed-on-injured-reserve-635656/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0d42b4fb50dcc7a17c84</guid>
-      <pubDate>Mon, 31 Aug 2026 17:08:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears announce roster moves</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears announce roster moves</description>
-      <link>https://www.chicagobears.com/news/chicago-bears-announce-roster-moves-initial-53-man-2026</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c96b2ae285ed6ce08912</guid>
-      <pubDate>Sun, 30 Aug 2026 22:01:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Roster Moves: Chicago Bears agree to acquire fifth-round pick and DB Clark Phillips III in trade with Atlanta</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Roster Moves: Chicago Bears agree to acquire fifth-round pick and DB Clark Phillips III in trade with Atlanta</description>
-      <link>https://www.chicagobears.com/news/roster-moves-chicago-bears-agree-to-acquire-fifth-round-pick-and-db-clark-phillips-iii-in-trade-with-atlanta</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c9f0b3b70954866cf13b</guid>
-      <pubDate>Sun, 30 Aug 2026 22:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
