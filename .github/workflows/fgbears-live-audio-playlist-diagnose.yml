@@ -16,8 +16,37 @@ env:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
+      - name: Test Episode 32 with current PO-token provider
+        run: |
+          set -Eeuo pipefail
+          python3 -m pip install --disable-pip-version-check --quiet --upgrade yt-dlp bgutil-ytdlp-pot-provider
+          rm -rf /tmp/bgutil-ytdlp-pot-provider
+          git clone --quiet --depth 1 --branch 1.3.2 https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git /tmp/bgutil-ytdlp-pot-provider
+          pushd /tmp/bgutil-ytdlp-pot-provider/server >/dev/null
+          npm ci --silent
+          npx tsc
+          node build/main.js >/tmp/bgutil-provider.log 2>&1 &
+          provider_pid=$!
+          popd >/dev/null
+          trap 'kill "$provider_pid" 2>/dev/null || true; cat /tmp/bgutil-provider.log || true' EXIT
+          for _ in $(seq 1 30); do
+            if ss -ltn | grep -q ':4416 '; then
+              break
+            fi
+            sleep 1
+          done
+          ss -ltn | grep -q ':4416 '
+          python3 -m yt_dlp -v \
+            --no-playlist \
+            --simulate \
+            --js-runtimes node \
+            --extractor-args 'youtube:player_client=mweb' \
+            --print '%(id)s|%(title)s' \
+            'https://www.youtube.com/watch?v=PUsi9hNXnhw'
+          echo 'EPISODE_32_PO_TOKEN_ACCESS=READY'
+
       - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -30,7 +59,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Inspect normalization progress and Episode 32 access
+      - name: Inspect normalization progress
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -51,19 +80,4 @@ jobs:
           else
             echo 'EPISODE_32_SOURCE=NO'
           fi
-
-          echo '--- EPISODE 32 YOUTUBE RESOLUTION PROBE ---'
-          tool=/tmp/yt-dlp-fgb-probe
-          curl -fsSL --retry 2 https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o "$tool"
-          chmod +x "$tool"
-          access=BLOCKED
-          for client in web_embedded web_safari tv ios android_vr; do
-            echo "TRY_CLIENT=$client"
-            if "$tool" --no-playlist --simulate --js-runtimes node --extractor-args "youtube:player_client=${client}" --print '%(id)s|%(title)s' 'https://www.youtube.com/watch?v=PUsi9hNXnhw'; then
-              access=READY
-              break
-            fi
-          done
-          echo "EPISODE_32_YOUTUBE_ACCESS=$access"
-          rm -f "$tool"
           REMOTE
