@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 31 Aug 2026 23:23:05 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 01 Sep 2026 01:54:51 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears Have Signed 11 Players to Their Initial 2026 Practice Squad</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Have Signed 11 Players to Their Initial 2026 Practice Squad</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-signed-11-players-000535834.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e9df245fc683c4bf1e72</guid>
+      <pubDate>Tue, 01 Sep 2026 00:05:35 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>2026 Chicago Bears Practice Squad Rules and Rumor Tracker</title>
@@ -20,6 +30,16 @@
     </item>
 
     <item>
+      <title>Bears&apos; Jaylon Jones: Placed on injured reserve</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Jaylon Jones: Placed on injured reserve</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-jaylon-jones-placed-on-injured-reserve-635656/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0d42b4fb50dcc7a17c84</guid>
+      <pubDate>Mon, 31 Aug 2026 17:08:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
       <title>Takeaways From Bears Personnel Moves Leading into the Final Roster</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Takeaways From Bears Personnel Moves Leading into the Final Roster</description>
       <link>https://www.si.com/nfl/bears/onsi/takeaways-bears-personnel-moves-final-roster</link>
@@ -27,16 +47,6 @@
       <pubDate>Mon, 31 Aug 2026 15:45:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears Landing Spot for Packers’ Breakout Pass-Rusher After Cut</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Landing Spot for Packers’ Breakout Pass-Rusher After Cut</description>
-      <link>https://sports.yahoo.com/articles/bears-landing-spot-packers-breakout-213030687.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e396b498452d37f80b1a</guid>
-      <pubDate>Mon, 31 Aug 2026 14:29:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -55,16 +65,6 @@
       <link>https://www.cbssports.com/fantasy/football/news/bears-noah-sewell-moved-to-reservepup-list/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-00a775c822d509c47d2a</guid>
       <pubDate>Mon, 31 Aug 2026 09:32:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Shemar Turner: Moved to reserve/PUP list</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Shemar Turner: Moved to reserve/PUP list</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-shemar-turner-moved-to-reservepup-list/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ed1f00ff528236666ec4</guid>
-      <pubDate>Mon, 31 Aug 2026 09:27:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
