@@ -1,0 +1,63 @@
+name: Certify Lovable Post Question Continuity
+
+on:
+  push:
+    paths:
+      - '.github/workflows/certify-lovable-post-question-continuity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Verify clear state and continuity
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          HEALTH='http://127.0.0.1:8791/healthz'
+          OVERLAY='http://127.0.0.1:8791/overlay.rgba'
+          pid() { systemctl show -p MainPID --value "$1"; }
+          ffpid() { local cg p; cg=$(systemctl show -p ControlGroup --value fgbears-youtube-lovable-compositor.service); for p in $(cat "/sys/fs/cgroup${cg}/cgroup.procs"); do [[ "$(cat /proc/$p/comm 2>/dev/null || true)" == ffmpeg ]] && { echo "$p"; return; }; done; }
+          master=$(pid fgbears-live.service)
+          rumble=$(pid fgbears-rumble-relay.service)
+          comp=$(pid fgbears-youtube-lovable-compositor.service)
+          route=$(pid fgbears-youtube-lovable-routing.service)
+          ff=$(ffpid)
+          [[ "$master" == 2112260 ]]
+          [[ "$rumble" == 2289661 ]]
+          [[ "$comp" == 2285157 ]]
+          [[ "$route" == 2284902 ]]
+          [[ "$ff" == 2285157 ]]
+          [[ "$(systemctl is-active fgbears-live.service)" == active ]]
+          [[ "$(systemctl is-active fgbears-rumble-relay.service)" == active ]]
+          [[ "$(systemctl is-active fgbears-youtube-lovable-compositor.service)" == active ]]
+          [[ "$(systemctl is-active fgbears-youtube-lovable-routing.service)" == active ]]
+          sudo ss -ntpH state established 2>/dev/null | awk -v p="pid=$ff" 'index($0,p) && $0 ~ /:443([[:space:]]|$)/ {found=1} END {exit(found?0:1)}'
+          echo 'YOUTUBE_RTMPS_AFTER_QUESTION=PASS'
+          health=$(curl -fsS --max-time 3 "$HEALTH")
+          printf '%s\n' "$health" | python3 -c 'import json,sys; p=json.load(sys.stdin); assert p.get("active") is False,p; assert p.get("lastError") in (None,""),p; print("POST_QUESTION_STATE=PASS phase=%s"%p.get("phase"))'
+          python3 -c 'import json,urllib.request; h=json.load(urllib.request.urlopen("http://127.0.0.1:8791/healthz",timeout=3)); w,n=h["frameSize"]; need=w*n*4; r=urllib.request.urlopen("http://127.0.0.1:8791/overlay.rgba",timeout=4); d=r.read(need); r.close(); assert len(d)==need; assert not any(d[3::4]); print("OVERLAY_TRANSPARENT_AFTER_QUESTION=PASS")'
+          echo "master_pid_unchanged=$master"
+          echo "rumble_pid_unchanged=$rumble"
+          echo "compositor_pid_unchanged=$comp"
+          echo "routing_pid_unchanged=$route"
+          echo 'POST_QUESTION_CONTINUITY=PASS'
+          REMOTE
