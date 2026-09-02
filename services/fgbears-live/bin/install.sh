@@ -4,6 +4,7 @@ set -Eeuo pipefail
 [[ $EUID -eq 0 ]] || { echo "Run as root: sudo bash install.sh" >&2; exit 77; }
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 SOURCE_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
+EXACT_CARD_PYLIB=/opt/fgbears-live/exact-card-pylib
 
 export DEBIAN_FRONTEND=noninteractive
 required_packages=(
@@ -15,10 +16,11 @@ for package in "${required_packages[@]}"; do
     missing_packages+=("$package")
   fi
 done
-# The exact-box card builder needs the Python qrcode module, not specifically
-# the distro package. Existing production may provide it through pip; accepting
-# a working import avoids invoking apt during an otherwise file-only live deploy.
-if ! python3 -c 'import qrcode' >/dev/null 2>&1; then
+# Production intentionally carries the QR dependency in an isolated Python path
+# used by fgbears-youtube-lovable-routing.service. Validate the same runtime the
+# service uses. On a fresh host without that private runtime, fall back to the
+# distro package so first installation remains self-contained.
+if ! PYTHONPATH="$EXACT_CARD_PYLIB" python3 -c 'import qrcode' >/dev/null 2>&1; then
   missing_packages+=(python3-qrcode)
 fi
 
@@ -43,7 +45,10 @@ if ! id fgbears >/dev/null 2>&1; then
 fi
 
 install -d -m 0755 /opt/fgbears-live
-rsync -a --delete "$SOURCE_DIR/" /opt/fgbears-live/
+# exact-card-pylib is a production runtime dependency provisioned independently
+# of repository files. Never erase it during a code sync; the routing service's
+# systemd unit explicitly places this directory on PYTHONPATH.
+rsync -a --delete --exclude 'exact-card-pylib/' "$SOURCE_DIR/" /opt/fgbears-live/
 
 mv /opt/fgbears-live/bin/ad-overlay.py /opt/fgbears-live/bin/ad-overlay-base.py
 install -m 0755 /opt/fgbears-live/bin/ad-overlay-smart.py /opt/fgbears-live/bin/ad-overlay.py
