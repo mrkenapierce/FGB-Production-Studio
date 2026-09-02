@@ -1,0 +1,188 @@
+name: One-shot Master FGB Audio Library v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-shot-master-fgb-audio-library-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-production-deploy
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  master-library:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Checkout canonical mastering code
+        uses: actions/checkout@v4
+
+      - name: Static mastering safeguards
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/normalize-library.sh
+          bash -n services/fgbears-live/bin/validate-media.sh
+          bash -n services/fgbears-live/bin/add-episode.sh
+          grep -Fq 'fgb-podcast-v2-mastered' services/fgbears-live/bin/normalize-library.sh
+          grep -Fq 'deesser=' services/fgbears-live/bin/normalize-library.sh
+          grep -Fq 'acompressor=' services/fgbears-live/bin/normalize-library.sh
+          grep -Fq -- '-b:a 192k' services/fgbears-live/bin/normalize-library.sh
+          grep -Fq 'fgb-podcast-v2-mastered' services/fgbears-live/bin/validate-media.sh
+          ! grep -Fq -- '-af ' services/fgbears-live/bin/start-stream.sh
+          grep -Fq -- '-c:a copy' services/fgbears-live/bin/start-stream.sh
+          grep -Fq -- '-c copy' services/fgbears-live/bin/youtube-relay.sh
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Master production library without stream restart
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+
+          MEDIA_DIR=/srv/fgbears-live/media
+          WORK_DIR=/srv/fgbears-live/.audio-mastering-v2
+          REPO_DIR=$(mktemp -d)
+          trap 'rm -rf "$REPO_DIR"' EXIT
+
+          MASTER_PID=$(systemctl show -p MainPID --value fgbears-live.service)
+          YOUTUBE_PID=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          RUMBLE_PID=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          [[ "$MASTER_PID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$YOUTUBE_PID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$RUMBLE_PID" =~ ^[1-9][0-9]*$ ]]
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+
+          git clone --quiet --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git "$REPO_DIR/repo"
+          SRC="$REPO_DIR/repo/services/fgbears-live/bin"
+          bash -n "$SRC/normalize-library.sh"
+          bash -n "$SRC/validate-media.sh"
+          bash -n "$SRC/add-episode.sh"
+
+          # Install only offline ingest/validation code. Do not restart any stream.
+          sudo install -m 0755 "$SRC/normalize-library.sh" /usr/local/bin/fgbears-normalize
+          sudo install -m 0755 "$SRC/validate-media.sh" /usr/local/bin/fgbears-validate
+          sudo install -m 0755 "$SRC/add-episode.sh" /usr/local/bin/fgbears-add-episode
+          sudo rm -f /usr/local/bin/fgbears-normalize-resilient
+
+          # The live program performs no audio DSP; remove the retired misleading key.
+          if sudo test -f /etc/fgbears-live/stream.env; then
+            sudo sed -i '/^PODCAST_AUDIO_FILTER=/d' /etc/fgbears-live/stream.env
+          fi
+
+          FILTER_LIST=$(ffmpeg -hide_banner -filters 2>/dev/null)
+          for filter in highpass lowpass equalizer deesser acompressor loudnorm aresample; do
+            grep -Eq "[[:space:]]${filter}[[:space:]]" <<<"$FILTER_LIST" || {
+              echo "Production FFmpeg is missing required filter: $filter" >&2
+              exit 69
+            }
+          done
+
+          sudo install -d -o ubuntu -g ubuntu -m 0755 "$WORK_DIR"
+          mapfile -d '' FILES < <(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4' -print0 | sort -zV)
+          ((${#FILES[@]} > 0)) || { echo 'No production MP4 files found.' >&2; exit 65; }
+
+          converted=0
+          skipped=0
+          for file in "${FILES[@]}"; do
+            base=$(basename "$file")
+            marker="${file}.audio-profile.json"
+            if [[ -s "$marker" ]] && jq -e \
+              '.profile == "fgb-podcast-v2-mastered" and .mastered == true and
+               .audio_codec == "aac" and .audio_bitrate_kbps == 192 and
+               .sample_rate_hz == 48000 and .channels == 2' "$marker" >/dev/null; then
+              echo "ALREADY_V2: $base"
+              skipped=$((skipped + 1))
+              continue
+            fi
+
+            size=$(stat -c %s "$file")
+            avail=$(df -PB1 "$WORK_DIR" | awk 'NR==2 {print $4}')
+            need=$((size + 536870912))
+            if ((avail < need)); then
+              echo "Insufficient free space to safely stage $base: available=$avail required=$need" >&2
+              exit 70
+            fi
+
+            staged="$WORK_DIR/$base"
+            rm -f "$staged" "$staged.audio-profile.json"
+            echo "MASTERING: $base"
+            nice -n 12 ionice -c2 -n7 /usr/local/bin/fgbears-normalize "$file" "$staged"
+
+            jq -e \
+              '.profile == "fgb-podcast-v2-mastered" and .mastered == true and
+               .audio_codec == "aac" and .audio_bitrate_kbps == 192 and
+               .sample_rate_hz == 48000 and .channels == 2 and
+               (.measured_i_lufs >= -14.8 and .measured_i_lufs <= -13.2) and
+               .measured_tp_dbtp <= -1.0' "$staged.audio-profile.json" >/dev/null
+            ffprobe -v error -select_streams a:0 \
+              -show_entries stream=codec_name,sample_rate,channels \
+              -of default=nw=1 "$staged"
+
+            sudo chown fgbears:fgbears "$staged" "$staged.audio-profile.json"
+            sudo chmod 0644 "$staged" "$staged.audio-profile.json"
+            # Both paths are under /srv, so this is an atomic replacement after
+            # complete offline render + verification. An already-open old file
+            # descriptor may finish normally; all subsequent opens get v2.
+            sudo mv -f "$staged" "$file"
+            sudo mv -f "$staged.audio-profile.json" "$marker"
+            converted=$((converted + 1))
+          done
+
+          /usr/local/bin/fgbears-validate "$MEDIA_DIR"
+          /usr/local/bin/fgbears-rebuild-playlist
+
+          # Zero-disruption invariant: migration may not restart any stream process.
+          [[ "$(systemctl show -p MainPID --value fgbears-live.service)" == "$MASTER_PID" ]]
+          [[ "$(systemctl show -p MainPID --value fgbears-youtube-relay.service)" == "$YOUTUBE_PID" ]]
+          [[ "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" == "$RUMBLE_PID" ]]
+
+          ARGS=$(tr '\0' ' ' < "/proc/$YOUTUBE_PID/cmdline")
+          [[ "$ARGS" == *"ffmpeg"* ]]
+          [[ "$ARGS" == *" -c copy "* ]]
+          [[ "$ARGS" != *"youtube-stream-router"* ]]
+          [[ "$ARGS" != *"gst-launch"* ]]
+
+          total=${#FILES[@]}
+          v2_count=$(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4.audio-profile.json' -print0 |
+            xargs -0 -r jq -r 'select(.profile == "fgb-podcast-v2-mastered" and .mastered == true) | 1' | wc -l)
+          [[ "$v2_count" -eq "$total" ]]
+
+          jq -s '{
+            profile: "fgb-podcast-v2-mastered",
+            files: length,
+            min_lufs: (map(.measured_i_lufs) | min),
+            max_lufs: (map(.measured_i_lufs) | max),
+            max_true_peak_dbtp: (map(.measured_tp_dbtp) | max),
+            all_mastered: (all(.mastered == true)),
+            all_192k: (all(.audio_bitrate_kbps == 192)),
+            all_48k_stereo: (all(.sample_rate_hz == 48000 and .channels == 2))
+          }' "$MEDIA_DIR"/*.mp4.audio-profile.json
+          echo "converted=$converted"
+          echo "skipped=$skipped"
+          echo "production_files=$total"
+          echo "stream_pids_unchanged=yes"
+          echo "youtube_copy_relay_preserved=yes"
+          echo "audio_mastering_v2_migration=PASS"
+          REMOTE
