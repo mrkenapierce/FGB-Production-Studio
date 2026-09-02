@@ -57,7 +57,6 @@ jobs:
           systemctl is-active --quiet "$MASTER_SERVICE"
           systemctl is-active --quiet "$RUMBLE_SERVICE"
 
-          # Repair the monitoring layer itself if the timer was disabled or stopped.
           if ! systemctl is-enabled --quiet "$WATCHDOG_TIMER"; then
             sudo systemctl enable "$WATCHDOG_TIMER"
           fi
@@ -65,9 +64,9 @@ jobs:
             sudo systemctl start "$WATCHDOG_TIMER"
           fi
 
-          # Run one watchdog cycle now. The watchdog owns all recovery logic and
-          # may restart only the isolated YouTube relay when its local evidence
-          # proves a YouTube-specific transport fault.
+          # The local watchdog is the sole automatic repair authority. It may
+          # restart only the isolated YouTube relay; this supervisor verifies
+          # the result and never restarts the shared master or Rumble branch.
           sudo systemctl start "$WATCHDOG_SERVICE"
 
           sudo test -s "$STATUS_FILE"
@@ -95,33 +94,32 @@ jobs:
           SAFE_ARGS=$(sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g' <<<"$ARGS")
           echo "youtube_args=$SAFE_ARGS"
           [[ "$ARGS" == *"ffmpeg"* ]]
-          [[ "$ARGS" == *" -c copy "* ]]
           [[ "$ARGS" == *"udp://127.0.0.1:1939"* ]]
+          [[ "$ARGS" == *" -c:v copy "* ]]
+          [[ "$ARGS" == *" -c:a aac "* ]]
+          [[ "$ARGS" == *" -profile:a aac_low "* ]]
+          [[ "$ARGS" == *" -b:a 128k "* ]]
+          [[ "$ARGS" == *" -ar 44100 "* ]]
+          [[ "$ARGS" == *" -ac 2 "* ]]
+          [[ "$ARGS" == *"aresample=44100:async=1:first_pts=0"* ]]
           [[ "$ARGS" != *"youtube-stream-router"* ]]
           [[ "$ARGS" != *"gst-launch"* ]]
           [[ "$ARGS" != *"libx264"* ]]
-          [[ "$ARGS" != *" -c:a aac"* ]]
 
           sudo ss -ntpH state established > /tmp/fgb-youtube-supervisor-sockets.txt || true
           grep -F "pid=$YOUTUBE_PID" /tmp/fgb-youtube-supervisor-sockets.txt | grep -Eq ':[4]43([[:space:]]|$)'
           echo 'youtube_rtmps_socket=ESTABLISHED'
 
-          # Confirm the retired packet-router runtime remains disabled on the host.
           sudo grep -Fxq 'FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0' /etc/fgbears-live/stream.env
           if sudo grep -Eq '^(YOUTUBE_TRIVIA_|FGB_YOUTUBE_TRIVIA_CARD_H264=)' /etc/fgbears-live/stream.env; then
             echo 'Retired YouTube router configuration is present.' >&2
             exit 1
           fi
 
-          # The supervisor and watchdog are forbidden from perturbing the shared
-          # encoder or Rumble branch.
           [[ "$(systemctl show -p MainPID --value "$MASTER_SERVICE")" == "$MASTER_PID" ]]
           [[ "$(systemctl show -p MainPID --value "$RUMBLE_SERVICE")" == "$RUMBLE_PID" ]]
           echo 'master_and_rumble_untouched=yes'
 
-          # WARN means the watchdog observed a shared-source concern. Do not
-          # auto-restart anything outside YouTube; fail the supervisor run so the
-          # condition is visible for investigation.
           if [[ "$STATE" == "WARN" ]]; then
             echo "YouTube audio watchdog warning requires review: $REASON" >&2
             exit 2
