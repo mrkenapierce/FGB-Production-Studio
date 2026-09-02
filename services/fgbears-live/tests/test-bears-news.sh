@@ -29,14 +29,15 @@ assert module.SCROLL_PPS == 76
 PY
 bash -n "$ROOT/bin/start-stream.sh"
 
-# News now uses the same stable MJPEG image-composition model as the lower
-# crawl. Rawvideo remains forbidden because it previously created pacing lag.
+# News uses the stable MJPEG image-composition model at the same 30-fps cadence
+# as the finished program. Rawvideo remains forbidden because it previously
+# created pacing lag.
 if grep -Fq -- '-f rawvideo' "$ROOT/bin/start-stream.sh"; then
   echo 'Bears news must not use a rawvideo input.' >&2
   exit 1
 fi
 grep -Fq 'BEARS_NEWS_OVERLAY_PORT:=8789' "$ROOT/bin/start-stream.sh"
-grep -Fq 'BEARS_NEWS_OVERLAY_FPS:=15' "$ROOT/bin/start-stream.sh"
+grep -Fq 'BEARS_NEWS_OVERLAY_FPS:=30' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
 grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
 grep -Fq '[1:v][3:v]overlay=x=0:y=0:shortest=1[withnews]' "$ROOT/bin/start-stream.sh"
