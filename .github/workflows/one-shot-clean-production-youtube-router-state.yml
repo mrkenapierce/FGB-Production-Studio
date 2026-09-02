@@ -1,0 +1,88 @@
+name: One-shot Clean Retired YouTube Router State
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-shot-clean-production-youtube-router-state.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Retire dormant router state without restarting streams
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MASTER_PID=$(systemctl show -p MainPID --value fgbears-live.service)
+          YOUTUBE_PID=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          RUMBLE_PID=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          [[ "$MASTER_PID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$YOUTUBE_PID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$RUMBLE_PID" =~ ^[1-9][0-9]*$ ]]
+
+          sudo python3 - <<'PY'
+          from pathlib import Path
+          path = Path('/etc/fgbears-live/stream.env')
+          lines = path.read_text(encoding='utf-8').splitlines()
+          out = []
+          seen_flag = False
+          for line in lines:
+              if line.startswith('YOUTUBE_TRIVIA_') or line.startswith('FGB_YOUTUBE_TRIVIA_CARD_H264='):
+                  continue
+              if line.startswith('FGB_YOUTUBE_PACKET_ROUTER_ENABLE='):
+                  if not seen_flag:
+                      out.append('FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0')
+                      seen_flag = True
+                  continue
+              out.append(line)
+          if not seen_flag:
+              out.append('FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0')
+          path.write_text('\n'.join(out) + '\n', encoding='utf-8')
+          PY
+          sudo chown root:fgbears /etc/fgbears-live/stream.env
+          sudo chmod 0640 /etc/fgbears-live/stream.env
+
+          # Remove only generated/runtime artifacts from the retired packet-router
+          # implementation. Source history remains in Git; the canonical relay is
+          # not touched.
+          sudo rm -f /opt/fgbears-live/assets/youtube-rumble-trivia.h264
+          sudo pkill -f '^python3 /opt/fgbears-live/bin/youtube-stream-router' || true
+          sudo pkill -f '^python3 /opt/fgbears-live/bin/youtube-trivia-overlay.py$' || true
+
+          grep -Fxq 'FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0' /etc/fgbears-live/stream.env
+          ! grep -Eq '^(YOUTUBE_TRIVIA_|FGB_YOUTUBE_TRIVIA_CARD_H264=)' /etc/fgbears-live/stream.env
+
+          # No stream process may have been restarted during cleanup.
+          [[ "$(systemctl show -p MainPID --value fgbears-live.service)" == "$MASTER_PID" ]]
+          [[ "$(systemctl show -p MainPID --value fgbears-youtube-relay.service)" == "$YOUTUBE_PID" ]]
+          [[ "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" == "$RUMBLE_PID" ]]
+
+          ARGS=$(tr '\0' ' ' < "/proc/$YOUTUBE_PID/cmdline")
+          [[ "$ARGS" == *"ffmpeg"* ]]
+          [[ "$ARGS" == *" -c copy "* ]]
+          [[ "$ARGS" != *"youtube-stream-router"* ]]
+          [[ "$ARGS" != *"gst-launch"* ]]
+          echo 'retired_router_state_clean=yes'
+          echo 'all_stream_pids_unchanged=yes'
+          REMOTE
