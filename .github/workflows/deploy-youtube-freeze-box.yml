@@ -32,10 +32,10 @@ jobs:
           set -Eeuo pipefail
           bash -n .github/freezebox/youtube-freeze-card-refresh.sh
           python3 -m py_compile .github/freezebox/youtube-stream-router-freezebox.py
-          grep -Fq 'x=480' .github/freezebox/youtube-freeze-card-refresh.sh
-          grep -Fq 'y=200' .github/freezebox/youtube-freeze-card-refresh.sh
-          grep -Fq 'w=640' .github/freezebox/youtube-freeze-card-refresh.sh
-          grep -Fq 'h=360' .github/freezebox/youtube-freeze-card-refresh.sh
+          grep -Fq 'MASK_X=480' .github/freezebox/youtube-freeze-card-refresh.sh
+          grep -Fq 'MASK_Y=200' .github/freezebox/youtube-freeze-card-refresh.sh
+          grep -Fq 'MASK_W=640' .github/freezebox/youtube-freeze-card-refresh.sh
+          grep -Fq 'MASK_H=360' .github/freezebox/youtube-freeze-card-refresh.sh
           grep -Fq 'TRIVIA IS LIVE ON RUMBLE' .github/freezebox/youtube-freeze-card-refresh.sh
           echo 'STAGED_FREEZE_BOX_VALIDATION=PASS'
 
@@ -99,7 +99,6 @@ jobs:
           git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git "$repo" >/dev/null
           sudo cp "$unit" "$backup"
 
-          # Stage new code and refresh units. Nothing here restarts any stream.
           sudo install -m 0755 "$repo/.github/freezebox/youtube-stream-router-freezebox.py" /opt/fgbears-live/bin/youtube-stream-router-freezebox.py
           sudo install -m 0755 "$repo/.github/freezebox/youtube-freeze-card-refresh.sh" /usr/local/bin/fgbears-youtube-freeze-card-refresh
           sudo install -m 0644 "$repo/.github/freezebox/fgbears-youtube-freeze-card-refresh.service" /etc/systemd/system/fgbears-youtube-freeze-card-refresh.service
@@ -112,7 +111,6 @@ jobs:
           fi
           sudo systemctl daemon-reload
 
-          # Create the first actual freeze-box asset BEFORE changing the router.
           sudo rm -f /var/lib/fgbears-live/youtube-freeze-card.status
           sudo systemctl start fgbears-youtube-freeze-card-refresh.service
           status=$(sudo cat /var/lib/fgbears-live/youtube-freeze-card.status 2>/dev/null || true)
@@ -120,7 +118,6 @@ jobs:
           grep -q '^result=updated ' <<<"$status"
           test -s "$dynamic"
 
-          # Parse validation uses the exact proven production router parser.
           sudo -u fgbears /usr/bin/python3 /opt/fgbears-live/bin/youtube-stream-router-emergency.py --card "$dynamic" --validate-card >/tmp/freezebox-card-validate.json
           cat /tmp/freezebox-card-validate.json
           grep -q '"ok": true' /tmp/freezebox-card-validate.json
@@ -128,12 +125,9 @@ jobs:
           echo "freeze_card_stream=$dimensions"
           grep -Eq '^h264,1280,720,yuv420p$' <<<"$dimensions"
 
-          # Ensure the master and Rumble have not moved during asset generation.
           test "$(systemctl show -p MainPID --value fgbears-live.service)" = "$master_before"
           test "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" = "$rumble_before"
 
-          # Never restart the YouTube router while a question is exposed. Wait for
-          # a fresh non-question routing state, then make the brief YouTube-only handoff.
           python3 - <<'PY'
           import json, time, urllib.request
           url='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing'
@@ -161,7 +155,6 @@ jobs:
           sudo systemctl reset-failed fgbears-youtube-router.service
           sudo systemctl restart fgbears-youtube-router.service
 
-          # Router must survive startup and establish its YouTube RTMPS transport.
           connected=0
           for i in $(seq 1 50); do
             if ! systemctl is-active --quiet fgbears-youtube-router.service; then
@@ -178,7 +171,6 @@ jobs:
           done
           test "$connected" = 1
 
-          # Core isolation invariant: only the YouTube router PID may change.
           master_after=$(systemctl show -p MainPID --value fgbears-live.service)
           rumble_after=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
           router_after=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
@@ -186,8 +178,6 @@ jobs:
           test "$rumble_after" = "$rumble_before"
           test "$router_after" != "$router_before"
 
-          # Prove hot reload without restarting YouTube: bump mtime on the already
-          # validated card and require the wrapper to adopt it in memory.
           sudo touch "$dynamic"
           hot=0
           for i in $(seq 1 10); do
