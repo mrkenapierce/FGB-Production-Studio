@@ -86,7 +86,13 @@ jobs:
           [[ "$YOUTUBE_PID" =~ ^[1-9][0-9]*$ ]]
           ARGS=$(tr '\0' ' ' < "/proc/$YOUTUBE_PID/cmdline")
           [[ "$ARGS" == *"ffmpeg"* ]]
-          [[ "$ARGS" == *" -c copy "* ]]
+          if [[ "$ARGS" == *" -c:v copy "* && "$ARGS" == *" -c:a aac "* ]]; then
+            [[ "$ARGS" == *" -b:a 128k "* ]]
+            [[ "$ARGS" == *" -ar 44100 "* ]]
+            [[ "$ARGS" == *" -ac 2 "* ]]
+          else
+            [[ "$ARGS" == *" -c copy "* ]]
+          fi
           [[ "$ARGS" != *"youtube-stream-router"* ]]
           [[ "$ARGS" != *"gst-launch"* ]]
           [[ "$ARGS" != *"libx264"* ]]
