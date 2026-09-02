@@ -1,0 +1,236 @@
+name: Emergency Cutover YouTube Trivia Router v2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/emergency-cutover-youtube-trivia-router-v2.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Retry YouTube-only emergency router with guarded transport settle
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          DIRECT=fgbears-youtube-relay.service
+          ROUTER=fgbears-youtube-router.service
+          WATCHDOG_TIMER=fgbears-youtube-audio-watchdog.timer
+          WATCHDOG_SERVICE=fgbears-youtube-audio-watchdog.service
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          HEALTH=fgbears-live-health.service
+          HEALTH_DROPIN=/etc/systemd/system/fgbears-live-health.service.d/90-youtube-emergency-router.conf
+          BASE=/opt/fgbears-live/bin/youtube-stream-router.py
+          WRAPPER=/opt/fgbears-live/bin/youtube-stream-router-emergency.py
+          CARD=/opt/fgbears-live/assets/youtube-rumble-trivia.h264
+          UNIT=/etc/systemd/system/fgbears-youtube-router.service
+
+          echo '=== pre-cutover state ==='
+          for s in "$MASTER" "$DIRECT" "$RUMBLE"; do
+            systemctl is-active --quiet "$s" || { echo "$s not active"; exit 1; }
+          done
+          master_before=$(systemctl show -p MainPID --value "$MASTER")
+          rumble_before=$(systemctl show -p MainPID --value "$RUMBLE")
+          direct_was_enabled=$(systemctl is-enabled "$DIRECT" 2>/dev/null || true)
+          watchdog_was_enabled=$(systemctl is-enabled "$WATCHDOG_TIMER" 2>/dev/null || true)
+          watchdog_was_active=$(systemctl is-active "$WATCHDOG_TIMER" 2>/dev/null || true)
+          printf 'master_pid=%s rumble_pid=%s direct_pid=%s\n' "$master_before" "$rumble_before" "$(systemctl show -p MainPID --value "$DIRECT")"
+          test -s "$BASE"
+          test -s "$WRAPPER"
+          test -s "$CARD"
+          test -s "$UNIT"
+          test ! -e "$HEALTH_DROPIN"
+          sudo python3 -m py_compile "$WRAPPER"
+          sudo -u fgbears python3 "$BASE" --card "$CARD" --validate-card
+          sudo systemd-analyze verify "$UNIT" >/dev/null 2>&1 || true
+
+          cutover_started=0
+          success=0
+          rollback() {
+            rc=${1:-1}
+            set +e
+            echo "=== AUTOMATIC YOUTUBE-ONLY ROLLBACK rc=$rc ==="
+            sudo systemctl disable --now "$ROUTER" >/dev/null 2>&1 || true
+            sudo rm -f "$HEALTH_DROPIN"
+            sudo systemctl daemon-reload
+            if [[ "$direct_was_enabled" == enabled ]]; then
+              sudo systemctl enable "$DIRECT" >/dev/null 2>&1 || true
+            fi
+            sudo systemctl reset-failed "$DIRECT" >/dev/null 2>&1 || true
+            sudo systemctl start "$DIRECT" || true
+            if [[ "$watchdog_was_enabled" == enabled ]]; then
+              sudo systemctl enable --now "$WATCHDOG_TIMER" >/dev/null 2>&1 || true
+            elif [[ "$watchdog_was_active" == active ]]; then
+              sudo systemctl start "$WATCHDOG_TIMER" || true
+            fi
+            for _ in {1..40}; do
+              systemctl is-active --quiet "$DIRECT" && break
+              sleep 0.5
+            done
+            echo "rollback_direct=$(systemctl is-active "$DIRECT" 2>/dev/null || true)"
+            echo "rollback_watchdog=$(systemctl is-active "$WATCHDOG_TIMER" 2>/dev/null || true)"
+            echo "rollback_master=$(systemctl is-active "$MASTER" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$MASTER" 2>/dev/null || true)"
+            echo "rollback_rumble=$(systemctl is-active "$RUMBLE" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$RUMBLE" 2>/dev/null || true)"
+            return 0
+          }
+          on_exit() {
+            rc=$?
+            if (( cutover_started == 1 && success == 0 )); then rollback "$rc"; fi
+            exit "$rc"
+          }
+          trap on_exit EXIT
+
+          echo '=== wait for main health check idle ==='
+          for _ in {1..45}; do
+            ! systemctl is-active --quiet "$HEALTH" && break
+            sleep 1
+          done
+          ! systemctl is-active --quiet "$HEALTH"
+
+          echo '=== begin authorized YouTube-only handoff ==='
+          cutover_started=1
+          sudo install -d -m 0755 /etc/systemd/system/fgbears-live-health.service.d
+          sudo tee "$HEALTH_DROPIN" >/dev/null <<'DROPIN'
+          [Service]
+          Environment=YOUTUBE_RELAY_SERVICE=fgbears-youtube-router.service
+          DROPIN
+          sudo systemctl daemon-reload
+          sudo systemctl disable --now "$WATCHDOG_TIMER" >/dev/null
+          sudo systemctl stop "$WATCHDOG_SERVICE" 2>/dev/null || true
+          sudo systemctl disable --now "$DIRECT" >/dev/null
+          sudo systemctl reset-failed "$ROUTER" >/dev/null 2>&1 || true
+          sudo systemctl start "$ROUTER"
+
+          echo '=== wait for router and YouTube RTMPS transport ==='
+          transport_ok=0
+          router_pid=0
+          ffmpeg_pid=0
+          for second in $(seq 1 45); do
+            if ! systemctl is-active --quiet "$ROUTER"; then
+              echo "router_became_inactive_at=${second}s"
+              sudo journalctl -u "$ROUTER" --since '-2 minutes' --no-pager 2>&1 \
+                | sed -E 's#(rtmps?://[^/]+/live2/)[^[:space:]]+#\1[REDACTED]#g' | tail -n 80
+              exit 1
+            fi
+            [[ "$(systemctl show -p MainPID --value "$MASTER")" == "$master_before" ]] || { echo MASTER_PID_CHANGED; exit 1; }
+            [[ "$(systemctl show -p MainPID --value "$RUMBLE")" == "$rumble_before" ]] || { echo RUMBLE_PID_CHANGED; exit 1; }
+            router_pid=$(systemctl show -p MainPID --value "$ROUTER")
+            ffmpeg_pid=$(pgrep -P "$router_pid" ffmpeg | head -n 1 || true)
+            if [[ "$ffmpeg_pid" =~ ^[1-9][0-9]*$ ]]; then
+              if sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$ffmpeg_pid" | grep -Eq ':[4]43([[:space:]]|$)'; then
+                transport_ok=1
+                echo "rtmps_established_after=${second}s router_pid=$router_pid ffmpeg_pid=$ffmpeg_pid"
+                break
+              fi
+            fi
+            if (( second % 5 == 0 )); then
+              echo "transport_wait=${second}s router_active=yes child_ffmpeg=${ffmpeg_pid:-none}"
+            fi
+            sleep 1
+          done
+          if (( transport_ok == 0 )); then
+            echo 'ERROR: YouTube RTMPS transport did not establish within 45 seconds.'
+            sudo journalctl -u "$ROUTER" --since '-3 minutes' --no-pager 2>&1 \
+              | sed -E 's#(rtmps?://[^/]+/live2/)[^[:space:]]+#\1[REDACTED]#g' | tail -n 120
+            exit 1
+          fi
+
+          echo '=== post-connect stability window ==='
+          sleep 12
+          systemctl is-active --quiet "$ROUTER"
+          [[ "$(systemctl show -p MainPID --value "$MASTER")" == "$master_before" ]]
+          [[ "$(systemctl show -p MainPID --value "$RUMBLE")" == "$rumble_before" ]]
+          ! systemctl is-active --quiet "$DIRECT"
+          ffmpeg_pid=$(pgrep -P "$(systemctl show -p MainPID --value "$ROUTER")" ffmpeg | head -n 1 || true)
+          [[ "$ffmpeg_pid" =~ ^[1-9][0-9]*$ ]]
+          sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$ffmpeg_pid" | grep -Eq ':[4]43([[:space:]]|$)'
+          fatal_count=$(sudo journalctl -u "$ROUTER" --since '-3 minutes' --no-pager 2>/dev/null \
+            | grep -Eic 'FFmpeg RTMPS transport exited unexpectedly|fatal router error|GStreamer error' || true)
+          echo "fatal_router_events=$fatal_count"
+          (( fatal_count == 0 ))
+
+          echo '=== preserve emergency mode ==='
+          sudo systemctl enable "$ROUTER" >/dev/null
+          sudo systemctl disable "$DIRECT" >/dev/null 2>&1 || true
+          success=1
+          echo 'EMERGENCY_YOUTUBE_ROUTER=ACTIVE'
+          echo "ROUTER_PID=$(systemctl show -p MainPID --value "$ROUTER")"
+          echo "RTMPS_TRANSPORT=ESTABLISHED"
+          echo "DIRECT_RELAY_ACTIVE=$(systemctl is-active "$DIRECT" 2>/dev/null || true)"
+          echo "DIRECT_WATCHDOG_ACTIVE=$(systemctl is-active "$WATCHDOG_TIMER" 2>/dev/null || true)"
+          echo "MASTER_RESTARTED=$([[ $(systemctl show -p MainPID --value "$MASTER") == "$master_before" ]] && echo no || echo yes)"
+          echo "RUMBLE_RESTARTED=$([[ $(systemctl show -p MainPID --value "$RUMBLE") == "$rumble_before" ]] && echo no || echo yes)"
+          echo 'VIDEO_REENCODE=no'
+          echo 'YOUTUBE_AUDIO_REPAIR=preserved'
+
+          echo '=== brief question-route observation ==='
+          observe_epoch=$(date +%s)
+          mask_seen=0
+          card_seen=0
+          for _ in {1..180}; do
+            state=$(python3 - <<'PYSTATE' 2>/dev/null || true
+          import json,urllib.request
+          try:
+              req=urllib.request.Request('https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing',headers={'Accept':'application/json','Cache-Control':'no-cache'})
+              with urllib.request.urlopen(req,timeout=1.2) as r: p=json.loads(r.read().decode())
+              t=p.get('trivia') or {}
+              print('Q' if (not bool(t.get('stale')) and t.get('phase')=='question' and t.get('youtubeMaskActive') is True) else '-')
+          except Exception:
+              print('E')
+          PYSTATE
+            )
+            [[ "$state" == Q ]] && mask_seen=1
+            if sudo journalctl -u "$ROUTER" --since "@$observe_epoch" --no-pager 2>/dev/null | grep -Fq 'video route switched: live -> card'; then
+              card_seen=1
+              break
+            fi
+            sleep 1
+          done
+          echo "question_mask_seen=$mask_seen card_switch_seen=$card_seen"
+          if (( mask_seen == 1 && card_seen == 0 )); then
+            success=0
+            echo 'ERROR: question-safe flag appeared but router did not switch to the card.'
+            exit 1
+          fi
+          if (( card_seen == 1 )); then
+            return_seen=0
+            for _ in {1..90}; do
+              if sudo journalctl -u "$ROUTER" --since "@$observe_epoch" --no-pager 2>/dev/null | grep -Fq 'video route switched: card -> live'; then
+                return_seen=1
+                break
+              fi
+              sleep 1
+            done
+            echo "card_return_to_live_seen=$return_seen"
+            if (( return_seen == 0 )); then
+              success=0
+              echo 'ERROR: card did not return to live program.'
+              exit 1
+            fi
+          fi
+          echo 'FINAL_EMERGENCY_ROUTER_HEALTH=OK'
+          REMOTE
