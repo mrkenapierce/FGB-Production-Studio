@@ -1,0 +1,100 @@
+name: Deploy Permanent FGBears YouTube Audio Guard
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-fgbears-youtube-audio-guard.yml'
+      - 'services/fgbears-live/bin/youtube-audio-watchdog.sh'
+      - 'services/fgbears-live/systemd/fgbears-youtube-audio-watchdog.service'
+      - 'services/fgbears-live/systemd/fgbears-youtube-audio-watchdog.timer'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-audio-guard-deploy
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stage guard files
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/youtube-audio-watchdog.sh \
+            services/fgbears-live/systemd/fgbears-youtube-audio-watchdog.service \
+            services/fgbears-live/systemd/fgbears-youtube-audio-watchdog.timer \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+
+      - name: Install and verify guard without touching master or Rumble
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MASTER_PID=$(systemctl show -p MainPID --value fgbears-live.service)
+          RUMBLE_PID=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          [[ "$MASTER_PID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$RUMBLE_PID" =~ ^[1-9][0-9]*$ ]]
+
+          sudo install -o root -g root -m 0755 \
+            /tmp/youtube-audio-watchdog.sh \
+            /usr/local/bin/fgbears-youtube-audio-watchdog
+          sudo install -o root -g root -m 0644 \
+            /tmp/fgbears-youtube-audio-watchdog.service \
+            /etc/systemd/system/fgbears-youtube-audio-watchdog.service
+          sudo install -o root -g root -m 0644 \
+            /tmp/fgbears-youtube-audio-watchdog.timer \
+            /etc/systemd/system/fgbears-youtube-audio-watchdog.timer
+
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now fgbears-youtube-audio-watchdog.timer
+          sudo systemctl start fgbears-youtube-audio-watchdog.service
+
+          systemctl is-active --quiet fgbears-youtube-audio-watchdog.timer
+          systemctl is-enabled --quiet fgbears-youtube-audio-watchdog.timer
+          systemctl status fgbears-youtube-audio-watchdog.timer --no-pager
+          sudo cat /srv/fgbears-live/health/youtube-audio/status.env
+          if sudo test -s /srv/fgbears-live/health/youtube-audio/warning.env; then
+            echo '--- watchdog warning ---'
+            sudo cat /srv/fgbears-live/health/youtube-audio/warning.env
+          fi
+
+          YOUTUBE_PID=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          [[ "$YOUTUBE_PID" =~ ^[1-9][0-9]*$ ]]
+          ARGS=$(tr '\0' ' ' < "/proc/$YOUTUBE_PID/cmdline")
+          [[ "$ARGS" == *"ffmpeg"* ]]
+          [[ "$ARGS" == *" -c copy "* ]]
+          [[ "$ARGS" != *"youtube-stream-router"* ]]
+          [[ "$ARGS" != *"gst-launch"* ]]
+          [[ "$ARGS" != *"libx264"* ]]
+
+          [[ "$(systemctl show -p MainPID --value fgbears-live.service)" == "$MASTER_PID" ]]
+          [[ "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" == "$RUMBLE_PID" ]]
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          echo 'youtube_audio_guard_deployed=yes'
+          echo 'master_and_rumble_untouched=yes'
+          REMOTE
