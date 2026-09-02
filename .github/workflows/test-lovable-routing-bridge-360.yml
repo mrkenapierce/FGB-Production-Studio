@@ -15,7 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install test dependencies
-        run: python3 -m pip install --user pillow qrcode opencv-python-headless
+        run: |
+          python3 -m pip install --user pillow qrcode opencv-python-headless
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
       - name: Validate syntax
         run: |
           python3 -m py_compile services/fgbears-live/bin/youtube-question-mask.py
