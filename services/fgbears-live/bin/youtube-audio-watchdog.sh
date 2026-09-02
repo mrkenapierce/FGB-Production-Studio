@@ -51,9 +51,9 @@ canonical_relay_process() {
   [[ "$args" == *" -c:a aac "* ]] || return 1
   [[ "$args" == *" -profile:a aac_low "* ]] || return 1
   [[ "$args" == *" -b:a 128k "* ]] || return 1
-  [[ "$args" == *" -ar 44100 "* ]] || return 1
+  [[ "$args" == *" -ar 48000 "* ]] || return 1
   [[ "$args" == *" -ac 2 "* ]] || return 1
-  [[ "$args" == *"aresample=44100:async=1:first_pts=0"* ]] || return 1
+  [[ "$args" == *"aresample=48000:async=1:first_pts=0"* ]] || return 1
   [[ "$args" != *"youtube-stream-router"* ]] || return 1
   [[ "$args" != *"gst-launch"* ]] || return 1
   [[ "$args" != *"libx264"* ]] || return 1
@@ -78,6 +78,8 @@ write_status() {
     printf 'youtube_pid=%s\n' "$(pid_of "$RELAY_SERVICE")"
     printf 'master_pid=%s\n' "$(pid_of "$MASTER_SERVICE")"
     printf 'rumble_pid=%s\n' "$(pid_of "$RUMBLE_SERVICE")"
+    printf 'youtube_audio_rate=48000\n'
+    printf 'youtube_audio_channels=2\n'
   } > "$temporary"
   mv -f "$temporary" "$STATUS_FILE"
 }
@@ -163,7 +165,7 @@ recent_timestamp_errors() {
   printf '%s\n' "$now" > "${LAST_CHECK_FILE}.partial"
   mv -f "${LAST_CHECK_FILE}.partial" "$LAST_CHECK_FILE"
   count=$(journalctl -u "$RELAY_SERVICE" --since "@$last" --until "@$now" --no-pager 2>/dev/null \
-    | grep -Eic 'Non-monotonic DTS|non monotonically increasing dts|Invalid timestamps stream=1|timestamp discontinuity.*stream id=|Timestamps are unset.*stream 1|Queue input is backward in time' || true)
+    | grep -Eic 'Non-monotonic DTS|non monotonically increasing dts|Invalid timestamps stream=1|timestamp discontinuity.*stream id=|Timestamps are unset.*stream 1|Queue input is backward in time|Circular buffer overrun|Packet corrupt' || true)
   printf '%s' "$count"
 }
 
@@ -175,16 +177,12 @@ run_source_audio_check() {
   rc=$?
   set -e
   if (( rc == 0 )); then
-    # A successful fresh sample clears a stale source-only warning. Previously
-    # this file persisted indefinitely and caused false WARN supervisor states.
     if [[ -s "$WARNING_FILE" ]] && grep -q 'reason=SOURCE_AUDIO_WARNING' "$WARNING_FILE"; then
       rm -f "$WARNING_FILE"
     fi
     return 0
   fi
   warnings=$(printf '%s\n' "$output" | grep -E '^(AUDIO_WARNINGS|REASON)=' | tr '\n' ' ' || true)
-  # Source problems are shared-program evidence, not proof of a YouTube-only
-  # relay fault. Record them, but never restart the master or Rumble here.
   printf 'epoch=%s reason=SOURCE_AUDIO_WARNING detail=%q\n' "$(date +%s)" "$warnings" > "$WARNING_FILE"
   log "YouTube-bound source audio warning (no shared-stream restart): $warnings"
   return 0
@@ -203,7 +201,6 @@ main() {
   fi
 
   if ! systemctl is-active --quiet "$MASTER_SERVICE"; then
-    # The master health system owns master recovery. This watchdog never does.
     write_status SKIP MASTER_NOT_ACTIVE no
     return 0
   fi
