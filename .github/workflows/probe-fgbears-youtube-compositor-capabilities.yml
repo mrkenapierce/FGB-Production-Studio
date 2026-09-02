@@ -54,7 +54,10 @@ jobs:
           for svc in fgbears-live.service fgbears-youtube-relay.service fgbears-rumble-relay.service; do
             pid=$(systemctl show -p MainPID --value "$svc" 2>/dev/null || true)
             echo "$svc pid=$pid state=$(systemctl is-active "$svc" 2>/dev/null || true)"
-            if [[ "$pid" =~ ^[1-9][0-9]*$ ]]; then ps -p "$pid" -o pid=,pcpu=,pmem=,etime=,args=; fi
+            if [[ "$pid" =~ ^[1-9][0-9]*$ ]]; then
+              ps -p "$pid" -o pid=,pcpu=,pmem=,etime=,args= \
+                | sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g; s#(srt://)[^ ]+#\1[REDACTED]#g'
+            fi
           done
           echo '=== ROUTING CONTRACT ==='
           curl -fsS --max-time 8 -H 'Accept: application/json' -H 'Cache-Control: no-cache' \
