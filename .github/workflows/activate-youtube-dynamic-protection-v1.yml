@@ -1,4 +1,4 @@
-name: Inspect Production After Ticker Rollback
+name: Recover FGB Master Safely
 
 on:
   push:
@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  inspect:
+  recover:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -34,25 +34,64 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Inspect live services and rollback failure
+      - name: Recover master and verify transports
         shell: bash
         run: |
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -u
-          for unit in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-lovable-compositor.service fgbears-youtube-lovable-routing.service; do
-            echo "UNIT=$unit active=$(systemctl is-active "$unit" 2>/dev/null || true) enabled=$(systemctl is-enabled "$unit" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$unit" 2>/dev/null || true) restarts=$(systemctl show -p NRestarts --value "$unit" 2>/dev/null || true)"
+          set -Eeuo pipefail
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          COMP=fgbears-youtube-lovable-compositor.service
+          ROUTING=fgbears-youtube-lovable-routing.service
+
+          if ! systemctl is-active --quiet "$MASTER"; then
+            sudo systemctl reset-failed "$MASTER"
+            sudo systemctl start "$MASTER"
+          fi
+
+          for _ in $(seq 1 30); do
+            if systemctl is-active --quiet "$MASTER" && curl -fsS --max-time 1 http://127.0.0.1:8788/healthz >/dev/null 2>&1 && curl -fsS --max-time 1 http://127.0.0.1:8789/healthz >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
           done
-          echo '---SOCKETS---'
-          sudo ss -ntpH state established 2>/dev/null | grep -E ':(443|1935) ' || true
-          echo '---TICKER HEALTH---'
-          curl -fsS --max-time 2 http://127.0.0.1:8788/healthz || true; echo
-          curl -fsS --max-time 2 http://127.0.0.1:8789/healthz || true; echo
-          echo '---MASTER STATUS---'
-          systemctl status fgbears-live.service --no-pager -l 2>&1 | tail -80 || true
-          echo '---MASTER JOURNAL---'
-          journalctl -u fgbears-live.service -n 120 --no-pager 2>&1 || true
-          echo '---ENV TICKER SETTINGS---'
-          sudo grep -E '^(OUTPUT_FPS|CRAWL_OVERLAY_SCRIPT|CRAWL_OVERLAY_FPS|BEARS_NEWS_SCRIPT|BEARS_NEWS_OVERLAY_FPS|BEARS_NEWS_SCROLL_PPS)=' /etc/fgbears-live/stream.env || true
-          echo 'INSPECTION_COMPLETE=1'
+
+          if ! systemctl is-active --quiet "$MASTER"; then
+            echo 'MASTER_RECOVERY=FAIL'
+            systemctl status "$MASTER" --no-pager -l || true
+            journalctl -u "$MASTER" -n 80 --no-pager || true
+            exit 1
+          fi
+
+          curl -fsS --max-time 2 http://127.0.0.1:8788/healthz >/dev/null
+          curl -fsS --max-time 2 http://127.0.0.1:8789/healthz >/dev/null
+          systemctl is-active --quiet "$RUMBLE"
+          systemctl is-active --quiet "$COMP"
+          systemctl is-active --quiet "$ROUTING"
+
+          # Give existing relays a chance to resume when master UDP returns.
+          sleep 6
+          if ! sudo ss -ntpH state established | grep -q ':1935 '; then
+            sudo systemctl restart "$RUMBLE"
+            sleep 5
+          fi
+          if ! sudo ss -ntpH state established | grep -q ':443 '; then
+            sudo systemctl restart "$COMP"
+            sleep 8
+          fi
+
+          sudo ss -ntpH state established | grep ':1935 '
+          sudo ss -ntpH state established | grep ':443 '
+          systemctl is-active --quiet "$MASTER"
+          systemctl is-active --quiet "$RUMBLE"
+          systemctl is-active --quiet "$COMP"
+          systemctl is-active --quiet "$ROUTING"
+
+          echo "MASTER_PID=$(systemctl show -p MainPID --value "$MASTER")"
+          echo "RUMBLE_PID=$(systemctl show -p MainPID --value "$RUMBLE")"
+          echo "COMPOSITOR_PID=$(systemctl show -p MainPID --value "$COMP")"
+          echo "CRAWL_HEALTH=$(curl -fsS --max-time 2 http://127.0.0.1:8788/healthz)"
+          echo "RSS_HEALTH=$(curl -fsS --max-time 2 http://127.0.0.1:8789/healthz)"
+          echo 'MASTER_RECOVERY=PASS'
           REMOTE
