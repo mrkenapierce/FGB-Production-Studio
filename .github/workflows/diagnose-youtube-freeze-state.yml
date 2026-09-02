@@ -1,5 +1,5 @@
 name: Diagnose YouTube Freeze State
-# rerun marker: safe-window-rejection-20260902
+# rerun marker: router-rollback-20260902
 
 on:
   push:
@@ -26,36 +26,31 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Read freeze-box diagnostics only
+      - name: Read router rollback diagnostics only
         shell: bash
         run: |
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
+          echo '=== CURRENT ROUTER UNIT ==='
+          sudo systemctl cat fgbears-youtube-router.service || true
+          echo '=== ROUTER JOURNAL LAST 15 MIN ==='
+          sudo journalctl -u fgbears-youtube-router.service --since '-15 minutes' --no-pager || true
+          echo '=== ROUTER STATUS ==='
+          sudo systemctl status fgbears-youtube-router.service --no-pager || true
+          router_pid=$(systemctl show -p MainPID --value fgbears-youtube-router.service 2>/dev/null || echo 0)
+          child=$(pgrep -P "$router_pid" ffmpeg | head -n1 || true)
+          echo "router_pid=$router_pid ffmpeg_child=${child:-none}"
+          if [[ "$child" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -Eq ':443([[:space:]]|$)'; then
+            echo 'current_youtube_rtmps_established=yes'
+          else
+            echo 'current_youtube_rtmps_established=no'
+          fi
+          echo '=== FREEZE BOX FILES ==='
+          sudo ls -lah /opt/fgbears-live/bin/youtube-stream-router-freezebox.py /usr/local/bin/fgbears-youtube-freeze-card-refresh /var/lib/fgbears-live/youtube-freeze-card.h264 2>/dev/null || true
           echo '=== REFRESH STATUS ==='
           sudo systemctl status fgbears-youtube-freeze-card-refresh.service --no-pager || true
-          echo '=== REFRESH JOURNAL ==='
-          sudo journalctl -u fgbears-youtube-freeze-card-refresh.service -n 200 --no-pager || true
-          echo '=== CARD DIR ==='
-          sudo ls -lah /var/lib/fgbears-live 2>/dev/null || true
           sudo cat /var/lib/fgbears-live/youtube-freeze-card.status 2>/dev/null || true
-          echo '=== CURRENT SANITIZED ROUTING SHAPE ==='
-          python3 - <<'PY' || true
-          import json, urllib.request
-          url='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing?_diag=1'
-          req=urllib.request.Request(url,headers={
-              'Cache-Control':'no-cache','Pragma':'no-cache',
-              'Accept':'application/json','User-Agent':'FGBears-YouTube-FreezeDiag/1.0'})
-          with urllib.request.urlopen(req,timeout=5) as r:
-              p=json.loads(r.read())
-          t=p.get('trivia') if isinstance(p,dict) else None
-          def pick(o, keys):
-              return {k:o.get(k) for k in keys if isinstance(o,dict) and k in o}
-          print(json.dumps({
-              'root': pick(p,['adsVisible','isAdBreak','adBreakActive','configVersion']),
-              'trivia': pick(t,['active','phase','stale','youtubeMaskActive','maskRegion','adsVisible','isAdBreak','adBreakActive']),
-          }, indent=2, sort_keys=True))
-          PY
           echo '=== SERVICES ==='
           for s in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-router.service; do
             echo "$s active=$(systemctl is-active "$s" 2>/dev/null || true) enabled=$(systemctl is-enabled "$s" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$s" 2>/dev/null || true)"
