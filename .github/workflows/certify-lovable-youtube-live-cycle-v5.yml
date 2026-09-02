@@ -1,5 +1,6 @@
 name: Certify Lovable YouTube Live Cycle V5
 
+# Thin-overlay architecture certification: one finished master, one YouTube-only panel overlay.
 on:
   push:
     paths:
