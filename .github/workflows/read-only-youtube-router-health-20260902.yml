@@ -1,4 +1,4 @@
-name: Repair YouTube Exact Question Box Low Lag
+name: Lock Exact-Box Low-Lag YouTube Source
 
 on:
   push:
@@ -7,25 +7,75 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-
-concurrency:
-  group: fgbears-production-overlay-maintenance
-  cancel-in-progress: false
+  contents: write
 
 jobs:
-  repair:
+  lock:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    env:
-      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-      ORACLE_USER: ${{ secrets.ORACLE_USER }}
-      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
           ref: lovable-routing-bridge-20260902
           fetch-depth: 0
-      - name: Restore exact question box on resource-protected YouTube branch
+      - name: Persist safety-qualified exact-box source and restore certifier
         shell: bash
-        run: bash .github/scripts/restore-exact-question-box-low-lag.sh
+        run: |
+          set -Eeuo pipefail
+
+          # Lock the previously measured same-host 640x360 compositor implementation.
+          git show 6b88e4ea368fdb1b05ad2ba43b2fe5c0a4067617:services/fgbears-live/bin/youtube-lovable-compositor.sh \
+            > services/fgbears-live/bin/youtube-lovable-compositor.sh
+
+          # Preserve current question-phase latch/stale behavior, changing only the
+          # erroneous full-middle execution geometry back to Lovable's exact box.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('services/fgbears-live/bin/youtube-question-mask.py')
+          s=p.read_text()
+          old='''    # The API region above remains authoritative and is fully validated. For\n    # execution, protect the complete middle program band. This is intentionally\n    # conservative: news remains live above y=104 and crawl remains live at/after\n    # y=574, while every pixel capable of containing a trivia question is covered.\n    output_news_bottom = scaled(SOURCE_NEWS_BOTTOM, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    output_crawl_top = scaled(SOURCE_CRAWL_TOP, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    x = 0\n    y = output_news_bottom\n    width = OUTPUT_CANVAS_WIDTH\n    height = output_crawl_top - output_news_bottom\n    if width <= 0 or height <= 0 or x < 0 or y < 0:\n        raise ValueError("invalid full-middle YouTube protection region")\n    if x + width > OUTPUT_CANVAS_WIDTH or y + height > OUTPUT_CANVAS_HEIGHT:\n        raise ValueError("full-middle YouTube protection region exceeds execution canvas")\n'''
+          new='''    # Execute exactly the Lovable-authoritative question rectangle. The news\n    # above and crawl below remain live and unrelated middle-panel pixels remain\n    # untouched. Geometry is proportionally mapped to the YouTube canvas.\n    x = scaled(source_x, SOURCE_CANVAS_WIDTH, OUTPUT_CANVAS_WIDTH)\n    y = scaled(source_y, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    width = scaled(source_width, SOURCE_CANVAS_WIDTH, OUTPUT_CANVAS_WIDTH)\n    height = scaled(source_height, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    output_news_bottom = scaled(SOURCE_NEWS_BOTTOM, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    output_crawl_top = scaled(SOURCE_CRAWL_TOP, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    if width <= 0 or height <= 0 or x < 0 or y < output_news_bottom or y + height > output_crawl_top:\n        raise ValueError("scaled maskRegion would overlap the always-live news or crawl bands")\n    if x + width > OUTPUT_CANVAS_WIDTH or y + height > OUTPUT_CANVAS_HEIGHT:\n        raise ValueError("scaled maskRegion exceeds the YouTube execution canvas")\n'''
+          if s.count(old) != 1:
+              raise SystemExit('Expected full-middle geometry block not found exactly once')
+          s=s.replace(old,new)
+          s=s.replace('"executionScaling": "full_middle_protection"','"executionScaling": "proportional_downstream"')
+          s=s.replace('the YouTube execution cover intentionally expands to the entire middle band\nbetween the always-live news and crawl. This guarantees that no part of a real\ntrivia question can remain visible on YouTube if the question layout extends\noutside the narrower source mask. When inactive, the same full-band frame is\nfully transparent.', 'the YouTube execution cover uses that exact authoritative question rectangle.\nNews, crawl, and unrelated middle-panel pixels remain live and untouched. When\ninactive, the same question-box frame is fully transparent.')
+          p.write_text(s)
+          PY
+
+          # Lock both services to the measured 640x360 downstream canvas.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service')
+          s=p.read_text().replace('Description=FGBears YouTube Lovable-Controlled 720p Compositor','Description=FGBears YouTube Lovable-Controlled Resource-Protected 360p Compositor')
+          s=s.replace('Environment=YOUTUBE_OUTPUT_WIDTH=1280','Environment=YOUTUBE_OUTPUT_WIDTH=640')
+          s=s.replace('Environment=YOUTUBE_OUTPUT_HEIGHT=720','Environment=YOUTUBE_OUTPUT_HEIGHT=360')
+          p.write_text(s)
+
+          p=Path('services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service')
+          s=p.read_text().replace('Environment=YOUTUBE_OUTPUT_CANVAS_WIDTH=1280','Environment=YOUTUBE_OUTPUT_CANVAS_WIDTH=640')
+          s=s.replace('Environment=YOUTUBE_OUTPUT_CANVAS_HEIGHT=720','Environment=YOUTUBE_OUTPUT_CANVAS_HEIGHT=360')
+          p.write_text(s)
+          PY
+
+          # Restore the established read-only live-cycle certification workflow.
+          git show d62137b8633e8d3dd509391e601d0edad7e6c037:.github/workflows/read-only-youtube-router-health-20260902.yml \
+            > .github/workflows/read-only-youtube-router-health-20260902.yml
+
+          grep -Fq 'scale=${YOUTUBE_OUTPUT_WIDTH}:${YOUTUBE_OUTPUT_HEIGHT}:flags=fast_bilinear' services/fgbears-live/bin/youtube-lovable-compositor.sh
+          grep -Fq 'YOUTUBE_OUTPUT_WIDTH:=640' services/fgbears-live/bin/youtube-lovable-compositor.sh
+          grep -Fq 'YOUTUBE_VIDEO_BITRATE:=2200k' services/fgbears-live/bin/youtube-lovable-compositor.sh
+          grep -Fq 'Environment=YOUTUBE_OUTPUT_WIDTH=640' services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service
+          grep -Fq 'Environment=YOUTUBE_OUTPUT_CANVAS_WIDTH=640' services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service
+          grep -Fq 'executionScaling": "proportional_downstream' services/fgbears-live/bin/youtube-question-mask.py
+
+          git config user.name 'FGB Production Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add services/fgbears-live/bin/youtube-lovable-compositor.sh \
+                  services/fgbears-live/bin/youtube-question-mask.py \
+                  services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service \
+                  services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service \
+                  .github/workflows/read-only-youtube-router-health-20260902.yml
+          git diff --cached --check
+          git commit -m 'Lock exact-box low-lag YouTube production path'
+          git push origin HEAD:lovable-routing-bridge-20260902
