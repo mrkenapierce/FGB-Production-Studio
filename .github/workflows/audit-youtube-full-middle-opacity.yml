@@ -35,10 +35,11 @@ jobs:
           set -Eeuo pipefail
           target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
           ssh -i ~/.ssh/oracle_key "$target" "python3 - <<'PY'
-          import importlib.util
+          import importlib.util, sys
           p='/opt/fgbears-live/bin/youtube-question-mask.py'
           spec=importlib.util.spec_from_file_location('maskaudit',p)
           m=importlib.util.module_from_spec(spec)
+          sys.modules[spec.name]=m
           spec.loader.exec_module(m)
           assert m.CONTRACT.region()=={'x':0,'y':104,'width':1280,'height':470},m.CONTRACT.region()
           assert len(m.ACTIVE)==1280*470*4,len(m.ACTIVE)
