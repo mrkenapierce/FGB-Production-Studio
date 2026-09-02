@@ -1,4 +1,4 @@
-name: Benchmark YouTube 720p Capacity
+name: Inspect YouTube Sender Ownership
 
 on:
   push:
@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  benchmark:
+  inspect:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -33,62 +33,23 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Inspect live compositor and benchmark 720p at lowest priority
+      - name: Inspect sender services and sockets
         shell: bash
         run: |
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          MASTER=fgbears-live.service
-          RUMBLE=fgbears-rumble-relay.service
-          COMP=fgbears-youtube-lovable-compositor.service
-          ROUTING=fgbears-youtube-lovable-routing.service
-          PROGRESS=/srv/fgbears-live/logs/ffmpeg-progress.log
-
-          for u in "$MASTER" "$RUMBLE" "$COMP" "$ROUTING"; do systemctl is-active --quiet "$u"; done
-          sudo ss -ntpH state established | grep ':1935 ' >/dev/null
-          sudo ss -ntpH state established | grep ':443 ' >/dev/null
-
-          echo '---HOST---'
-          nproc
-          lscpu | grep -E '^(CPU\(s\)|Model name|Thread|Core|Socket|CPU max MHz)' || true
-          echo "LOAD=$(cut -d' ' -f1-3 /proc/loadavg)"
-          echo '---COMPOSITOR UNIT---'
-          systemctl cat "$COMP"
-          echo '---ROUTING UNIT---'
-          systemctl cat "$ROUTING"
-          echo '---LIVE PROCESSES---'
-          ps -eo pid,ppid,pcpu,pmem,ni,comm,args --sort=-pcpu | head -20
-
-          speed_now() {
-            if [[ -s "$PROGRESS" ]]; then
-              awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' "$PROGRESS"
-            fi
-          }
-          BEFORE=$(speed_now || true)
-          echo "MASTER_SPEED_BEFORE=${BEFORE:-unknown}"
-          if [[ -n "${BEFORE:-}" ]]; then python3 -c 'import sys; s=float(sys.argv[1]); assert s >= 0.98, s' "$BEFORE"; fi
-
-          rm -f /tmp/fgb-720p-bench.log
-          nice -n 19 ffmpeg -hide_banner -nostdin -loglevel info \
-            -f lavfi -i 'color=c=black:s=1280x720:r=30' -t 6 \
-            -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
-            -b:v 5000k -maxrate 5500k -bufsize 10000k \
-            -g 60 -keyint_min 60 -sc_threshold 0 -r 30 -threads 1 \
-            -an -f null - 2>/tmp/fgb-720p-bench.log
-
-          BENCH=$(grep -oE 'speed=[[:space:]]*[0-9.]+x' /tmp/fgb-720p-bench.log | tail -1 | sed -E 's/.*= *([0-9.]+)x/\1/')
-          [[ -n "$BENCH" ]]
-          echo "BENCH_720P_SPEED=${BENCH}x"
-          sleep 3
-          AFTER=$(speed_now || true)
-          echo "MASTER_SPEED_AFTER=${AFTER:-unknown}"
-          if [[ -n "${AFTER:-}" ]]; then python3 -c 'import sys; s=float(sys.argv[1]); assert s >= 0.98, s' "$AFTER"; fi
-          python3 -c 'import sys; s=float(sys.argv[1]); assert s >= 1.50, s; print(f"720P_CAPACITY=PASS speed={s:.2f}x")' "$BENCH"
-
-          for u in "$MASTER" "$RUMBLE" "$COMP" "$ROUTING"; do systemctl is-active --quiet "$u"; done
-          sudo ss -ntpH state established | grep ':1935 ' >/dev/null
-          sudo ss -ntpH state established | grep ':443 ' >/dev/null
-          echo "LOAD_AFTER=$(cut -d' ' -f1-3 /proc/loadavg)"
-          echo 'PLATFORM_TRANSPORTS=PASS'
+          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-relay.service fgbears-youtube-lovable-compositor.service fgbears-youtube-lovable-routing.service; do
+            echo "UNIT=$u active=$(systemctl is-active "$u" 2>/dev/null || true) enabled=$(systemctl is-enabled "$u" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$u" 2>/dev/null || true)"
+          done
+          echo '---443 SOCKET OWNERS---'
+          sudo ss -ntpH state established | grep ':443 ' || true
+          echo '---1935 SOCKET OWNERS---'
+          sudo ss -ntpH state established | grep ':1935 ' || true
+          echo '---YOUTUBE COMMANDS---'
+          pgrep -af 'youtube|a.rtmps.youtube.com' || true
+          echo '---MASK HEALTH---'
+          curl -fsS --max-time 3 http://127.0.0.1:8791/healthz || true
+          echo
+          echo 'SENDER_INSPECTION=PASS'
           REMOTE
