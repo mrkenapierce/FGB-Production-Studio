@@ -1,0 +1,128 @@
+name: Deploy Lovable Routing Consumer
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-lovable-routing-consumer.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-lovable-routing-consumer
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+  BRIDGE_REF: dba1a8417ee082653e69c145198692f40bde3dda
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Install consumer only and preserve all stream PIDs
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "BRIDGE_REF='$BRIDGE_REF' bash -s" <<'REMOTE'
+          set -Eeuo pipefail
+          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_before=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          youtube_before=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          test "$master_before" -gt 0
+          test "$rumble_before" -gt 0
+          test "$youtube_before" -gt 0
+
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          base="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/${BRIDGE_REF}"
+          curl -fsSL "$base/services/fgbears-live/bin/youtube-question-mask.py" -o "$tmp/youtube-question-mask.py"
+          curl -fsSL "$base/services/fgbears-live/tools/build-youtube-rumble-trivia-card.py" -o "$tmp/build-youtube-rumble-trivia-card.py"
+          python3 -m py_compile "$tmp/youtube-question-mask.py" "$tmp/build-youtube-rumble-trivia-card.py"
+
+          # Reuse the private dependency directory previously provisioned for the
+          # exact-card renderer; never apt-install or mutate system Python here.
+          pylib=/opt/fgbears-live/exact-card-pylib
+          test -d "$pylib"
+          PYTHONPATH="$pylib" python3 -c 'import PIL, qrcode'
+
+          sudo install -m 0755 "$tmp/youtube-question-mask.py" /opt/fgbears-live/bin/youtube-question-mask.py
+          sudo install -m 0755 "$tmp/build-youtube-rumble-trivia-card.py" /opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py
+
+          cat >"$tmp/fgbears-youtube-lovable-routing.service" <<'UNIT'
+          [Unit]
+          Description=FGBears YouTube Lovable Routing Consumer
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=simple
+          User=fgbears
+          Group=fgbears
+          Environment=PYTHONPATH=/opt/fgbears-live/exact-card-pylib
+          Environment=FGB_STREAM_ROUTING_URL=https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing
+          Environment=YOUTUBE_QUESTION_MASK_PORT=8791
+          Environment=YOUTUBE_REDIRECT_CARD_BUILDER=/opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py
+          ExecStart=/usr/bin/python3 /opt/fgbears-live/bin/youtube-question-mask.py
+          Restart=on-failure
+          RestartSec=3
+          NoNewPrivileges=true
+          PrivateTmp=true
+          ProtectSystem=strict
+          ProtectHome=true
+          ReadOnlyPaths=/opt/fgbears-live
+
+          [Install]
+          WantedBy=multi-user.target
+          UNIT
+          sudo install -m 0644 "$tmp/fgbears-youtube-lovable-routing.service" /etc/systemd/system/fgbears-youtube-lovable-routing.service
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now fgbears-youtube-lovable-routing.service
+
+          for _ in $(seq 1 30); do
+            if curl -fsS --max-time 2 http://127.0.0.1:8791/healthz >/tmp/lovable-routing-health.json; then break; fi
+            sleep 1
+          done
+          cat /tmp/lovable-routing-health.json
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/lovable-routing-health.json'))
+          assert p['ok'] is True
+          assert p['maskRegion']=={'x':462,'y':104,'width':798,'height':470}, p
+          assert p['frameSize']==[798,470], p
+          assert p['creativeKey']=='yt_rumble_trivia_redirect', p
+          assert p['presentationMode']=='full_creative_scaled', p
+          assert p['routingAuthority']=='lovable_public_stream_routing', p
+          print('LIVE_LOVABLE_CONTRACT=PASS')
+          PY
+
+          master_after=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_after=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          youtube_after=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          test "$master_after" = "$master_before"
+          test "$rumble_after" = "$rumble_before"
+          test "$youtube_after" = "$youtube_before"
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          echo "MASTER_PID_UNCHANGED=$master_after"
+          echo "RUMBLE_PID_UNCHANGED=$rumble_after"
+          echo "YOUTUBE_DIRECT_PID_UNCHANGED=$youtube_after"
+          echo 'CONSUMER_DEPLOY=PASS'
+          REMOTE
