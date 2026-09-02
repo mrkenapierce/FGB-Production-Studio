@@ -1,4 +1,4 @@
-name: Stabilize RSS And Crawl Production
+name: Inspect Production After Ticker Rollback
 
 on:
   push:
@@ -16,18 +16,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
       ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: lovable-routing-bridge-20260902
-
       - name: Configure SSH
         shell: bash
         run: |
@@ -38,23 +34,25 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Stage deterministic ticker files
+      - name: Inspect live services and rollback failure
         shell: bash
         run: |
           set -Eeuo pipefail
-          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
-          scp -i ~/.ssh/oracle_key \
-            services/fgbears-live/bin/bears-news-feed-hq.py \
-            services/fgbears-live/bin/crawl-overlay-hq.py \
-            services/fgbears-live/bin/start-stream.sh \
-            .github/scripts/deploy-stable-tickers.sh \
-            "$target:/tmp/"
-
-      - name: Deploy with rollback and certify
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" \
-            'sudo bash /tmp/deploy-stable-tickers.sh'
-
-# Production retry: crawl health now exposes its 30-fps boundary-swap contract.
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          for unit in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-lovable-compositor.service fgbears-youtube-lovable-routing.service; do
+            echo "UNIT=$unit active=$(systemctl is-active "$unit" 2>/dev/null || true) enabled=$(systemctl is-enabled "$unit" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$unit" 2>/dev/null || true) restarts=$(systemctl show -p NRestarts --value "$unit" 2>/dev/null || true)"
+          done
+          echo '---SOCKETS---'
+          sudo ss -ntpH state established 2>/dev/null | grep -E ':(443|1935) ' || true
+          echo '---TICKER HEALTH---'
+          curl -fsS --max-time 2 http://127.0.0.1:8788/healthz || true; echo
+          curl -fsS --max-time 2 http://127.0.0.1:8789/healthz || true; echo
+          echo '---MASTER STATUS---'
+          systemctl status fgbears-live.service --no-pager -l 2>&1 | tail -80 || true
+          echo '---MASTER JOURNAL---'
+          journalctl -u fgbears-live.service -n 120 --no-pager 2>&1 || true
+          echo '---ENV TICKER SETTINGS---'
+          sudo grep -E '^(OUTPUT_FPS|CRAWL_OVERLAY_SCRIPT|CRAWL_OVERLAY_FPS|BEARS_NEWS_SCRIPT|BEARS_NEWS_OVERLAY_FPS|BEARS_NEWS_SCROLL_PPS)=' /etc/fgbears-live/stream.env || true
+          echo 'INSPECTION_COMPLETE=1'
+          REMOTE
