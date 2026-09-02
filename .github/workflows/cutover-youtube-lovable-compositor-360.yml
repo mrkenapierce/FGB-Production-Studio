@@ -1,0 +1,328 @@
+name: Cut Over YouTube to Lovable Compositor 360
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cutover-youtube-lovable-compositor-360.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-production-cutover
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+  BRIDGE_REF: 28a33bc48153260f7de6f111b6ba0478bfaa8560
+
+jobs:
+  cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Guarded YouTube-only cutover
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "BRIDGE_REF='$BRIDGE_REF' bash -s" <<'REMOTE'
+          set -Eeuo pipefail
+
+          DIRECT=fgbears-youtube-relay.service
+          COMP=fgbears-youtube-lovable-compositor.service
+          CONSUMER=fgbears-youtube-lovable-routing.service
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          AUDIO_TIMER=fgbears-youtube-audio-watchdog.timer
+          HEALTH_DROPIN=/etc/systemd/system/fgbears-live-health.service.d/95-lovable-compositor.conf
+          PROGRESS=/srv/fgbears-live/logs/ffmpeg-progress.log
+
+          master_before=$(systemctl show -p MainPID --value "$MASTER")
+          rumble_before=$(systemctl show -p MainPID --value "$RUMBLE")
+          direct_before=$(systemctl show -p MainPID --value "$DIRECT")
+          consumer_before=$(systemctl show -p MainPID --value "$CONSUMER")
+          test "$master_before" -gt 0
+          test "$rumble_before" -gt 0
+          test "$direct_before" -gt 0
+          test "$consumer_before" -gt 0
+          systemctl is-active --quiet "$MASTER"
+          systemctl is-active --quiet "$RUMBLE"
+          systemctl is-active --quiet "$DIRECT"
+          systemctl is-active --quiet "$CONSUMER"
+
+          timer_enabled=$(systemctl is-enabled "$AUDIO_TIMER" 2>/dev/null || true)
+          timer_active=$(systemctl is-active "$AUDIO_TIMER" 2>/dev/null || true)
+          cutover_started=0
+          health_switched=0
+
+          youtube_socket_ok() {
+            local service=$1 pid tmp_ips tmp_sockets
+            pid=$(systemctl show -p MainPID --value "$service" 2>/dev/null || echo 0)
+            [[ "$pid" =~ ^[1-9][0-9]*$ ]] || return 1
+            tmp_ips=$(mktemp); tmp_sockets=$(mktemp)
+            getent ahostsv4 a.rtmps.youtube.com | awk '{print $1}' | sort -u >"$tmp_ips"
+            sudo ss -ntpH state established 2>/dev/null | grep "pid=$pid" >"$tmp_sockets" || true
+            while IFS= read -r ip; do
+              [[ -n "$ip" ]] || continue
+              if grep -Fq "$ip:443" "$tmp_sockets"; then
+                rm -f "$tmp_ips" "$tmp_sockets"
+                return 0
+              fi
+            done <"$tmp_ips"
+            rm -f "$tmp_ips" "$tmp_sockets"
+            return 1
+          }
+
+          restore_direct() {
+            set +e
+            echo 'ROLLBACK_BEGIN'
+            sudo systemctl stop "$COMP" >/dev/null 2>&1 || true
+            sudo systemctl disable "$COMP" >/dev/null 2>&1 || true
+            if (( health_switched == 1 )); then
+              sudo rm -f "$HEALTH_DROPIN"
+              sudo systemctl daemon-reload
+            fi
+            sudo systemctl enable "$DIRECT" >/dev/null 2>&1 || true
+            sudo systemctl reset-failed "$DIRECT" >/dev/null 2>&1 || true
+            sudo systemctl restart "$DIRECT" >/dev/null 2>&1 || true
+            if [[ "$timer_enabled" == enabled ]]; then
+              sudo systemctl enable "$AUDIO_TIMER" >/dev/null 2>&1 || true
+            fi
+            if [[ "$timer_active" == active ]]; then
+              sudo systemctl start "$AUDIO_TIMER" >/dev/null 2>&1 || true
+            fi
+            for _ in $(seq 1 40); do
+              if youtube_socket_ok "$DIRECT"; then
+                echo 'ROLLBACK_DIRECT_RTMPS=PASS'
+                break
+              fi
+              sleep 1
+            done
+            echo 'ROLLBACK_END'
+          }
+          trap 'rc=$?; if (( rc != 0 && cutover_started == 1 )); then restore_direct; fi; exit $rc' EXIT
+
+          # Install only the already-tested bridge artifacts from the immutable ref.
+          tmp=$(mktemp -d)
+          base="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/${BRIDGE_REF}"
+          curl -fsSL "$base/services/fgbears-live/bin/youtube-question-mask.py" -o "$tmp/youtube-question-mask.py"
+          curl -fsSL "$base/services/fgbears-live/bin/youtube-lovable-compositor.sh" -o "$tmp/youtube-lovable-compositor.sh"
+          curl -fsSL "$base/services/fgbears-live/tools/build-youtube-rumble-trivia-card.py" -o "$tmp/build-youtube-rumble-trivia-card.py"
+          python3 -m py_compile "$tmp/youtube-question-mask.py" "$tmp/build-youtube-rumble-trivia-card.py"
+          bash -n "$tmp/youtube-lovable-compositor.sh"
+          PYTHONPATH=/opt/fgbears-live/exact-card-pylib python3 -c 'import PIL, qrcode'
+          sudo install -m 0755 "$tmp/youtube-question-mask.py" /opt/fgbears-live/bin/youtube-question-mask.py
+          sudo install -m 0755 "$tmp/youtube-lovable-compositor.sh" /opt/fgbears-live/bin/youtube-lovable-compositor.sh
+          sudo install -m 0755 "$tmp/build-youtube-rumble-trivia-card.py" /opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py
+          rm -rf "$tmp"
+
+          # Consumer stays Lovable-authoritative at a 1280x720 source contract but
+          # emits a proportional 399x235 RGBA panel for the 640x360 YouTube branch.
+          tmpunit=$(mktemp)
+          cat >"$tmpunit" <<'UNIT'
+          [Unit]
+          Description=FGBears YouTube Lovable Routing Consumer
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=simple
+          User=fgbears
+          Group=fgbears
+          Environment=PYTHONPATH=/opt/fgbears-live/exact-card-pylib
+          Environment=FGB_STREAM_ROUTING_URL=https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing
+          Environment=YOUTUBE_QUESTION_MASK_PORT=8791
+          Environment=YOUTUBE_OUTPUT_CANVAS_WIDTH=640
+          Environment=YOUTUBE_OUTPUT_CANVAS_HEIGHT=360
+          Environment=YOUTUBE_REDIRECT_CARD_BUILDER=/opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py
+          ExecStart=/usr/bin/python3 /opt/fgbears-live/bin/youtube-question-mask.py
+          Restart=on-failure
+          RestartSec=3
+          Nice=19
+          IOSchedulingClass=idle
+          CPUWeight=10
+          NoNewPrivileges=true
+          PrivateTmp=true
+          ProtectSystem=strict
+          ProtectHome=true
+          ReadOnlyPaths=/opt/fgbears-live
+
+          [Install]
+          WantedBy=multi-user.target
+          UNIT
+          sudo install -m 0644 "$tmpunit" /etc/systemd/system/fgbears-youtube-lovable-routing.service
+          rm -f "$tmpunit"
+
+          tmpcomp=$(mktemp)
+          cat >"$tmpcomp" <<'UNIT'
+          [Unit]
+          Description=FGBears YouTube Lovable-Controlled 360p Compositor
+          After=network-online.target fgbears-live.service fgbears-youtube-lovable-routing.service
+          Wants=network-online.target
+          Requires=fgbears-youtube-lovable-routing.service
+
+          [Service]
+          Type=simple
+          User=fgbears
+          Group=fgbears
+          EnvironmentFile=/etc/fgbears-live/stream.env
+          Environment=YOUTUBE_QUESTION_MASK_PORT=8791
+          Environment=YOUTUBE_OUTPUT_WIDTH=640
+          Environment=YOUTUBE_OUTPUT_HEIGHT=360
+          Environment=YOUTUBE_OUTPUT_FPS=30
+          ExecStart=/opt/fgbears-live/bin/youtube-lovable-compositor.sh
+          Restart=on-failure
+          RestartSec=3
+          Nice=19
+          IOSchedulingClass=idle
+          CPUWeight=10
+          NoNewPrivileges=true
+          PrivateTmp=true
+          ProtectSystem=strict
+          ProtectHome=true
+          ReadOnlyPaths=/opt/fgbears-live /etc/fgbears-live
+
+          [Install]
+          WantedBy=multi-user.target
+          UNIT
+          sudo install -m 0644 "$tmpcomp" /etc/systemd/system/fgbears-youtube-lovable-compositor.service
+          rm -f "$tmpcomp"
+          sudo systemctl daemon-reload
+          sudo systemctl restart "$CONSUMER"
+
+          # Validate exact live Lovable contract after proportional execution scaling.
+          for _ in $(seq 1 40); do
+            if curl -fsS --max-time 2 http://127.0.0.1:8791/healthz >/tmp/lovable360-health.json; then break; fi
+            sleep 1
+          done
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/lovable360-health.json'))
+          assert p['ok'] is True, p
+          assert p['sourceCanvas']==[1280,720], p
+          assert p['canvas']==[640,360], p
+          assert p['sourceMaskRegion']=={'x':462,'y':104,'width':798,'height':470}, p
+          assert p['maskRegion']=={'x':231,'y':52,'width':399,'height':235}, p
+          assert p['frameSize']==[399,235], p
+          assert p['creativeKey']=='yt_rumble_trivia_redirect', p
+          assert p['presentationMode']=='full_creative_scaled', p
+          assert p['routingAuthority']=='lovable_public_stream_routing', p
+          print('LIVE_LOVABLE_360_CONTRACT=PASS')
+          PY
+
+          # Do not hand off in the middle of a question.
+          safe=0
+          for _ in $(seq 1 150); do
+            h=$(curl -fsS --max-time 2 http://127.0.0.1:8791/healthz)
+            if printf '%s' "$h" | python3 -c 'import json,sys; p=json.load(sys.stdin); raise SystemExit(0 if p.get("active") is False and p.get("phase") != "question" else 1)'; then
+              safe=1; break
+            fi
+            sleep 1
+          done
+          test "$safe" = 1
+          echo 'SAFE_CUTOVER_WINDOW=PASS'
+
+          # Point the existing health checker at the new YouTube executor. This
+          # preserves global master/news/audio health checks and changes only the
+          # isolated YouTube service it recovers.
+          sudo install -d -m 0755 /etc/systemd/system/fgbears-live-health.service.d
+          tmph=$(mktemp)
+          cat >"$tmph" <<'DROPIN'
+          [Service]
+          Environment=YOUTUBE_RELAY_SERVICE=fgbears-youtube-lovable-compositor.service
+          DROPIN
+          sudo install -m 0644 "$tmph" "$HEALTH_DROPIN"
+          rm -f "$tmph"
+          health_switched=1
+          sudo systemctl daemon-reload
+
+          # Disable only the legacy direct-relay-specific watchdog.
+          sudo systemctl disable --now "$AUDIO_TIMER" >/dev/null 2>&1 || true
+
+          cutover_started=1
+          sudo systemctl stop "$DIRECT"
+          sudo systemctl disable "$DIRECT" >/dev/null 2>&1 || true
+          sudo systemctl reset-failed "$COMP" >/dev/null 2>&1 || true
+          sudo systemctl enable "$COMP" >/dev/null
+          sudo systemctl start "$COMP"
+
+          # Require actual YouTube RTMPS ownership by the compositor.
+          connected=0
+          for _ in $(seq 1 45); do
+            if systemctl is-active --quiet "$COMP" && youtube_socket_ok "$COMP"; then
+              connected=1; break
+            fi
+            sleep 1
+          done
+          test "$connected" = 1
+          echo 'COMPOSITOR_YOUTUBE_RTMPS=PASS'
+
+          # Verify the monitor emitted by the same encode is 640x360/30.
+          monitor_ok=0
+          for _ in $(seq 1 15); do
+            if timeout 5 ffprobe -v error -select_streams v:0 \
+              -show_entries stream=width,height,r_frame_rate -of json \
+              'udp://127.0.0.1:1941?fifo_size=1000000&overrun_nonfatal=1&reuse=1' \
+              >/tmp/lovable-monitor.json 2>/dev/null; then
+              if python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/lovable-monitor.json'))
+          s=p['streams'][0]
+          assert s['width']==640 and s['height']==360, s
+          assert s['r_frame_rate']=='30/1', s
+          PY
+              then monitor_ok=1; break; fi
+            fi
+            sleep 1
+          done
+          test "$monitor_ok" = 1
+          echo 'COMPOSITOR_MONITOR_640X360=PASS'
+
+          # Protect the shared source: master/Rumble must be the exact same processes.
+          test "$(systemctl show -p MainPID --value "$MASTER")" = "$master_before"
+          test "$(systemctl show -p MainPID --value "$RUMBLE")" = "$rumble_before"
+          systemctl is-active --quiet "$MASTER"
+          systemctl is-active --quiet "$RUMBLE"
+          curl -fsS --max-time 2 http://127.0.0.1:8788/healthz >/tmp/crawl.json
+          curl -fsS --max-time 2 http://127.0.0.1:8789/healthz >/tmp/news.json
+          python3 - <<'PY'
+          import json
+          assert json.load(open('/tmp/crawl.json')).get('ok') is True
+          assert json.load(open('/tmp/news.json')).get('ok') is True
+          print('RSS_AND_CRAWL_HEALTH=PASS')
+          PY
+
+          # Give the continuous compositor time to reveal resource contention.
+          first=$(sudo tail -n 30 "$PROGRESS" | sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' | tail -n1)
+          [[ "$first" =~ ^[0-9]+$ ]]
+          sleep 20
+          second=$(sudo tail -n 30 "$PROGRESS" | sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' | tail -n1)
+          [[ "$second" =~ ^[0-9]+$ ]]
+          delta=$((second-first))
+          test "$delta" -ge 18000000
+          test "$(systemctl show -p MainPID --value "$MASTER")" = "$master_before"
+          test "$(systemctl show -p MainPID --value "$RUMBLE")" = "$rumble_before"
+          youtube_socket_ok "$COMP"
+          echo "MASTER_20S_ADVANCE_US=$delta"
+          echo "MASTER_PID_UNCHANGED=$master_before"
+          echo "RUMBLE_PID_UNCHANGED=$rumble_before"
+          echo 'INITIAL_CUTOVER_STABILITY=PASS'
+
+          trap - EXIT
+          echo 'YOUTUBE_LOVABLE_COMPOSITOR_CUTOVER=PASS'
+          REMOTE
