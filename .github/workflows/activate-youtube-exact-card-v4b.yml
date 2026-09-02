@@ -1,157 +1,16 @@
-name: Activate YouTube Exact Card V4B
+name: Deprecated - YouTube Exact Card V4B Freeze
 
 on:
-  push:
-    paths:
-      - '.github/workflows/activate-youtube-exact-card-v4b.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: fgbears-youtube-exact-card-v4
-  cancel-in-progress: false
-
 jobs:
-  activate:
+  blocked:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
-    env:
-      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-      ORACLE_USER: ${{ secrets.ORACLE_USER }}
-      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
-      - name: Configure SSH
-        shell: bash
+      - name: Block deprecated whole-frame freeze path
         run: |
-          set -Eeuo pipefail
-          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
-          chmod 600 ~/.ssh/oracle_key
-          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      - name: Activate v4 exact card with private Python target libs
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          repo=/tmp/fgb-exact-card-v4b
-          runtime=/var/lib/fgbears-live/youtube-freeze-card.h264
-          refresher=/usr/local/bin/fgbears-youtube-freeze-card-refresh
-          pylib=/opt/fgbears-live/exact-card-pylib
-          start_epoch=$(date +%s)
-
-          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
-          rumble_before=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
-          router_before=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
-          [[ "$master_before" =~ ^[1-9][0-9]*$ && "$rumble_before" =~ ^[1-9][0-9]*$ && "$router_before" =~ ^[1-9][0-9]*$ ]]
-          systemctl is-active --quiet fgbears-live.service
-          systemctl is-active --quiet fgbears-rumble-relay.service
-          systemctl is-active --quiet fgbears-youtube-router.service
-          grep -F '/opt/fgbears-live/bin/youtube-stream-router-freezebox.py' <<<"$(sudo systemctl cat fgbears-youtube-router.service)" >/dev/null
-          child=$(pgrep -P "$router_before" ffmpeg | head -n1 || true)
-          [[ "$child" =~ ^[1-9][0-9]*$ ]]
-          sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -E ':443([[:space:]]|$)' >/dev/null
-
-          rm -rf "$repo"
-          git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git "$repo" >/dev/null
-          bash -n "$repo/.github/freeze-maintenance/youtube-freeze-card-refresh-v4.sh"
-          python3 -m py_compile "$repo/.github/freeze-maintenance/compose-exact-youtube-card.py" "$repo/services/fgbears-live/tools/build-youtube-rumble-trivia-card.py"
-
-          # Lovable production contract must be live before any production asset change.
-          python3 - <<'PY'
-          import json,time,urllib.request
-          url='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing'
-          expected={'x':462,'y':104,'width':798,'height':470,'coordinateSpace':'pixels','referenceWidth':1280,'referenceHeight':720}
-          deadline=time.time()+90
-          last=None
-          while time.time()<deadline:
-              try:
-                  req=urllib.request.Request(url+'?_v4b='+str(time.time_ns()),headers={'Accept':'application/json','Cache-Control':'no-cache','Pragma':'no-cache'})
-                  with urllib.request.urlopen(req,timeout=4) as r: p=json.loads(r.read())
-                  t=p.get('trivia') if isinstance(p,dict) else None
-                  last=t
-                  if isinstance(t,dict) and t.get('maskRegion')==expected and t.get('maskRegionAuthority')=='production_live_panel' and t.get('youtubeCreativeKey')=='yt_rumble_trivia_redirect':
-                      print('LOVABLE_V4_ROUTING=PASS'); raise SystemExit(0)
-              except SystemExit: raise
-              except Exception as e: last=str(e)
-              time.sleep(2)
-          raise SystemExit('Lovable v4 routing unavailable: '+repr(last))
-          PY
-
-          # Private dependency directory only; no apt, venv or system package mutation.
-          sudo install -d -m 0755 "$pylib"
-          if ! PYTHONPATH="$pylib" /usr/bin/python3 -c 'import PIL,qrcode' >/dev/null 2>&1; then
-            python3 -m pip --version >/dev/null
-            tmpdeps=/tmp/exact-card-pylib-new
-            rm -rf "$tmpdeps"; mkdir -p "$tmpdeps"
-            python3 -m pip install -q --disable-pip-version-check --target "$tmpdeps" 'pillow>=9.1' 'qrcode>=7.4'
-            PYTHONPATH="$tmpdeps" python3 -c 'import PIL,qrcode'
-            sudo rm -rf "$pylib"
-            sudo mv "$tmpdeps" "$pylib"
-            sudo chmod -R a+rX "$pylib"
-          fi
-          PYTHONPATH="$pylib" /usr/bin/python3 -c 'import PIL,qrcode; print("EXACT_CARD_PRIVATE_PYLIB=PASS")'
-
-          sudo install -d -m 0755 /opt/fgbears-live/tools
-          sudo install -m 0755 "$repo/services/fgbears-live/tools/build-youtube-rumble-trivia-card.py" /opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py
-          sudo install -m 0755 "$repo/.github/freeze-maintenance/compose-exact-youtube-card.py" /opt/fgbears-live/tools/compose-exact-youtube-card.py
-          sudo cp "$refresher" /tmp/fgbears-youtube-freeze-card-refresh.pre-v4b
-          sudo install -m 0755 "$repo/.github/freeze-maintenance/youtube-freeze-card-refresh-v4.sh" "$refresher"
-
-          # Preflight exact canonical 1280x720 source on production host.
-          pre=/tmp/fgb-exact-card-v4b-preflight
-          rm -rf "$pre"; mkdir -p "$pre"
-          PYTHONPATH="$pylib" /usr/bin/python3 /opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py "$pre/source.png" >/dev/null
-          test -s "$pre/source.png"
-          dims=$(PYTHONPATH="$pylib" /usr/bin/python3 - "$pre/source.png" <<'PY'
-          import sys
-          from PIL import Image
-          im=Image.open(sys.argv[1]); print(f'{im.width}x{im.height}')
-          PY
-          )
-          test "$dims" = '1280x720'
-          echo 'LOCKED_SOURCE_CARD=1280x720'
-
-          # Force one guarded generation. Old H264 card stays intact if this fails.
-          sudo systemctl enable --now fgbears-youtube-freeze-card-refresh.timer
-          before_mtime=$(stat -c %Y "$runtime")
-          sudo systemctl reset-failed fgbears-youtube-freeze-card-refresh.service || true
-          sudo systemctl start fgbears-youtube-freeze-card-refresh.service || true
-          status=$(sudo cat /var/lib/fgbears-live/youtube-freeze-card.status 2>/dev/null || true)
-          echo "freeze_card_status=$status"
-          if ! grep -F 'result=updated ' <<<"$status" >/dev/null || ! grep -F 'panel=462,104,798,470' <<<"$status" >/dev/null || ! grep -F 'card=462,114,798,449' <<<"$status" >/dev/null || ! grep -F 'source=locked-yt_rumble_trivia_redirect' <<<"$status" >/dev/null || ! grep -F 'mode=exact-card-v4' <<<"$status" >/dev/null; then
-            sudo install -m 0755 /tmp/fgbears-youtube-freeze-card-refresh.pre-v4b "$refresher"
-            echo 'V4_GENERATION_NOT_PUBLISHED_OLD_CARD_RETAINED=yes' >&2
-            exit 1
-          fi
-          test "$(stat -c %Y "$runtime")" -ge "$before_mtime"
-
-          reloaded=0
-          for i in $(seq 1 20); do
-            logs=$(sudo journalctl -u fgbears-youtube-router.service --since "@${start_epoch}" --no-pager 2>/dev/null || true)
-            if grep -F 'hot-reloaded freeze-box card' <<<"$logs" >/dev/null; then reloaded=1; break; fi
-            sleep 1
-          done
-          test "$reloaded" = 1
-
-          master_after=$(systemctl show -p MainPID --value fgbears-live.service)
-          rumble_after=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
-          router_after=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
-          test "$master_after" = "$master_before"
-          test "$rumble_after" = "$rumble_before"
-          test "$router_after" = "$router_before"
-          child_after=$(pgrep -P "$router_after" ffmpeg | head -n1 || true)
-          [[ "$child_after" =~ ^[1-9][0-9]*$ ]]
-          sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child_after" | grep -E ':443([[:space:]]|$)' >/dev/null
-
-          echo "MASTER_PID_UNCHANGED=$master_after"
-          echo "RUMBLE_PID_UNCHANGED=$rumble_after"
-          echo "YOUTUBE_ROUTER_PID_UNCHANGED=$router_after"
-          echo 'YOUTUBE_RTMPS_ESTABLISHED=yes'
-          echo 'EXACT_CARD_HOT_RELOAD=yes'
-          echo 'EXACT_CARD_V4_ACTIVATION=PASS'
-          REMOTE
+          echo '::error::This workflow is permanently disabled. Whole-frame YouTube card switching freezes the RSS/news feed and messaging crawl during trivia, which violates the production requirement. Use the continuous direct relay until an off-host partial compositor is available.'
+          exit 1
