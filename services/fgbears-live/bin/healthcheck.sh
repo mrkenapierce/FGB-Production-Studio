@@ -19,13 +19,6 @@ NEWS_REFRESH_BIN=${BEARS_NEWS_REFRESH_BIN:-/opt/fgbears-live/bin/refresh-bears-n
 NEWS_REFRESH_INTERVAL_SECONDS=${BEARS_NEWS_REFRESH_INTERVAL_SECONDS:-900}
 NEWS_LOCAL_FEED=${BEARS_NEWS_LOCAL_FEED_FILE:-/srv/fgbears-live/runtime/fgb-bears-news.xml}
 NEWS_REFRESH_STATUS=${BEARS_NEWS_REFRESH_STATUS_FILE:-/srv/fgbears-live/runtime/bears-news-refresh-status.env}
-YOUTUBE_RELAY_SERVICE=${YOUTUBE_RELAY_SERVICE:-fgbears-youtube-relay.service}
-AUDIO_HEALTH_BIN=${FGB_AUDIO_HEALTH_BIN:-/usr/local/bin/fgbears-audio-health}
-AUDIO_HEALTH_INTERVAL_SECONDS=${FGB_AUDIO_HEALTH_INTERVAL_SECONDS:-300}
-AUDIO_HEALTH_SAMPLE_SECONDS=${FGB_AUDIO_HEALTH_SAMPLE_SECONDS:-20}
-AUDIO_HEALTH_EPOCH_FILE=${FGB_AUDIO_HEALTH_EPOCH_FILE:-$HEALTH_STATE_DIR/audio-health-epoch}
-AUDIO_HEALTH_STATUS_FILE=${FGB_AUDIO_HEALTH_STATUS_FILE:-$HEALTH_STATE_DIR/audio-health-status}
-AUDIO_HEALTH_WARNING_FILE=${FGB_AUDIO_HEALTH_WARNING_FILE:-$HEALTH_STATE_DIR/audio-health-warning}
 
 mkdir -p "$HEALTH_STATE_DIR"
 
@@ -57,31 +50,8 @@ guarded_restart() {
     return 1
   fi
   printf '%s\n' "$now" >> "$RESTART_HISTORY_FILE"
-  logger -t fgbears-live-health "Restarting stalled stream; reason=${reason}; budget=$((count + 1))/${RESTART_BUDGET}."
+  logger -t fgbears-live-health "Restarting stalled shared master; reason=${reason}; budget=$((count + 1))/${RESTART_BUDGET}."
   systemctl restart fgbears-live.service
-}
-
-# YouTube consumes a connectionless local MPEG-TS mirror. A relay failure must
-# never restart or interrupt the primary encoder; reset only the relay and let it
-# rejoin the continuously transmitted program at the next keyframe.
-recover_youtube_relay() {
-  if systemctl is-active --quiet "$YOUTUBE_RELAY_SERVICE"; then
-    return 0
-  fi
-
-  logger -t fgbears-live-health "YouTube relay is inactive; resetting and restarting the isolated UDP relay without touching the primary encoder."
-  systemctl reset-failed "$YOUTUBE_RELAY_SERVICE" || true
-  systemctl restart "$YOUTUBE_RELAY_SERVICE" || true
-
-  for _ in {1..20}; do
-    if systemctl is-active --quiet "$YOUTUBE_RELAY_SERVICE"; then
-      return 0
-    fi
-    sleep 0.25
-  done
-
-  logger -t fgbears-live-health "YouTube relay did not become active after isolated recovery."
-  return 1
 }
 
 run_lag_check() {
@@ -108,49 +78,14 @@ run_lag_check() {
   fi
 }
 
-run_audio_check() {
-  local now last=0 output rc temporary
-  [[ -x "$AUDIO_HEALTH_BIN" ]] || return 0
-  now=$(date +%s)
-  if [[ -s "$AUDIO_HEALTH_EPOCH_FILE" ]]; then
-    last=$(cat "$AUDIO_HEALTH_EPOCH_FILE" 2>/dev/null || printf '0')
-  fi
-  [[ "$last" =~ ^[0-9]+$ ]] || last=0
-  if (( now - last < AUDIO_HEALTH_INTERVAL_SECONDS )); then
-    return 0
-  fi
-
-  if output=$("$AUDIO_HEALTH_BIN" --capture-seconds "$AUDIO_HEALTH_SAMPLE_SECONDS" 2>&1); then
-    rc=0
-  else
-    rc=$?
-  fi
-  temporary="${AUDIO_HEALTH_STATUS_FILE}.partial"
-  printf '%s\n' "$output" > "$temporary"
-  mv -f "$temporary" "$AUDIO_HEALTH_STATUS_FILE"
-  printf '%s\n' "$now" > "${AUDIO_HEALTH_EPOCH_FILE}.partial"
-  mv -f "${AUDIO_HEALTH_EPOCH_FILE}.partial" "$AUDIO_HEALTH_EPOCH_FILE"
-
-  if (( rc != 0 )); then
-    printf '%s rc=%s %s\n' "$now" "$rc" "$(printf '%s\n' "$output" | grep -E '^(AUDIO_WARNINGS|REASON)=' | tr '\n' ' ' || true)" > "$AUDIO_HEALTH_WARNING_FILE"
-    logger -t fgbears-live-health "Audio quality warning: $(printf '%s\n' "$output" | grep -E '^(AUDIO_WARNINGS|REASON)=' | tr '\n' ' ' || true)"
-    return 0
-  fi
-  rm -f "$AUDIO_HEALTH_WARNING_FILE"
-}
-
-# News scanning is independent of encoder health. The five-minute host timer calls
-# this script; the refresher itself runs only once per 15-minute epoch bucket.
+# This health service owns only shared-master recovery and the independent news
+# refresh cadence. Destination-specific recovery belongs to destination-specific
+# watchdogs; otherwise two supervisors can race and create duplicate YouTube
+# owners. Deep YouTube audio analysis also lives only in the owner-aware YouTube
+# watchdog so the same raw loopback stream is not repeatedly decoded twice.
 run_news_refresh
 
 [[ -r "$ENV_FILE" && -s "$PLAYLIST_FILE" ]] || exit 0
-if grep -q '^YOUTUBE_STREAM_KEY=REPLACE_WITH_YOUTUBE_STREAM_KEY$' "$ENV_FILE"; then
-  exit 0
-fi
-
-# A failed YouTube relay is isolated from the primary program clock. Recover it
-# independently and continue checking encoder health in the same cycle.
-recover_youtube_relay || true
 
 if ! systemctl is-active --quiet fgbears-live.service; then
   guarded_restart "SERVICE_NOT_ACTIVE"
@@ -178,7 +113,6 @@ fi
 
 [[ -n "$out_time_us" ]] || exit 0
 run_lag_check
-run_audio_check
 printf '%s %s\n' "$now" "$out_time_us" > "${HEALTH_SAMPLE_FILE}.partial"
 mv -f "${HEALTH_SAMPLE_FILE}.partial" "$HEALTH_SAMPLE_FILE"
 rm -f "$RESTART_BREAKER_FILE"
