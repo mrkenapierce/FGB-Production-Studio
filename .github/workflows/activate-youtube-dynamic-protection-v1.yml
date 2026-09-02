@@ -1,4 +1,4 @@
-name: Cut Over YouTube To Native 720p
+name: Inspect YouTube Baseline After Rollback
 
 on:
   push:
@@ -16,18 +16,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  cutover:
+  inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
       ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: lovable-routing-bridge-20260902
-
       - name: Configure SSH
         shell: bash
         run: |
@@ -37,23 +33,24 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Stage native 720p compositor
+      - name: Inspect current single-owner baseline
         shell: bash
         run: |
           set -Eeuo pipefail
-          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
-          scp -i ~/.ssh/oracle_key \
-            services/fgbears-live/bin/youtube-lovable-compositor.sh \
-            services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service \
-            services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service \
-            .github/scripts/cutover-youtube-720p.sh \
-            "$target:/tmp/"
-
-      - name: Perform single-owner 720p cutover and certify
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" \
-            'sudo bash /tmp/cutover-youtube-720p.sh'
-
-# Retry uses ffprobe JSON stream validation because MPEG-TS CSV may emit repeated program fields.
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-relay.service fgbears-youtube-lovable-compositor.service fgbears-youtube-lovable-routing.service; do
+            echo "UNIT=$u active=$(systemctl is-active "$u" 2>/dev/null || true) enabled=$(systemctl is-enabled "$u" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$u" 2>/dev/null || true) restarts=$(systemctl show -p NRestarts --value "$u" 2>/dev/null || true)"
+          done
+          echo '---443---'
+          sudo ss -ntpH state established | grep ':443 ' || true
+          echo '---1935---'
+          sudo ss -ntpH state established | grep ':1935 ' || true
+          echo '---MASK---'
+          curl -fsS --max-time 3 http://127.0.0.1:8791/healthz || true; echo
+          echo '---TICKERS---'
+          curl -fsS --max-time 3 http://127.0.0.1:8788/healthz || true; echo
+          curl -fsS --max-time 3 http://127.0.0.1:8789/healthz || true; echo
+          echo "MASTER_SPEED=$(awk -F= '$1==\"speed\"{v=$2} END{print v}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)"
+          echo 'BASELINE_INSPECTION=PASS'
+          REMOTE
