@@ -38,6 +38,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
+      # Read-only: this verifier never restarts or modifies production services.
       - name: Run read-only production audit
         shell: bash
         run: |
