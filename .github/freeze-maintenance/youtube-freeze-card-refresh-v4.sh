@@ -9,6 +9,7 @@ set -Eeuo pipefail
 
 ROUTING_URL="${FGB_STREAM_ROUTING_URL:-https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing}"
 BASE_INPUT_URL="${FGB_YOUTUBE_FREEZE_INPUT_URL:-${YOUTUBE_LOCAL_UDP_URL:-udp://127.0.0.1:1939?pkt_size=1316}}"
+PYTHON="${FGB_YOUTUBE_EXACT_CARD_PYTHON:-/opt/fgbears-live/venv-exact-card/bin/python}"
 BUILDER="${FGB_YOUTUBE_EXACT_CARD_BUILDER:-/opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py}"
 COMPOSER="${FGB_YOUTUBE_EXACT_CARD_COMPOSER:-/opt/fgbears-live/tools/compose-exact-youtube-card.py}"
 OUT_DIR="${FGB_YOUTUBE_FREEZE_CARD_DIR:-/var/lib/fgbears-live}"
@@ -42,9 +43,10 @@ else
   INPUT_URL="$BASE_INPUT_URL"
 fi
 
+[[ -x "$PYTHON" ]] || { echo "Missing exact-card Python environment: $PYTHON" >&2; exit 66; }
 [[ -r "$BUILDER" ]] || { echo "Missing exact locked-card builder: $BUILDER" >&2; exit 66; }
 [[ -r "$COMPOSER" ]] || { echo "Missing exact whole-card composer: $COMPOSER" >&2; exit 66; }
-python3 -c 'import PIL, qrcode' >/dev/null
+"$PYTHON" -c 'import PIL, qrcode' >/dev/null
 mkdir -p "$OUT_DIR"
 exec 9>"$LOCK_FILE"
 if ! flock -n 9; then
@@ -53,7 +55,7 @@ if ! flock -n 9; then
 fi
 
 routing_safe() {
-  python3 - "$ROUTING_URL" <<'PY'
+  "$PYTHON" - "$ROUTING_URL" <<'PY'
 import json, sys, time, urllib.parse, urllib.request
 url = sys.argv[1]
 parts = urllib.parse.urlsplit(url)
@@ -124,10 +126,10 @@ test -s "$frame"
 
 # This is the canonical locked-template builder already present in the project.
 # It contains the exact QR, copy, coordinates, colors, bars, border and fonts.
-python3 "$BUILDER" "$source_card" >/dev/null
+"$PYTHON" "$BUILDER" "$source_card" >/dev/null
 test -s "$source_card"
 
-python3 "$COMPOSER" "$frame" "$source_card" "$composite" >"$metadata"
+"$PYTHON" "$COMPOSER" "$frame" "$source_card" "$composite" >"$metadata"
 grep -Fq '"mode": "exact-locked-template-whole-card"' "$metadata"
 grep -Fq '"width": 798' "$metadata"
 grep -Fq '"height": 449' "$metadata"
