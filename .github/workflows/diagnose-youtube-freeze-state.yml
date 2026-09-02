@@ -1,5 +1,5 @@
 name: Diagnose YouTube Freeze State
-# rerun marker: corrected-wrapper-runtime-20260902
+# rerun marker: verify-small-box-live-cycle-20260902
 
 on:
   push:
@@ -13,6 +13,7 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
+    timeout-minutes: 4
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
@@ -26,28 +27,63 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Read corrected freeze-box runtime failure and current health
+
+      - name: Verify hot-reloaded small-box card through a live question cycle
         shell: bash
         run: |
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          echo '=== ROUTER JOURNAL SINCE 08:19 UTC ==='
-          sudo journalctl -u fgbears-youtube-router.service --since '2026-09-02 08:19:40 UTC' --no-pager || true
-          echo '=== CURRENT ROUTER UNIT ==='
-          sudo systemctl cat fgbears-youtube-router.service || true
-          echo '=== CURRENT HEALTH ==='
-          for s in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-router.service fgbears-youtube-freeze-card-refresh.timer; do
-            echo "$s active=$(systemctl is-active "$s" 2>/dev/null || true) enabled=$(systemctl is-enabled "$s" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$s" 2>/dev/null || true)"
+          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_before=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          router_before=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
+          status=$(sudo cat /var/lib/fgbears-live/youtube-freeze-card.status 2>/dev/null || true)
+          echo "freeze_card_status=$status"
+          grep -F 'result=updated ' <<<"$status" >/dev/null
+          grep -F 'geometry=480,200,640,360' <<<"$status" >/dev/null
+          grep -F 'mode=nonquestion-freeze-v2' <<<"$status" >/dev/null
+
+          card=/var/lib/fgbears-live/youtube-freeze-card.h264
+          probe=$(ffprobe -v error -f h264 -select_streams v:0 -show_entries stream=codec_name,width,height,pix_fmt -of csv=p=0 "$card")
+          echo "freeze_card_probe=$probe"
+          test "$probe" = 'h264,1280,720,yuv420p'
+
+          # The v2 asset was published at 08:28:36 UTC. Wait for an actual
+          # question-phase packet switch after that publication, then for the
+          # return to live. Read-only journal observation only.
+          verified=0
+          for i in $(seq 1 60); do
+            logs=$(sudo journalctl -u fgbears-youtube-router.service --since '2026-09-02 08:28:36 UTC' --no-pager 2>/dev/null || true)
+            hot=0; to_card=0; to_live=0
+            grep -F 'hot-reloaded freeze-box card' <<<"$logs" >/dev/null && hot=1 || true
+            grep -F 'video route switched: live -> card' <<<"$logs" >/dev/null && to_card=1 || true
+            grep -F 'video route switched: card -> live' <<<"$logs" >/dev/null && to_live=1 || true
+            if (( hot == 1 && to_card == 1 && to_live == 1 )); then
+              verified=1
+              echo 'LIVE_QUESTION_CYCLE=live_to_small_card_to_live'
+              break
+            fi
+            sleep 2
           done
-          router_pid=$(systemctl show -p MainPID --value fgbears-youtube-router.service 2>/dev/null || echo 0)
-          child=$(pgrep -P "$router_pid" ffmpeg | head -n1 || true)
-          if [[ "$child" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -Eq ':443([[:space:]]|$)'; then
-            echo 'youtube_rtmps_established=yes'
-          else
-            echo 'youtube_rtmps_established=no'
-          fi
-          echo '=== FREEZE STATUS ==='
-          sudo cat /var/lib/fgbears-live/youtube-freeze-card.status 2>/dev/null || true
-          sudo ls -lah /var/lib/fgbears-live/youtube-freeze-card.h264 2>/dev/null || true
+          test "$verified" = 1
+
+          master_after=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_after=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          router_after=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
+          test "$master_after" = "$master_before"
+          test "$rumble_after" = "$rumble_before"
+          test "$router_after" = "$router_before"
+          systemctl is-active --quiet fgbears-youtube-freeze-card-refresh.timer
+          systemctl is-enabled --quiet fgbears-youtube-freeze-card-refresh.timer
+
+          child=$(pgrep -P "$router_after" ffmpeg | head -n1 || true)
+          [[ "$child" =~ ^[1-9][0-9]*$ ]]
+          sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -E ':443([[:space:]]|$)' >/dev/null
+
+          echo "MASTER_PID_UNCHANGED=$master_after"
+          echo "RUMBLE_PID_UNCHANGED=$rumble_after"
+          echo "YOUTUBE_ROUTER_PID_UNCHANGED=$router_after"
+          echo 'YOUTUBE_RTMPS_ESTABLISHED=yes'
+          echo 'FREEZE_BOX_TIMER=enabled_active'
+          echo 'SMALL_BOX_LIVE_VERIFICATION=PASS'
           REMOTE
