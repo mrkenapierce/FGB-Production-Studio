@@ -2,6 +2,7 @@
 set -Eeuo pipefail
 
 ROOT=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+REPO_ROOT=$(cd -- "$ROOT/../.." && pwd)
 START="$ROOT/bin/start-stream.sh"
 NEWS_BASE="$ROOT/bin/bears-news-feed.py"
 NEWS_HQ="$ROOT/bin/bears-news-feed-hq.py"
@@ -51,6 +52,36 @@ grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE=48000' "$ENV_EXAMPLE" || fail 'YouTube trans
 # RULE 3 — Retired X and Instagram transport targets stay removed.
 if grep -Fq 'X local mirror' "$START" || grep -Fq 'Instagram local mirror' "$START"; then
   fail 'Social sidecar tee outputs are forbidden in the primary encoder.'
+fi
+
+# RULE 4 — The CPU-heavy/router/full-screen YouTube experiments stay deleted.
+# Recovery is exact-box first with the direct video-copy relay available only as
+# owner-aware fallback. A future refactor must not quietly recreate any of the
+# retired runnable paths.
+for retired in \
+  "$REPO_ROOT/.github/dynamic-youtube/youtube-dynamic-card-source.sh" \
+  "$REPO_ROOT/.github/dynamic-youtube/youtube-stream-router-dynamic.py" \
+  "$ROOT/bin/youtube-offhost-compositor.sh" \
+  "$ROOT/bin/youtube-trivia-overlay.py"; do
+  [[ ! -e "$retired" ]] || fail "Retired YouTube path returned: $retired"
+done
+
+for retired_workflow in \
+  "$REPO_ROOT/.github/workflows/deploy-youtube-full-middle-concealment.yml" \
+  "$REPO_ROOT/.github/workflows/emergency-restore-fullsize-youtube-20260902.yml" \
+  "$REPO_ROOT/.github/workflows/certify-youtube-dynamic-protection-v1.yml" \
+  "$REPO_ROOT/.github/workflows/test-youtube-dynamic-selector-v2.yml" \
+  "$REPO_ROOT/.github/workflows/test-lovable-routing-bridge.yml"; do
+  [[ ! -e "$retired_workflow" ]] || fail "Retired YouTube workflow returned: $retired_workflow"
+done
+
+if grep -R -nE 'YOUTUBE_AUDIO_SAMPLE_RATE=44100|aresample=44100:async=1:first_pts=0' \
+    "$ROOT/bin/youtube-lovable-compositor.sh" "$ROOT/bin/youtube-relay.sh" "$ROOT/config/stream.env.example"; then
+  fail 'Canonical YouTube transport regressed from native 48 kHz to 44.1 kHz.'
+fi
+
+if grep -Eq '^(After|Wants|Requires)=.*fgbears-youtube-' "$ROOT/systemd/fgbears-live.service"; then
+  fail 'Shared master regained a YouTube-specific lifecycle dependency.'
 fi
 
 echo 'FGB production invariants: PASS'
