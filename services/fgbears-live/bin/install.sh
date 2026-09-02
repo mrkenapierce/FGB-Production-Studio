@@ -7,7 +7,7 @@ SOURCE_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
 
 export DEBIAN_FRONTEND=noninteractive
 required_packages=(
-  ffmpeg ca-certificates curl git jq rsync python3 python3-pil python3-qrcode fonts-dejavu-core
+  ffmpeg ca-certificates curl git jq rsync python3 python3-pil fonts-dejavu-core
 )
 missing_packages=()
 for package in "${required_packages[@]}"; do
@@ -15,6 +15,12 @@ for package in "${required_packages[@]}"; do
     missing_packages+=("$package")
   fi
 done
+# The exact-box card builder needs the Python qrcode module, not specifically
+# the distro package. Existing production may provide it through pip; accepting
+# a working import avoids invoking apt during an otherwise file-only live deploy.
+if ! python3 -c 'import qrcode' >/dev/null 2>&1; then
+  missing_packages+=(python3-qrcode)
+fi
 
 if ((${#missing_packages[@]})); then
   echo "Installing missing packages: ${missing_packages[*]}"
@@ -29,7 +35,7 @@ if ((${#missing_packages[@]})); then
     -o Acquire::https::Timeout=30 \
     install -y --no-install-recommends "${missing_packages[@]}"
 else
-  echo "All required FGBears Live packages are already installed; skipping apt."
+  echo "All required FGBears Live packages/modules are already installed; skipping apt."
 fi
 
 if ! id fgbears >/dev/null 2>&1; then
