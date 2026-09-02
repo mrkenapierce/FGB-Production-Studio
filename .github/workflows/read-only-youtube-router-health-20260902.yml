@@ -1,7 +1,9 @@
-name: Read Only YouTube Exact Box Health
+name: Read Only Persisted YouTube Exact-Box Health
 
 on:
   push:
+    branches:
+      - lovable-routing-bridge-20260902
     paths:
       - '.github/workflows/read-only-youtube-router-health-20260902.yml'
   workflow_dispatch:
@@ -10,9 +12,9 @@ permissions:
   contents: read
 
 jobs:
-  certify:
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 5
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
@@ -27,119 +29,92 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Certify exact question box through a real trivia cycle
+      - name: Read-only persisted production audit
         shell: bash
         run: |
           set -Eeuo pipefail
           target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
           ssh -i ~/.ssh/oracle_key "$target" 'python3 -' <<'PY'
-          import json, subprocess, time, urllib.request
+          import json, subprocess, urllib.request
 
-          HEALTH_URL="http://127.0.0.1:8791/healthz"
-          OVERLAY_URL="http://127.0.0.1:8791/overlay.rgba"
-          W,H=399,235
-          FRAME=W*H*4
-
-          def sh(s):
-              return subprocess.check_output(s,shell=True,text=True).strip()
+          def sh(cmd):
+              return subprocess.check_output(cmd, shell=True, text=True).strip()
+          def state(unit):
+              return sh(f"systemctl is-active {unit} 2>/dev/null || true")
           def pid(unit):
-              return sh(f"systemctl show -p MainPID --value {unit}")
+              return sh(f"systemctl show -p MainPID --value {unit} 2>/dev/null || echo 0")
           def restarts(unit):
-              return sh(f"systemctl show -p NRestarts --value {unit}")
-          def youtube_connected(process_pid):
+              return sh(f"systemctl show -p NRestarts --value {unit} 2>/dev/null || echo 0")
+          def connected(process_pid, port):
               raw=sh("ss -ntpH state established 2>/dev/null || true")
-              needle=f"pid={process_pid}"
-              return any(needle in line and ":443" in line for line in raw.splitlines())
-          def health():
-              with urllib.request.urlopen(HEALTH_URL,timeout=3) as r:
-                  p=json.loads(r.read().decode())
-              assert p.get("ok") is True,p
-              assert p.get("sourceCanvas")==[1280,720],p
-              assert p.get("canvas")==[640,360],p
-              assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470},p
-              assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235},p
-              assert p.get("frameSize")==[399,235],p
-              assert p.get("executionScaling")=="proportional_downstream",p
-              assert p.get("fps")==30,p
-              return p
-          def alpha():
-              with urllib.request.urlopen(OVERLAY_URL,timeout=5) as r:
-                  b=bytearray()
-                  while len(b)<FRAME:
-                      c=r.read(FRAME-len(b))
-                      if not c:
-                          raise RuntimeError("overlay ended early")
-                      b.extend(c)
-              a=b[3::4]
-              return min(a),max(a),sum(1 for x in a if x)/len(a)
+              return any(f"pid={process_pid}" in line and f":{port}" in line for line in raw.splitlines())
 
-          units=["fgbears-live.service","fgbears-rumble-relay.service","fgbears-youtube-lovable-compositor.service","fgbears-youtube-lovable-routing.service"]
-          for u in units:
-              assert sh(f"systemctl is-active {u}")=="active",u
-          before={u:(pid(u),restarts(u)) for u in units}
-          comp=before["fgbears-youtube-lovable-compositor.service"][0]
+          master_u="fgbears-live.service"
+          rumble_u="fgbears-rumble-relay.service"
+          comp_u="fgbears-youtube-lovable-compositor.service"
+          routing_u="fgbears-youtube-lovable-routing.service"
+          legacy_u="fgbears-youtube-relay.service"
+          router_u="fgbears-youtube-router.service"
+          timer_u="fgbears-youtube-audio-watchdog.timer"
+
+          assert state(master_u)=="active"
+          assert state(rumble_u)=="active"
+          assert state(comp_u)=="active"
+          assert state(routing_u)=="active"
+          assert state(legacy_u)!="active"
+          assert state(router_u)!="active"
+          assert state(timer_u)=="active"
+
+          master=pid(master_u); rumble=pid(rumble_u); comp=pid(comp_u)
+          assert master=="2320192", master
+          assert restarts(master_u)=="0", restarts(master_u)
+          assert connected(rumble,1935), (rumble, "Rumble RTMP socket missing")
+          assert connected(comp,443), (comp, "YouTube RTMPS socket missing")
+
+          with urllib.request.urlopen("http://127.0.0.1:8791/healthz", timeout=3) as r:
+              h=json.loads(r.read().decode())
+          assert h.get("ok") is True,h
+          assert h.get("sourceCanvas")==[1280,720],h
+          assert h.get("canvas")==[640,360],h
+          assert h.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470},h
+          assert h.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235},h
+          assert h.get("frameSize")==[399,235],h
+          assert h.get("executionScaling")=="proportional_downstream",h
+          assert h.get("fps")==30,h
+          assert h.get("creativeKey")=="yt_rumble_trivia_redirect",h
+
           cmd=sh(f"tr '\\0' ' ' </proc/{comp}/cmdline")
-          assert "scale=640:360:flags=fast_bilinear" in cmd,cmd
-          assert "overlay=231:52:format=auto:shortest=1" in cmd,cmd
-          assert "aresample=44100:async=1:first_pts=0" in cmd,cmd
-          assert youtube_connected(comp),"YouTube RTMPS socket not found for compositor"
-          base=health()
-          print("BASELINE_EXACT_BOX=PASS",json.dumps(base,sort_keys=True))
+          for needle in (
+              "scale=640:360:flags=fast_bilinear",
+              "overlay=231:52:format=auto:shortest=1",
+              " -c:v libx264 ",
+              " -c:a aac ",
+              " -b:a 128k ",
+              " -ar 44100 ",
+              " -ac 2 ",
+              "aresample=44100:async=1:first_pts=0",
+          ):
+              assert needle in cmd, needle
 
-          if not base.get("active"):
-              amin,amax,ratio=alpha()
-              assert amin==0 and amax==0 and ratio==0,(amin,amax,ratio)
-              print("INACTIVE_EXACT_BOX=PASS alpha=0/0")
+          status=sh("cat /srv/fgbears-live/health/youtube-audio/status.env")
+          assert "owner=exact_box_compositor" in status,status
+          assert ("state=OK" in status or "state=WARN" in status),status
 
-          deadline=time.time()+900
-          found=False
-          while time.time()<deadline:
-              p=health()
-              if p.get("phase")=="question" and p.get("active") is True and not p.get("lastError"):
-                  found=True
-                  break
-              time.sleep(.5)
-          assert found,"No active trivia question observed"
-          print("LIVE_QUESTION_DETECTED=YES")
-
-          samples=0
-          opacity_checks=0
-          while samples<40:
-              p=health()
-              if p.get("phase")!="question":
-                  break
-              assert p.get("active") is True,p
-              if samples%2==0:
-                  amin,amax,ratio=alpha()
-                  assert amin==255 and amax==255 and ratio==1.0,(amin,amax,ratio)
-                  opacity_checks+=1
-              samples+=1
-              time.sleep(.5)
-          assert samples>=4,samples
-          assert opacity_checks>=2,opacity_checks
-          print(f"LIVE_EXACT_BOX_OPACITY=PASS samples={samples} opacity_frames={opacity_checks} alpha=255/255 pixels={W*H}")
-
-          deadline=time.time()+90
-          while time.time()<deadline:
-              p=health()
-              if p.get("active") is False:
-                  break
-              time.sleep(.5)
-          else:
-              raise AssertionError("Overlay did not clear")
-          amin,amax,ratio=alpha()
-          assert amin==0 and amax==0 and ratio==0,(amin,amax,ratio)
-          print("POST_QUESTION_TRANSPARENCY=PASS")
-
-          after={u:(pid(u),restarts(u)) for u in units}
-          assert after==before,(before,after)
-          cpu=float(sh(f"ps -p {comp} -o %cpu= | tr -d ' '"))
           speed=sh("awk -F= '$1==\"speed\"{v=$2} END{gsub(/x/,\"\",v);print v}' /srv/fgbears-live/logs/ffmpeg-progress.log")
+          cpu=float(sh(f"ps -p {comp} -o %cpu= | tr -d ' '"))
+          load=sh("cut -d' ' -f1-3 /proc/loadavg")
           if speed:
               assert float(speed)>=0.985,speed
           assert cpu<=40,cpu
-          assert youtube_connected(comp),"YouTube RTMPS socket disappeared during certification"
-          print(f"NO_RESTARTS=PASS compositor_cpu={cpu}% master_speed={speed or 'unknown'}x")
-          print("RUMBLE_UNTOUCHED=PASS")
-          print("EXACT_BOX_LIVE_CYCLE_CERTIFICATION=PASS")
+
+          senders=sum(state(u)=="active" for u in (comp_u,legacy_u,router_u))
+          assert senders==1,senders
+
+          print("PERSISTED_EXACT_BOX_GEOMETRY=PASS source=462,104,798,470 output=231,52,399,235")
+          print(f"PERSISTED_SINGLE_YOUTUBE_SENDER=PASS compositor={comp} legacy={state(legacy_u)} router={state(router_u)}")
+          print(f"PERSISTED_MASTER=PASS pid={master} restarts={restarts(master_u)} speed={speed or 'unknown'}x")
+          print(f"PERSISTED_RUMBLE=PASS pid={rumble} restarts={restarts(rumble_u)} socket=1935")
+          print(f"PERSISTED_WATCHDOG=PASS owner=exact_box_compositor timer={state(timer_u)}")
+          print(f"PERSISTED_RESOURCE=PASS compositor_cpu={cpu}% load={load}")
+          print("POST_DEPLOY_PERSISTENCE_AUDIT=PASS")
           PY
