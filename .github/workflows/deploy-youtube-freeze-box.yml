@@ -112,6 +112,7 @@ jobs:
           sudo systemctl daemon-reload
 
           sudo rm -f /var/lib/fgbears-live/youtube-freeze-card.status
+          sudo systemctl reset-failed fgbears-youtube-freeze-card-refresh.service || true
           sudo systemctl start fgbears-youtube-freeze-card-refresh.service
           status=$(sudo cat /var/lib/fgbears-live/youtube-freeze-card.status 2>/dev/null || true)
           echo "freeze_card_status=$status"
@@ -128,19 +129,35 @@ jobs:
           test "$(systemctl show -p MainPID --value fgbears-live.service)" = "$master_before"
           test "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" = "$rumble_before"
 
+          # Use the same safety model as card generation. Explicit question/mask/ad
+          # state is always rejected. Idle/stale state is accepted only in minutes
+          # 1..18 of the fixed 20-minute cycle, away from :00/:20/:40 anchors.
           python3 - <<'PY'
           import json, time, urllib.request
           url='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing'
           deadline=time.time()+150
           while time.time()<deadline:
               try:
-                  req=urllib.request.Request(url+'?_cutover='+str(time.time_ns()),headers={'Cache-Control':'no-cache','Pragma':'no-cache'})
+                  req=urllib.request.Request(
+                      url+'?_cutover='+str(time.time_ns()),
+                      headers={
+                          'Cache-Control':'no-cache','Pragma':'no-cache',
+                          'Accept':'application/json','User-Agent':'FGBears-YouTube-FreezeCutover/1.0'})
                   with urllib.request.urlopen(req,timeout=3) as r:
                       p=json.loads(r.read())
                   t=p.get('trivia') if isinstance(p,dict) else None
-                  if isinstance(t,dict) and t.get('stale') is not True and t.get('youtubeMaskActive') is not True and t.get('phase') != 'question':
-                      print('CUTOVER_WINDOW=SAFE phase='+str(t.get('phase')))
-                      raise SystemExit(0)
+                  if not isinstance(t,dict):
+                      raise ValueError('missing trivia object')
+                  if t.get('phase') == 'question' or t.get('youtubeMaskActive') is True:
+                      raise ValueError('question/mask active')
+                  if any((p.get(k) is True or t.get(k) is True) for k in ('adsVisible','isAdBreak','adBreakActive')):
+                      raise ValueError('ad state active')
+                  stale=t.get('stale') is True
+                  cycle_minute=time.localtime().tm_min % 20
+                  if stale and not (1 <= cycle_minute <= 18):
+                      raise ValueError('stale state too close to trivia anchor')
+                  print('CUTOVER_WINDOW=SAFE phase='+str(t.get('phase'))+' stale='+str(stale))
+                  raise SystemExit(0)
               except SystemExit:
                   raise
               except Exception as e:
