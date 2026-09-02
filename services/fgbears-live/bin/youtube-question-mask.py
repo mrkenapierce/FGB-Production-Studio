@@ -2,14 +2,15 @@
 """Lovable-driven YouTube-only trivia presentation renderer.
 
 Lovable's public stream-routing endpoint is the control plane. This worker does
-not own platform routing decisions or geometry: it consumes `trivia.maskRegion`,
-`trivia.youtubeCreativeKey`, and `trivia.presentation` and emits exactly that
-question-panel-sized RGBA layer.
+not own platform routing decisions or source geometry: it consumes
+`trivia.maskRegion`, `trivia.youtubeCreativeKey`, and `trivia.presentation`.
 
-The approved creative is not recreated here. For creative key
-`yt_rumble_trivia_redirect`, this worker invokes the repository's locked
-1280x720 card builder, then scales that complete card as one asset into the
-Lovable-published mask region. Any routing/contract error fails transparent.
+The media execution canvas may be a proportional downstream rendition of the
+1280x720 Lovable contract. This allows a resource-constrained YouTube branch to
+run at a lower resolution without changing Lovable's authoritative geometry or
+Rumble's 1280x720 master. The approved creative is never recreated here: the
+locked 1280x720 card builder is invoked and the complete card is uniformly
+scaled as one asset. Any routing/contract error fails transparent.
 """
 from __future__ import annotations
 
@@ -29,10 +30,12 @@ from typing import Any
 
 from PIL import Image
 
-CANVAS_WIDTH = 1280
-CANVAS_HEIGHT = 720
-NEWS_BOTTOM = 104          # news occupies y=0..103
-CRAWL_TOP = 574            # crawl begins at y=574
+SOURCE_CANVAS_WIDTH = 1280
+SOURCE_CANVAS_HEIGHT = 720
+SOURCE_NEWS_BOTTOM = 104   # news occupies y=0..103
+SOURCE_CRAWL_TOP = 574     # crawl begins at y=574
+OUTPUT_CANVAS_WIDTH = int(os.getenv("YOUTUBE_OUTPUT_CANVAS_WIDTH", str(SOURCE_CANVAS_WIDTH)))
+OUTPUT_CANVAS_HEIGHT = int(os.getenv("YOUTUBE_OUTPUT_CANVAS_HEIGHT", str(SOURCE_CANVAS_HEIGHT)))
 EXPECTED_CREATIVE = "yt_rumble_trivia_redirect"
 PORT = int(os.getenv("YOUTUBE_QUESTION_MASK_PORT", "8791"))
 FPS = max(1, min(30, int(os.getenv("YOUTUBE_QUESTION_MASK_FPS", "30"))))
@@ -50,9 +53,22 @@ CARD_BUILDER = Path(
     )
 )
 
+if OUTPUT_CANVAS_WIDTH <= 0 or OUTPUT_CANVAS_HEIGHT <= 0:
+    raise ValueError("YouTube execution canvas dimensions must be positive")
+if OUTPUT_CANVAS_WIDTH * SOURCE_CANVAS_HEIGHT != OUTPUT_CANVAS_HEIGHT * SOURCE_CANVAS_WIDTH:
+    raise ValueError("YouTube execution canvas must preserve the 16:9 Lovable reference aspect ratio")
+
+
+def scaled(value: int, source: int, output: int) -> int:
+    return int(round(value * output / source))
+
 
 @dataclass(frozen=True)
 class Contract:
+    source_x: int
+    source_y: int
+    source_width: int
+    source_height: int
     x: int
     y: int
     width: int
@@ -61,6 +77,14 @@ class Contract:
 
     def region(self) -> dict[str, int]:
         return {"x": self.x, "y": self.y, "width": self.width, "height": self.height}
+
+    def source_region(self) -> dict[str, int]:
+        return {
+            "x": self.source_x,
+            "y": self.source_y,
+            "width": self.source_width,
+            "height": self.source_height,
+        }
 
 
 def load_routing() -> dict[str, Any]:
@@ -76,7 +100,7 @@ def load_routing() -> dict[str, Any]:
             "Accept": "application/json",
             "Cache-Control": "no-cache",
             "Pragma": "no-cache",
-            "User-Agent": "FGBears-Lovable-Routing-Bridge/3.0",
+            "User-Agent": "FGBears-Lovable-Routing-Bridge/4.0",
         },
     )
     with urllib.request.urlopen(req, timeout=6) as response:
@@ -96,22 +120,22 @@ def parse_contract(payload: dict[str, Any]) -> Contract:
         raise ValueError("missing trivia.maskRegion")
     if region.get("coordinateSpace") != "pixels":
         raise ValueError("maskRegion coordinateSpace must be pixels")
-    if region.get("referenceWidth") != CANVAS_WIDTH or region.get("referenceHeight") != CANVAS_HEIGHT:
+    if region.get("referenceWidth") != SOURCE_CANVAS_WIDTH or region.get("referenceHeight") != SOURCE_CANVAS_HEIGHT:
         raise ValueError("maskRegion reference canvas must be 1280x720")
 
     try:
-        x = int(region["x"])
-        y = int(region["y"])
-        width = int(region["width"])
-        height = int(region["height"])
+        source_x = int(region["x"])
+        source_y = int(region["y"])
+        source_width = int(region["width"])
+        source_height = int(region["height"])
     except (KeyError, TypeError, ValueError) as exc:
         raise ValueError("maskRegion has invalid numeric geometry") from exc
 
-    if width <= 0 or height <= 0 or x < 0 or y < 0:
+    if source_width <= 0 or source_height <= 0 or source_x < 0 or source_y < 0:
         raise ValueError("maskRegion must be positive and inside the canvas")
-    if x + width > CANVAS_WIDTH or y + height > CANVAS_HEIGHT:
+    if source_x + source_width > SOURCE_CANVAS_WIDTH or source_y + source_height > SOURCE_CANVAS_HEIGHT:
         raise ValueError("maskRegion exceeds the 1280x720 canvas")
-    if y < NEWS_BOTTOM or y + height > CRAWL_TOP:
+    if source_y < SOURCE_NEWS_BOTTOM or source_y + source_height > SOURCE_CRAWL_TOP:
         raise ValueError("maskRegion would overlap the always-live news or crawl bands")
 
     creative = trivia.get("youtubeCreativeKey")
@@ -135,12 +159,37 @@ def parse_contract(payload: dict[str, Any]) -> Contract:
         raise ValueError("Rumble presentation must retain the real question")
 
     masked = youtube.get("maskedRegion")
-    if not isinstance(masked, dict) or any(masked.get(k) != v for k, v in {
-        "x": x, "y": y, "width": width, "height": height
-    }.items()):
+    expected_source = {
+        "x": source_x,
+        "y": source_y,
+        "width": source_width,
+        "height": source_height,
+    }
+    if not isinstance(masked, dict) or any(masked.get(k) != v for k, v in expected_source.items()):
         raise ValueError("YouTube presentation maskedRegion differs from trivia.maskRegion")
 
-    return Contract(x=x, y=y, width=width, height=height, creative_key=str(creative))
+    x = scaled(source_x, SOURCE_CANVAS_WIDTH, OUTPUT_CANVAS_WIDTH)
+    y = scaled(source_y, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
+    width = scaled(source_width, SOURCE_CANVAS_WIDTH, OUTPUT_CANVAS_WIDTH)
+    height = scaled(source_height, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
+    output_news_bottom = scaled(SOURCE_NEWS_BOTTOM, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
+    output_crawl_top = scaled(SOURCE_CRAWL_TOP, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
+    if width <= 0 or height <= 0 or x < 0 or y < output_news_bottom or y + height > output_crawl_top:
+        raise ValueError("scaled maskRegion would overlap the always-live news or crawl bands")
+    if x + width > OUTPUT_CANVAS_WIDTH or y + height > OUTPUT_CANVAS_HEIGHT:
+        raise ValueError("scaled maskRegion exceeds the YouTube execution canvas")
+
+    return Contract(
+        source_x=source_x,
+        source_y=source_y,
+        source_width=source_width,
+        source_height=source_height,
+        x=x,
+        y=y,
+        width=width,
+        height=height,
+        creative_key=str(creative),
+    )
 
 
 def load_initial_contract() -> tuple[Contract, dict[str, Any]]:
@@ -149,7 +198,7 @@ def load_initial_contract() -> tuple[Contract, dict[str, Any]]:
         try:
             payload = load_routing()
             return parse_contract(payload), payload
-        except Exception as exc:  # service startup retries are intentional
+        except Exception as exc:
             last_error = exc
             print(f"Lovable routing contract unavailable ({attempt}/{INITIAL_CONTRACT_RETRIES}): {exc}", file=sys.stderr)
             if attempt < INITIAL_CONTRACT_RETRIES:
@@ -173,20 +222,21 @@ def build_locked_creative(contract: Contract) -> bytes:
             text=True,
         )
         with Image.open(source_path) as raw:
-            if raw.size != (CANVAS_WIDTH, CANVAS_HEIGHT):
+            if raw.size != (SOURCE_CANVAS_WIDTH, SOURCE_CANVAS_HEIGHT):
                 raise ValueError(f"locked creative must be 1280x720, got {raw.size}")
             source = raw.convert("RGBA")
 
-    # Scale the approved 1280x720 creative exactly once as a complete asset.
-    scaled = source.copy()
-    scaled.thumbnail((contract.width, contract.height), Image.Resampling.LANCZOS)
+    # Scale the approved card exactly once as one asset. At a reduced execution
+    # canvas, reserve one horizontal pixel of fit margin. This does not re-layout
+    # any creative element and materially improves QR module sampling at 360p.
+    max_width = contract.width if OUTPUT_CANVAS_WIDTH == SOURCE_CANVAS_WIDTH else max(1, contract.width - 1)
+    scaled_card = source.copy()
+    scaled_card.thumbnail((max_width, contract.height), Image.Resampling.LANCZOS)
 
-    # The entire question panel must be opaque so no question pixels can leak
-    # through the aspect-ratio letterbox. Use the locked card's navy background.
     result = Image.new("RGBA", (contract.width, contract.height), (11, 22, 42, 255))
-    px = (contract.width - scaled.width) // 2
-    py = (contract.height - scaled.height) // 2
-    result.paste(scaled, (px, py), scaled)
+    px = (contract.width - scaled_card.width) // 2
+    py = (contract.height - scaled_card.height) // 2
+    result.paste(scaled_card, (px, py), scaled_card)
     return result.tobytes()
 
 
@@ -257,7 +307,7 @@ def frame() -> bytes:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "FGBearsLovableRoutingBridge/3.0"
+    server_version = "FGBearsLovableRoutingBridge/4.0"
 
     def log_message(self, *_args: Any) -> None:
         return
@@ -271,12 +321,15 @@ class Handler(BaseHTTPRequestHandler):
                 "phase": phase,
                 "lastGoodAgeSeconds": None if age == float("inf") else round(age, 3),
                 "lastError": error,
-                "canvas": [CANVAS_WIDTH, CANVAS_HEIGHT],
+                "sourceCanvas": [SOURCE_CANVAS_WIDTH, SOURCE_CANVAS_HEIGHT],
+                "canvas": [OUTPUT_CANVAS_WIDTH, OUTPUT_CANVAS_HEIGHT],
+                "sourceMaskRegion": CONTRACT.source_region(),
                 "maskRegion": CONTRACT.region(),
                 "frameSize": [CONTRACT.width, CONTRACT.height],
                 "creativeKey": CONTRACT.creative_key,
                 "presentationMode": "full_creative_scaled",
                 "routingAuthority": "lovable_public_stream_routing",
+                "executionScaling": "proportional_downstream",
                 "fps": FPS,
             }).encode()
             self.send_response(200)
