@@ -37,13 +37,14 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Stage native 720p compositor
+      - name: Stage native 720p compositor and latched question mask
         shell: bash
         run: |
           set -Eeuo pipefail
           target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
           scp -i ~/.ssh/oracle_key \
             services/fgbears-live/bin/youtube-lovable-compositor.sh \
+            services/fgbears-live/bin/youtube-question-mask.py \
             services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service \
             services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service \
             .github/scripts/cutover-youtube-720p.sh \
