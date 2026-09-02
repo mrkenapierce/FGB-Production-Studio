@@ -1,0 +1,39 @@
+name: Probe OCI Auth Direct
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-oci-auth-direct.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure SSH and test OCI instance principal
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/oracle_key ubuntu@$ORACLE_HOST 'bash -s' <<'REMOTE'
+          set +e
+          OCI=$HOME/.local/bin/oci
+          $OCI --version
+          echo '=== region ==='
+          timeout 25s $OCI iam region list --auth instance_principal --output json 2>&1 | head -80
+          echo "region_rc=${PIPESTATUS[0]}"
+          IID=$(curl -fsS -H 'Authorization: Bearer Oracle' http://169.254.169.254/opc/v2/instance/id)
+          echo '=== self ==='
+          timeout 25s $OCI compute instance get --instance-id "$IID" --auth instance_principal --output json 2>&1 | head -100
+          echo "self_rc=${PIPESTATUS[0]}"
+          echo '=== services ==='
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          systemctl is-active fgbears-rumble-relay.service
+          REMOTE
