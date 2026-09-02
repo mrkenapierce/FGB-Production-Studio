@@ -22,14 +22,21 @@ if grep -R --exclude=finalize-youtube-only.py -nE 'X_LOCAL_UDP_URL|X_RELAY_ENABL
   exit 1
 fi
 
+# The shared master produces two isolated local MPEG-TS mirrors. Rumble keeps an
+# unchanged copy/remux. YouTube may consume its mirror through the exact-box
+# compositor; the legacy relay remains fallback-only and copies H.264 while
+# rebuilding AAC at the native 48 kHz rate solely for RTMP clock continuity.
 grep -Fq '${YOUTUBE_LOCAL_UDP_URL}|[f=mpegts:' "$ROOT/bin/start-stream.sh"
 grep -Fq '${RUMBLE_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"
 grep -Fq 'isolated YouTube and Rumble local UDP mirrors' "$ROOT/bin/start-stream.sh"
 grep -Fq 'rtmp://rtmp.rumble.com/live' "$ROOT/bin/rumble-relay.sh"
 grep -Fq -- '-c copy' "$ROOT/bin/rumble-relay.sh"
-grep -Fq -- '-c copy' "$ROOT/bin/youtube-relay.sh"
+grep -Fq -- '-c:v copy' "$ROOT/bin/youtube-relay.sh"
+grep -Fq -- '-c:a aac' "$ROOT/bin/youtube-relay.sh"
+grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE=48000' "$ROOT/bin/youtube-relay.sh"
+grep -Fq 'aresample=${YOUTUBE_AUDIO_SAMPLE_RATE}:async=1:first_pts=0' "$ROOT/bin/youtube-relay.sh"
 if grep -Fq 'YOUTUBE_TRIVIA_OVERLAY' "$ROOT/bin/youtube-relay.sh" || grep -Fq -- '-c:v libx264' "$ROOT/bin/youtube-relay.sh"; then
-  echo 'CPU-heavy YouTube trivia encoder remains active on the capacity-limited Oracle host.' >&2
+  echo 'Fallback YouTube relay must remain video-copy plus transparent AAC clock rebuild.' >&2
   exit 1
 fi
 if grep -Fq 'YOUTUBE_TRIVIA_OVERLAY' "$ROOT/bin/rumble-relay.sh"; then
@@ -47,8 +54,8 @@ if command -v ffmpeg >/dev/null && command -v ffprobe >/dev/null; then
     "[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/youtube-local.ts|[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$TMP/rumble-local.ts"
   test -s "$TMP/youtube-local.ts"
   test -s "$TMP/rumble-local.ts"
-  ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1 "$TMP/youtube-local.ts" | grep -q '^codec_name=aac$'
+  ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate -of default=nw=1 "$TMP/youtube-local.ts" | grep -q '^codec_name=aac$'
   ffprobe -v error -select_streams v:0 -show_entries stream=codec_name -of default=nw=1 "$TMP/youtube-local.ts" | grep -q '^codec_name=h264$'
 fi
 
-echo 'FGBears transport provides isolated YouTube and Rumble copy-remux relays with no second live encoder.'
+echo 'FGBears transport invariants: isolated master mirrors, unchanged Rumble copy/remux, and native-48k YouTube fallback transport.'
