@@ -1,0 +1,61 @@
+name: Test YouTube Partial Question Box
+
+on:
+  push:
+    paths:
+      - 'services/fgbears-live/bin/youtube-question-mask.py'
+      - 'services/fgbears-live/bin/youtube-offhost-compositor.sh'
+      - '.github/workflows/test-youtube-partial-question-box.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Pillow
+        run: python3 -m pip install --user pillow
+      - name: Validate mask dimensions and fail-transparent state
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          p = Path('services/fgbears-live/bin/youtube-question-mask.py')
+          spec = importlib.util.spec_from_file_location('mask', p)
+          m = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(m)
+          assert (m.MASK_X, m.MASK_Y, m.MASK_WIDTH, m.MASK_HEIGHT) == (480, 200, 640, 360)
+          expected = 640 * 360 * 4
+          assert len(m.ACTIVE) == expected, (len(m.ACTIVE), expected)
+          assert len(m.TRANSPARENT) == expected
+          assert not any(m.TRANSPARENT)
+          s = m.State()
+          s.update({'trivia': {'youtubeMaskActive': True, 'phase': 'question', 'stale': False}})
+          assert s.snapshot()[0] is True
+          s.update({'trivia': {'youtubeMaskActive': True, 'phase': 'question', 'stale': True}})
+          assert s.snapshot()[0] is False
+          s.update({'trivia': {'youtubeMaskActive': True, 'phase': 'revealed', 'stale': False}})
+          assert s.snapshot()[0] is False
+          print('MASK_FRAME=640x360')
+          print('MASK_ORIGIN=480,200')
+          print('REMOTE_STALE_FAIL_TRANSPARENT=PASS')
+          PY
+      - name: Validate compositor anchors the small input
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/youtube-offhost-compositor.sh
+          grep -Fq 'MASK_WIDTH="${YOUTUBE_QUESTION_MASK_WIDTH:-640}"' services/fgbears-live/bin/youtube-offhost-compositor.sh
+          grep -Fq 'MASK_HEIGHT="${YOUTUBE_QUESTION_MASK_HEIGHT:-360}"' services/fgbears-live/bin/youtube-offhost-compositor.sh
+          grep -Fq -- '-video_size "${MASK_WIDTH}x${MASK_HEIGHT}"' services/fgbears-live/bin/youtube-offhost-compositor.sh
+          grep -Fq 'overlay=${MASK_X}:${MASK_Y}' services/fgbears-live/bin/youtube-offhost-compositor.sh
+          if grep -Fq -- '-video_size 1280x720' services/fgbears-live/bin/youtube-offhost-compositor.sh; then
+            echo 'ERROR: full-frame RGBA overlay input still present'
+            exit 1
+          fi
+          echo 'PARTIAL_OVERLAY_HARD_BOUNDARY=PASS'
