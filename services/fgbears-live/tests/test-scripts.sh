@@ -18,7 +18,7 @@ trap cleanup EXIT
 for script in "$ROOT"/bin/*.sh; do
   bash -n "$script"
 done
-python3 -m py_compile "$ROOT/bin/ad-overlay.py" "$ROOT/bin/ad-overlay-smart.py" "$ROOT/bin/game_overlay.py" "$ROOT/bin/crawl-overlay.py" "$ROOT/bin/bears-news-feed.py" "$ROOT/bin/youtube-trivia-overlay.py"
+python3 -m py_compile "$ROOT/bin/ad-overlay.py" "$ROOT/bin/ad-overlay-smart.py" "$ROOT/bin/game_overlay.py" "$ROOT/bin/crawl-overlay.py" "$ROOT/bin/bears-news-feed.py" "$ROOT/bin/youtube-question-mask.py"
 python3 "$ROOT/tests/test-game-overlay.py"
 python3 "$ROOT/tests/test-youtube-trivia-overlay.py"
 python3 - "$ROOT/bin/crawl-overlay.py" <<'PY'
