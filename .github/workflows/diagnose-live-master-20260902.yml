@@ -1,0 +1,68 @@
+name: Diagnose Live Master Restart Failure 20260902
+
+on:
+  push:
+    branches:
+      - lovable-routing-bridge-20260902
+    paths:
+      - '.github/workflows/diagnose-live-master-20260902.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Read-only master diagnosis
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -u
+          redact() {
+            sed -E \
+              -e 's#(YOUTUBE_STREAM_KEY|RUMBLE_STREAM_KEY)=.*#\1=[REDACTED]#g' \
+              -e 's#(rtmps?://[^/[:space:]]+/[^/[:space:]]+/)[^[:space:]]+#\1[REDACTED]#g' \
+              -e 's#([A-Za-z0-9_-]{32,})#[REDACTED]#g'
+          }
+          echo '=== SERVICE STATES ==='
+          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service fgbears-youtube-relay.service fgbears-youtube-audio-watchdog.timer fgbears-live-health.timer; do
+            printf '%s ' "$u"
+            systemctl show "$u" -p ActiveState -p SubState -p MainPID -p Result -p NRestarts --value 2>/dev/null | tr '\n' ' '; echo
+          done
+          echo '=== MASTER UNIT ==='
+          systemctl cat fgbears-live.service 2>&1 | redact
+          echo '=== MASTER SCRIPT SYNTAX ==='
+          bash -n /usr/local/bin/fgbears-start-stream && echo START_SCRIPT_SYNTAX=PASS || echo START_SCRIPT_SYNTAX=FAIL
+          bash -n /opt/fgbears-live/bin/start-stream.sh && echo OPT_START_SCRIPT_SYNTAX=PASS || echo OPT_START_SCRIPT_SYNTAX=FAIL
+          echo '=== MASTER STATUS ==='
+          systemctl status fgbears-live.service --no-pager -l 2>&1 | redact || true
+          echo '=== MASTER JOURNAL RECENT ==='
+          journalctl -u fgbears-live.service --since '-8 minutes' --no-pager -o short-iso 2>&1 | tail -220 | redact || true
+          echo '=== HEALTH ENDPOINTS ==='
+          for port in 8787 8788 8789; do
+            printf 'port_%s=' "$port"
+            curl -fsS --max-time 2 "http://127.0.0.1:${port}/healthz" 2>/dev/null | head -c 1000 || echo UNAVAILABLE
+            echo
+          done
+          echo '=== STREAM SOCKET SUMMARY ==='
+          ss -ntpH state established 2>/dev/null | awk '$0 ~ /:(443|1935)([[:space:]]|$)/ {print}' | redact || true
+          echo '=== PROGRESS TAIL ==='
+          tail -40 /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null | redact || true
+          echo 'DIAGNOSIS_COMPLETE=PASS'
+          REMOTE
