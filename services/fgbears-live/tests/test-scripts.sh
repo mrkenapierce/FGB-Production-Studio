@@ -54,15 +54,28 @@ grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.m
 grep -Fq -- '-preset ultrafast' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-progress pipe:3' "$ROOT/bin/start-stream.sh"
 if grep -Fq -- '-af ' "$ROOT/bin/start-stream.sh"; then
-  echo 'The production live chain must preserve mastered episode audio without live DSP.' >&2
+  echo 'The production master must preserve mastered episode audio without live DSP.' >&2
   exit 1
 fi
 grep -Fq -- '-c:a copy' "$ROOT/bin/start-stream.sh"
-grep -Fq -- '-c copy' "$ROOT/bin/youtube-relay.sh"
+
+# YouTube is intentionally different from Rumble: copy the shared H.264 video,
+# but rebuild AAC framing/timestamps specifically for YouTube RTMPS ingest.
+grep -Fq -- '-c:v copy' "$ROOT/bin/youtube-relay.sh"
+grep -Fq -- '-c:a aac' "$ROOT/bin/youtube-relay.sh"
+grep -Fq -- '-profile:a aac_low' "$ROOT/bin/youtube-relay.sh"
+grep -Fq ': "${YOUTUBE_AUDIO_BITRATE:=128k}"' "$ROOT/bin/youtube-relay.sh"
+grep -Fq ': "${YOUTUBE_AUDIO_SAMPLE_RATE:=44100}"' "$ROOT/bin/youtube-relay.sh"
+grep -Fq ': "${YOUTUBE_AUDIO_CHANNELS:=2}"' "$ROOT/bin/youtube-relay.sh"
+grep -Fq 'aresample=${YOUTUBE_AUDIO_SAMPLE_RATE}:async=1:first_pts=0' "$ROOT/bin/youtube-relay.sh"
 if grep -Eq 'youtube-stream-router|gst-launch|libx264|aacparse|mpegtsmux' "$ROOT/bin/youtube-relay.sh"; then
-  echo 'The canonical YouTube relay must remain a direct FFmpeg copy-remux path.' >&2
+  echo 'The canonical YouTube relay must remain isolated FFmpeg video-copy + AAC audio re-clock.' >&2
   exit 1
 fi
+
+# Rumble remains the unchanged copy-remux reference path.
+grep -Fq -- '-c copy' "$ROOT/bin/rumble-relay.sh"
+
 grep -Fq 'FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0' "$ROOT/config/stream.env.example"
 grep -Fq '"FGB_YOUTUBE_PACKET_ROUTER_ENABLE": "0"' "$ROOT/bin/install.sh"
 grep -Fq 'fgbears-youtube-audio-watchdog.timer' "$ROOT/bin/install.sh"
