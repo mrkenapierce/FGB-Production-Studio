@@ -1,0 +1,41 @@
+name: Probe OCI Network Metadata
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-oci-network-metadata.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read OCI metadata only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key ubuntu@$ORACLE_HOST 'python3 - <<'"'"'PY'"'"'
+          import json,urllib.request
+          def get(path):
+              r=urllib.request.Request("http://169.254.169.254/opc/v2/"+path,headers={"Authorization":"Bearer Oracle"})
+              return json.load(urllib.request.urlopen(r,timeout=5))
+          i=get("instance/")
+          v=get("vnics/")
+          keep={k:i.get(k) for k in ["id","displayName","compartmentId","region","availabilityDomain","shape","image"]}
+          print("INSTANCE="+json.dumps(keep,sort_keys=True))
+          print("VNICS="+json.dumps(v,sort_keys=True))
+          PY'
