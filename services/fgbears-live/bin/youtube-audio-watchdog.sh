@@ -2,9 +2,10 @@
 # FGBears YouTube-only audio/transport watchdog.
 #
 # This watchdog never restarts the shared master encoder or the Rumble relay.
-# It verifies the exact YouTube-bound source, the canonical copy-remux process,
-# the RTMPS socket, and recent timestamp errors. Recoverable YouTube-only faults
-# restart only fgbears-youtube-relay.service with a circuit breaker.
+# It verifies the exact YouTube-bound source, the canonical YouTube relay
+# process, the RTMPS socket, and recent timestamp errors. Recoverable
+# YouTube-only faults restart only fgbears-youtube-relay.service with a circuit
+# breaker.
 set -Eeuo pipefail
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
@@ -44,13 +45,22 @@ canonical_relay_process() {
   local pid=$1 args
   args=$(cmdline_of "$pid") || return 1
   [[ "$args" == *"ffmpeg"* ]] || return 1
-  [[ "$args" == *" -c copy "* ]] || return 1
   [[ "$args" == *"udp://127.0.0.1:1939"* ]] || return 1
   [[ "$args" == *"rtmps://a.rtmps.youtube.com/"* || "$args" == *"rtmp://"* ]] || return 1
   [[ "$args" != *"youtube-stream-router"* ]] || return 1
   [[ "$args" != *"gst-launch"* ]] || return 1
   [[ "$args" != *"libx264"* ]] || return 1
-  [[ "$args" != *" -c:a aac"* ]] || return 1
+
+  # Transition-safe acceptance: the old bitstream-copy relay remains valid only
+  # while the dedicated YouTube AAC relay is being deployed. The new path keeps
+  # video untouched while freshly clocking stereo AAC for YouTube ingest.
+  if [[ "$args" == *" -c:v copy "* && "$args" == *" -c:a aac "* ]]; then
+    [[ "$args" == *" -b:a 128k "* ]] || return 1
+    [[ "$args" == *" -ar 44100 "* ]] || return 1
+    [[ "$args" == *" -ac 2 "* ]] || return 1
+  else
+    [[ "$args" == *" -c copy "* ]] || return 1
+  fi
   return 0
 }
 
