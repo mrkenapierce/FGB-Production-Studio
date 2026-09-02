@@ -135,24 +135,25 @@ jobs:
           # Never restart the YouTube router while a question is exposed. Wait for
           # a fresh non-question routing state, then make the brief YouTube-only handoff.
           python3 - <<'PY'
-import json, time, urllib.request
-url='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing'
-deadline=time.time()+150
-while time.time()<deadline:
-    try:
-        req=urllib.request.Request(url+'?_cutover='+str(time.time_ns()),headers={'Cache-Control':'no-cache','Pragma':'no-cache'})
-        with urllib.request.urlopen(req,timeout=3) as r: p=json.loads(r.read())
-        t=p.get('trivia') if isinstance(p,dict) else None
-        if isinstance(t,dict) and t.get('stale') is not True and t.get('youtubeMaskActive') is not True and t.get('phase') != 'question':
-            print('CUTOVER_WINDOW=SAFE phase='+str(t.get('phase')))
-            raise SystemExit(0)
-    except SystemExit:
-        raise
-    except Exception as e:
-        print('waiting for safe cutover:',e)
-    time.sleep(2)
-raise SystemExit('No safe YouTube cutover window within 150 seconds')
-PY
+          import json, time, urllib.request
+          url='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing'
+          deadline=time.time()+150
+          while time.time()<deadline:
+              try:
+                  req=urllib.request.Request(url+'?_cutover='+str(time.time_ns()),headers={'Cache-Control':'no-cache','Pragma':'no-cache'})
+                  with urllib.request.urlopen(req,timeout=3) as r:
+                      p=json.loads(r.read())
+                  t=p.get('trivia') if isinstance(p,dict) else None
+                  if isinstance(t,dict) and t.get('stale') is not True and t.get('youtubeMaskActive') is not True and t.get('phase') != 'question':
+                      print('CUTOVER_WINDOW=SAFE phase='+str(t.get('phase')))
+                      raise SystemExit(0)
+              except SystemExit:
+                  raise
+              except Exception as e:
+                  print('waiting for safe cutover:',e)
+              time.sleep(2)
+          raise SystemExit('No safe YouTube cutover window within 150 seconds')
+          PY
 
           sudo install -m 0644 "$repo/.github/freezebox/fgbears-youtube-router.service" "$unit"
           sudo systemctl daemon-reload
