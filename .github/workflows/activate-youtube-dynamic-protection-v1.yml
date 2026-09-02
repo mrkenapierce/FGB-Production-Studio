@@ -1,4 +1,4 @@
-name: Verify Recovered Production
+name: Final Stable Ticker Cutover
 
 on:
   push:
@@ -16,14 +16,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  verify:
+  deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
       ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: lovable-routing-bridge-20260902
+
       - name: Configure SSH
         shell: bash
         run: |
@@ -33,43 +37,21 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Verify and repair only missing transport
+      - name: Stage final ticker implementation
         shell: bash
         run: |
           set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/bears-news-feed-hq.py \
+            services/fgbears-live/bin/crawl-overlay-hq.py \
+            services/fgbears-live/bin/start-stream.sh \
+            .github/scripts/deploy-stable-tickers.sh \
+            "$target:/tmp/"
+
+      - name: Cut over once and certify
+        shell: bash
+        run: |
           set -Eeuo pipefail
-          MASTER=fgbears-live.service
-          RUMBLE=fgbears-rumble-relay.service
-          COMP=fgbears-youtube-lovable-compositor.service
-          ROUTING=fgbears-youtube-lovable-routing.service
-
-          systemctl is-active --quiet "$MASTER"
-          curl -fsS --max-time 2 http://127.0.0.1:8788/healthz >/dev/null
-          curl -fsS --max-time 2 http://127.0.0.1:8789/healthz >/dev/null
-          systemctl is-active --quiet "$COMP"
-          systemctl is-active --quiet "$ROUTING"
-
-          has_port() { sudo ss -ntpH state established 2>/dev/null | grep -q ":$1 "; }
-          if ! has_port 1935; then
-            sudo systemctl reset-failed "$RUMBLE" || true
-            sudo systemctl restart "$RUMBLE"
-            for _ in $(seq 1 20); do has_port 1935 && break; sleep 1; done
-          fi
-          if ! has_port 443; then
-            sudo systemctl restart "$COMP"
-            for _ in $(seq 1 20); do has_port 443 && break; sleep 1; done
-          fi
-
-          has_port 1935
-          has_port 443
-          systemctl is-active --quiet "$RUMBLE"
-
-          echo "MASTER=active pid=$(systemctl show -p MainPID --value "$MASTER")"
-          echo "RUMBLE=active pid=$(systemctl show -p MainPID --value "$RUMBLE")"
-          echo "YOUTUBE=active pid=$(systemctl show -p MainPID --value "$COMP")"
-          echo "CRAWL=$(curl -fsS --max-time 2 http://127.0.0.1:8788/healthz)"
-          echo "RSS=$(curl -fsS --max-time 2 http://127.0.0.1:8789/healthz)"
-          echo "PROGRESS=$(tail -20 /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null | tr '\n' ' ')"
-          echo 'RECOVERED_PRODUCTION=PASS'
-          REMOTE
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" \
+            'sudo bash /tmp/deploy-stable-tickers.sh'
