@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
-# Canonical YouTube transport for FGBears Live.
+# Canonical fallback YouTube transport for FGBears Live.
 #
 # YouTube receives the exact shared-master H.264 video bitstream, while its audio
 # is decoded and freshly encoded only to establish a clean YouTube AAC/RTMP
 # clock. The source library is already normalized/mastered, so this relay does
 # not apply loudness, EQ, compression, limiting or other tonal processing.
+#
+# Audio transport values are production constants here. stream.env supplies
+# secrets/endpoints, but stale environment values must never silently change the
+# native 48 kHz source-audio policy during failover.
 set -Eeuo pipefail
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
@@ -16,9 +20,9 @@ source "$ENV_FILE"
 : "${YOUTUBE_LOCAL_UDP_URL:=udp://127.0.0.1:1939?pkt_size=1316}"
 : "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"
 : "${FFMPEG_LOGLEVEL:=warning}"
-: "${YOUTUBE_AUDIO_BITRATE:=128k}"
-: "${YOUTUBE_AUDIO_SAMPLE_RATE:=48000}"
-: "${YOUTUBE_AUDIO_CHANNELS:=2}"
+YOUTUBE_AUDIO_BITRATE=128k
+YOUTUBE_AUDIO_SAMPLE_RATE=48000
+YOUTUBE_AUDIO_CHANNELS=2
 
 [[ "$YOUTUBE_STREAM_KEY" != "REPLACE_WITH_YOUTUBE_STREAM_KEY" ]] || {
   echo "Replace the placeholder YouTube stream key in $ENV_FILE" >&2
@@ -30,18 +34,6 @@ source "$ENV_FILE"
 }
 [[ "$YOUTUBE_UPSTREAM_RTMP_BASE" == rtmp://* || "$YOUTUBE_UPSTREAM_RTMP_BASE" == rtmps://* ]] || {
   echo "YOUTUBE_UPSTREAM_RTMP_BASE must be an RTMP or RTMPS URL." >&2
-  exit 78
-}
-[[ "$YOUTUBE_AUDIO_BITRATE" == "128k" ]] || {
-  echo "YOUTUBE_AUDIO_BITRATE must remain 128k for the canonical YouTube stereo profile." >&2
-  exit 78
-}
-[[ "$YOUTUBE_AUDIO_SAMPLE_RATE" == "48000" ]] || {
-  echo "YOUTUBE_AUDIO_SAMPLE_RATE must remain 48000 to preserve the native program audio rate." >&2
-  exit 78
-}
-[[ "$YOUTUBE_AUDIO_CHANNELS" == "2" ]] || {
-  echo "YOUTUBE_AUDIO_CHANNELS must remain 2 for the canonical YouTube stereo profile." >&2
   exit 78
 }
 
