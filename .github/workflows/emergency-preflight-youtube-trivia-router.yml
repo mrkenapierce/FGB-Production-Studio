@@ -1,0 +1,148 @@
+name: Emergency Preflight YouTube Trivia Router
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/emergency-preflight-youtube-trivia-router.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Read-only production preflight
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          fail=0
+
+          echo '=== production services ==='
+          for service in fgbears-live.service fgbears-youtube-relay.service fgbears-rumble-relay.service; do
+            state=$(systemctl is-active "$service" 2>/dev/null || true)
+            pid=$(systemctl show -p MainPID --value "$service" 2>/dev/null || printf '0')
+            printf '%s state=%s pid=%s\n' "$service" "$state" "$pid"
+            [[ "$state" == active ]] || fail=1
+          done
+          printf 'youtube_watchdog_timer=%s\n' "$(systemctl is-active fgbears-youtube-audio-watchdog.timer 2>/dev/null || true)"
+          uptime
+
+          echo '=== runtime ==='
+          for cmd in ffmpeg ffprobe gst-inspect-1.0 python3; do
+            if command -v "$cmd" >/dev/null 2>&1; then
+              printf '%s=present\n' "$cmd"
+            else
+              printf '%s=absent\n' "$cmd"
+              fail=1
+            fi
+          done
+          for element in input-selector tsdemux h264parse aacparse mpegtsmux udpsrc udpsink queue appsrc; do
+            if gst-inspect-1.0 "$element" >/dev/null 2>&1; then
+              printf 'gst_%s=present\n' "$element"
+            else
+              printf 'gst_%s=absent\n' "$element"
+              fail=1
+            fi
+          done
+          python3 - <<'PY'
+          import gi
+          gi.require_version('Gst', '1.0')
+          from gi.repository import Gst
+          Gst.init(None)
+          print('python_gst=present', Gst.version_string())
+          PY
+
+          echo '=== sanitized YouTube configuration ==='
+          sudo bash -c '
+            set -Eeuo pipefail
+            source /etc/fgbears-live/stream.env
+            if [[ -n "${YOUTUBE_STREAM_KEY:-}" && "${YOUTUBE_STREAM_KEY:-}" != REPLACE_WITH_YOUTUBE_STREAM_KEY ]]; then
+              echo youtube_key_present=yes
+            else
+              echo youtube_key_present=no
+              exit 1
+            fi
+            printf "youtube_local_udp_base=%s\n" "${YOUTUBE_LOCAL_UDP_URL%%\?*}"
+            printf "youtube_audio_bitrate=%s\n" "${YOUTUBE_AUDIO_BITRATE:-128k}"
+            printf "youtube_audio_sample_rate=%s\n" "${YOUTUBE_AUDIO_SAMPLE_RATE:-44100}"
+            printf "youtube_audio_channels=%s\n" "${YOUTUBE_AUDIO_CHANNELS:-2}"
+          ' || fail=1
+
+          echo '=== UDP listener snapshot ==='
+          sudo ss -uapnH | grep -E ':(1939|2941)[[:space:]]' || true
+
+          echo '=== router/card inventory ==='
+          for path in \
+            /opt/fgbears-live/bin/youtube-stream-router.py \
+            /usr/local/bin/youtube-stream-router.py \
+            /usr/local/bin/fgbears-youtube-stream-router \
+            /opt/fgbears-live/assets/youtube-rumble-trivia.h264; do
+            if sudo test -e "$path"; then
+              size=$(sudo stat -c '%s' "$path")
+              printf '%s present bytes=%s\n' "$path" "$size"
+            else
+              printf '%s absent\n' "$path"
+            fi
+          done
+
+          if [[ -d /tmp/fgb-router-test ]]; then
+            echo '--- /tmp/fgb-router-test files ---'
+            find /tmp/fgb-router-test -maxdepth 1 -type f -printf '%f bytes=%s\n' | sort
+          else
+            echo '/tmp/fgb-router-test absent'
+          fi
+
+          echo '--- H264 card candidates ---'
+          mapfile -t cards < <(sudo find /opt/fgbears-live /tmp/fgb-router-test -maxdepth 4 -type f -name '*.h264' -print 2>/dev/null | sort -u || true)
+          if (( ${#cards[@]} == 0 )); then
+            echo 'h264_card_candidates=0'
+          else
+            printf 'h264_card_candidates=%s\n' "${#cards[@]}"
+            for card in "${cards[@]}"; do
+              printf 'candidate=%s bytes=%s\n' "$card" "$(sudo stat -c '%s' "$card")"
+              sudo ffprobe -v error -f h264 -select_streams v:0 \
+                -show_entries stream=codec_name,profile,width,height,pix_fmt,level,r_frame_rate \
+                -of compact "$card" || true
+            done
+          fi
+
+          echo '=== endpoint control plane ==='
+          python3 - <<'PY'
+          import json, urllib.request
+          url='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing'
+          req=urllib.request.Request(url,headers={'Accept':'application/json','Cache-Control':'no-cache','User-Agent':'FGB-Emergency-Preflight/1.0'})
+          with urllib.request.urlopen(req,timeout=3) as r:
+              p=json.loads(r.read().decode())
+          t=p.get('trivia') or {}
+          print('routing_http=ok')
+          print('trivia_active=', bool(t.get('active')))
+          print('trivia_phase=', t.get('phase'))
+          print('trivia_stale=', bool(t.get('stale')))
+          print('youtubeMaskActive=', t.get('youtubeMaskActive'))
+          PY
+
+          echo 'production_changes=none'
+          exit "$fail"
+          REMOTE
