@@ -58,6 +58,8 @@ jobs:
           RUMBLE_PID=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
           [[ "$MASTER_PID" =~ ^[1-9][0-9]*$ ]]
           [[ "$RUMBLE_PID" =~ ^[1-9][0-9]*$ ]]
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
 
           sudo install -o root -g root -m 0755 \
             /tmp/youtube-audio-watchdog.sh \
@@ -75,32 +77,39 @@ jobs:
 
           systemctl is-active --quiet fgbears-youtube-audio-watchdog.timer
           systemctl is-enabled --quiet fgbears-youtube-audio-watchdog.timer
-          systemctl status fgbears-youtube-audio-watchdog.timer --no-pager
           sudo cat /srv/fgbears-live/health/youtube-audio/status.env
+          sudo grep -Fxq 'state=OK' /srv/fgbears-live/health/youtube-audio/status.env
+          sudo grep -Fxq 'reason=HEALTHY' /srv/fgbears-live/health/youtube-audio/status.env
           if sudo test -s /srv/fgbears-live/health/youtube-audio/warning.env; then
-            echo '--- watchdog warning ---'
-            sudo cat /srv/fgbears-live/health/youtube-audio/warning.env
+            echo 'Unexpected watchdog warning remains:' >&2
+            sudo cat /srv/fgbears-live/health/youtube-audio/warning.env >&2
+            exit 1
           fi
 
           YOUTUBE_PID=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
           [[ "$YOUTUBE_PID" =~ ^[1-9][0-9]*$ ]]
           ARGS=$(tr '\0' ' ' < "/proc/$YOUTUBE_PID/cmdline")
           [[ "$ARGS" == *"ffmpeg"* ]]
-          if [[ "$ARGS" == *" -c:v copy "* && "$ARGS" == *" -c:a aac "* ]]; then
-            [[ "$ARGS" == *" -b:a 128k "* ]]
-            [[ "$ARGS" == *" -ar 44100 "* ]]
-            [[ "$ARGS" == *" -ac 2 "* ]]
-          else
-            [[ "$ARGS" == *" -c copy "* ]]
-          fi
+          [[ "$ARGS" == *"udp://127.0.0.1:1939"* ]]
+          [[ "$ARGS" == *" -c:v copy "* ]]
+          [[ "$ARGS" == *" -c:a aac "* ]]
+          [[ "$ARGS" == *" -profile:a aac_low "* ]]
+          [[ "$ARGS" == *" -b:a 128k "* ]]
+          [[ "$ARGS" == *" -ar 44100 "* ]]
+          [[ "$ARGS" == *" -ac 2 "* ]]
+          [[ "$ARGS" == *"aresample=44100:async=1:first_pts=0"* ]]
           [[ "$ARGS" != *"youtube-stream-router"* ]]
           [[ "$ARGS" != *"gst-launch"* ]]
           [[ "$ARGS" != *"libx264"* ]]
+
+          sudo ss -ntpH state established > /tmp/fgb-youtube-guard-sockets.txt || true
+          grep -F "pid=$YOUTUBE_PID" /tmp/fgb-youtube-guard-sockets.txt | grep -Eq ':[4]43([[:space:]]|$)'
 
           [[ "$(systemctl show -p MainPID --value fgbears-live.service)" == "$MASTER_PID" ]]
           [[ "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" == "$RUMBLE_PID" ]]
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet fgbears-rumble-relay.service
           echo 'youtube_audio_guard_deployed=yes'
+          echo 'youtube_audio_guard_state=OK'
           echo 'master_and_rumble_untouched=yes'
           REMOTE
