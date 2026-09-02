@@ -1,0 +1,366 @@
+name: Emergency Cutover YouTube Trivia Router
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/emergency-cutover-youtube-trivia-router.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Activate YouTube-only emergency question router with rollback
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+
+          DIRECT=fgbears-youtube-relay.service
+          ROUTER=fgbears-youtube-router.service
+          WATCHDOG_TIMER=fgbears-youtube-audio-watchdog.timer
+          WATCHDOG_SERVICE=fgbears-youtube-audio-watchdog.service
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          HEALTH=fgbears-live-health.service
+          HEALTH_DROPIN=/etc/systemd/system/fgbears-live-health.service.d/90-youtube-emergency-router.conf
+          BASE=/opt/fgbears-live/bin/youtube-stream-router.py
+          WRAPPER=/opt/fgbears-live/bin/youtube-stream-router-emergency.py
+          CARD=/opt/fgbears-live/assets/youtube-rumble-trivia.h264
+          CARD_SOURCE=/tmp/fgb-router-test/youtube-rumble-trivia.h264
+          UNIT=/etc/systemd/system/fgbears-youtube-router.service
+
+          echo '=== immutable pre-cutover safety checks ==='
+          for service in "$MASTER" "$DIRECT" "$RUMBLE"; do
+            systemctl is-active --quiet "$service" || { echo "$service is not active"; exit 1; }
+          done
+          master_before=$(systemctl show -p MainPID --value "$MASTER")
+          rumble_before=$(systemctl show -p MainPID --value "$RUMBLE")
+          direct_was_enabled=$(systemctl is-enabled "$DIRECT" 2>/dev/null || true)
+          watchdog_was_enabled=$(systemctl is-enabled "$WATCHDOG_TIMER" 2>/dev/null || true)
+          watchdog_was_active=$(systemctl is-active "$WATCHDOG_TIMER" 2>/dev/null || true)
+          test -s "$BASE"
+          test -s "$CARD_SOURCE"
+          test ! -e "$HEALTH_DROPIN"
+          command -v ffmpeg >/dev/null
+          command -v gst-inspect-1.0 >/dev/null
+          gst-inspect-1.0 input-selector >/dev/null
+          gst-inspect-1.0 tsdemux >/dev/null
+          gst-inspect-1.0 h264parse >/dev/null
+          gst-inspect-1.0 aacparse >/dev/null
+          gst-inspect-1.0 mpegtsmux >/dev/null
+          gst-inspect-1.0 appsrc >/dev/null
+
+          echo '=== stage emergency files without changing live routing ==='
+          sudo install -d -m 0755 /opt/fgbears-live/assets /opt/fgbears-live/bin
+          sudo install -o root -g root -m 0644 "$CARD_SOURCE" "$CARD"
+          sudo tee "$WRAPPER" >/dev/null <<'PY'
+          #!/usr/bin/env python3
+          """Emergency FGB YouTube packet router.
+
+          Uses the already-tested packet selector, but gates the card only on the
+          authoritative question-safe routing state and preserves the canonical
+          YouTube AAC repair. Video is never re-encoded.
+          """
+          from __future__ import annotations
+          import importlib.util
+          import logging
+          import os
+          import subprocess
+          import threading
+          from pathlib import Path
+          from typing import Any
+
+          BASE = Path(__file__).with_name("youtube-stream-router.py")
+          spec = importlib.util.spec_from_file_location("fgb_youtube_stream_router_base", BASE)
+          if spec is None or spec.loader is None:
+              raise RuntimeError(f"unable to load base router: {BASE}")
+          router = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(router)
+
+          def desired_card_emergency(payload: dict[str, Any]) -> bool:
+              try:
+                  if not bool((payload.get("platforms") or {}).get("youtube", True)):
+                      return False
+                  trivia = payload.get("trivia") or {}
+                  if bool(trivia.get("stale")):
+                      return False
+                  return trivia.get("youtubeMaskActive") is True and trivia.get("phase") == "question"
+              except Exception:
+                  return False
+
+          def start_audio_safe_transport(self: Any) -> None:
+              if self.test_mode:
+                  return
+              if not self.upstream_target:
+                  raise ValueError("YouTube upstream target is required outside test mode")
+              bitrate = os.getenv("YOUTUBE_AUDIO_BITRATE", "128k")
+              sample_rate = os.getenv("YOUTUBE_AUDIO_SAMPLE_RATE", "44100")
+              channels = os.getenv("YOUTUBE_AUDIO_CHANNELS", "2")
+              if (bitrate, sample_rate, channels) != ("128k", "44100", "2"):
+                  raise ValueError("canonical YouTube audio profile must remain 128k/44100/2")
+              local_input = (
+                  f"udp://127.0.0.1:{self.output_port}"
+                  "?fifo_size=1000000&overrun_nonfatal=1&reuse=1"
+              )
+              command = [
+                  "ffmpeg", "-hide_banner", "-nostdin", "-loglevel",
+                  os.getenv("FFMPEG_LOGLEVEL", "warning"),
+                  "-fflags", "+genpts+discardcorrupt",
+                  "-probesize", "10000000", "-analyzeduration", "10000000",
+                  "-i", local_input,
+                  "-map", "0:v:0", "-map", "0:a:0",
+                  "-c:v", "copy",
+                  "-c:a", "aac", "-profile:a", "aac_low", "-b:a", bitrate,
+                  "-ar", sample_rate, "-ac", channels,
+                  "-af", f"aresample={sample_rate}:async=1:first_pts=0",
+                  "-f", "flv", "-flvflags", "no_duration_filesize",
+                  self.upstream_target,
+              ]
+              router.LOG.info(
+                  "starting YouTube emergency transport: H.264 copy + AAC-LC %s Hz stereo %s",
+                  sample_rate, bitrate,
+              )
+              self.ffmpeg = subprocess.Popen(command)
+              threading.Thread(
+                  target=self._monitor_ffmpeg,
+                  daemon=True,
+                  name="ffmpeg-transport",
+              ).start()
+
+          router.desired_card = desired_card_emergency
+          router.StreamRouter._start_ffmpeg_transport = start_audio_safe_transport
+
+          if __name__ == "__main__":
+              try:
+                  raise SystemExit(router.main())
+              except Exception as exc:
+                  logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+                  router.LOG.exception("fatal emergency router error: %s", exc)
+                  raise SystemExit(70)
+          PY
+          sudo chown root:root "$WRAPPER"
+          sudo chmod 0755 "$WRAPPER"
+
+          sudo python3 -m py_compile "$WRAPPER"
+          sudo -u fgbears python3 "$BASE" --card "$CARD" --validate-card
+          sudo -u fgbears python3 - "$WRAPPER" <<'PYTEST'
+          import importlib.util, sys
+          path=sys.argv[1]
+          spec=importlib.util.spec_from_file_location('emergency_router_test',path)
+          mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+          yes={'platforms':{'youtube':True},'trivia':{'stale':False,'phase':'question','youtubeMaskActive':True}}
+          assert mod.desired_card_emergency(yes) is True
+          for payload in (
+              {'platforms':{'youtube':True},'trivia':{'stale':False,'phase':'transition','youtubeMaskActive':True}},
+              {'platforms':{'youtube':True},'trivia':{'stale':False,'phase':'question','youtubeMaskActive':False}},
+              {'platforms':{'youtube':True},'trivia':{'stale':True,'phase':'question','youtubeMaskActive':True}},
+              {},
+          ):
+              assert mod.desired_card_emergency(payload) is False
+          print('emergency_control_policy=PASS')
+          PYTEST
+
+          sudo tee "$UNIT" >/dev/null <<'UNITFILE'
+          [Unit]
+          Description=FGBears YouTube emergency trivia packet router
+          After=network-online.target fgbears-live.service
+          Wants=network-online.target
+          Requires=fgbears-live.service
+          StartLimitIntervalSec=30min
+          StartLimitBurst=6
+
+          [Service]
+          Type=simple
+          User=fgbears
+          Group=fgbears
+          EnvironmentFile=/etc/fgbears-live/stream.env
+          Environment=PYTHONDONTWRITEBYTECODE=1
+          Environment=GST_REGISTRY=/tmp/fgbears-youtube-router-gst-registry.bin
+          ExecStart=/usr/bin/python3 /opt/fgbears-live/bin/youtube-stream-router-emergency.py --card /opt/fgbears-live/assets/youtube-rumble-trivia.h264 --log-level INFO
+          Restart=on-failure
+          RestartSec=5
+          SuccessExitStatus=130 143
+          TimeoutStopSec=15
+          KillSignal=SIGINT
+          UMask=0077
+          NoNewPrivileges=true
+          PrivateTmp=true
+          ProtectHome=true
+          ProtectSystem=strict
+          ReadOnlyPaths=/opt/fgbears-live /etc/fgbears-live
+          RestrictSUIDSGID=true
+          LockPersonality=true
+          LimitNOFILE=65536
+
+          [Install]
+          WantedBy=multi-user.target
+          UNITFILE
+          sudo systemctl daemon-reload
+
+          cutover_started=0
+          success=0
+          rollback() {
+            rc=${1:-1}
+            set +e
+            echo "=== AUTOMATIC YOUTUBE-ONLY ROLLBACK rc=$rc ==="
+            sudo systemctl disable --now "$ROUTER" >/dev/null 2>&1 || true
+            sudo rm -f "$HEALTH_DROPIN"
+            sudo systemctl daemon-reload
+            if [[ "$direct_was_enabled" == enabled ]]; then
+              sudo systemctl enable "$DIRECT" >/dev/null 2>&1 || true
+            fi
+            sudo systemctl reset-failed "$DIRECT" || true
+            sudo systemctl start "$DIRECT" || true
+            if [[ "$watchdog_was_enabled" == enabled ]]; then
+              sudo systemctl enable --now "$WATCHDOG_TIMER" >/dev/null 2>&1 || true
+            elif [[ "$watchdog_was_active" == active ]]; then
+              sudo systemctl start "$WATCHDOG_TIMER" || true
+            fi
+            for _ in {1..30}; do
+              systemctl is-active --quiet "$DIRECT" && break
+              sleep 0.5
+            done
+            printf 'rollback_direct=%s\n' "$(systemctl is-active "$DIRECT" 2>/dev/null || true)"
+            printf 'rollback_master=%s pid=%s\n' "$(systemctl is-active "$MASTER" 2>/dev/null || true)" "$(systemctl show -p MainPID --value "$MASTER" 2>/dev/null || true)"
+            printf 'rollback_rumble=%s pid=%s\n' "$(systemctl is-active "$RUMBLE" 2>/dev/null || true)" "$(systemctl show -p MainPID --value "$RUMBLE" 2>/dev/null || true)"
+            return 0
+          }
+          on_exit() {
+            rc=$?
+            if (( cutover_started == 1 && success == 0 )); then
+              rollback "$rc"
+            fi
+            exit "$rc"
+          }
+          trap on_exit EXIT
+
+          echo '=== wait for main health check to be idle ==='
+          for _ in {1..45}; do
+            if ! systemctl is-active --quiet "$HEALTH"; then break; fi
+            sleep 1
+          done
+          ! systemctl is-active --quiet "$HEALTH"
+
+          echo '=== begin authorized YouTube-only cutover ==='
+          cutover_started=1
+          sudo install -d -m 0755 /etc/systemd/system/fgbears-live-health.service.d
+          sudo tee "$HEALTH_DROPIN" >/dev/null <<'DROPIN'
+          [Service]
+          Environment=YOUTUBE_RELAY_SERVICE=fgbears-youtube-router.service
+          DROPIN
+          sudo systemctl daemon-reload
+
+          sudo systemctl disable --now "$WATCHDOG_TIMER" >/dev/null
+          sudo systemctl stop "$WATCHDOG_SERVICE" 2>/dev/null || true
+          sudo systemctl disable --now "$DIRECT" >/dev/null
+          sudo systemctl reset-failed "$ROUTER" || true
+          sudo systemctl start "$ROUTER"
+
+          echo '=== router startup verification ==='
+          for _ in {1..40}; do
+            systemctl is-active --quiet "$ROUTER" && break
+            sleep 0.5
+          done
+          systemctl is-active --quiet "$ROUTER"
+          ! systemctl is-active --quiet "$DIRECT"
+          [[ "$(systemctl show -p MainPID --value "$MASTER")" == "$master_before" ]]
+          [[ "$(systemctl show -p MainPID --value "$RUMBLE")" == "$rumble_before" ]]
+          systemctl is-active --quiet "$MASTER"
+          systemctl is-active --quiet "$RUMBLE"
+
+          sleep 8
+          systemctl is-active --quiet "$ROUTER"
+          router_pid=$(systemctl show -p MainPID --value "$ROUTER")
+          [[ "$router_pid" =~ ^[1-9][0-9]*$ ]]
+          ffmpeg_pid=$(pgrep -P "$router_pid" ffmpeg | head -n 1 || true)
+          [[ "$ffmpeg_pid" =~ ^[1-9][0-9]*$ ]]
+          sudo ss -uapnH | grep -E ':1939[[:space:]]' | grep -F "pid=$router_pid" >/dev/null
+          sudo ss -ntpH state established | grep -F "pid=$ffmpeg_pid" | grep -Eq ':[4]43([[:space:]]|$)'
+          journalctl -u "$ROUTER" --since '-2 minutes' --no-pager | grep -F 'starting YouTube emergency transport:' >/dev/null
+          echo "router_active=yes router_pid=$router_pid ffmpeg_transport_pid=$ffmpeg_pid rtmps_socket=yes"
+          echo "master_unchanged=yes pid=$master_before"
+          echo "rumble_unchanged=yes pid=$rumble_before"
+          echo "direct_relay_active=no"
+          echo "direct_watchdog_active=$(systemctl is-active "$WATCHDOG_TIMER" 2>/dev/null || true)"
+
+          cutover_epoch=$(date +%s)
+          mask_seen=0
+          card_switch_seen=0
+          echo '=== observe authoritative question phase when available ==='
+          for _ in {1..150}; do
+            mask=$(python3 - <<'PYSTATE' 2>/dev/null || true
+          import json,urllib.request
+          try:
+              r=urllib.request.Request('https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing',headers={'Accept':'application/json','Cache-Control':'no-cache'})
+              with urllib.request.urlopen(r,timeout=1.2) as x: p=json.loads(x.read().decode())
+              t=p.get('trivia') or {}
+              print('1' if (not bool(t.get('stale')) and t.get('phase')=='question' and t.get('youtubeMaskActive') is True) else '0')
+          except Exception:
+              print('E')
+          PYSTATE
+            )
+            [[ "$mask" == 1 ]] && mask_seen=1
+            if journalctl -u "$ROUTER" --since "@$cutover_epoch" --no-pager 2>/dev/null | grep -Fq 'video route switched: live -> card'; then
+              card_switch_seen=1
+              break
+            fi
+            sleep 1
+          done
+          echo "mask_seen=$mask_seen card_switch_seen=$card_switch_seen"
+          if (( mask_seen == 1 && card_switch_seen == 0 )); then
+            echo 'ERROR: authoritative question mask became true but router did not switch to card.'
+            exit 1
+          fi
+
+          if (( card_switch_seen == 1 )); then
+            return_seen=0
+            for _ in {1..150}; do
+              if journalctl -u "$ROUTER" --since "@$cutover_epoch" --no-pager 2>/dev/null | grep -Fq 'video route switched: card -> live'; then
+                return_seen=1
+                break
+              fi
+              sleep 1
+            done
+            echo "card_return_to_live_seen=$return_seen"
+            (( return_seen == 1 )) || { echo 'ERROR: router did not return from card to live.'; exit 1; }
+          else
+            echo 'question_cycle_observation=not_available_within_window'
+          fi
+
+          echo '=== persist emergency mode ==='
+          sudo systemctl enable "$ROUTER" >/dev/null
+          sudo systemctl disable "$DIRECT" >/dev/null || true
+          [[ "$(systemctl show -p MainPID --value "$MASTER")" == "$master_before" ]]
+          [[ "$(systemctl show -p MainPID --value "$RUMBLE")" == "$rumble_before" ]]
+          systemctl is-active --quiet "$ROUTER"
+          ! systemctl is-active --quiet "$DIRECT"
+          success=1
+          echo 'EMERGENCY_YOUTUBE_ROUTER=ACTIVE'
+          echo 'MASTER_RESTARTED=no'
+          echo 'RUMBLE_RESTARTED=no'
+          echo 'VIDEO_REENCODE=no'
+          echo 'YOUTUBE_AUDIO_REPAIR=preserved'
+          REMOTE
