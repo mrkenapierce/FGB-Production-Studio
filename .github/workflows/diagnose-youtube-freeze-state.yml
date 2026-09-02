@@ -1,5 +1,5 @@
 name: Diagnose YouTube Freeze State
-# rerun marker: inspect-production-router-api-20260902
+# rerun marker: locate-production-router-base-20260902
 
 on:
   push:
@@ -26,30 +26,25 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Inspect deployed router API and health only
+      - name: Locate delegated router implementation
         shell: bash
         run: |
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          base=/opt/fgbears-live/bin/youtube-stream-router-emergency.py
-          echo '=== ROUTER HASH ==='
-          sha256sum "$base"
-          echo '=== TOP LEVEL CLASSES/FUNCTIONS ==='
-          grep -nE '^(class|def) ' "$base" || true
-          echo '=== METHOD NAMES ==='
-          grep -nE '^    def ' "$base" || true
-          echo '=== CARD-RELATED SYMBOLS ==='
-          grep -nE 'card_(aus|idr|index)|card_path|request_mode|schedule_poll|poll|reload' "$base" | head -120 || true
-          echo '=== CURRENT HEALTH ==='
-          router_pid=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
-          child=$(pgrep -P "$router_pid" ffmpeg | head -n1 || true)
-          echo "router_pid=$router_pid ffmpeg_child=${child:-none}"
+          f=/opt/fgbears-live/bin/youtube-stream-router-emergency.py
+          echo '=== DELEGATION SYMBOLS ==='
+          grep -nE 'import|runpy|spec_from|module_from|SourceFile|youtube-stream-router|base|Router|main\(' "$f" | head -160 || true
+          echo '=== ROUTER FILES ==='
+          ls -lah /opt/fgbears-live/bin/*youtube*router*.py 2>/dev/null || true
+          for candidate in /opt/fgbears-live/bin/*youtube*router*.py; do
+            [[ -f "$candidate" ]] || continue
+            echo "--- $candidate ---"
+            sha256sum "$candidate"
+            grep -nE '^(class|def) ' "$candidate" | head -80 || true
+          done
+          echo '=== HEALTH ==='
           echo "master_pid=$(systemctl show -p MainPID --value fgbears-live.service)"
           echo "rumble_pid=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)"
-          if [[ "$child" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -Eq ':443([[:space:]]|$)'; then
-            echo 'youtube_rtmps_established=yes'
-          else
-            echo 'youtube_rtmps_established=no'
-          fi
+          echo "router_pid=$(systemctl show -p MainPID --value fgbears-youtube-router.service)"
           REMOTE
