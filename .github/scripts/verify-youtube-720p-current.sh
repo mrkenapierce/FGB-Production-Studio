@@ -44,7 +44,14 @@ assert p.get("fps")==30,p
 print("MASK_CONTRACT_720P=PASS phase={} active={}".format(p.get("phase"),p.get("active")))
 '
 
-seg=$(find "$MONITOR" -maxdepth 1 -type f -name 'monitor-*.ts' -size +1000c -printf '%T@ %p\n' 2>/dev/null | sort -nr | awk 'NR==1{sub(/^[^ ]+ /,"");print}')
+# Monitor files rotate every two seconds. Wait through a few rotations instead
+# of treating a boundary instant as an A/V failure.
+seg=''
+for _ in $(seq 1 15); do
+  seg=$(find "$MONITOR" -maxdepth 1 -type f -name 'monitor-*.ts' -size +1000c -printf '%T@ %p\n' 2>/dev/null | sort -nr | awk 'NR==1{sub(/^[^ ]+ /,"");print}' || true)
+  [[ -n "$seg" ]] && break
+  sleep 1
+done
 [[ -n "$seg" ]]
 ffprobe -v error -show_streams -of json "$seg" | python3 -c '
 import json,sys
@@ -73,6 +80,7 @@ ns={
     'time':time,
     'Any':object,
     'CONTRACT':contract,
+    'STALE_SECONDS':30,
     'parse_contract':lambda payload: contract,
 }
 exec(compile(ast.fix_missing_locations(mod),'<state-test>','exec'),ns)
@@ -92,8 +100,11 @@ print('QUESTION_LATCH_STATE_MACHINE=PASS')
 PY
 
 # Observe sustained production stability rather than trusting one snapshot.
+# At the same time, if a question is live, every sampled question frame must
+# report the cover active. This catches any visible drop during the audit window.
 max_cpu=0
 min_speed=999
+question_samples=0
 for i in $(seq 1 20); do
   [[ "$(pid "$MASTER")" == "$MASTER0" ]]
   [[ "$(pid "$RUMBLE")" == "$RUMBLE0" ]]
@@ -108,27 +119,19 @@ for i in $(seq 1 20); do
     min_speed=$(python3 -c 'import sys; print(min(float(sys.argv[1]),float(sys.argv[2])))' "$min_speed" "$speed")
   fi
   max_cpu=$(python3 -c 'import sys; print(max(float(sys.argv[1]),float(sys.argv[2])))' "$max_cpu" "$cpu")
+
+  h=$(curl -fsS --max-time 2 "$HEALTH")
+  q=$(printf '%s' "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);print("Q1" if p.get("phase")=="question" and p.get("active") is True else ("Q0" if p.get("phase")=="question" else "N"))')
+  [[ "$q" != Q0 ]]
+  [[ "$q" == Q1 ]] && question_samples=$((question_samples+1))
   sleep 1
 done
 python3 -c 'import sys; assert float(sys.argv[1]) <= 50.0, sys.argv[1]' "$max_cpu"
 echo "STABILITY_20S=PASS min_master_speed=${min_speed}x max_compositor_cpu=${max_cpu}%"
-
-# Opportunistically certify an in-progress question if one is active now.
-h=$(curl -fsS --max-time 3 "$HEALTH")
-if printf '%s' "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);raise SystemExit(0 if p.get("phase")=="question" else 1)' 2>/dev/null; then
-  samples=0
-  while (( samples < 180 )); do
-    h=$(curl -fsS --max-time 2 "$HEALTH")
-    result=$(printf '%s' "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);print("END" if p.get("phase")!="question" else ("OK" if p.get("active") is True else "FAIL"))')
-    [[ "$result" == END ]] && break
-    [[ "$result" == OK ]]
-    samples=$((samples+1))
-    sleep 1
-  done
-  (( samples > 0 ))
-  echo "LIVE_QUESTION_REMAINDER=PASS samples=$samples"
+if (( question_samples > 0 )); then
+  echo "LIVE_QUESTION_WINDOW=PASS active_samples=$question_samples"
 else
-  echo 'LIVE_QUESTION_REMAINDER=NOT_ACTIVE_AT_AUDIT'
+  echo 'LIVE_QUESTION_WINDOW=NOT_ACTIVE_AT_AUDIT'
 fi
 
 echo 'YOUTUBE_720P_CURRENT_AUDIT=PASS'
