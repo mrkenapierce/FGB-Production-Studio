@@ -4,7 +4,7 @@ set -Eeuo pipefail
 MEDIA_DIR=${1:-${MEDIA_DIR:-/srv/fgbears-live/media}}
 [[ -d "$MEDIA_DIR" ]] || { echo "Media directory does not exist: $MEDIA_DIR" >&2; exit 66; }
 
-PROFILE_VERSION=${FGB_AUDIO_PROFILE_VERSION:-fgb-podcast-v1}
+PROFILE_VERSION=${FGB_AUDIO_PROFILE_VERSION:-fgb-podcast-v2-mastered}
 LOUDNESS_TARGET_I=${FGB_LOUDNESS_TARGET_I:--14}
 LOUDNESS_TOLERANCE_LU=${FGB_LOUDNESS_TOLERANCE_LU:-0.8}
 MAX_POST_TRUE_PEAK=${FGB_MAX_POST_TRUE_PEAK:--1.0}
@@ -30,7 +30,15 @@ while IFS= read -r -d '' file; do
       --argjson target "$LOUDNESS_TARGET_I" \
       --argjson tolerance "$LOUDNESS_TOLERANCE_LU" \
       --argjson maxTp "$MAX_POST_TRUE_PEAK" \
-      '.profile == $profile and .sha256 == $sha and
+      '.profile == $profile and
+       .mastered == true and
+       ((.mastering_chain | type) == "string") and
+       ((.mastering_chain | length) > 0) and
+       .audio_codec == "aac" and
+       .audio_bitrate_kbps == 192 and
+       .sample_rate_hz == 48000 and
+       .channels == 2 and
+       .sha256 == $sha and
        ((.measured_i_lufs - $target) | if . < 0 then -. else . end) <= $tolerance and
        .measured_tp_dbtp <= $maxTp' "$marker" >/dev/null; then
       marker_ok=true
@@ -42,13 +50,13 @@ while IFS= read -r -d '' file; do
     echo "  video=$video" >&2
     echo "  audio=$audio" >&2
     if [[ "$marker_ok" != true ]]; then
-      echo "  audio_profile=missing_or_invalid (required=$PROFILE_VERSION)" >&2
+      echo "  audio_profile=missing_or_invalid (required=$PROFILE_VERSION mastered=true)" >&2
     fi
     failures=$((failures + 1))
   else
     measured_i=$(jq -r '.measured_i_lufs' "$marker")
     measured_tp=$(jq -r '.measured_tp_dbtp' "$marker")
-    echo "OK: $file audio_profile=$PROFILE_VERSION I=${measured_i}LUFS TP=${measured_tp}dBTP"
+    echo "OK: $file audio_profile=$PROFILE_VERSION mastered=true I=${measured_i}LUFS TP=${measured_tp}dBTP"
   fi
 done < <(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4' -print0 | sort -zV)
 
