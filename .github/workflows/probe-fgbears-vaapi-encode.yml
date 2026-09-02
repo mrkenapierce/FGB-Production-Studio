@@ -38,22 +38,23 @@ jobs:
           echo '=== render node ==='
           ls -l /dev/dri/renderD128
           id
-          echo '=== vainfo ==='
-          if command -v vainfo >/dev/null; then vainfo --display drm --device /dev/dri/renderD128 2>&1 | head -100 || true; else echo VAINFONOTINSTALLED; fi
-          echo '=== isolated 1280x720@30 H264 VAAPI benchmark ==='
+          echo '=== driver identity ==='
+          sudo udevadm info --query=all --name=/dev/dri/renderD128 2>/dev/null | egrep 'DRIVER|PCI|ID_PATH|DEVPATH' || true
+          sudo readlink -f /sys/class/drm/renderD128/device/driver 2>/dev/null || true
+          echo '=== isolated 1280x720@30 H264 VAAPI benchmark as root ==='
           START=$(date +%s%N)
           set +e
-          OUT=$(timeout 15s ffmpeg -hide_banner -loglevel info -y \
-            -f lavfi -i color=c=black:s=1280x720:r=30:d=8 \
+          OUT=$(sudo timeout 15s ffmpeg -hide_banner -loglevel info -y \
             -vaapi_device /dev/dri/renderD128 \
+            -f lavfi -i color=c=black:s=1280x720:r=30:d=8 \
             -vf 'format=nv12,hwupload' \
             -c:v h264_vaapi -profile:v high -b:v 5000k -maxrate 5500k -bufsize 10000k \
             -g 60 -an -f null - 2>&1)
           RC=$?
           set -e
           END=$(date +%s%N)
-          printf '%s\n' "$OUT" | tail -80
-          echo "vaapi_rc=$RC"
+          printf '%s\n' "$OUT" | tail -100
+          echo "vaapi_root_rc=$RC"
           python3 - "$START" "$END" <<'PY'
           import sys
           a,b=map(int,sys.argv[1:]); print(f'elapsed_seconds={(b-a)/1e9:.3f}')
