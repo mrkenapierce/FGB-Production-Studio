@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 # Canonical YouTube transport for FGBears Live.
 #
-# YouTube receives the exact shared-master H.264 video bitstream, but its audio
-# is decoded and freshly encoded as a YouTube-specific AAC-LC stream. This is
-# intentional: Rumble accepts the shared MPEG-TS AAC cleanly, while YouTube has
-# exhibited degraded audio when that TS AAC framing/timing is copied directly
-# into FLV/RTMPS. The audio resampler is used only to establish a stable YouTube
-# audio clock; there is no mastering/EQ/dynamics processing in this live relay.
+# YouTube receives the exact shared-master H.264 video bitstream, while its audio
+# is decoded and freshly encoded only to establish a clean YouTube AAC/RTMP
+# clock. The source library is already normalized/mastered, so this relay does
+# not apply loudness, EQ, compression, limiting or other tonal processing.
 set -Eeuo pipefail
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
@@ -19,7 +17,7 @@ source "$ENV_FILE"
 : "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"
 : "${FFMPEG_LOGLEVEL:=warning}"
 : "${YOUTUBE_AUDIO_BITRATE:=128k}"
-: "${YOUTUBE_AUDIO_SAMPLE_RATE:=44100}"
+: "${YOUTUBE_AUDIO_SAMPLE_RATE:=48000}"
 : "${YOUTUBE_AUDIO_CHANNELS:=2}"
 
 [[ "$YOUTUBE_STREAM_KEY" != "REPLACE_WITH_YOUTUBE_STREAM_KEY" ]] || {
@@ -38,8 +36,8 @@ source "$ENV_FILE"
   echo "YOUTUBE_AUDIO_BITRATE must remain 128k for the canonical YouTube stereo profile." >&2
   exit 78
 }
-[[ "$YOUTUBE_AUDIO_SAMPLE_RATE" == "44100" ]] || {
-  echo "YOUTUBE_AUDIO_SAMPLE_RATE must remain 44100 for the canonical YouTube stereo profile." >&2
+[[ "$YOUTUBE_AUDIO_SAMPLE_RATE" == "48000" ]] || {
+  echo "YOUTUBE_AUDIO_SAMPLE_RATE must remain 48000 to preserve the native program audio rate." >&2
   exit 78
 }
 [[ "$YOUTUBE_AUDIO_CHANNELS" == "2" ]] || {
@@ -52,10 +50,10 @@ LOCAL_INPUT="${LOCAL_BASE}?fifo_size=1000000&overrun_nonfatal=1&reuse=1"
 UPSTREAM_TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 
 # Preserve the shared video bitstream. Rebuild only the YouTube audio elementary
-# stream so AAC framing and timestamps are generated specifically for this
-# RTMPS session. aresample async corrects timestamp discontinuities without
-# applying tonal or loudness DSP.
-echo "Starting canonical YouTube relay: H.264 copy + freshly clocked AAC-LC ${YOUTUBE_AUDIO_SAMPLE_RATE} Hz stereo ${YOUTUBE_AUDIO_BITRATE}." >&2
+# stream so AAC framing and timestamps are generated specifically for this RTMPS
+# session at the same 48 kHz rate as the source. aresample async is clock repair,
+# not mastering DSP.
+echo "Starting canonical YouTube relay: H.264 copy + source-character AAC-LC ${YOUTUBE_AUDIO_SAMPLE_RATE} Hz stereo ${YOUTUBE_AUDIO_BITRATE}." >&2
 exec ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -fflags +genpts+discardcorrupt -probesize 10000000 -analyzeduration 10000000 \
