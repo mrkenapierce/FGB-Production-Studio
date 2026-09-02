@@ -12,6 +12,7 @@ MASK_SCRIPT=/opt/fgbears-live/bin/youtube-question-mask.py
 COMP_UNIT=/etc/systemd/system/fgbears-youtube-lovable-compositor.service
 ROUTING_UNIT=/etc/systemd/system/fgbears-youtube-lovable-routing.service
 BACKUP=$(mktemp -d /tmp/fgb-youtube-720p.XXXXXX)
+PATCHED_MASK="$BACKUP/question-mask.patched.py"
 SUCCESS=0
 
 active() { systemctl is-active --quiet "$1"; }
@@ -78,12 +79,17 @@ cp -a "$MASK_SCRIPT" "$BACKUP/question-mask.py"
 cp -a "$COMP_UNIT" "$BACKUP/compositor.service"
 cp -a "$ROUTING_UNIT" "$BACKUP/routing.service"
 
-# Patch the current routing renderer with question-phase hysteresis. Once the
-# YouTube cover has appeared for a question, a transient false flag or routing
-# fetch error cannot remove it while the authoritative phase remains question.
-# An explicit phase exit/ad break clears it immediately; prolonged endpoint
-# loss is bounded by the routing service's stale grace.
-python3 - /tmp/youtube-question-mask.py <<'PY'
+# Work on a root-owned copy inside the root-owned rollback directory. On this
+# host fs.protected_regular prevents privileged in-place rewrites of files that
+# were SCP-created by the SSH user in /tmp.
+cp /tmp/youtube-question-mask.py "$PATCHED_MASK"
+
+# Patch the routing renderer with question-phase hysteresis. Once the YouTube
+# cover has appeared for a question, a transient false flag or routing fetch
+# error cannot remove it while the authoritative phase remains question. An
+# explicit phase exit/ad break clears it immediately; prolonged endpoint loss
+# remains bounded by the routing service's stale grace.
+python3 - "$PATCHED_MASK" <<'PY'
 from pathlib import Path
 import sys
 p = Path(sys.argv[1])
@@ -98,11 +104,11 @@ s = s.replace(old, new).replace(old_error, new_error)
 p.write_text(s)
 PY
 
-grep -q 'Latch through transient flag/staleness changes' /tmp/youtube-question-mask.py
-grep -q 'Do not flash the cover off on a transient API/network error' /tmp/youtube-question-mask.py
+grep -q 'Latch through transient flag/staleness changes' "$PATCHED_MASK"
+grep -q 'Do not flash the cover off on a transient API/network error' "$PATCHED_MASK"
 
 install -m 0755 /tmp/youtube-lovable-compositor.sh "$COMP_SCRIPT"
-install -m 0755 /tmp/youtube-question-mask.py "$MASK_SCRIPT"
+install -m 0755 "$PATCHED_MASK" "$MASK_SCRIPT"
 install -m 0644 /tmp/fgbears-youtube-lovable-compositor.service "$COMP_UNIT"
 install -m 0644 /tmp/fgbears-youtube-lovable-routing.service "$ROUTING_UNIT"
 systemctl daemon-reload
