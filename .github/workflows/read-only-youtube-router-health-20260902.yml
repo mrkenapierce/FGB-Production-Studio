@@ -1,4 +1,4 @@
-name: Lock Exact-Box Low-Lag YouTube Source
+name: Read Only YouTube Exact Box Health
 
 on:
   push:
@@ -7,75 +7,131 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  lock:
+  certify:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: lovable-routing-bridge-20260902
-          fetch-depth: 0
-      - name: Persist safety-qualified exact-box source and restore certifier
+      - name: Configure SSH
         shell: bash
         run: |
           set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-          # Lock the previously measured same-host 640x360 compositor implementation.
-          git show 6b88e4ea368fdb1b05ad2ba43b2fe5c0a4067617:services/fgbears-live/bin/youtube-lovable-compositor.sh \
-            > services/fgbears-live/bin/youtube-lovable-compositor.sh
+      - name: Certify exact question box through a real trivia cycle
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
+          ssh -i ~/.ssh/oracle_key "$target" 'python3 - <<'"'"'PY'"'"'
+          import json, os, subprocess, time, urllib.request
 
-          # Preserve current question-phase latch/stale behavior, changing only the
-          # erroneous full-middle execution geometry back to Lovable's exact box.
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('services/fgbears-live/bin/youtube-question-mask.py')
-          s=p.read_text()
-          old='''    # The API region above remains authoritative and is fully validated. For\n    # execution, protect the complete middle program band. This is intentionally\n    # conservative: news remains live above y=104 and crawl remains live at/after\n    # y=574, while every pixel capable of containing a trivia question is covered.\n    output_news_bottom = scaled(SOURCE_NEWS_BOTTOM, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    output_crawl_top = scaled(SOURCE_CRAWL_TOP, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    x = 0\n    y = output_news_bottom\n    width = OUTPUT_CANVAS_WIDTH\n    height = output_crawl_top - output_news_bottom\n    if width <= 0 or height <= 0 or x < 0 or y < 0:\n        raise ValueError("invalid full-middle YouTube protection region")\n    if x + width > OUTPUT_CANVAS_WIDTH or y + height > OUTPUT_CANVAS_HEIGHT:\n        raise ValueError("full-middle YouTube protection region exceeds execution canvas")\n'''
-          new='''    # Execute exactly the Lovable-authoritative question rectangle. The news\n    # above and crawl below remain live and unrelated middle-panel pixels remain\n    # untouched. Geometry is proportionally mapped to the YouTube canvas.\n    x = scaled(source_x, SOURCE_CANVAS_WIDTH, OUTPUT_CANVAS_WIDTH)\n    y = scaled(source_y, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    width = scaled(source_width, SOURCE_CANVAS_WIDTH, OUTPUT_CANVAS_WIDTH)\n    height = scaled(source_height, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    output_news_bottom = scaled(SOURCE_NEWS_BOTTOM, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    output_crawl_top = scaled(SOURCE_CRAWL_TOP, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    if width <= 0 or height <= 0 or x < 0 or y < output_news_bottom or y + height > output_crawl_top:\n        raise ValueError("scaled maskRegion would overlap the always-live news or crawl bands")\n    if x + width > OUTPUT_CANVAS_WIDTH or y + height > OUTPUT_CANVAS_HEIGHT:\n        raise ValueError("scaled maskRegion exceeds the YouTube execution canvas")\n'''
-          if s.count(old) != 1:
-              raise SystemExit('Expected full-middle geometry block not found exactly once')
-          s=s.replace(old,new)
-          s=s.replace('"executionScaling": "full_middle_protection"','"executionScaling": "proportional_downstream"')
-          s=s.replace('the YouTube execution cover intentionally expands to the entire middle band\nbetween the always-live news and crawl. This guarantees that no part of a real\ntrivia question can remain visible on YouTube if the question layout extends\noutside the narrower source mask. When inactive, the same full-band frame is\nfully transparent.', 'the YouTube execution cover uses that exact authoritative question rectangle.\nNews, crawl, and unrelated middle-panel pixels remain live and untouched. When\ninactive, the same question-box frame is fully transparent.')
-          p.write_text(s)
-          PY
+          H="http://127.0.0.1:8791/healthz"
+          O="http://127.0.0.1:8791/overlay.rgba"
+          W,HGT=399,235
+          FRAME=W*HGT*4
 
-          # Lock both services to the measured 640x360 downstream canvas.
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service')
-          s=p.read_text().replace('Description=FGBears YouTube Lovable-Controlled 720p Compositor','Description=FGBears YouTube Lovable-Controlled Resource-Protected 360p Compositor')
-          s=s.replace('Environment=YOUTUBE_OUTPUT_WIDTH=1280','Environment=YOUTUBE_OUTPUT_WIDTH=640')
-          s=s.replace('Environment=YOUTUBE_OUTPUT_HEIGHT=720','Environment=YOUTUBE_OUTPUT_HEIGHT=360')
-          p.write_text(s)
+          def sh(s):
+              return subprocess.check_output(s,shell=True,text=True).strip()
+          def pid(unit):
+              return sh(f"systemctl show -p MainPID --value {unit}")
+          def restarts(unit):
+              return sh(f"systemctl show -p NRestarts --value {unit}")
+          def health():
+              with urllib.request.urlopen(H,timeout=3) as r:
+                  p=json.loads(r.read().decode())
+              assert p.get("ok") is True,p
+              assert p.get("sourceCanvas")==[1280,720],p
+              assert p.get("canvas")==[640,360],p
+              assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470},p
+              assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235},p
+              assert p.get("frameSize")==[399,235],p
+              assert p.get("executionScaling")=="proportional_downstream",p
+              assert p.get("fps")==30,p
+              return p
+          def alpha():
+              with urllib.request.urlopen(O,timeout=5) as r:
+                  b=bytearray()
+                  while len(b)<FRAME:
+                      c=r.read(FRAME-len(b))
+                      if not c: raise RuntimeError("overlay ended early")
+                      b.extend(c)
+              a=b[3::4]
+              return min(a),max(a),sum(1 for x in a if x)/len(a)
 
-          p=Path('services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service')
-          s=p.read_text().replace('Environment=YOUTUBE_OUTPUT_CANVAS_WIDTH=1280','Environment=YOUTUBE_OUTPUT_CANVAS_WIDTH=640')
-          s=s.replace('Environment=YOUTUBE_OUTPUT_CANVAS_HEIGHT=720','Environment=YOUTUBE_OUTPUT_CANVAS_HEIGHT=360')
-          p.write_text(s)
-          PY
+          units=["fgbears-live.service","fgbears-rumble-relay.service","fgbears-youtube-lovable-compositor.service","fgbears-youtube-lovable-routing.service"]
+          for u in units:
+              assert sh(f"systemctl is-active {u}")=="active",u
+          before={u:(pid(u),restarts(u)) for u in units}
+          comp=before["fgbears-youtube-lovable-compositor.service"][0]
+          cmd=sh(f"tr '\\0' ' ' </proc/{comp}/cmdline")
+          assert "scale=640:360:flags=fast_bilinear" in cmd,cmd
+          assert "overlay=231:52:format=auto:shortest=1" in cmd,cmd
+          assert "aresample=44100:async=1:first_pts=0" in cmd,cmd
+          assert sh(f"ss -ntpH state established | grep -F 'pid={comp}' | grep -E ':443([[:space:]]|$)' >/dev/null && echo yes || echo no")=="yes"
+          base=health()
+          print("BASELINE_EXACT_BOX=PASS",json.dumps(base,sort_keys=True))
 
-          # Restore the established read-only live-cycle certification workflow.
-          git show d62137b8633e8d3dd509391e601d0edad7e6c037:.github/workflows/read-only-youtube-router-health-20260902.yml \
-            > .github/workflows/read-only-youtube-router-health-20260902.yml
+          # Between questions the question box must be completely transparent.
+          if not base.get("active"):
+              amin,amax,ratio=alpha()
+              assert amin==0 and amax==0 and ratio==0,(amin,amax,ratio)
+              print("INACTIVE_EXACT_BOX=PASS alpha=0/0")
 
-          grep -Fq 'scale=${YOUTUBE_OUTPUT_WIDTH}:${YOUTUBE_OUTPUT_HEIGHT}:flags=fast_bilinear' services/fgbears-live/bin/youtube-lovable-compositor.sh
-          grep -Fq 'YOUTUBE_OUTPUT_WIDTH:=640' services/fgbears-live/bin/youtube-lovable-compositor.sh
-          grep -Fq 'YOUTUBE_VIDEO_BITRATE:=2200k' services/fgbears-live/bin/youtube-lovable-compositor.sh
-          grep -Fq 'Environment=YOUTUBE_OUTPUT_WIDTH=640' services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service
-          grep -Fq 'Environment=YOUTUBE_OUTPUT_CANVAS_WIDTH=640' services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service
-          grep -Fq 'executionScaling": "proportional_downstream' services/fgbears-live/bin/youtube-question-mask.py
+          deadline=time.time()+900
+          found=False
+          while time.time()<deadline:
+              p=health()
+              if p.get("phase")=="question" and p.get("active") is True and not p.get("lastError"):
+                  found=True
+                  break
+              time.sleep(.5)
+          assert found,"No active trivia question observed"
+          print("LIVE_QUESTION_DETECTED=YES")
 
-          git config user.name 'FGB Production Automation'
-          git config user.email 'actions@users.noreply.github.com'
-          git add services/fgbears-live/bin/youtube-lovable-compositor.sh \
-                  services/fgbears-live/bin/youtube-question-mask.py \
-                  services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service \
-                  services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service \
-                  .github/workflows/read-only-youtube-router-health-20260902.yml
-          git diff --cached --check
-          git commit -m 'Lock exact-box low-lag YouTube production path'
-          git push origin HEAD:lovable-routing-bridge-20260902
+          samples=0
+          while samples<40:
+              p=health()
+              if p.get("phase")!="question": break
+              assert p.get("active") is True,p
+              if samples%2==0:
+                  amin,amax,ratio=alpha()
+                  assert amin==255 and amax==255 and ratio==1.0,(amin,amax,ratio)
+              samples+=1
+              time.sleep(.5)
+          assert samples>=4,samples
+          print(f"LIVE_EXACT_BOX_OPACITY=PASS samples={samples} alpha=255/255 pixels={W*HGT}")
+
+          deadline=time.time()+90
+          while time.time()<deadline:
+              p=health()
+              if p.get("active") is False:
+                  break
+              time.sleep(.5)
+          else:
+              raise AssertionError("Overlay did not clear")
+          amin,amax,ratio=alpha()
+          assert amin==0 and amax==0 and ratio==0,(amin,amax,ratio)
+          print("POST_QUESTION_TRANSPARENCY=PASS")
+
+          after={u:(pid(u),restarts(u)) for u in units}
+          assert after==before,(before,after)
+          cpu=float(sh(f"ps -p {comp} -o %cpu= | tr -d ' '"))
+          speed=sh("awk -F= '$1==\"speed\"{v=$2} END{gsub(/x/,\"\",v);print v}' /srv/fgbears-live/logs/ffmpeg-progress.log")
+          if speed:
+              assert float(speed)>=0.985,speed
+          assert cpu<=40,cpu
+          assert sh(f"ss -ntpH state established | grep -F 'pid={comp}' | grep -E ':443([[:space:]]|$)' >/dev/null && echo yes || echo no")=="yes"
+          print(f"NO_RESTARTS=PASS compositor_cpu={cpu}% master_speed={speed or 'unknown'}x")
+          print("RUMBLE_UNTOUCHED=PASS")
+          print("EXACT_BOX_LIVE_CYCLE_CERTIFICATION=PASS")
+          PY'
