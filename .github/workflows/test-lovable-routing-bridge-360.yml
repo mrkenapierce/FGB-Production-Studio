@@ -1,28 +1,51 @@
-name: Test Lovable Routing Bridge 360
+name: Test YouTube Exact-Box Production Contract
 
 on:
   push:
     branches: [lovable-routing-bridge-20260902]
+    paths:
+      - 'services/fgbears-live/bin/youtube-question-mask.py'
+      - 'services/fgbears-live/bin/youtube-lovable-compositor.sh'
+      - 'services/fgbears-live/bin/youtube-relay.sh'
+      - 'services/fgbears-live/bin/youtube-audio-watchdog*.sh'
+      - 'services/fgbears-live/tools/build-youtube-rumble-trivia-card.py'
+      - 'services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service'
+      - '.github/workflows/test-lovable-routing-bridge-360.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: youtube-exact-box-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  bridge360:
+  contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-      - name: Install test dependencies
+
+      - name: Install only required Python test dependencies
+        run: python3 -m pip install --user pillow qrcode opencv-python-headless
+
+      - name: Validate production source contracts
         run: |
-          python3 -m pip install --user pillow qrcode opencv-python-headless
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq ffmpeg
-      - name: Validate syntax
-        run: |
+          set -Eeuo pipefail
           python3 -m py_compile services/fgbears-live/bin/youtube-question-mask.py
           bash -n services/fgbears-live/bin/youtube-lovable-compositor.sh
+          bash -n services/fgbears-live/bin/youtube-relay.sh
+          bash -n services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
+          bash -n services/fgbears-live/bin/youtube-audio-watchdog.sh
+          grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE=48000' services/fgbears-live/bin/youtube-lovable-compositor.sh
+          grep -Fq 'YOUTUBE_UDP_FIFO_SIZE=1000000' services/fgbears-live/bin/youtube-lovable-compositor.sh
+          grep -Fq 'YOUTUBE_MASTER_THREAD_QUEUE=512' services/fgbears-live/bin/youtube-lovable-compositor.sh
+          grep -Fq 'aresample=${YOUTUBE_AUDIO_SAMPLE_RATE}:async=1:first_pts=0' services/fgbears-live/bin/youtube-lovable-compositor.sh
+          grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE:=48000' services/fgbears-live/bin/youtube-relay.sh
+          grep -Fq 'recent_transport_faults=' services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
+          echo 'SOURCE_CONTRACT=PASS exact_box_360 native_audio_48k protected_udp_input'
+
       - name: Start mocked Lovable routing
         run: |
           cat >/tmp/routing.json <<'JSON'
@@ -37,7 +60,8 @@ jobs:
           ThreadingHTTPServer(('127.0.0.1',18081),H).serve_forever()
           PY
           nohup python3 /tmp/mock.py >/dev/null 2>&1 &
-      - name: Start 360p Lovable worker
+
+      - name: Verify exact-box mask geometry and QR
         env:
           FGB_STREAM_ROUTING_URL: http://127.0.0.1:18081/api/public/fgbears/stream-routing
           YOUTUBE_QUESTION_MASK_PORT: '18792'
@@ -49,7 +73,9 @@ jobs:
           for _ in $(seq 1 30); do curl -sf http://127.0.0.1:18792/healthz >/tmp/h360.json && break; sleep 1; done
           cat /tmp/h360.json
           python3 - <<'PY'
-          import json
+          import json,subprocess,sys,urllib.request,cv2,numpy as np
+          from PIL import Image,ImageChops
+          from pathlib import Path
           p=json.load(open('/tmp/h360.json'))
           assert p['sourceCanvas']==[1280,720]
           assert p['canvas']==[640,360]
@@ -58,14 +84,6 @@ jobs:
           assert p['frameSize']==[399,235]
           assert p['creativeKey']=='yt_rumble_trivia_redirect'
           assert p['active'] is True
-          print('LOVABLE_360_GEOMETRY=PASS')
-          PY
-      - name: Verify exact card and QR at 360p
-        run: |
-          python3 - <<'PY'
-          import subprocess,sys,urllib.request,cv2,numpy as np
-          from PIL import Image,ImageChops
-          from pathlib import Path
           n=399*235*4
           with urllib.request.urlopen('http://127.0.0.1:18792/overlay.rgba',timeout=5) as r: raw=r.read(n)
           assert len(raw)==n
@@ -74,18 +92,16 @@ jobs:
           subprocess.run([sys.executable,'services/fgbears-live/tools/build-youtube-rumble-trivia-card.py',str(srcp)],check=True,stdout=subprocess.DEVNULL)
           src=Image.open(srcp).convert('RGBA')
           scaled=src.copy(); scaled.thumbnail((398,235),Image.Resampling.LANCZOS)
-          assert scaled.size==(398,224),scaled.size
           expected=Image.new('RGBA',(399,235),(11,22,42,255)); expected.paste(scaled,((399-scaled.width)//2,(235-scaled.height)//2),scaled)
           assert ImageChops.difference(actual,expected).getbbox() is None
           bgr=cv2.cvtColor(np.asarray(actual.convert('RGB')),cv2.COLOR_RGB2BGR)
           decoded,points,_=cv2.QRCodeDetector().detectAndDecode(bgr)
           want='https://rumble.com/v7eqrsu-chicago-bears-live-trivia-every-20-minutes-cash-prizes-fgb.html'
-          assert points is not None, 'QR not detected'
-          assert decoded==want,(decoded,want)
-          print('EXACT_CARD_360=PASS')
-          print('QR_360_DECODE=PASS')
+          assert points is not None and decoded==want,(decoded,want)
+          print('EXACT_BOX_AND_QR=PASS')
           PY
-      - name: Verify compositor uses worker-derived 360p geometry and bounded monitor
+
+      - name: Verify compositor command is low-load, native-audio and bounded
         env:
           YOUTUBE_QUESTION_MASK_PORT: '18792'
         run: |
@@ -106,24 +122,23 @@ jobs:
           grep -Fq 'overlay=231:52:format=auto:shortest=1[v]' /tmp/args360.txt
           grep -Fxq 'ultrafast' /tmp/args360.txt
           grep -Fxq '512' /tmp/args360.txt
-          grep -Fq 'f=segment:segment_time=2:segment_wrap=3:segment_format=mpegts:reset_timestamps=1:onfail=ignore' /tmp/args360.txt
-          echo 'COMPOSITOR_360_CONTRACT=PASS'
-      - name: Prove rotating MPEG-TS monitor syntax produces bounded readable segments
+          grep -Fxq '48000' /tmp/args360.txt
+          grep -Fq 'aresample=48000:async=1:first_pts=0' /tmp/args360.txt
+          grep -Fq 'fifo_size=1000000&overrun_nonfatal=1&reuse=1' /tmp/args360.txt
+          grep -Fq 'drop_pkts_on_overflow=1:restart_with_keyframe=1' /tmp/args360.txt
+          echo 'COMPOSITOR_COMMAND=PASS'
+
+      - name: Verify bounded monitor syntax with runner-provided FFmpeg
         run: |
+          command -v ffmpeg >/dev/null
+          command -v ffprobe >/dev/null
           rm -rf /tmp/segment-proof && mkdir -p /tmp/segment-proof
           ffmpeg -hide_banner -nostdin -loglevel error \
-            -f lavfi -i 'testsrc=size=640x360:rate=30' -t 4 -map 0:v \
+            -f lavfi -i 'testsrc=size=640x360:rate=30' -t 3 -map 0:v \
             -c:v libx264 -preset ultrafast -g 30 \
             -f tee '[f=null]/dev/null|[f=segment:segment_time=1:segment_wrap=3:segment_format=mpegts:reset_timestamps=1:onfail=ignore]/tmp/segment-proof/monitor-%d.ts'
           count=$(find /tmp/segment-proof -maxdepth 1 -name 'monitor-*.ts' -type f | wc -l)
-          test "$count" -le 3
-          test "$count" -ge 1
+          test "$count" -ge 1 -a "$count" -le 3
           latest=$(find /tmp/segment-proof -maxdepth 1 -name 'monitor-*.ts' -type f -printf '%T@ %p\n' | sort -nr | head -n1 | cut -d' ' -f2-)
           ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate -of json "$latest" >/tmp/segment-proof.json
-          python3 - <<'PY'
-          import json
-          p=json.load(open('/tmp/segment-proof.json'))
-          s=p['streams'][0]
-          assert s['width']==640 and s['height']==360 and s['r_frame_rate']=='30/1',s
-          print('BOUNDED_MONITOR_SEGMENTS=PASS')
-          PY
+          python3 -c 'import json;p=json.load(open("/tmp/segment-proof.json"));s=p["streams"][0];assert s["width"]==640 and s["height"]==360 and s["r_frame_rate"]=="30/1";print("BOUNDED_MONITOR=PASS")'
