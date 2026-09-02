@@ -7,7 +7,7 @@ SOURCE_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
 
 export DEBIAN_FRONTEND=noninteractive
 required_packages=(
-  ffmpeg ca-certificates curl git jq rsync python3 python3-pil python3-qrcode qrencode fonts-dejavu-core
+  ffmpeg ca-certificates curl git jq rsync python3 python3-pil python3-qrcode fonts-dejavu-core
 )
 missing_packages=()
 for package in "${required_packages[@]}"; do
@@ -54,23 +54,36 @@ python3 -c 'from PIL import Image; p="/opt/fgbears-live/assets/fgb-epic-default-
 install -d -o fgbears -g fgbears -m 0755 /srv/fgbears-live /srv/fgbears-live/media /srv/fgbears-live/incoming /srv/fgbears-live/logs /srv/fgbears-live/runtime
 install -d -o root -g root -m 0755 /srv/fgbears-live/health
 install -d -o root -g fgbears -m 0750 /etc/fgbears-live
+install -d -o root -g root -m 0755 /usr/local/libexec
 
+# Shared-master and destination transports.
 install -m 0755 /opt/fgbears-live/bin/start-stream.sh /usr/local/bin/fgbears-start-stream
 install -m 0755 /opt/fgbears-live/bin/youtube-relay.sh /usr/local/bin/fgbears-youtube-relay
 install -m 0755 /opt/fgbears-live/bin/rumble-relay.sh /usr/local/bin/fgbears-rumble-relay
 install -m 0755 /opt/fgbears-live/bin/configure-rumble.sh /usr/local/bin/fgbears-configure-rumble
+
+# The owner-aware watchdog is authoritative. The old relay watchdog remains only
+# as the fallback implementation it invokes if the exact-box compositor fails.
+install -m 0755 /opt/fgbears-live/bin/youtube-audio-watchdog.sh /usr/local/libexec/fgbears-youtube-audio-watchdog-legacy
+install -m 0755 /opt/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh /usr/local/bin/fgbears-youtube-audio-watchdog
+
+# Library/media administration.
 install -m 0755 /opt/fgbears-live/bin/normalize-library.sh /usr/local/bin/fgbears-normalize
 install -m 0755 /opt/fgbears-live/bin/validate-media.sh /usr/local/bin/fgbears-validate
 install -m 0755 /opt/fgbears-live/bin/rebuild-playlist.sh /usr/local/bin/fgbears-rebuild-playlist
 install -m 0755 /opt/fgbears-live/bin/add-episode.sh /usr/local/bin/fgbears-add-episode
 install -m 0755 /opt/fgbears-live/bin/healthcheck.sh /usr/local/bin/fgbears-healthcheck
 install -m 0755 /opt/fgbears-live/bin/audio-health.py /usr/local/bin/fgbears-audio-health
-install -m 0755 /opt/fgbears-live/bin/youtube-audio-watchdog.sh /usr/local/bin/fgbears-youtube-audio-watchdog
 install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-stream-status
 
+# Systemd units. The master has no destination-specific Wants/Requires. Rumble
+# is independent copy/remux. YouTube primary ownership is routing + exact-box
+# compositor; the legacy relay is installed but disabled as failover only.
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-relay.service /etc/systemd/system/fgbears-youtube-relay.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-rumble-relay.service /etc/systemd/system/fgbears-rumble-relay.service
+install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-lovable-routing.service /etc/systemd/system/fgbears-youtube-lovable-routing.service
+install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service /etc/systemd/system/fgbears-youtube-lovable-compositor.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.service /etc/systemd/system/fgbears-live-health.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.timer /etc/systemd/system/fgbears-live-health.timer
 install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-audio-watchdog.service /etc/systemd/system/fgbears-youtube-audio-watchdog.service
@@ -81,13 +94,10 @@ if [[ ! -e "$ENV_PATH" ]]; then
   install -o root -g fgbears -m 0640 /opt/fgbears-live/config/stream.env.example "$ENV_PATH"
 fi
 
-# Preserve credentials while locking each platform to its isolated transport.
-# The shared master carries pre-mastered AAC unchanged. Rumble receives the
-# shared MPEG-TS program by copy-remux. YouTube copies the shared H.264 video
-# but regenerates only AAC-LC audio at 44.1 kHz stereo / 128 kb/s with async
-# timestamp correction, preventing the TS->FLV AAC timing/framing problem that
-# produced degraded YouTube playback. Retired live audio DSP and packet-router
-# settings are removed so a future full install cannot reactivate them.
+# Preserve credentials/endpoints while normalizing only true shared/runtime
+# settings. YouTube audio/video quality constants are owned by the destination
+# scripts, not stream.env, so stale environment files cannot change production
+# behavior during failover.
 python3 - "$ENV_PATH" <<'PY'
 from pathlib import Path
 import sys
@@ -112,11 +122,8 @@ updates = {
     "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
     "YOUTUBE_AUDIO_BITRATE": "128k",
-    "YOUTUBE_AUDIO_SAMPLE_RATE": "44100",
+    "YOUTUBE_AUDIO_SAMPLE_RATE": "48000",
     "YOUTUBE_AUDIO_CHANNELS": "2",
-    "YOUTUBE_VIDEO_BITRATE": "5000k",
-    "YOUTUBE_VIDEO_MAXRATE": "5500k",
-    "YOUTUBE_VIDEO_BUFSIZE": "10000k",
     "FGB_YOUTUBE_PACKET_ROUTER_ENABLE": "0",
     "RUMBLE_TRIVIA_URL": "https://rumble.com/v7eqrsu-chicago-bears-live-trivia-every-20-minutes-cash-prizes-fgb.html",
     "RUMBLE_TRIVIA_DISPLAY_URL": "rumble.com/v7eqrsu",
@@ -133,7 +140,16 @@ updates = {
     "BEARS_NEWS_SCROLL_PPS": "76",
 }
 retired_prefixes = ("X_", "INSTAGRAM_", "FACEBOOK_", "YOUTUBE_TRIVIA_")
-retired_exact = {"FGB_YOUTUBE_TRIVIA_CARD_H264", "PODCAST_AUDIO_FILTER"}
+retired_exact = {
+    "FGB_YOUTUBE_TRIVIA_CARD_H264",
+    "PODCAST_AUDIO_FILTER",
+    "YOUTUBE_RTMP_BASE",
+    # Old environment-owned video tuning is intentionally removed. The exact-box
+    # compositor hard-locks its qualified 2.2 Mbps profile; fallback copies video.
+    "YOUTUBE_VIDEO_BITRATE",
+    "YOUTUBE_VIDEO_MAXRATE",
+    "YOUTUBE_VIDEO_BUFSIZE",
+}
 seen = set()
 out = []
 for line in lines:
@@ -158,12 +174,22 @@ chown root:fgbears "$ENV_PATH"
 chmod 0640 "$ENV_PATH"
 
 systemctl daemon-reload
-systemctl enable fgbears-youtube-relay.service
-# The capacity-limited Oracle host still runs only one live video encoder.
-# YouTube copies H.264 and re-encodes audio only; Rumble remains copy-remux.
-systemctl reset-failed fgbears-youtube-relay.service || true
-systemctl restart fgbears-youtube-relay.service
+
+# Establish exact-box YouTube as the only normal owner. Do not touch the shared
+# master or Rumble lifecycle. If this is an upgrade on a running host, refresh
+# only the YouTube-side routing/compositor services.
+systemctl enable fgbears-youtube-lovable-routing.service
+systemctl enable fgbears-youtube-lovable-compositor.service
+systemctl disable fgbears-youtube-relay.service >/dev/null 2>&1 || true
+systemctl stop fgbears-youtube-relay.service >/dev/null 2>&1 || true
+
+if systemctl is-active --quiet fgbears-live.service; then
+  systemctl restart fgbears-youtube-lovable-routing.service
+  systemctl reset-failed fgbears-youtube-lovable-compositor.service || true
+  systemctl restart fgbears-youtube-lovable-compositor.service
+fi
+
 systemctl enable --now fgbears-live-health.timer
 systemctl enable --now fgbears-youtube-audio-watchdog.timer
 
-echo "Installed FGBears Live with YouTube H.264-copy/AAC-reclock and Rumble copy-remux isolation."
+echo "Installed FGBears Live: destination-independent master, unchanged Rumble copy/remux, exact-box YouTube primary, native-48k owner-aware fallback."
