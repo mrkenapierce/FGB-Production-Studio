@@ -1,0 +1,63 @@
+name: Probe FGBears YouTube Compositor Capabilities
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-fgbears-youtube-compositor-capabilities.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Probe compute and video acceleration without changing services
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          echo '=== CPU ==='
+          nproc || true
+          lscpu | egrep 'Model name|CPU\(s\)|Thread|Core|Socket|Hypervisor|Architecture' || true
+          uptime || true
+          echo '=== VIDEO DEVICES ==='
+          ls -l /dev/dri 2>/dev/null || echo NO_DRI
+          ls -l /dev/video* 2>/dev/null || true
+          echo '=== FFMPEG HWACCELS ==='
+          ffmpeg -hide_banner -hwaccels 2>&1 || true
+          echo '=== FFMPEG H264 ENCODERS ==='
+          ffmpeg -hide_banner -encoders 2>/dev/null | egrep '264|vaapi|nvenc|qsv|v4l2|omx' || true
+          echo '=== GST ENCODERS / COMPOSITORS ==='
+          for e in compositor videomixer x264enc vaapih264enc vah264enc qsvh264enc nvh264enc v4l2h264enc; do
+            if gst-inspect-1.0 "$e" >/dev/null 2>&1; then echo "GST_HAVE=$e"; else echo "GST_MISSING=$e"; fi
+          done
+          echo '=== CURRENT SERVICE PIDS/CPU ==='
+          for svc in fgbears-live.service fgbears-youtube-relay.service fgbears-rumble-relay.service; do
+            pid=$(systemctl show -p MainPID --value "$svc" 2>/dev/null || true)
+            echo "$svc pid=$pid state=$(systemctl is-active "$svc" 2>/dev/null || true)"
+            if [[ "$pid" =~ ^[1-9][0-9]*$ ]]; then ps -p "$pid" -o pid=,pcpu=,pmem=,etime=,args=; fi
+          done
+          echo '=== ROUTING CONTRACT ==='
+          curl -fsS --max-time 8 -H 'Accept: application/json' -H 'Cache-Control: no-cache' \
+            https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing \
+            | python3 -c 'import json,sys; d=json.load(sys.stdin); print(json.dumps(d.get("trivia",{}),sort_keys=True))' || true
+          REMOTE
