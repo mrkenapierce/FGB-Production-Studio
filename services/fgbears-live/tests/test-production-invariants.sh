@@ -8,6 +8,8 @@ NEWS_BASE="$ROOT/bin/bears-news-feed.py"
 NEWS_HQ="$ROOT/bin/bears-news-feed-hq.py"
 CRAWL_HQ="$ROOT/bin/crawl-overlay-hq.py"
 ENV_EXAMPLE="$ROOT/config/stream.env.example"
+INSTALL="$ROOT/bin/install.sh"
+ROUTING_UNIT="$ROOT/systemd/fgbears-youtube-lovable-routing.service"
 
 fail() { echo "PRODUCTION INVARIANT FAILED: $*" >&2; exit 1; }
 
@@ -83,5 +85,17 @@ fi
 if grep -Eq '^(After|Wants|Requires)=.*fgbears-youtube-' "$ROOT/systemd/fgbears-live.service"; then
   fail 'Shared master regained a YouTube-specific lifecycle dependency.'
 fi
+
+# RULE 5 — The exact-box renderer's isolated Python dependency is a persistent
+# production runtime, not repository content. The installer must preserve it and
+# must test QR availability through the same PYTHONPATH declared by systemd.
+grep -Fq 'Environment=PYTHONPATH=/opt/fgbears-live/exact-card-pylib' "$ROUTING_UNIT" \
+  || fail 'Routing service lost its exact-card private PYTHONPATH.'
+grep -Fq "EXACT_CARD_PYLIB=/opt/fgbears-live/exact-card-pylib" "$INSTALL" \
+  || fail 'Installer no longer identifies the exact-card private Python runtime.'
+grep -Fq "rsync -a --delete --exclude 'exact-card-pylib/'" "$INSTALL" \
+  || fail 'Installer can erase the exact-card Python runtime during rsync.'
+grep -Fq "PYTHONPATH=\"\$EXACT_CARD_PYLIB\" python3 -c 'import qrcode'" "$INSTALL" \
+  || fail 'Installer tests qrcode outside the runtime used by the live routing service.'
 
 echo 'FGB production invariants: PASS'
