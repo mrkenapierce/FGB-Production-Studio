@@ -31,72 +31,53 @@ jobs:
       - name: Check out selected revision
         uses: actions/checkout@v4
 
-      - name: Require Oracle deployment secrets
+      - name: Configure SSH and package selected revision
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
           set -Eeuo pipefail
-          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
-          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
-
-      - name: Configure SSH
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
-        run: |
-          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      - name: Package selected repository revision
-        run: |
-          set -Eeuo pipefail
           tar -czf /tmp/fgbears-live-release.tgz \
             services/fgbears-live \
             renderer/assets/epic-logo-for-qr.base64.txt
+          scp -i ~/.ssh/oracle_key /tmp/fgbears-live-release.tgz "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-live-release.tgz"
 
-      - name: Preflight current production owner and preserve Rumble PID
-        id: preflight
+      - name: Preflight exact-box production
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           set -Eeuo pipefail
-          scp -i ~/.ssh/oracle_key /tmp/fgbears-live-release.tgz "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-live-release.tgz"
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          systemctl is-active --quiet fgbears-live.service
-          systemctl is-active --quiet fgbears-rumble-relay.service
-          systemctl is-active --quiet fgbears-youtube-lovable-routing.service
-          systemctl is-active --quiet fgbears-youtube-lovable-compositor.service
-          if systemctl is-active --quiet fgbears-youtube-relay.service; then
-            echo 'Legacy YouTube relay unexpectedly owns transport; refusing full deploy.' >&2
-            exit 1
-          fi
-          for port in 8787 8788 8789; do
-            curl --silent --fail --max-time 2 "http://127.0.0.1:${port}/healthz" >/dev/null
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          has_port(){ local p=$1 port=$2; sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+
+          for unit in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service; do
+            systemctl is-active --quiet "$unit"
           done
-          master_pid=$(systemctl show -p MainPID --value fgbears-live.service)
-          rumble_pid=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
-          youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-lovable-compositor.service)
-          [[ "$master_pid" =~ ^[1-9][0-9]*$ ]]
-          [[ "$rumble_pid" =~ ^[1-9][0-9]*$ ]]
-          [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]]
-          sudo ss -ntpH state established | grep -q "pid=$rumble_pid" || {
-            echo 'Rumble relay has no established transport socket; refusing deployment.' >&2
-            exit 1
-          }
-          sudo ss -ntpH state established | grep -q "pid=$youtube_pid" || {
-            echo 'YouTube compositor has no established transport socket; refusing deployment.' >&2
-            exit 1
-          }
-          printf '%s\n' "$rumble_pid" > /tmp/fgbears-rumble-pid-before-deploy
-          echo 'PREFLIGHT=PASS master+routing+exact-box+Rumble healthy; legacy relay inactive'
+          ! systemctl is-active --quiet fgbears-youtube-relay.service
+          ! grep -Eq '^(After|Wants|Requires)=.*fgbears-youtube-' /etc/systemd/system/fgbears-live.service
+          for port in 8787 8788 8789; do
+            curl -fsS --max-time 2 "http://127.0.0.1:${port}/healthz" >/dev/null
+          done
+
+          master=$(pid fgbears-live.service)
+          rumble=$(pid fgbears-rumble-relay.service)
+          youtube=$(pid fgbears-youtube-lovable-compositor.service)
+          [[ "$master" =~ ^[1-9][0-9]*$ && "$rumble" =~ ^[1-9][0-9]*$ && "$youtube" =~ ^[1-9][0-9]*$ ]]
+          has_port "$rumble" 1935
+          has_port "$youtube" 443
+          printf '%s\n' "$rumble" | sudo tee /tmp/fgbears-rumble-pid-before-deploy >/dev/null
+          echo "PREFLIGHT=PASS master=$master rumble=$rumble youtube=$youtube legacy=inactive"
           REMOTE
 
-      - name: Install selected revision with guarded rollback
+      - name: Install selected revision with source-first rollback
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -105,20 +86,54 @@ jobs:
           set -Eeuo pipefail
           release=/tmp/fgbears-live-release
           backup=/srv/fgbears-live/runtime/deploy-backup-$(date -u +%Y%m%dT%H%M%SZ)
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          ROUTING=fgbears-youtube-lovable-routing.service
+          COMP=fgbears-youtube-lovable-compositor.service
+          LEGACY=fgbears-youtube-relay.service
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          active(){ systemctl is-active --quiet "$1"; }
+          has_port(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+          wait_master(){
+            for _ in $(seq 1 60); do
+              active "$MASTER" \
+                && curl -fsS --max-time 1 http://127.0.0.1:8787/healthz >/dev/null 2>&1 \
+                && curl -fsS --max-time 1 http://127.0.0.1:8788/healthz >/dev/null 2>&1 \
+                && curl -fsS --max-time 1 http://127.0.0.1:8789/healthz >/dev/null 2>&1 \
+                && return 0
+              sleep 1
+            done
+            return 1
+          }
+          wait_destinations(){
+            local rumble_ok=0 youtube_ok=0 rp cp
+            for _ in $(seq 1 35); do
+              rp=$(pid "$RUMBLE"); cp=$(pid "$COMP")
+              active "$RUMBLE" && has_port "$rp" 1935 && rumble_ok=1 || true
+              active "$COMP" && has_port "$cp" 443 && youtube_ok=1 || true
+              (( rumble_ok == 1 && youtube_ok == 1 )) && return 0
+              sleep 1
+            done
+            return 1
+          }
+
           sudo rm -rf "$release"
           mkdir -p "$release"
           tar -xzf /tmp/fgbears-live-release.tgz -C "$release"
+          bash -n "$release/services/fgbears-live/bin/install.sh"
+          ! grep -Eq '^(After|Wants|Requires)=.*fgbears-youtube-' "$release/services/fgbears-live/systemd/fgbears-live.service"
 
           sudo mkdir -p "$backup/usr-local-bin" "$backup/systemd"
           sudo cp -a /opt/fgbears-live "$backup/opt-fgbears-live"
           sudo cp -a /etc/fgbears-live/stream.env "$backup/stream.env"
           while IFS= read -r path; do sudo cp -a "$path" "$backup/usr-local-bin/"; done < <(find /usr/local/bin -maxdepth 1 -type f -name 'fgbears-*' -print)
-          while IFS= read -r path; do sudo cp -a "$path" "$backup/systemd/"; done < <(find /etc/systemd/system -maxdepth 1 -type f -name 'fgbears-*.service' -o -name 'fgbears-*.timer')
+          while IFS= read -r path; do sudo cp -a "$path" "$backup/systemd/"; done < <(find /etc/systemd/system -maxdepth 1 -type f \( -name 'fgbears-*.service' -o -name 'fgbears-*.timer' \) -print)
 
           rollback() {
             rc=$?
             trap - ERR
-            echo "Deployment failed; restoring previous exact-box production files." >&2
+            set +e
+            echo "ROLLBACK=BEGIN rc=$rc" >&2
             sudo rm -rf /opt/fgbears-live
             sudo cp -a "$backup/opt-fgbears-live" /opt/fgbears-live
             sudo cp -a "$backup/stream.env" /etc/fgbears-live/stream.env
@@ -126,71 +141,85 @@ jobs:
             sudo cp -a "$backup/usr-local-bin/." /usr/local/bin/
             sudo find /etc/systemd/system -maxdepth 1 -type f \( -name 'fgbears-*.service' -o -name 'fgbears-*.timer' \) -delete
             sudo cp -a "$backup/systemd/." /etc/systemd/system/
+            # Never restore the historical master -> direct-YouTube dependency,
+            # even if an old backup happens to contain it.
+            sudo install -m 0644 "$release/services/fgbears-live/systemd/fgbears-live.service" /etc/systemd/system/fgbears-live.service
             sudo systemctl daemon-reload
-            sudo systemctl disable --now fgbears-youtube-relay.service >/dev/null 2>&1 || true
-            sudo systemctl enable fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service >/dev/null 2>&1 || true
-            sudo systemctl restart fgbears-live.service || true
-            sudo systemctl restart fgbears-youtube-lovable-routing.service || true
-            sudo systemctl restart fgbears-youtube-lovable-compositor.service || true
+            sudo systemctl disable --now "$LEGACY" >/dev/null 2>&1 || true
+            sudo systemctl enable "$ROUTING" "$COMP" >/dev/null 2>&1 || true
+            sudo systemctl reset-failed "$MASTER" "$ROUTING" "$COMP" >/dev/null 2>&1 || true
+            active "$ROUTING" || sudo systemctl start "$ROUTING"
+            sudo systemctl start "$MASTER"
+            if wait_master; then
+              wait_destinations || {
+                active "$RUMBLE" || sudo systemctl restart "$RUMBLE"
+                sudo systemctl restart "$COMP"
+                wait_destinations
+              }
+            fi
+            echo "ROLLBACK=COMPLETE master=$(systemctl is-active "$MASTER" 2>/dev/null) rumble=$(systemctl is-active "$RUMBLE" 2>/dev/null) youtube=$(systemctl is-active "$COMP" 2>/dev/null)" >&2
             exit "$rc"
           }
           trap rollback ERR
 
           sudo bash "$release/services/fgbears-live/bin/install.sh"
-          # One controlled master restart loads any renderer/master changes. The
-          # independent Rumble relay itself is never restarted by this workflow.
-          sudo systemctl enable fgbears-live.service >/dev/null
-          sudo systemctl restart fgbears-live.service
 
-          for _ in $(seq 1 60); do
-            if systemctl is-active --quiet fgbears-live.service \
-              && systemctl is-active --quiet fgbears-rumble-relay.service \
-              && systemctl is-active --quiet fgbears-youtube-lovable-routing.service \
-              && systemctl is-active --quiet fgbears-youtube-lovable-compositor.service \
-              && ! systemctl is-active --quiet fgbears-youtube-relay.service \
-              && curl --silent --fail --max-time 1 http://127.0.0.1:8787/healthz >/dev/null \
-              && curl --silent --fail --max-time 1 http://127.0.0.1:8788/healthz >/dev/null \
-              && curl --silent --fail --max-time 1 http://127.0.0.1:8789/healthz >/dev/null; then
-              break
-            fi
-            sleep 1
-          done
+          # One and only one intentional shared-master restart loads repository
+          # renderer/master changes. Clear historical failure counters first.
+          sudo systemctl enable "$MASTER" >/dev/null
+          sudo systemctl reset-failed "$MASTER" >/dev/null 2>&1 || true
+          sudo systemctl restart "$MASTER"
+          wait_master
+          ! active "$LEGACY"
 
-          systemctl is-active --quiet fgbears-live.service
-          systemctl is-active --quiet fgbears-rumble-relay.service
-          systemctl is-active --quiet fgbears-youtube-lovable-routing.service
-          systemctl is-active --quiet fgbears-youtube-lovable-compositor.service
-          ! systemctl is-active --quiet fgbears-youtube-relay.service
+          # Do not intentionally restart Rumble. Give both destinations time to
+          # reconnect to the restored local source and require live uplinks.
+          wait_destinations
 
-          rumble_before=$(cat /tmp/fgbears-rumble-pid-before-deploy)
-          rumble_after=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
-          test "$rumble_after" = "$rumble_before"
+          crawl=$(curl -fsS --max-time 3 http://127.0.0.1:8788/healthz)
+          news=$(curl -fsS --max-time 3 http://127.0.0.1:8789/healthz)
+          printf '%s' "$crawl" | jq -e '.ok == true and .fps == 30 and .payloadSwap == "next-segment-boundary"' >/dev/null
+          printf '%s' "$news" | jq -e '.ok == true and .fps == 30 and .scrollPps == 76 and .payloadSwap == "next-cycle-boundary"' >/dev/null
 
-          crawl_health=$(curl --silent --fail --max-time 3 http://127.0.0.1:8788/healthz)
-          news_health=$(curl --silent --fail --max-time 3 http://127.0.0.1:8789/healthz)
-          printf '%s' "$crawl_health" | jq -e '.ok == true and .fps == 30' >/dev/null
-          printf '%s' "$news_health" | jq -e '.ok == true and .fps == 30 and .scrollPps == 76 and .payloadSwap == "next-cycle-boundary"' >/dev/null
+          youtube=$(pid "$COMP")
+          args=$(mktemp)
+          sudo tr '\0' '\n' < "/proc/$youtube/cmdline" > "$args"
+          grep -Fq 'udp://127.0.0.1:1939' "$args"
+          grep -Fxq '48000' "$args"
+          grep -Fq 'aresample=48000:async=1:first_pts=0' "$args"
+          grep -Fq 'scale=640:360:flags=fast_bilinear' "$args"
+          grep -Fq 'overlay=231:52:format=auto:shortest=1' "$args"
+          rm -f "$args"
+          has_port "$youtube" 443
 
-          youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-lovable-compositor.service)
-          [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]]
-          youtube_args=$(mktemp)
-          sudo tr '\0' '\n' < "/proc/$youtube_pid/cmdline" > "$youtube_args"
-          grep -Fq 'udp://127.0.0.1:1939' "$youtube_args"
-          grep -Fxq '48000' "$youtube_args"
-          grep -Fq 'aresample=48000:async=1:first_pts=0' "$youtube_args"
-          grep -Fq 'scale=640:360:flags=fast_bilinear' "$youtube_args"
-          grep -Fq 'overlay=231:52:format=auto:shortest=1' "$youtube_args"
-          rm -f "$youtube_args"
-          sudo ss -ntpH state established | grep -q "pid=$youtube_pid"
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          sleep 10
+          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' "$progress")
+          dropped=$(awk -F= '$1=="drop_frames"{v=$2} END{if(v!="") print v+0}' "$progress")
+          python3 - "$speed" "${dropped:-0}" <<'PY'
+          import sys
+          speed=float(sys.argv[1]); dropped=int(float(sys.argv[2]))
+          assert speed >= 0.95, speed
+          assert dropped == 0, dropped
+          print(f'MASTER_REALTIME=PASS speed={speed:.3f}x dropped={dropped}')
+          PY
 
           sudo systemctl start fgbears-live-health.service
-          sudo systemctl is-failed --quiet fgbears-live-health.service && exit 1 || true
+          ! sudo systemctl is-failed --quiet fgbears-live-health.service
+          ! grep -Eq '^(After|Wants|Requires)=.*fgbears-youtube-' /etc/systemd/system/fgbears-live.service
+
+          rumble_before=$(cat /tmp/fgbears-rumble-pid-before-deploy)
+          rumble_after=$(pid "$RUMBLE")
+          if [[ "$rumble_after" == "$rumble_before" ]]; then
+            echo "RUMBLE_PROCESS=PRESERVED pid=$rumble_after"
+          else
+            echo "RUMBLE_PROCESS=SYSTEMD_RECONNECTED old=$rumble_before new=$rumble_after"
+          fi
 
           trap - ERR
-          # Keep only the three newest rollback snapshots.
           mapfile -t old_backups < <(find /srv/fgbears-live/runtime -maxdepth 1 -type d -name 'deploy-backup-*' -printf '%T@ %p\n' | sort -nr | tail -n +4 | cut -d' ' -f2-)
           if ((${#old_backups[@]})); then sudo rm -rf "${old_backups[@]}"; fi
-          echo 'DEPLOY=PASS exact-box YouTube primary, native-48k audio, deterministic 30fps tickers, Rumble PID preserved'
+          echo "DEPLOY=PASS master=$(pid "$MASTER") rumble=$(pid "$RUMBLE") youtube=$(pid "$COMP") legacy=inactive"
           REMOTE
 
       - name: Final read-only architecture report
@@ -200,11 +229,8 @@ jobs:
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          printf 'master=%s\n' "$(systemctl is-active fgbears-live.service)"
-          printf 'rumble=%s\n' "$(systemctl is-active fgbears-rumble-relay.service)"
-          printf 'youtube_routing=%s\n' "$(systemctl is-active fgbears-youtube-lovable-routing.service)"
-          printf 'youtube_exact_box=%s\n' "$(systemctl is-active fgbears-youtube-lovable-compositor.service)"
+          for unit in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service fgbears-youtube-audio-watchdog.timer fgbears-live-health.timer; do
+            printf '%s=%s pid=%s\n' "$unit" "$(systemctl is-active "$unit")" "$(systemctl show -p MainPID --value "$unit" 2>/dev/null || true)"
+          done
           printf 'youtube_legacy_fallback=%s\n' "$(systemctl is-active fgbears-youtube-relay.service || true)"
-          printf 'audio_watchdog_timer=%s\n' "$(systemctl is-active fgbears-youtube-audio-watchdog.timer)"
-          printf 'health_timer=%s\n' "$(systemctl is-active fgbears-live-health.timer)"
           REMOTE
