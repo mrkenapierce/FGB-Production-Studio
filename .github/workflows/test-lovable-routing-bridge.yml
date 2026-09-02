@@ -1,8 +1,6 @@
-name: Test Lovable Routing Bridge
+name: Legacy Off-host Lovable Bridge Test - Manual
 
 on:
-  push:
-    branches: [lovable-routing-bridge-20260902]
   workflow_dispatch:
 
 permissions:
@@ -143,7 +141,7 @@ jobs:
           print('FAIL_TRANSPARENT=PASS')
           PY
 
-      - name: Prove compositor derives geometry from mask health
+      - name: Prove off-host compositor derives source geometry
         env:
           YOUTUBE_STREAM_KEY: test-key-not-real
           YOUTUBE_QUESTION_MASK_PORT: '18791'
@@ -162,7 +160,6 @@ jobs:
           SH
           chmod +x /tmp/fakebin/ffmpeg
           PATH="/tmp/fakebin:$PATH" bash services/fgbears-live/bin/youtube-offhost-compositor.sh
-          cat /tmp/ffmpeg-args.txt
           grep -Fxq '798x470' /tmp/ffmpeg-args.txt
           grep -Fq 'overlay=462:104:format=auto:shortest=1[v]' /tmp/ffmpeg-args.txt
-          echo 'COMPOSITOR_LOVABLE_GEOMETRY=PASS'
+          echo 'OFFHOST_COMPOSITOR_LOVABLE_GEOMETRY=PASS'
