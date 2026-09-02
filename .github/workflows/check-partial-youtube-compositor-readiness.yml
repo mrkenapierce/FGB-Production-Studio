@@ -1,0 +1,56 @@
+name: Check Partial YouTube Compositor Readiness
+
+on:
+  push:
+    paths:
+      - '.github/workflows/check-partial-youtube-compositor-readiness.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+      COMPOSITOR_HOST: ${{ secrets.COMPOSITOR_HOST }}
+      ORACLE_COMPOSITOR_HOST: ${{ secrets.ORACLE_COMPOSITOR_HOST }}
+      FGB_COMPOSITOR_HOST: ${{ secrets.FGB_COMPOSITOR_HOST }}
+      COMPOSITOR_SSH_KEY: ${{ secrets.COMPOSITOR_SSH_KEY }}
+      ORACLE_COMPOSITOR_SSH_KEY: ${{ secrets.ORACLE_COMPOSITOR_SSH_KEY }}
+    steps:
+      - name: Report compositor credential presence only
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          present() { if [[ -n "${!1:-}" ]]; then echo "$1=set"; else echo "$1=unset"; fi; }
+          for v in COMPOSITOR_HOST ORACLE_COMPOSITOR_HOST FGB_COMPOSITOR_HOST COMPOSITOR_SSH_KEY ORACLE_COMPOSITOR_SSH_KEY; do present "$v"; done
+
+      - name: Check production source relay configuration without changing production
+        if: ${{ env.ORACLE_HOST != '' && env.ORACLE_SSH_KEY != '' }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo "source_master=$(systemctl is-active fgbears-live.service 2>/dev/null || true)"
+          echo "source_rumble=$(systemctl is-active fgbears-rumble-relay.service 2>/dev/null || true)"
+          echo "youtube_router=$(systemctl is-active fgbears-youtube-router.service 2>/dev/null || true)"
+          if sudo grep -Eq '^[[:space:]]*FGB_COMPOSITOR_HOST=.+' /etc/fgbears-live/stream.env 2>/dev/null; then
+            echo 'source_FGB_COMPOSITOR_HOST=set'
+          else
+            echo 'source_FGB_COMPOSITOR_HOST=unset'
+          fi
+          if systemctl list-unit-files --no-legend 2>/dev/null | grep -q '^fgbears-youtube-compositor-source-relay.service'; then
+            echo "source_relay_unit=present active=$(systemctl is-active fgbears-youtube-compositor-source-relay.service 2>/dev/null || true)"
+          else
+            echo 'source_relay_unit=absent'
+          fi
+          REMOTE
