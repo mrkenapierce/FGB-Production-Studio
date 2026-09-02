@@ -67,16 +67,9 @@ jobs:
           }
           BEFORE=$(speed_now || true)
           echo "MASTER_SPEED_BEFORE=${BEFORE:-unknown}"
-          if [[ -n "${BEFORE:-}" ]]; then
-            python3 - "$BEFORE" <<'PY'
-import sys
-s=float(sys.argv[1]); assert s >= 0.98, s
-PY
-          fi
+          if [[ -n "${BEFORE:-}" ]]; then python3 -c 'import sys; s=float(sys.argv[1]); assert s >= 0.98, s' "$BEFORE"; fi
 
           rm -f /tmp/fgb-720p-bench.log
-          # Lowest-priority, six-second encoder-only stress test. It cannot open
-          # YouTube/Rumble sockets and cannot alter any systemd service.
           nice -n 19 ffmpeg -hide_banner -nostdin -loglevel info \
             -f lavfi -i 'color=c=black:s=1280x720:r=30' -t 6 \
             -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
@@ -90,18 +83,8 @@ PY
           sleep 3
           AFTER=$(speed_now || true)
           echo "MASTER_SPEED_AFTER=${AFTER:-unknown}"
-          if [[ -n "${AFTER:-}" ]]; then
-            python3 - "$AFTER" <<'PY'
-import sys
-s=float(sys.argv[1]); assert s >= 0.98, s
-PY
-          fi
-          python3 - "$BENCH" <<'PY'
-import sys
-s=float(sys.argv[1])
-assert s >= 1.50, s
-print(f'720P_CAPACITY=PASS speed={s:.2f}x')
-PY
+          if [[ -n "${AFTER:-}" ]]; then python3 -c 'import sys; s=float(sys.argv[1]); assert s >= 0.98, s' "$AFTER"; fi
+          python3 -c 'import sys; s=float(sys.argv[1]); assert s >= 1.50, s; print(f"720P_CAPACITY=PASS speed={s:.2f}x")' "$BENCH"
 
           for u in "$MASTER" "$RUMBLE" "$COMP" "$ROUTING"; do systemctl is-active --quiet "$u"; done
           sudo ss -ntpH state established | grep ':1935 ' >/dev/null
