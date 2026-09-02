@@ -16,7 +16,19 @@ set -Eeuo pipefail
 # - output is written by atomic rename; failures retain the prior known-good card.
 
 ROUTING_URL="${FGB_STREAM_ROUTING_URL:-https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing}"
-INPUT_URL="${YOUTUBE_LOCAL_UDP_URL:-udp://127.0.0.1:1939?fifo_size=1000000&overrun_nonfatal=1&reuse=1}"
+BASE_INPUT_URL="${FGB_YOUTUBE_FREEZE_INPUT_URL:-${YOUTUBE_LOCAL_UDP_URL:-udp://127.0.0.1:1939?pkt_size=1316}}"
+# The live YouTube router already owns the local UDP socket. The freeze-card
+# refresher must attach as a second reader without displacing it. Production
+# preflight proved FFmpeg can do this safely when reuse=1 is present.
+if [[ "$BASE_INPUT_URL" == udp://* ]]; then
+  if [[ "$BASE_INPUT_URL" == *"?"* ]]; then
+    INPUT_URL="${BASE_INPUT_URL}&reuse=1&fifo_size=1000000&overrun_nonfatal=1"
+  else
+    INPUT_URL="${BASE_INPUT_URL}?reuse=1&fifo_size=1000000&overrun_nonfatal=1"
+  fi
+else
+  INPUT_URL="$BASE_INPUT_URL"
+fi
 OUT_DIR="${FGB_YOUTUBE_FREEZE_CARD_DIR:-/var/lib/fgbears-live}"
 OUT_FILE="${FGB_YOUTUBE_FREEZE_CARD_H264:-${OUT_DIR}/youtube-freeze-card.h264}"
 LOCK_FILE="${OUT_DIR}/youtube-freeze-card.lock"
@@ -47,7 +59,7 @@ req = urllib.request.Request(url, headers={
     "Accept":"application/json",
     "Cache-Control":"no-cache",
     "Pragma":"no-cache",
-    "User-Agent":"FGBears-YouTube-FreezeCard/1.1",
+    "User-Agent":"FGBears-YouTube-FreezeCard/1.2",
 })
 try:
     with urllib.request.urlopen(req, timeout=3) as r:
@@ -63,7 +75,6 @@ if not isinstance(trivia, dict):
 phase = trivia.get("phase")
 if phase == "question" or trivia.get("youtubeMaskActive") is True:
     print(f"unsafe: active question phase={phase!r}", file=sys.stderr); raise SystemExit(2)
-# Be conservative across both root- and trivia-level ad-state variants.
 for obj_name, obj in (("root", payload), ("trivia", trivia)):
     for key in ("adsVisible", "isAdBreak", "adBreakActive"):
         if obj.get(key) is True:
@@ -77,9 +88,6 @@ if not isinstance(region, dict) or any(region.get(k) != v for k,v in expected.it
     print(f"unsafe: unexpected maskRegion={region!r}", file=sys.stderr); raise SystemExit(2)
 remote_stale = trivia.get("stale") is True
 if remote_stale:
-    # Trivia is intentionally stale/idle for most of the 20-minute interval.
-    # Minute offsets are timezone invariant because Central differs from UTC by
-    # whole hours. Only accept minutes 1..18 after each :00/:20/:40 anchor.
     minute = time.localtime().tm_min
     cycle_minute = minute % 20
     if not (1 <= cycle_minute <= 18):
@@ -111,16 +119,11 @@ trap 'rm -rf "$work"' EXIT
 frame="$work/program.png"
 candidate="$work/card.h264"
 
-# Attach to the already-encoded local MPEG-TS branch only long enough to decode
-# one still frame. UDP reuse is intentional and was production-benchmarked.
 nice -n 19 ionice -c3 timeout 12 ffmpeg -hide_banner -nostdin -loglevel warning \
   -fflags +genpts -probesize 3000000 -analyzeduration 3000000 \
   -i "$INPUT_URL" -map 0:v:0 -frames:v 1 -y "$frame"
 test -s "$frame"
 
-# Encode one second of a static 1280x720 H.264 card. The source frame remains
-# visible everywhere except the exact 640x360 trivia question/answer rectangle.
-# AUD + repeated SPS/PPS headers are required by the packet router's parser.
 FILTER="drawbox=x=${MASK_X}:y=${MASK_Y}:w=${MASK_W}:h=${MASK_H}:color=0x07101F@1:t=fill,\
 drawbox=x=${MASK_X}:y=${MASK_Y}:w=${MASK_W}:h=${MASK_H}:color=0xC83803@1:t=5,\
 drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='YOUTUBE VIEWERS':fontcolor=white:fontsize=22:x=${MASK_X}+(${MASK_W}-text_w)/2:y=${MASK_Y}+55,\
