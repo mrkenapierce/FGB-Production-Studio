@@ -38,7 +38,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Stage dynamic source and router
+      - name: Stage YouTube-only dynamic components
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -46,27 +46,32 @@ jobs:
           scp -i ~/.ssh/oracle_key .github/dynamic-youtube/youtube-dynamic-card-source.sh "$target:/tmp/youtube-dynamic-card-source.sh"
           scp -i ~/.ssh/oracle_key .github/dynamic-youtube/youtube-stream-router-dynamic.py "$target:/tmp/youtube-stream-router-dynamic.py"
 
-      - name: Validate locally then cut over YouTube only
+      - name: Prove selector then cut over YouTube only
         shell: bash
         run: |
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
+
           MASTER=fgbears-live.service
           RUMBLE=fgbears-rumble-relay.service
           DIRECT=fgbears-youtube-relay.service
           ROUTER=fgbears-youtube-router.service
           DYNAMIC=fgbears-youtube-dynamic-card.service
           WATCHDOG=fgbears-youtube-audio-watchdog.timer
-          HEALTH_DIR=/etc/systemd/system/fgbears-live-health.service.d
           ROUTER_DROPIN=/etc/systemd/system/fgbears-youtube-router.service.d/99-dynamic-protection.conf
+          HEALTH_DIR=/etc/systemd/system/fgbears-live-health.service.d
           HEALTH_DROPIN=$HEALTH_DIR/99-youtube-dynamic-router.conf
 
           active() { systemctl is-active --quiet "$1"; }
           pid() { systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-          rtmps_for_pid() {
+          first_child_ffmpeg() {
             local p="$1"
-            sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" 'index($0,q) && $0 ~ /:443([[:space:]]|$)/ {found=1} END {exit(found?0:1)}'
+            pgrep -P "$p" -x ffmpeg 2>/dev/null | sed -n '1p' || true
+          }
+          connected_443() {
+            local p="$1"
+            sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" 'index($0,q) && $0 ~ /:443([[:space:]]|$)/ {f=1} END {exit(f?0:1)}'
           }
 
           active "$MASTER"
@@ -75,13 +80,51 @@ jobs:
           master0=$(pid "$MASTER")
           rumble0=$(pid "$RUMBLE")
           direct0=$(pid "$DIRECT")
-          [[ "$master0" =~ ^[1-9][0-9]*$ && "$rumble0" =~ ^[1-9][0-9]*$ && "$direct0" =~ ^[1-9][0-9]*$ ]]
+          [[ "$master0" =~ ^[1-9][0-9]*$ ]]
+          [[ "$rumble0" =~ ^[1-9][0-9]*$ ]]
+          [[ "$direct0" =~ ^[1-9][0-9]*$ ]]
           echo "PRE_MASTER_PID=$master0"
           echo "PRE_RUMBLE_PID=$rumble0"
           echo "PRE_YOUTUBE_DIRECT_PID=$direct0"
 
-          # Install only YouTube-side additions. Nothing under the master or
-          # Rumble service paths is modified.
+          success=0
+          cutover=0
+          rollback() {
+            rc=$?
+            if (( success == 1 )); then return 0; fi
+            if (( cutover == 1 )); then
+              echo 'YOUTUBE_DYNAMIC_ROLLBACK=START' >&2
+              sudo systemctl stop "$ROUTER" >/dev/null 2>&1 || true
+              sudo rm -f "$ROUTER_DROPIN" "$HEALTH_DROPIN"
+              sudo systemctl daemon-reload
+              sudo systemctl reset-failed "$DIRECT" >/dev/null 2>&1 || true
+              sudo systemctl enable "$DIRECT" >/dev/null 2>&1 || true
+              sudo systemctl start "$DIRECT" >/dev/null 2>&1 || true
+              restored=0
+              for _ in $(seq 1 45); do
+                dp=$(pid "$DIRECT")
+                if [[ "$dp" =~ ^[1-9][0-9]*$ ]]; then
+                  df="$dp"
+                  if [[ "$(cat /proc/$dp/comm 2>/dev/null || true)" != ffmpeg ]]; then
+                    df=$(first_child_ffmpeg "$dp")
+                  fi
+                  if [[ "$df" =~ ^[1-9][0-9]*$ ]] && connected_443 "$df"; then
+                    restored=1
+                    break
+                  fi
+                fi
+                sleep 1
+              done
+              (( restored == 1 )) || echo 'WARNING: direct relay restoration transport not yet confirmed' >&2
+              sudo systemctl enable --now "$WATCHDOG" >/dev/null 2>&1 || true
+              echo 'YOUTUBE_DYNAMIC_ROLLBACK=DIRECT_RELAY_RESTORED' >&2
+            fi
+            sudo systemctl disable --now "$DYNAMIC" >/dev/null 2>&1 || true
+            exit "$rc"
+          }
+          trap rollback EXIT
+
+          # Install only YouTube-side additions.
           sudo install -m 0755 /tmp/youtube-dynamic-card-source.sh /opt/fgbears-live/bin/youtube-dynamic-card-source.sh
           sudo install -m 0755 /tmp/youtube-stream-router-dynamic.py /opt/fgbears-live/bin/youtube-stream-router-dynamic.py
           sudo install -d -m 0755 /var/lib/fgbears-live/youtube-dynamic-card
@@ -123,27 +166,27 @@ jobs:
           sudo systemctl daemon-reload
           sudo systemctl enable --now "$DYNAMIC"
 
-          # Wait for the protected source to become stable and prove its actual
-          # encoded geometry/framerate before touching the on-air YouTube relay.
           for _ in $(seq 1 30); do
             active "$DYNAMIC" && sleep 1 && break
             sleep 1
           done
           active "$DYNAMIC"
+
+          # No `head` pipeline here: prior workflow falsely failed with SIGPIPE 141.
           probe=$(timeout 12 ffprobe -v error -select_streams v:0 \
-            -show_entries stream=codec_name,width,height,r_frame_rate \
-            -of csv=p=0 'udp://127.0.0.1:2942?fifo_size=1000000&overrun_nonfatal=1' | head -n1)
-          echo "DYNAMIC_PROBE=$probe"
+            -show_entries stream=codec_name,width,height,r_frame_rate -of csv=p=0 \
+            'udp://127.0.0.1:2942?fifo_size=1000000&overrun_nonfatal=1')
+          printf 'DYNAMIC_PROBE=%s\n' "$probe"
           [[ "$probe" == h264,1280,720,10/1* ]]
           active "$DIRECT"
           test "$(pid "$MASTER")" = "$master0"
           test "$(pid "$RUMBLE")" = "$rumble0"
           test "$(pid "$DIRECT")" = "$direct0"
 
-          # Selector compatibility test on an isolated local input. The live
-          # YouTube connection remains on the direct relay during this test.
-          synth=/tmp/fgb-youtube-selector-synth.log
-          testlog=/tmp/fgb-youtube-dynamic-router-test.log
+          # Isolated 30 -> 10 -> 30 selector proof. This occurs while YouTube
+          # remains on the current direct relay.
+          synth=/tmp/fgb-youtube-selector-v2-synth.log
+          testlog=/tmp/fgb-youtube-selector-v2-router.log
           rm -f "$synth" "$testlog"
           (while true; do cat /opt/fgbears-live/assets/youtube-rumble-trivia.h264; done) | \
             nice -n 19 ffmpeg -hide_banner -nostdin -loglevel error -re -r 30 -f h264 -i pipe:0 \
@@ -158,6 +201,7 @@ jobs:
             --input-port 2950 --test --test-cycle 3 --runtime 12 >"$testlog" 2>&1
           cleanup_synth
           trap - RETURN
+          cat "$testlog"
           grep -Fq 'video route switched: live -> card' "$testlog"
           grep -Fq 'video route switched: card -> live' "$testlog"
           ! grep -Fq 'GStreamer error' "$testlog"
@@ -167,38 +211,7 @@ jobs:
           test "$(pid "$RUMBLE")" = "$rumble0"
           test "$(pid "$DIRECT")" = "$direct0"
 
-          success=0
-          cutover=0
-          rollback() {
-            rc=$?
-            if (( success == 1 )); then return 0; fi
-            if (( cutover == 1 )); then
-              echo 'YOUTUBE_DYNAMIC_ROLLBACK=START' >&2
-              sudo systemctl stop "$ROUTER" >/dev/null 2>&1 || true
-              sudo rm -f "$ROUTER_DROPIN" "$HEALTH_DROPIN"
-              sudo systemctl daemon-reload
-              sudo systemctl reset-failed "$DIRECT" >/dev/null 2>&1 || true
-              sudo systemctl enable "$DIRECT" >/dev/null 2>&1 || true
-              sudo systemctl start "$DIRECT" >/dev/null 2>&1 || true
-              for _ in $(seq 1 45); do
-                dp=$(pid "$DIRECT")
-                if [[ "$dp" =~ ^[1-9][0-9]*$ ]]; then
-                  df="$dp"
-                  if [[ "$(cat /proc/$dp/comm 2>/dev/null || true)" != ffmpeg ]]; then
-                    df=$(pgrep -P "$dp" ffmpeg | head -n1 || true)
-                  fi
-                  if [[ "$df" =~ ^[1-9][0-9]*$ ]] && rtmps_for_pid "$df"; then break; fi
-                fi
-                sleep 1
-              done
-              sudo systemctl enable --now "$WATCHDOG" >/dev/null 2>&1 || true
-              echo 'YOUTUBE_DYNAMIC_ROLLBACK=DIRECT_RELAY_RESTORED' >&2
-            fi
-            exit "$rc"
-          }
-          trap rollback EXIT
-
-          cutover=1
+          # Only now may the YouTube output hand off to the dynamic router.
           sudo systemctl disable --now "$WATCHDOG" >/dev/null 2>&1 || true
           sudo install -d -m 0755 /etc/systemd/system/fgbears-youtube-router.service.d "$HEALTH_DIR"
           cat <<'DROPIN' | sudo tee "$ROUTER_DROPIN" >/dev/null
@@ -211,7 +224,7 @@ jobs:
           printf '%s\n' '[Service]' 'Environment=YOUTUBE_RELAY_SERVICE=fgbears-youtube-router.service' | sudo tee "$HEALTH_DROPIN" >/dev/null
           sudo systemctl daemon-reload
 
-          # One controlled handoff. The master and Rumble services never stop.
+          cutover=1
           sudo systemctl stop "$DIRECT"
           sudo systemctl disable "$DIRECT" >/dev/null 2>&1 || true
           sudo systemctl reset-failed "$ROUTER" >/dev/null 2>&1 || true
@@ -225,8 +238,8 @@ jobs:
             if active "$ROUTER"; then
               router_pid=$(pid "$ROUTER")
               if [[ "$router_pid" =~ ^[1-9][0-9]*$ ]]; then
-                ff=$(pgrep -P "$router_pid" ffmpeg | head -n1 || true)
-                if [[ "$ff" =~ ^[1-9][0-9]*$ ]] && rtmps_for_pid "$ff"; then
+                ff=$(first_child_ffmpeg "$router_pid")
+                if [[ "$ff" =~ ^[1-9][0-9]*$ ]] && connected_443 "$ff"; then
                   connected=1
                   break
                 fi
@@ -241,9 +254,6 @@ jobs:
           test "$(pid "$MASTER")" = "$master0"
           test "$(pid "$RUMBLE")" = "$rumble0"
 
-          # Confirm the selected-output transport is video-copy plus the locked
-          # 44.1kHz/128k asynchronous AAC repair. Do not print the command line
-          # because it contains the YouTube destination credential.
           cmd=$(tr '\0' ' ' <"/proc/$ff/cmdline")
           [[ "$cmd" == *'-c:v copy'* ]]
           [[ "$cmd" == *'-c:a aac'* ]]
