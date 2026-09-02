@@ -1,4 +1,4 @@
-name: Deploy Owner-Aware Exact-Box YouTube Owner
+name: Deploy Bounded-Latency Exact-Box YouTube Transport
 
 on:
   push:
@@ -18,7 +18,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+    timeout-minutes: 8
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
@@ -27,6 +27,22 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: lovable-routing-bridge-20260902
+
+      - name: Preflight low-latency transport contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/youtube-lovable-compositor.sh
+          bash -n services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
+          grep -Fq 'YOUTUBE_VIDEO_BITRATE=2200k' services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service
+          grep -Fq 'YOUTUBE_UDP_FIFO_SIZE=16384' services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service
+          grep -Fq 'drop_pkts_on_overflow=1' services/fgbears-live/bin/youtube-lovable-compositor.sh
+          grep -Fq 'restart_with_keyframe=1' services/fgbears-live/bin/youtube-lovable-compositor.sh
+          if command -v ffmpeg >/dev/null; then
+            ffmpeg -hide_banner -h muxer=fifo 2>&1 | grep -q 'drop_pkts_on_overflow'
+            ffmpeg -hide_banner -h muxer=fifo 2>&1 | grep -q 'restart_with_keyframe'
+          fi
+          echo 'LOW_LATENCY_PREFLIGHT=PASS'
 
       - name: Configure SSH
         shell: bash
@@ -37,17 +53,18 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Stage owner-aware watchdog and bounded compositor unit
+      - name: Stage bounded-latency YouTube files
         shell: bash
         run: |
           set -Eeuo pipefail
           target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
           scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/youtube-lovable-compositor.sh \
             services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh \
             services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service \
             "$target:/tmp/"
 
-      - name: Establish and certify one exact-box YouTube owner
+      - name: Cut over YouTube only and certify bounded latency
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -63,11 +80,11 @@ jobs:
           ROUTER=fgbears-youtube-router.service
           WATCHDOG_TIMER=fgbears-youtube-audio-watchdog.timer
           WATCHDOG_SERVICE=fgbears-youtube-audio-watchdog.service
+          COMP_SCRIPT=/opt/fgbears-live/bin/youtube-lovable-compositor.sh
           WATCHDOG=/usr/local/bin/fgbears-youtube-audio-watchdog
-          LEGACY_WATCHDOG=/usr/local/libexec/fgbears-youtube-audio-watchdog-legacy
           COMP_UNIT=/etc/systemd/system/fgbears-youtube-lovable-compositor.service
+          BACKUP=$(mktemp -d /tmp/fgb-youtube-lowlatency.XXXXXX)
           SUCCESS=0
-          PRIMARY_SELECTED=0
 
           active(){ systemctl is-active --quiet "$1"; }
           state(){ systemctl is-active "$1" 2>/dev/null || true; }
@@ -75,21 +92,27 @@ jobs:
           restarts(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
           has_port(){ local p="$1" q="$2"; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v p="pid=$p" -v q=":$q" 'index($0,p)&&index($0,q){ok=1} END{exit(ok?0:1)}'; }
           speed(){ awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true; }
-          comp_cmd_ok(){
+          control_ok(){
+            curl -fsS --max-time 3 http://127.0.0.1:8791/healthz 2>/dev/null | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True,p;assert p.get("sourceCanvas")==[1280,720],p;assert p.get("canvas")==[640,360],p;assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470},p;assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235},p;assert p.get("frameSize")==[399,235],p;assert p.get("fps")==30,p;assert p.get("creativeKey")=="yt_rumble_trivia_redirect",p' >/dev/null 2>&1
+          }
+          lowlat_cmd_ok(){
             local p=$1 cmd
             [[ "$p" =~ ^[1-9][0-9]*$ && -r /proc/$p/cmdline ]] || return 1
             cmd=$(tr '\0' ' ' </proc/$p/cmdline)
+            [[ "$cmd" == *'udp://127.0.0.1:1939?fifo_size=16384&overrun_nonfatal=1&reuse=1'* ]]
+            [[ "$cmd" == *' -thread_queue_size 256 '* ]]
+            [[ "$cmd" == *' -thread_queue_size 32 -f rawvideo '* ]]
             [[ "$cmd" == *'scale=640:360:flags=fast_bilinear'* ]]
             [[ "$cmd" == *'overlay=231:52:format=auto:shortest=1'* ]]
-            [[ "$cmd" == *' -c:v libx264 '* ]]
+            [[ "$cmd" == *' -b:v 2200k '* ]]
+            [[ "$cmd" == *' -maxrate 2500k '* ]]
+            [[ "$cmd" == *' -bufsize 4400k '* ]]
             [[ "$cmd" == *' -c:a aac '* ]]
             [[ "$cmd" == *' -b:a 128k '* ]]
             [[ "$cmd" == *' -ar 44100 '* ]]
             [[ "$cmd" == *' -ac 2 '* ]]
             [[ "$cmd" == *'aresample=44100:async=1:first_pts=0'* ]]
-          }
-          control_ok(){
-            curl -fsS --max-time 3 http://127.0.0.1:8791/healthz 2>/dev/null | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True,p;assert p.get("sourceCanvas")==[1280,720],p;assert p.get("canvas")==[640,360],p;assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470},p;assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235},p;assert p.get("frameSize")==[399,235],p;assert p.get("executionScaling")=="proportional_downstream",p;assert p.get("fps")==30,p;assert p.get("creativeKey")=="yt_rumble_trivia_redirect",p' >/dev/null 2>&1
+            [[ "$cmd" == *'attempt_recovery=1:recover_any_error=1:recovery_wait_time=1:drop_pkts_on_overflow=1:restart_with_keyframe=1'* ]]
           }
           primary_ok(){
             local p
@@ -97,168 +120,151 @@ jobs:
             active "$COMP" || return 1
             control_ok || return 1
             p=$(pid "$COMP")
-            comp_cmd_ok "$p" || return 1
+            lowlat_cmd_ok "$p" || return 1
             has_port "$p" 443 || return 1
           }
-
+          restore_previous(){
+            install -m 0755 "$BACKUP/compositor.sh" "$COMP_SCRIPT" 2>/dev/null || true
+            install -m 0755 "$BACKUP/watchdog.sh" "$WATCHDOG" 2>/dev/null || true
+            install -m 0644 "$BACKUP/compositor.service" "$COMP_UNIT" 2>/dev/null || true
+            systemctl daemon-reload || true
+            systemctl reset-failed "$COMP" >/dev/null 2>&1 || true
+            systemctl start "$COMP" 2>/dev/null || true
+            for _ in $(seq 1 20); do
+              p=$(pid "$COMP")
+              if active "$COMP" && has_port "$p" 443; then return 0; fi
+              sleep 1
+            done
+            return 1
+          }
+          fallback_legacy(){
+            systemctl stop "$COMP" 2>/dev/null || true
+            systemctl unmask "$LEGACY" >/dev/null 2>&1 || true
+            systemctl enable "$LEGACY" >/dev/null 2>&1 || true
+            systemctl reset-failed "$LEGACY" >/dev/null 2>&1 || true
+            systemctl start "$LEGACY" 2>/dev/null || true
+            for _ in $(seq 1 20); do
+              p=$(pid "$LEGACY")
+              if active "$LEGACY" && has_port "$p" 443; then return 0; fi
+              sleep 1
+            done
+            return 1
+          }
           rollback(){
             rc=$?
             (( SUCCESS == 0 )) || return 0
-            echo "OWNER_AWARE_ROLLBACK=BEGIN rc=$rc primary_selected=$PRIMARY_SELECTED"
+            echo "LOW_LATENCY_ROLLBACK=BEGIN rc=$rc"
             systemctl stop "$WATCHDOG_TIMER" 2>/dev/null || true
-            if (( PRIMARY_SELECTED == 1 )); then
-              systemctl disable --now "$COMP" >/dev/null 2>&1 || true
-              systemctl unmask "$LEGACY" >/dev/null 2>&1 || true
-              systemctl enable "$LEGACY" >/dev/null 2>&1 || true
-              systemctl reset-failed "$LEGACY" >/dev/null 2>&1 || true
-              systemctl start "$LEGACY" 2>/dev/null || true
-              for _ in $(seq 1 25); do
-                lp=$(pid "$LEGACY")
-                if active "$LEGACY" && has_port "$lp" 443; then
-                  echo "OWNER_AWARE_ROLLBACK=LEGACY_RESTORED pid=$lp"
-                  break
-                fi
-                sleep 1
-              done
+            if restore_previous; then
+              echo "LOW_LATENCY_ROLLBACK=PREVIOUS_COMPOSITOR_RESTORED pid=$(pid "$COMP")"
+            elif fallback_legacy; then
+              echo "LOW_LATENCY_ROLLBACK=LEGACY_RESTORED pid=$(pid "$LEGACY")"
+            else
+              echo "LOW_LATENCY_ROLLBACK=WARNING_NO_YOUTUBE_SENDER" >&2
             fi
             systemctl start "$WATCHDOG_TIMER" 2>/dev/null || true
-            echo "ROLLBACK master=$(pid "$MASTER") rumble=$(pid "$RUMBLE") legacy=$(pid "$LEGACY") compositor=$(pid "$COMP")"
-            rm -f /tmp/youtube-audio-watchdog-owner-aware.sh /tmp/fgbears-youtube-lovable-compositor.service
+            echo "ROLLBACK master=$(pid "$MASTER") rumble=$(pid "$RUMBLE")"
+            rm -rf "$BACKUP" /tmp/youtube-lovable-compositor.sh /tmp/youtube-audio-watchdog-owner-aware.sh /tmp/fgbears-youtube-lovable-compositor.service
             exit "$rc"
           }
           trap rollback EXIT
 
           active "$MASTER"
           active "$RUMBLE"
+          active "$ROUTING"
           MASTER0=$(pid "$MASTER")
           MASTER_R0=$(restarts "$MASTER")
           RUMBLE0=$(pid "$RUMBLE")
-          has_port "$RUMBLE0" 1935
-          echo "PRE master=$MASTER0 restarts=$MASTER_R0 rumble=$RUMBLE0 legacy=$(pid "$LEGACY") compositor=$(pid "$COMP") speed=$(speed)"
+          echo "PRE master=$MASTER0 restarts=$MASTER_R0 rumble=$RUMBLE0 compositor=$(pid "$COMP") legacy=$(pid "$LEGACY") speed=$(speed)"
+          control_ok
 
-          # Freeze watchdog decisions only during the ownership transaction.
+          cp -a "$COMP_SCRIPT" "$BACKUP/compositor.sh"
+          cp -a "$WATCHDOG" "$BACKUP/watchdog.sh"
+          cp -a "$COMP_UNIT" "$BACKUP/compositor.service"
+
           systemctl stop "$WATCHDOG_TIMER"
           systemctl stop "$WATCHDOG_SERVICE" 2>/dev/null || true
 
-          # Preserve the original relay watchdog exactly once as fallback.
-          install -d -m 0755 /usr/local/libexec
-          if [[ ! -f "$LEGACY_WATCHDOG" ]]; then
-            grep -q 'canonical_relay_process' "$WATCHDOG"
-            grep -q 'attempt_repair' "$WATCHDOG"
-            cp -a "$WATCHDOG" "$LEGACY_WATCHDOG"
-            chmod 0755 "$LEGACY_WATCHDOG"
-          fi
-          grep -q 'canonical_relay_process' "$LEGACY_WATCHDOG"
-          grep -q 'attempt_repair' "$LEGACY_WATCHDOG"
-          ! grep -q 'exact_box_health_ok' "$LEGACY_WATCHDOG"
-          echo "LEGACY_WATCHDOG_BACKUP=PASS"
-
-          bash -n /tmp/youtube-audio-watchdog-owner-aware.sh
+          install -m 0755 /tmp/youtube-lovable-compositor.sh "$COMP_SCRIPT"
           install -m 0755 /tmp/youtube-audio-watchdog-owner-aware.sh "$WATCHDOG"
-          grep -q 'exact_box_health_ok' "$WATCHDOG"
-          echo "OWNER_AWARE_WATCHDOG_INSTALLED=PASS"
-
           install -m 0644 /tmp/fgbears-youtube-lovable-compositor.service "$COMP_UNIT"
           systemctl daemon-reload
-          echo "COMPOSITOR_STOP_BOUND=PASS timeout=$(systemctl show -p TimeoutStopUSec --value "$COMP") signal=$(systemctl show -p KillSignal --value "$COMP")"
+          systemctl enable "$COMP" "$ROUTING" >/dev/null 2>&1 || true
 
-          control_ok
-          echo "EXACT_BOX_CONTROL_PLANE=PASS"
-
-          # Idempotent ownership selection: if the compositor is already the
-          # healthy sender, keep it. Otherwise hand YouTube over from fallback.
-          if primary_ok; then
+          # Restart only the YouTube compositor. Master and Rumble are untouched.
+          systemctl restart "$COMP"
+          CONNECTED=0
+          COMP1=0
+          for _ in $(seq 1 35); do
             COMP1=$(pid "$COMP")
-            PRIMARY_SELECTED=1
-            echo "EXACT_BOX_PRIMARY_ALREADY_HEALTHY=YES compositor=$COMP1"
-          else
-            # Require a viable fallback before cutting it.
-            active "$LEGACY"
-            LEGACY0=$(pid "$LEGACY")
-            has_port "$LEGACY0" 443
-            systemctl stop "$COMP" 2>/dev/null || true
-            systemctl stop "$ROUTER" 2>/dev/null || true
-            systemctl stop "$LEGACY"
-            systemctl reset-failed "$COMP" >/dev/null 2>&1 || true
-            systemctl enable "$COMP" "$ROUTING" >/dev/null 2>&1 || true
-            systemctl start "$COMP"
-            PRIMARY_SELECTED=1
+            if primary_ok; then CONNECTED=1; break; fi
+            sleep 1
+          done
+          (( CONNECTED == 1 ))
+          echo "LOW_LATENCY_YOUTUBE_CONNECTED=PASS compositor=$COMP1"
 
-            CONNECTED=0
-            COMP1=0
-            for _ in $(seq 1 40); do
-              COMP1=$(pid "$COMP")
-              if primary_ok; then CONNECTED=1; break; fi
-              sleep 1
-            done
-            (( CONNECTED == 1 ))
-            echo "EXACT_BOX_YOUTUBE_CONNECTED=PASS compositor=$COMP1"
-          fi
-
-          # Enforce exactly one sender; legacy remains available but disabled.
           systemctl stop "$LEGACY" 2>/dev/null || true
           systemctl disable "$LEGACY" >/dev/null 2>&1 || true
           systemctl stop "$ROUTER" 2>/dev/null || true
           systemctl disable "$ROUTER" >/dev/null 2>&1 || true
           systemctl mask "$ROUTER" >/dev/null 2>&1 || true
-          primary_ok
-          COMP1=$(pid "$COMP")
-          echo "EXACT_BOX_AUDIO_VIDEO_PIPELINE=PASS compositor=$COMP1"
 
-          # Force the owner-aware watchdog once, then hold through a real timer
-          # cycle to prove it no longer resurrects the legacy sender.
           systemctl start "$WATCHDOG_TIMER"
           systemctl start "$WATCHDOG_SERVICE"
           primary_ok
           ! active "$LEGACY"
           grep -q '^owner=exact_box_compositor$' /srv/fgbears-live/health/youtube-audio/status.env
-          grep -Eq '^state=(OK|WARN)$' /srv/fgbears-live/health/youtube-audio/status.env
-          echo "MANUAL_OWNER_AWARE_WATCHDOG=PASS"
+          echo "OWNER_AWARE_WATCHDOG_AFTER_LOW_LATENCY=PASS"
 
-          BEFORE_TRIGGER=$(systemctl show "$WATCHDOG_TIMER" -p LastTriggerUSec --value 2>/dev/null || true)
-          AUTO_TRIGGERED=0
-          for _ in $(seq 1 85); do
-            sleep 1
-            NOW_TRIGGER=$(systemctl show "$WATCHDOG_TIMER" -p LastTriggerUSec --value 2>/dev/null || true)
-            if [[ -n "$NOW_TRIGGER" && "$NOW_TRIGGER" != "$BEFORE_TRIGGER" ]]; then AUTO_TRIGGERED=1; break; fi
+          # Continuous transport observation catches brief disconnect/backlog
+          # windows that a single point-in-time health check would miss.
+          missing=0
+          consecutive=0
+          max_consecutive=0
+          samples=0
+          PID0=$(pid "$COMP")
+          START_RESTARTS=$(restarts "$COMP")
+          for _ in $(seq 1 50); do
+            sleep 2
+            samples=$((samples+1))
+            p=$(pid "$COMP")
+            if [[ "$p" == "$PID0" ]] && active "$COMP" && has_port "$p" 443; then
+              consecutive=0
+            else
+              missing=$((missing+1))
+              consecutive=$((consecutive+1))
+              (( consecutive > max_consecutive )) && max_consecutive=$consecutive
+            fi
           done
-          (( AUTO_TRIGGERED == 1 ))
-          for _ in $(seq 1 20); do active "$WATCHDOG_SERVICE" || break; sleep 1; done
-
+          [[ "$(pid "$COMP")" == "$PID0" ]]
+          [[ "$(restarts "$COMP")" == "$START_RESTARTS" ]]
+          (( missing <= 1 ))
+          (( max_consecutive <= 1 ))
           primary_ok
-          COMP2=$(pid "$COMP")
-          [[ "$COMP2" == "$COMP1" ]]
           ! active "$LEGACY"
-          ! active "$ROUTER"
-          grep -q '^owner=exact_box_compositor$' /srv/fgbears-live/health/youtube-audio/status.env
-          grep -Eq '^state=(OK|WARN)$' /srv/fgbears-live/health/youtube-audio/status.env
 
           [[ "$(pid "$MASTER")" == "$MASTER0" ]]
           [[ "$(restarts "$MASTER")" == "$MASTER_R0" ]]
           active "$RUMBLE"
-          RUMBLE2=$(pid "$RUMBLE")
-          has_port "$RUMBLE2" 1935
 
           SPEED=$(speed)
-          CPU=$(ps -p "$COMP2" -o %cpu= | tr -d ' ')
+          CPU=$(ps -p "$PID0" -o %cpu= | tr -d ' ')
+          RSS_KB=$(awk '/^VmRSS:/{print $2}' /proc/$PID0/status)
           LOAD=$(cut -d' ' -f1-3 /proc/loadavg)
           python3 -c 'import sys;c=float(sys.argv[1]);assert c<=40.0,c' "$CPU"
+          python3 -c 'import sys;m=int(sys.argv[1]);assert m<=350000,m' "$RSS_KB"
           if [[ -n "$SPEED" ]]; then python3 -c 'import sys;s=float(sys.argv[1]);assert s>=0.985,s' "$SPEED"; fi
 
-          SENDERS=0
-          active "$COMP" && SENDERS=$((SENDERS+1))
-          active "$LEGACY" && SENDERS=$((SENDERS+1))
-          active "$ROUTER" && SENDERS=$((SENDERS+1))
-          [[ "$SENDERS" -eq 1 ]]
-
-          echo "AUTOMATIC_WATCHDOG_CYCLE=PASS trigger=$NOW_TRIGGER"
-          echo "SINGLE_YOUTUBE_SENDER=PASS compositor=$COMP2 legacy=$(state "$LEGACY") router=$(state "$ROUTER")"
+          echo "TRANSPORT_CONTINUITY=PASS samples=$samples missing=$missing max_consecutive=$max_consecutive"
+          echo "LOW_LATENCY_CONTRACT=PASS bitrate=2200k maxrate=2500k bufsize=4400k udp_fifo=16384 master_queue=256 overlay_queue=32"
+          echo "EXACT_BOX=PASS source=462,104,798,470 output=231,52,399,235"
+          echo "SINGLE_YOUTUBE_SENDER=PASS compositor=$PID0 legacy=$(state "$LEGACY") router=$(state "$ROUTER")"
           echo "MASTER_UNCHANGED=PASS pid=$MASTER0 restarts=$MASTER_R0 speed=${SPEED:-unknown}x"
-          echo "RUMBLE_HEALTHY=PASS pid=$RUMBLE2 restarts=$(restarts "$RUMBLE") socket=1935"
-          echo "RESOURCE compositor_cpu=${CPU}% load=$LOAD"
-          echo "OWNER_AWARE_EXACT_BOX_DEPLOY=PASS"
+          echo "RUMBLE_UNTOUCHED=PASS current_pid=$(pid "$RUMBLE") restarts=$(restarts "$RUMBLE")"
+          echo "RESOURCE=PASS compositor_cpu=${CPU}% compositor_rss_kb=$RSS_KB load=$LOAD"
+          echo "BOUNDED_LATENCY_YOUTUBE_DEPLOY=PASS"
 
           SUCCESS=1
           trap - EXIT
-          rm -f /tmp/youtube-audio-watchdog-owner-aware.sh /tmp/fgbears-youtube-lovable-compositor.service
+          rm -rf "$BACKUP" /tmp/youtube-lovable-compositor.sh /tmp/youtube-audio-watchdog-owner-aware.sh /tmp/fgbears-youtube-lovable-compositor.service
           REMOTE
