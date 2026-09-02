@@ -104,7 +104,6 @@ jobs:
           import subprocess, sys, urllib.request
           from pathlib import Path
           from PIL import Image
-          import numpy as np
 
           n=798*470*4
           with urllib.request.urlopen('http://127.0.0.1:18791/overlay.rgba',timeout=5) as r:
@@ -119,7 +118,7 @@ jobs:
           expected=Image.new('RGBA',(798,470),(11,22,42,255))
           x=(798-scaled.width)//2; y=(470-scaled.height)//2
           expected.paste(scaled,(x,y),scaled)
-          assert np.array_equal(np.asarray(actual),np.asarray(expected))
+          assert actual.tobytes()==expected.tobytes()
           assert scaled.size==(798,449)
           print('EXACT_WHOLE_CARD_SCALE=PASS')
           PY
@@ -149,8 +148,6 @@ jobs:
           YOUTUBE_STREAM_KEY: test-key-not-real
           YOUTUBE_QUESTION_MASK_PORT: '18791'
         run: |
-          # Restore question state; compositor geometry does not depend on active flag,
-          # only the Lovable-derived health contract.
           python3 - <<'PY'
           import json
           p=json.load(open('/tmp/routing.json'))
