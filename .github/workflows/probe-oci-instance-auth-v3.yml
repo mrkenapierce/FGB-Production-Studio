@@ -1,0 +1,51 @@
+name: Probe OCI Instance Auth v3
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-oci-instance-auth-v3.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Test temporary OCI CLI with instance principal
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key ubuntu@$ORACLE_HOST 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          rm -rf /tmp/oci-probe-venv
+          python3 -m venv /tmp/oci-probe-venv
+          /tmp/oci-probe-venv/bin/pip -q install --disable-pip-version-check oci-cli
+          OCI=/tmp/oci-probe-venv/bin/oci
+          $OCI --version
+          echo '=== region read ==='
+          set +e
+          $OCI iam region list --auth instance_principal --output json 2>&1 | head -80
+          R1=${PIPESTATUS[0]}
+          echo "region_read_rc=$R1"
+          echo '=== self instance read ==='
+          IID=$(curl -fsS --max-time 5 -H 'Authorization: Bearer Oracle' http://169.254.169.254/opc/v2/instance/id)
+          $OCI compute instance get --instance-id "$IID" --auth instance_principal --query 'data.{id:id,displayName:"display-name",shape:shape,shapeConfig:"shape-config",compartmentId:"compartment-id",availabilityDomain:"availability-domain"}' --output json 2>&1 | head -120
+          R2=${PIPESTATUS[0]}
+          echo "instance_read_rc=$R2"
+          set -e
+          rm -rf /tmp/oci-probe-venv
+          echo '=== services unchanged ==='
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          systemctl is-active fgbears-rumble-relay.service
+          REMOTE
