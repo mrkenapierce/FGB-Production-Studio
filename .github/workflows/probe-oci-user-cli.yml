@@ -1,0 +1,54 @@
+name: Probe OCI User-space CLI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-oci-user-cli.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Bootstrap user-space OCI CLI and test instance principal
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key ubuntu@$ORACLE_HOST 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          TMP=/tmp/oci-user-probe
+          rm -rf "$TMP" && mkdir -p "$TMP"
+          curl -fsSL https://bootstrap.pypa.io/get-pip.py -o "$TMP/get-pip.py"
+          python3 "$TMP/get-pip.py" --user --break-system-packages >/tmp/oci-pip-bootstrap.log 2>&1
+          "$HOME/.local/bin/pip" install --user --break-system-packages --disable-pip-version-check --quiet oci-cli
+          OCI="$HOME/.local/bin/oci"
+          "$OCI" --version
+          echo '=== REGION READ ==='
+          set +e
+          "$OCI" iam region list --auth instance_principal --output json 2>&1 | head -80
+          echo "region_rc=${PIPESTATUS[0]}"
+          IID=$(curl -fsS -H 'Authorization: Bearer Oracle' http://169.254.169.254/opc/v2/instance/id)
+          echo '=== SELF INSTANCE READ ==='
+          "$OCI" compute instance get --instance-id "$IID" --auth instance_principal --query 'data.{id:id,displayName:"display-name",shape:shape,compartmentId:"compartment-id",availabilityDomain:"availability-domain"}' --output json 2>&1 | head -120
+          echo "instance_rc=${PIPESTATUS[0]}"
+          echo '=== SERVICES ==='
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          systemctl is-active fgbears-rumble-relay.service
+          set -e
+          REMOTE
