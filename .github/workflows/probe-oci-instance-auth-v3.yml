@@ -10,7 +10,7 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - name: Configure SSH
         env:
@@ -27,8 +27,12 @@ jobs:
         run: |
           ssh -i ~/.ssh/oracle_key ubuntu@$ORACLE_HOST 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          rm -rf /tmp/oci-probe-venv
-          python3 -m venv /tmp/oci-probe-venv
+          if ! python3 -m venv /tmp/oci-probe-venv 2>/dev/null; then
+            sudo apt-get update -qq
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-venv
+            rm -rf /tmp/oci-probe-venv
+            python3 -m venv /tmp/oci-probe-venv
+          fi
           /tmp/oci-probe-venv/bin/pip -q install --disable-pip-version-check oci-cli
           OCI=/tmp/oci-probe-venv/bin/oci
           $OCI --version
