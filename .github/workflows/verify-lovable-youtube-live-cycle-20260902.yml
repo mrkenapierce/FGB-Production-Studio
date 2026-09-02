@@ -1,4 +1,4 @@
-name: Verify YouTube 720p Question Latch
+name: Verify YouTube 720p Current State
 
 on:
   push:
@@ -6,6 +6,11 @@ on:
       - lovable-routing-bridge-20260902
     paths:
       - '.github/workflows/verify-lovable-youtube-live-cycle-20260902.yml'
+      - '.github/scripts/verify-youtube-720p-current.sh'
+      - 'services/fgbears-live/bin/youtube-question-mask.py'
+      - 'services/fgbears-live/bin/youtube-lovable-compositor.sh'
+      - 'services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service'
+      - 'services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service'
   workflow_dispatch:
 
 permissions:
@@ -14,12 +19,16 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
       ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: lovable-routing-bridge-20260902
+
       - name: Configure SSH
         shell: bash
         run: |
@@ -29,89 +38,10 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Verify native 720p and uninterrupted question overlay
+      - name: Run read-only production audit
         shell: bash
         run: |
           set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          HEALTH='http://127.0.0.1:8791/healthz'
-          OVERLAY='http://127.0.0.1:8791/overlay.rgba'
-          MONITOR='/run/fgbears-youtube-lovable-compositor'
-
-          pid() { systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-          MASTER0=$(pid fgbears-live.service)
-          RUMBLE0=$(pid fgbears-rumble-relay.service)
-          COMP0=$(pid fgbears-youtube-lovable-compositor.service)
-          ROUTE0=$(pid fgbears-youtube-lovable-routing.service)
-          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-lovable-compositor.service fgbears-youtube-lovable-routing.service; do systemctl is-active --quiet "$u"; done
-          sudo ss -ntpH state established | grep -F "pid=$COMP0" | grep -Eq ':443([[:space:]]|$)'
-          sudo ss -ntpH state established | grep -F "pid=$RUMBLE0" | grep -Eq ':1935([[:space:]]|$)'
-
-          h=$(curl -fsS --max-time 3 "$HEALTH")
-          printf '%s' "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("canvas")==[1280,720],p;assert p.get("maskRegion")=={"x":462,"y":104,"width":798,"height":470},p;assert p.get("fps")==30,p;print("MASK_CONTRACT_720P=PASS")'
-
-          seg=$(find "$MONITOR" -maxdepth 1 -type f -name 'monitor-*.ts' -size +1000c -printf '%T@ %p\n' 2>/dev/null | sort -nr | awk 'NR==1{sub(/^[^ ]+ /,"");print}')
-          [[ -n "$seg" ]]
-          ffprobe -v error -show_streams -of json "$seg" | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p["streams"];v=next(x for x in s if x.get("codec_type")=="video");a=next(x for x in s if x.get("codec_type")=="audio");assert (v.get("width"),v.get("height"))==(1280,720),v;assert v.get("r_frame_rate") in ("30/1","60/2"),v;assert int(a.get("sample_rate"))==44100,a;assert int(a.get("channels"))==2,a;print("YOUTUBE_AV_720P=PASS")'
-
-          # Catch the current question if it is already active. Otherwise wait up
-          # to 150 seconds, which covers the immediate scheduled-cycle window.
-          detected=0
-          for _ in $(seq 1 150); do
-            h=$(curl -fsS --max-time 2 "$HEALTH" 2>/dev/null || true)
-            if [[ -n "$h" ]] && printf '%s' "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);raise SystemExit(0 if p.get("phase")=="question" and p.get("active") is True else 1)' 2>/dev/null; then detected=1; break; fi
-            sleep 1
-          done
-          [[ "$detected" == 1 ]] || { echo 'QUESTION_PHASE_NOT_OBSERVED'; exit 1; }
-          echo 'QUESTION_PHASE_DETECTED=PASS'
-
-          # Once detected, active MUST remain true for every local-health sample
-          # until the authoritative phase leaves question. A single false sample
-          # during question fails the certification.
-          samples=0
-          while (( samples < 180 )); do
-            h=$(curl -fsS --max-time 2 "$HEALTH")
-            result=$(printf '%s' "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);phase=p.get("phase");active=p.get("active");print("END" if phase!="question" else ("OK" if active is True else "FAIL"))')
-            if [[ "$result" == END ]]; then break; fi
-            [[ "$result" == OK ]] || { echo "OVERLAY_DROPPED_DURING_QUESTION sample=$samples health=$h"; exit 1; }
-
-            if (( samples % 5 == 0 )); then
-              python3 - "$HEALTH" "$OVERLAY" <<'PY'
-import json,sys,urllib.request
-health=json.load(urllib.request.urlopen(sys.argv[1],timeout=2))
-w,h=health['frameSize']; need=w*h*4
-data=urllib.request.urlopen(sys.argv[2],timeout=3).read(need)
-assert len(data)==need,(len(data),need)
-alpha=data[3::4]
-ratio=sum(1 for a in alpha if a)/len(alpha)
-assert ratio>.95,ratio
-print(f'OVERLAY_ALPHA=PASS ratio={ratio:.4f}')
-PY
-            fi
-            samples=$((samples+1))
-            sleep 1
-          done
-          (( samples > 0 ))
-          echo "QUESTION_LATCH_CONTINUOUS=PASS samples=$samples"
-
-          # It must also clear after the phase exits so YouTube resumes the real
-          # program outside the protected question state.
-          cleared=0
-          for _ in $(seq 1 15); do
-            h=$(curl -fsS --max-time 2 "$HEALTH")
-            if printf '%s' "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);raise SystemExit(0 if p.get("phase")!="question" and p.get("active") is False else 1)' 2>/dev/null; then cleared=1; break; fi
-            sleep 1
-          done
-          [[ "$cleared" == 1 ]] || { echo 'OVERLAY_DID_NOT_CLEAR_AFTER_QUESTION'; exit 1; }
-          echo 'QUESTION_OVERLAY_CLEAR=PASS'
-
-          [[ "$(pid fgbears-live.service)" == "$MASTER0" ]]
-          [[ "$(pid fgbears-rumble-relay.service)" == "$RUMBLE0" ]]
-          [[ "$(pid fgbears-youtube-lovable-compositor.service)" == "$COMP0" ]]
-          [[ "$(pid fgbears-youtube-lovable-routing.service)" == "$ROUTE0" ]]
-          sudo ss -ntpH state established | grep -F "pid=$COMP0" | grep -Eq ':443([[:space:]]|$)'
-          sudo ss -ntpH state established | grep -F "pid=$RUMBLE0" | grep -Eq ':1935([[:space:]]|$)'
-          echo "PIDS_UNCHANGED=PASS master=$MASTER0 rumble=$RUMBLE0 youtube=$COMP0 routing=$ROUTE0"
-          echo 'YOUTUBE_720P_FULL_QUESTION_CERTIFICATION=PASS'
-          REMOTE
+          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
+          scp -i ~/.ssh/oracle_key .github/scripts/verify-youtube-720p-current.sh "$target:/tmp/verify-youtube-720p-current.sh"
+          ssh -i ~/.ssh/oracle_key "$target" 'chmod 700 /tmp/verify-youtube-720p-current.sh && /tmp/verify-youtube-720p-current.sh; rc=$?; rm -f /tmp/verify-youtube-720p-current.sh; exit $rc'
