@@ -5,28 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 02 Sep 2026 08:54:41 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 02 Sep 2026 13:05:00 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears GM not sure if $40 million star Kyler Gordon will play at all this season in injury mystery</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears GM not sure if $40 million star Kyler Gordon will play at all this season in injury mystery</description>
-      <link>https://sports.yahoo.com/articles/bears-gm-not-sure-40-031302342.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-aaa0cb4cf801af9ce597</guid>
-      <pubDate>Wed, 02 Sep 2026 03:13:02 GMT</pubDate>
+      <title>Ryan Poles explains where Bears QB Caleb Williams has grown most</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ryan Poles explains where Bears QB Caleb Williams has grown most</description>
+      <link>https://sports.yahoo.com/articles/ryan-poles-explains-where-bears-123503413.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-24141a18e9e43866577d</guid>
+      <pubDate>Wed, 02 Sep 2026 05:34:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Chicago Bears offer floor and ceiling cases in Round 4 of Yahoo Fantasy Expert League draft</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears offer floor and ceiling cases in Round 4 of Yahoo Fantasy Expert League draft</description>
-      <link>https://sports.yahoo.com/fantasy/article/chicago-bears-offer-floor-and-ceiling-cases-in-round-4-of-yahoo-fantasy-expert-league-draft-014700275.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-79fcaefd34b4f14d23d0</guid>
-      <pubDate>Wed, 02 Sep 2026 01:47:00 GMT</pubDate>
+      <title>Five takeaways from Ryan Poles on the Bears’ roster, including the Gervon Dexter trade</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Five takeaways from Ryan Poles on the Bears’ roster, including the Gervon Dexter trade</description>
+      <link>https://www.nytimes.com/athletic/7556200/2026/09/02/bears-ryan-poles-roster-decisions-2026/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a41ff2595b6ebc891e44</guid>
+      <pubDate>Wed, 02 Sep 2026 05:15:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Deep dive into 53-man roster | Bears, etc. Podcast</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Deep dive into 53-man roster | Bears, etc. Podcast</description>
+      <link>https://www.chicagobears.com/audio/deep-dive-into-53-man-roster-bears-etc-podcast</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f352c186388c69c91da2</guid>
+      <pubDate>Wed, 02 Sep 2026 05:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Mascot History: From Mr. Bear to Staley Da Bear</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Mascot History: From Mr. Bear to Staley Da Bear</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-mascot-history-mr-120000643.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-fa17f99c10412e163409</guid>
+      <pubDate>Wed, 02 Sep 2026 05:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Ryan Poles and Bears Personnel Beating the Bushes as Well as Anyone</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ryan Poles and Bears Personnel Beating the Bushes as Well as Anyone</description>
+      <link>https://www.si.com/nfl/bears/onsi/ryan-poles-and-bears-personnel-beating-the-bushes-as-well-as-anyone</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-96bf99e3a840214d41b6</guid>
+      <pubDate>Wed, 02 Sep 2026 04:42:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Ryan Poles: &apos;I don&apos;t know&apos; if CB Kyler Gordon will play for Bears again</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Ryan Poles: &apos;I don&apos;t know&apos; if CB Kyler Gordon will play for Bears again</description>
+      <link>https://www.nfl.com/news/ryan-poles-kyler-gordon-i-dont-know-cb-play-for-bears-again</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-03975049e03a871155b7</guid>
+      <pubDate>Tue, 01 Sep 2026 22:34:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
@@ -40,16 +80,6 @@
     </item>
 
     <item>
-      <title>Chicago Bears announce roster moves</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears announce roster moves</description>
-      <link>https://www.chicagobears.com/news/chicago-bears-announce-roster-moves-practice-squad-2026</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-59b4f0508b5126cdd443</guid>
-      <pubDate>Tue, 01 Sep 2026 19:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
       <title>Stephen Carlson: Gets added to Bears&apos; practice squad</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Stephen Carlson: Gets added to Bears&apos; practice squad</description>
       <link>https://www.cbssports.com/fantasy/football/news/stephen-carlson-gets-added-to-bears-practice-squad/</link>
@@ -57,36 +87,6 @@
       <pubDate>Tue, 01 Sep 2026 17:33:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Salvon Ahmed: Lands on Bears&apos; practice squad</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Salvon Ahmed: Lands on Bears&apos; practice squad</description>
-      <link>https://www.cbssports.com/fantasy/football/news/salvon-ahmed-lands-on-bears-practice-squad/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1e1eccca960d85b83a7c</guid>
-      <pubDate>Tue, 01 Sep 2026 17:18:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>&apos;Goofy&apos; Caleb Williams Gives Way to More Focused Bears Quarterback</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: &apos;Goofy&apos; Caleb Williams Gives Way to More Focused Bears Quarterback</description>
-      <link>https://www.si.com/nfl/bears/onsi/goofy-caleb-williams-gives-way-to-more-focused-bears-quarterback</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6097ba3df7696c95b2be</guid>
-      <pubDate>Tue, 01 Sep 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Luther Burden Injury Update From Bears Brings More Optimism For Week 1 Status</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Luther Burden Injury Update From Bears Brings More Optimism For Week 1 Status</description>
-      <link>https://www.si.com/nfl/bears/onsi/luther-burden-injury-update-from-bears-brings-more-optimism-for-week-1-status</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-48b0004b1aacbc4f30f8</guid>
-      <pubDate>Tue, 01 Sep 2026 13:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
