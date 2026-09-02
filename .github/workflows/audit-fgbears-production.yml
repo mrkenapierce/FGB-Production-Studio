@@ -1,0 +1,106 @@
+name: Audit FGBears Production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-production-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Read-only production audit
+        run: |
+          set -Eeuo pipefail
+          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
+          ssh -i ~/.ssh/oracle_key "$target" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          ROUTING=fgbears-youtube-lovable-routing.service
+          COMP=fgbears-youtube-lovable-compositor.service
+          LEGACY=fgbears-youtube-relay.service
+          WATCHDOG_TIMER=fgbears-youtube-audio-watchdog.timer
+          HEALTH_TIMER=fgbears-live-health.timer
+          MONDIR=/run/fgbears-youtube-lovable-compositor
+          WATCHDOG_STATUS=/srv/fgbears-live/health/youtube-audio/status.env
+
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          restarts(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
+          active(){ systemctl is-active --quiet "$1"; }
+          connected(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v port=":$port" 'index($0,q)&&index($0,port){ok=1} END{exit(ok?0:1)}'; }
+
+          active "$MASTER"
+          active "$RUMBLE"
+          active "$ROUTING"
+          active "$COMP"
+          active "$WATCHDOG_TIMER"
+          active "$HEALTH_TIMER"
+          ! active "$LEGACY"
+
+          MPID=$(pid "$MASTER")
+          RPID=$(pid "$RUMBLE")
+          CPID=$(pid "$COMP")
+          [[ "$MPID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$RPID" =~ ^[1-9][0-9]*$ ]]
+          [[ "$CPID" =~ ^[1-9][0-9]*$ ]]
+          connected "$RPID" 1935
+          connected "$CPID" 443
+
+          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
+          [[ -z "$speed" ]] || python3 -c 'import sys; assert float(sys.argv[1]) >= 0.985' "$speed"
+          echo "TOPOLOGY=PASS master=$MPID rumble=$RPID compositor=$CPID master_restarts=$(restarts "$MASTER") speed=${speed:-unknown}x"
+
+          mask=$(curl -fsS --max-time 3 http://127.0.0.1:8791/healthz)
+          printf '%s' "$mask" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("sourceCanvas")==[1280,720];assert p.get("canvas")==[640,360];assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470};assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235};assert p.get("frameSize")==[399,235];assert p.get("executionScaling")=="proportional_downstream";assert p.get("fps")==30;assert p.get("creativeKey")=="yt_rumble_trivia_redirect";print("YOUTUBE_MASK=PASS exact_box_399x235@231,52")'
+
+          news=$(curl -fsS --max-time 3 http://127.0.0.1:8789/healthz)
+          crawl=$(curl -fsS --max-time 3 http://127.0.0.1:8788/healthz)
+          printf '%s' "$news" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert int(p.get("scrollPps",0))==76;assert p.get("payloadSwap")=="next-cycle-boundary";print("RSS=PASS fps=30 pps=76 boundary=cycle")'
+          printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert p.get("payloadSwap")=="next-segment-boundary";print("CRAWL=PASS fps=30 boundary=segment")'
+          pgrep -af 'bears-news-feed-hq.py' >/dev/null
+          pgrep -af 'crawl-overlay-hq.py' >/dev/null
+
+          SEG=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
+          [[ -n "$SEG" && -s "$SEG" ]]
+          ffprobe -v fatal -show_entries stream=codec_type,codec_name,sample_rate,channels,width,height,r_frame_rate -of json "$SEG" \
+            | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p.get("streams",[]);a=next(x for x in s if x.get("codec_type")=="audio");v=next(x for x in s if x.get("codec_type")=="video");assert a.get("codec_name")=="aac";assert str(a.get("sample_rate"))=="48000";assert int(a.get("channels") or 0)==2;assert (int(v.get("width",0)),int(v.get("height",0)))==(640,360);assert v.get("r_frame_rate") in {"30/1","60/2"};print("YOUTUBE_AV=PASS 640x360/30 AAC48k-stereo")'
+
+          [[ -s "$WATCHDOG_STATUS" ]]
+          now=$(date +%s)
+          checked=$(sed -n 's/^checked_epoch=\([0-9][0-9]*\)$/\1/p' "$WATCHDOG_STATUS" | tail -n1)
+          state=$(sed -n 's/^state=\([^[:space:]]*\)$/\1/p' "$WATCHDOG_STATUS" | tail -n1)
+          owner=$(sed -n 's/^owner=\([^[:space:]]*\)$/\1/p' "$WATCHDOG_STATUS" | tail -n1)
+          rate=$(sed -n 's/^youtube_audio_rate=\([0-9][0-9]*\)$/\1/p' "$WATCHDOG_STATUS" | tail -n1)
+          faults=$(sed -n 's/^recent_transport_faults=\([0-9][0-9]*\)$/\1/p' "$WATCHDOG_STATUS" | tail -n1)
+          [[ "$checked" =~ ^[0-9]+$ ]]
+          age=$((now - checked))
+          (( age >= 0 && age <= 180 ))
+          [[ "$state" == OK || "$state" == WARN ]]
+          [[ "$owner" == exact_box_compositor ]]
+          [[ "$rate" == 48000 ]]
+          [[ "$faults" == 0 ]]
+          echo "WATCHDOG=PASS state=$state owner=$owner age=${age}s native48k faults=0"
+
+          echo "PRODUCTION_AUDIT=PASS master=$MPID rumble=$RPID compositor=$CPID"
+          REMOTE
