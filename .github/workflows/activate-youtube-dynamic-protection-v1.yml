@@ -1,4 +1,4 @@
-name: Audit Rumble Restart and YouTube State
+name: Audit YouTube Audio Watchdog Ownership
 
 on:
   push:
@@ -29,58 +29,48 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Read-only production audit
+      - name: Read-only watchdog ownership audit
         shell: bash
         run: |
           set -Eeuo pipefail
           target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
           ssh -i ~/.ssh/oracle_key "$target" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          units=(fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-lovable-compositor.service fgbears-youtube-lovable-routing.service fgbears-youtube-relay.service fgbears-youtube-router.service)
-          echo 'SERVICE_STATE'
-          for u in "${units[@]}"; do
-            echo "--- $u"
-            systemctl show "$u" -p ActiveState -p SubState -p MainPID -p NRestarts -p ExecMainStatus -p Result -p Restart -p RestartUSec -p ActiveEnterTimestamp --no-pager 2>/dev/null || true
+          echo 'WATCHDOG_TIMER'
+          systemctl cat fgbears-youtube-audio-watchdog.timer 2>/dev/null || true
+          systemctl show fgbears-youtube-audio-watchdog.timer -p ActiveState -p SubState -p LastTriggerUSec -p NextElapseUSecRealtime -p Triggers --no-pager 2>/dev/null || true
+
+          echo 'WATCHDOG_SERVICE'
+          systemctl cat fgbears-youtube-audio-watchdog.service 2>/dev/null || true
+          systemctl show fgbears-youtube-audio-watchdog.service -p ActiveState -p SubState -p ExecMainStatus -p Result -p ExecStart --no-pager 2>/dev/null || true
+
+          echo 'WATCHDOG_EXEC_CONTENT'
+          exec_path=$(systemctl show fgbears-youtube-audio-watchdog.service -p ExecStart --value 2>/dev/null | sed -n 's/.*path=\([^ ;]*\).*/\1/p' | head -1)
+          if [[ -n "$exec_path" && -f "$exec_path" ]]; then
+            sed -E 's#(rtmps?://[^/]+/[^/]+/)[^ ]+#\1[REDACTED]#g; s#(YOUTUBE_STREAM_KEY|RUMBLE_STREAM_KEY)=.*#\1=[REDACTED]#g' "$exec_path"
+          else
+            for p in /usr/local/bin/fgbears-youtube-audio-watchdog /opt/fgbears-live/bin/youtube-audio-watchdog.sh /opt/fgbears-live/bin/fgbears-youtube-audio-watchdog; do
+              if [[ -f "$p" ]]; then echo "PATH=$p"; sed -E 's#(rtmps?://[^/]+/[^/]+/)[^ ]+#\1[REDACTED]#g; s#(YOUTUBE_STREAM_KEY|RUMBLE_STREAM_KEY)=.*#\1=[REDACTED]#g' "$p"; fi
+            done
+          fi
+
+          echo 'WATCHDOG_RECENT_LOG'
+          journalctl -u fgbears-youtube-audio-watchdog.service --since '20 minutes ago' --no-pager -o short-iso 2>/dev/null \
+            | sed -E 's#(rtmps?://[^/]+/[^/]+/)[^ ]+#\1[REDACTED]#g; s#([A-Za-z0-9_-]{24,})#[REDACTED]#g' \
+            | tail -160 || true
+
+          echo 'YOUTUBE_SERVICE_EVENTS_AROUND_WATCHDOG'
+          journalctl --since '2026-09-02 21:49:50 UTC' --until '2026-09-02 21:51:00 UTC' --no-pager -o short-iso 2>/dev/null \
+            | grep -Ei 'youtube-audio-watchdog|youtube-relay|youtube-lovable-compositor|youtube-router' \
+            | sed -E 's#(rtmps?://[^/]+/[^/]+/)[^ ]+#\1[REDACTED]#g; s#([A-Za-z0-9_-]{24,})#[REDACTED]#g' \
+            | tail -160 || true
+
+          echo 'CURRENT_YOUTUBE_OWNERS'
+          for u in fgbears-youtube-lovable-compositor.service fgbears-youtube-relay.service fgbears-youtube-router.service fgbears-youtube-lovable-routing.service; do
+            printf '%s ' "$u"
+            systemctl show "$u" -p ActiveState -p MainPID -p NRestarts --value 2>/dev/null | tr '\n' ' '; echo
           done
+          ss -ntpH state established 2>/dev/null | grep ':443' | sed -E 's#users:\(\("[^\"]+",pid=([0-9]+),fd=[0-9]+\)\)#pid=\1#g' || true
 
-          echo 'RUMBLE_RELATIONSHIPS'
-          systemctl show fgbears-rumble-relay.service -p Requires -p Wants -p BindsTo -p PartOf -p ConsistsOf -p Before -p After -p TriggeredBy -p Triggers --no-pager || true
-
-          echo 'RUMBLE_UNIT'
-          systemctl cat fgbears-rumble-relay.service 2>/dev/null | sed -E 's#(rtmps?://[^/]+/[^/]+/)[^ ]+#\1[REDACTED]#g; s#(YOUTUBE_STREAM_KEY|RUMBLE_STREAM_KEY)=.*#\1=[REDACTED]#g' || true
-
-          echo 'FGB_TIMERS'
-          systemctl list-timers --all --no-pager | grep -Ei 'fgb|rumble|youtube|rss|crawl' || true
-
-          echo 'RECENT_RUMBLE_EVENTS'
-          journalctl -u fgbears-rumble-relay.service --since '15 minutes ago' --no-pager -o short-iso 2>/dev/null \
-            | grep -Ei 'Started|Stopped|Stopping|Failed|Main process exited|Scheduled restart|restart counter|Connection|Broken pipe|Input/output|error|signal|code=' \
-            | sed -E 's#(rtmps?://[^/]+/[^/]+/)[^ ]+#\1[REDACTED]#g; s#([A-Za-z0-9_-]{20,})#[REDACTED]#g' \
-            | tail -120 || true
-
-          echo 'RECENT_YOUTUBE_EVENTS'
-          for u in fgbears-youtube-lovable-compositor.service fgbears-youtube-relay.service; do
-            echo "--- $u"
-            journalctl -u "$u" --since '15 minutes ago' --no-pager -o short-iso 2>/dev/null \
-              | grep -Ei 'Started|Stopped|Stopping|Failed|Main process exited|Scheduled restart|restart counter|Connection|Broken pipe|Input/output|error|signal|code=' \
-              | sed -E 's#(rtmps?://[^/]+/[^/]+/)[^ ]+#\1[REDACTED]#g; s#([A-Za-z0-9_-]{20,})#[REDACTED]#g' \
-              | tail -80 || true
-          done
-
-          echo 'RESOURCE_STATE'
-          printf 'load='; cut -d' ' -f1-3 /proc/loadavg
-          free -m
-          df -h / /run /srv 2>/dev/null || true
-          echo 'TOP_CPU'
-          ps -eo pid,ppid,%cpu,%mem,etime,comm,args --sort=-%cpu | head -20 | sed -E 's#(rtmps?://[^/]+/[^/]+/)[^ ]+#\1[REDACTED]#g' || true
-
-          echo 'KERNEL_OOM'
-          journalctl -k --since '15 minutes ago' --no-pager 2>/dev/null | grep -Ei 'oom|out of memory|killed process' | tail -40 || true
-
-          echo 'SOCKET_OWNERS'
-          ss -ntpH state established 2>/dev/null | grep -E ':443|:1935' | sed -E 's#users:\(\("[^\"]+",pid=([0-9]+),fd=[0-9]+\)\)#pid=\1#g' || true
-
-          echo 'MASTER_SPEED'
-          awk -F= '$1=="speed"{v=$2} END{print v}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true
-          echo 'AUDIT_COMPLETE=PASS'
+          echo 'WATCHDOG_OWNERSHIP_AUDIT=PASS'
           REMOTE
