@@ -1,5 +1,5 @@
 name: Diagnose YouTube Freeze State
-# rerun marker: locate-production-router-base-20260902
+# rerun marker: corrected-wrapper-runtime-20260902
 
 on:
   push:
@@ -26,25 +26,28 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Locate delegated router implementation
+      - name: Read corrected freeze-box runtime failure and current health
         shell: bash
         run: |
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          f=/opt/fgbears-live/bin/youtube-stream-router-emergency.py
-          echo '=== DELEGATION SYMBOLS ==='
-          grep -nE 'import|runpy|spec_from|module_from|SourceFile|youtube-stream-router|base|Router|main\(' "$f" | head -160 || true
-          echo '=== ROUTER FILES ==='
-          ls -lah /opt/fgbears-live/bin/*youtube*router*.py 2>/dev/null || true
-          for candidate in /opt/fgbears-live/bin/*youtube*router*.py; do
-            [[ -f "$candidate" ]] || continue
-            echo "--- $candidate ---"
-            sha256sum "$candidate"
-            grep -nE '^(class|def) ' "$candidate" | head -80 || true
+          echo '=== ROUTER JOURNAL SINCE 08:19 UTC ==='
+          sudo journalctl -u fgbears-youtube-router.service --since '2026-09-02 08:19:40 UTC' --no-pager || true
+          echo '=== CURRENT ROUTER UNIT ==='
+          sudo systemctl cat fgbears-youtube-router.service || true
+          echo '=== CURRENT HEALTH ==='
+          for s in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-router.service fgbears-youtube-freeze-card-refresh.timer; do
+            echo "$s active=$(systemctl is-active "$s" 2>/dev/null || true) enabled=$(systemctl is-enabled "$s" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$s" 2>/dev/null || true)"
           done
-          echo '=== HEALTH ==='
-          echo "master_pid=$(systemctl show -p MainPID --value fgbears-live.service)"
-          echo "rumble_pid=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)"
-          echo "router_pid=$(systemctl show -p MainPID --value fgbears-youtube-router.service)"
+          router_pid=$(systemctl show -p MainPID --value fgbears-youtube-router.service 2>/dev/null || echo 0)
+          child=$(pgrep -P "$router_pid" ffmpeg | head -n1 || true)
+          if [[ "$child" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -Eq ':443([[:space:]]|$)'; then
+            echo 'youtube_rtmps_established=yes'
+          else
+            echo 'youtube_rtmps_established=no'
+          fi
+          echo '=== FREEZE STATUS ==='
+          sudo cat /var/lib/fgbears-live/youtube-freeze-card.status 2>/dev/null || true
+          sudo ls -lah /var/lib/fgbears-live/youtube-freeze-card.h264 2>/dev/null || true
           REMOTE
