@@ -59,6 +59,7 @@ class DynamicStreamRouter(base.StreamRouter):
             buffer.unmap(mapped)
 
     def _on_live_buffer(self, _pad: Gst.Pad, info: Gst.PadProbeInfo) -> Gst.PadProbeReturn:
+        # Retain the proven downstream keyframe gate for the normal case.
         buffer = info.get_buffer()
         if buffer is not None and self.pending_mode == "live":
             gst_keyframe = not (buffer.get_flags() & Gst.BufferFlags.DELTA_UNIT)
@@ -66,15 +67,47 @@ class DynamicStreamRouter(base.StreamRouter):
                 GLib.idle_add(self._activate_mode, "live")
         return Gst.PadProbeReturn.OK
 
+    def _on_live_prequeue_buffer(self, _pad: Gst.Pad, info: Gst.PadProbeInfo) -> Gst.PadProbeReturn:
+        """Watch the real master upstream of an inactive selector branch.
+
+        input-selector can stop exposing buffers on the downstream live pad while
+        the 10-fps protected pad is active. The demux output still receives the
+        master. Detect the next real IDR here; the one-buffer leaky queue below
+        ensures that IDR is the frame waiting when the selector reactivates live.
+        """
+        buffer = info.get_buffer()
+        if buffer is not None and self.pending_mode == "live":
+            gst_keyframe = not (buffer.get_flags() & Gst.BufferFlags.DELTA_UNIT)
+            if gst_keyframe or self._buffer_contains_idr(buffer):
+                LOG.info("live upstream return IDR detected")
+                GLib.idle_add(self._activate_mode, "live")
+        return Gst.PadProbeReturn.OK
+
+    def _on_demux_pad(self, demux: Gst.Element, pad: Gst.Pad) -> None:
+        caps = pad.get_current_caps() or pad.query_caps(None)
+        caps_name = caps.to_string() if caps else ""
+        if caps_name.startswith("video/x-h264") and not self.live_queue.get_static_pad("sink").is_linked():
+            # Attach before linking so the return detector lives upstream of the
+            # selector and its queue/backpressure behavior.
+            pad.add_probe(Gst.PadProbeType.BUFFER, self._on_live_prequeue_buffer)
+        super()._on_demux_pad(demux, pad)
+
     def _build_pipeline(self) -> None:
         super()._build_pipeline()
 
         # The protected branch runs at 10 fps while the normal program is 30 fps.
-        # Cross-pad clock synchronization can stop the inactive 30-fps pad from
-        # advancing while the 10-fps pad is active, which prevents seeing the next
-        # live IDR and returning cleanly. Keep inactive inputs flowing instead;
-        # switches themselves remain keyframe-gated by the pad probes below.
         self.selector.set_property("sync-streams", False)
+        if self.selector.find_property("cache-buffers"):
+            self.selector.set_property("cache-buffers", False)
+
+        # While protected mode is active, retain only the newest real-master AU.
+        # `leaky=downstream` drops stale queued buffers rather than backpressuring
+        # the demux. When the upstream probe sees the next IDR, that IDR becomes
+        # the sole queued candidate for a keyframe-safe return.
+        self.live_queue.set_property("max-size-time", 0)
+        self.live_queue.set_property("max-size-bytes", 0)
+        self.live_queue.set_property("max-size-buffers", 1)
+        self.live_queue.set_property("leaky", 2)  # downstream: drop old buffers
 
         self.static_card_selector_pad = self.card_selector_pad
         dynamic_port = int(os.getenv("FGB_YOUTUBE_DYNAMIC_CARD_PORT", "2942"))
