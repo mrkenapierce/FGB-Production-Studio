@@ -1,0 +1,121 @@
+name: Benchmark YouTube VAAPI Compositor V1
+
+on:
+  push:
+    paths:
+      - '.github/workflows/benchmark-youtube-vaapi-compositor-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-vaapi-benchmark
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Isolated VAAPI full-live partial-overlay benchmark
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          work=/tmp/fgb-vaapi-compositor-benchmark
+          pylib=/opt/fgbears-live/exact-card-pylib
+          rm -rf "$work"; mkdir -p "$work"
+          trap 'rm -rf "$work"' EXIT
+
+          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_before=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          youtube_before=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ && "$rumble_before" =~ ^[1-9][0-9]*$ && "$youtube_before" =~ ^[1-9][0-9]*$ ]]
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          test -e /dev/dri/renderD128
+
+          # Copy a short program sample only; no publishing and no service change.
+          nice -n 19 ionice -c3 timeout 20 ffmpeg -hide_banner -nostdin -loglevel error \
+            -fflags +genpts -probesize 5000000 -analyzeduration 5000000 \
+            -i 'udp://127.0.0.1:1939?reuse=1&fifo_size=1000000&overrun_nonfatal=1' \
+            -t 10 -map 0:v:0 -c:v copy -an -f mpegts -y "$work/sample.ts"
+          test -s "$work/sample.ts"
+          duration=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$work/sample.ts")
+          echo "SAMPLE_DURATION=$duration"
+
+          # Exact approved card, proportional whole-card scale inside the production panel.
+          PYTHONPATH="$pylib" /usr/bin/python3 /opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py "$work/source.png" >/dev/null
+          PYTHONPATH="$pylib" /usr/bin/python3 - "$work/source.png" "$work/panel.png" <<'PY'
+          import sys
+          from PIL import Image
+          src=Image.open(sys.argv[1]).convert('RGBA')
+          src.thumbnail((798,470), Image.Resampling.LANCZOS)
+          assert src.size == (798,449), src.size
+          panel=Image.new('RGBA',(798,470),(11,22,42,255))
+          panel.alpha_composite(src,(0,(470-src.height)//2))
+          panel.save(sys.argv[2])
+          PY
+
+          # Actual VAAPI encode test. Overlay/decode remain CPU-side; final H.264 encode
+          # is uploaded to /dev/dri/renderD128. Output is null: nothing is published.
+          start=$(date +%s%N)
+          set +e
+          sudo nice -n 19 ionice -c3 ffmpeg -hide_banner -nostdin -loglevel warning \
+            -vaapi_device /dev/dri/renderD128 \
+            -i "$work/sample.ts" -loop 1 -framerate 30 -i "$work/panel.png" \
+            -filter_complex '[0:v:0][1:v:0]overlay=462:104:shortest=1,format=nv12,hwupload[v]' \
+            -map '[v]' -an \
+            -c:v h264_vaapi -profile:v high -level:v 4.1 \
+            -b:v 5000k -maxrate 5500k -bufsize 10000k -g 60 \
+            -f null - 2>"$work/encode.log"
+          rc=$?
+          set -e
+          end=$(date +%s%N)
+          if (( rc != 0 )); then
+            echo "VAAPI_ENCODE_RESULT=FAILED rc=$rc"
+            sed -n '1,120p' "$work/encode.log"
+            exit 30
+          fi
+
+          elapsed_ms=$(( (end-start)/1000000 ))
+          python3 - "$duration" "$elapsed_ms" <<'PY'
+          import sys
+          duration=float(sys.argv[1])*1000
+          elapsed=float(sys.argv[2])
+          ratio=duration/elapsed if elapsed else 0
+          print(f'VAAPI_ENCODE_WALL_MS={elapsed:.0f}')
+          print(f'VAAPI_REALTIME_MULTIPLIER={ratio:.3f}x')
+          if ratio < 1.25:
+              print('VAAPI_COMPOSITOR_CAPACITY=INSUFFICIENT')
+              raise SystemExit(20)
+          print('VAAPI_COMPOSITOR_CAPACITY=PASS')
+          PY
+
+          master_after=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_after=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          youtube_after=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          test "$master_after" = "$master_before"
+          test "$rumble_after" = "$rumble_before"
+          test "$youtube_after" = "$youtube_before"
+          echo "MASTER_PID_UNCHANGED=$master_after"
+          echo "RUMBLE_PID_UNCHANGED=$rumble_after"
+          echo "YOUTUBE_PID_UNCHANGED=$youtube_after"
+          echo 'BENCHMARK_DID_NOT_PUBLISH=yes'
+          REMOTE
