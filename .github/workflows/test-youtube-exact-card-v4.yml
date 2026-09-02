@@ -1,0 +1,100 @@
+name: Test YouTube Exact Card V4
+
+on:
+  push:
+    paths:
+      - '.github/freeze-maintenance/compose-exact-youtube-card.py'
+      - '.github/freeze-maintenance/youtube-freeze-card-refresh-v4.sh'
+      - '.github/workflows/test-youtube-exact-card-v4.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-card:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install test-only image and QR dependencies
+        run: python3 -m pip install --user 'qrcode[pil]' opencv-python-headless
+
+      - name: Validate source, whole-card scale, geometry and QR
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n .github/freeze-maintenance/youtube-freeze-card-refresh-v4.sh
+          python3 -m py_compile \
+            .github/freeze-maintenance/compose-exact-youtube-card.py \
+            services/fgbears-live/tools/build-youtube-rumble-trivia-card.py
+
+          # A reconstructed drawtext/drawbox card is explicitly forbidden.
+          ! grep -Eq 'drawtext=|drawbox=' .github/freeze-maintenance/youtube-freeze-card-refresh-v4.sh
+          grep -Fq 'build-youtube-rumble-trivia-card.py' .github/freeze-maintenance/youtube-freeze-card-refresh-v4.sh
+          grep -Fq 'PANEL_X=462' .github/freeze-maintenance/youtube-freeze-card-refresh-v4.sh
+          grep -Fq 'PANEL_Y=104' .github/freeze-maintenance/youtube-freeze-card-refresh-v4.sh
+          grep -Fq 'PANEL_W=798' .github/freeze-maintenance/youtube-freeze-card-refresh-v4.sh
+          grep -Fq 'PANEL_H=470' .github/freeze-maintenance/youtube-freeze-card-refresh-v4.sh
+
+          mkdir -p /tmp/exact-card-v4
+          python3 services/fgbears-live/tools/build-youtube-rumble-trivia-card.py /tmp/exact-card-v4/source.png >/dev/null
+          python3 - <<'PY'
+          from PIL import Image
+          Image.new('RGB', (1280,720), '#303030').save('/tmp/exact-card-v4/frame.png')
+          PY
+          python3 .github/freeze-maintenance/compose-exact-youtube-card.py \
+            /tmp/exact-card-v4/frame.png /tmp/exact-card-v4/source.png /tmp/exact-card-v4/composite.png \
+            >/tmp/exact-card-v4/meta.json
+
+          python3 - <<'PY'
+          import json
+          import cv2
+          import numpy as np
+          from PIL import Image
+
+          expected_url = 'https://rumble.com/v7eqrsu-chicago-bears-live-trivia-every-20-minutes-cash-prizes-fgb.html'
+          meta=json.load(open('/tmp/exact-card-v4/meta.json'))
+          assert meta['canvas'] == [1280,720]
+          assert meta['panel'] == {'x':462,'y':104,'width':798,'height':470}
+          assert meta['sourceCard'] == {'width':1280,'height':720}
+          assert meta['scaledCard'] == {'x':462,'y':114,'width':798,'height':449}
+          assert meta['mode'] == 'exact-locked-template-whole-card'
+
+          source=Image.open('/tmp/exact-card-v4/source.png').convert('RGB')
+          composite=Image.open('/tmp/exact-card-v4/composite.png').convert('RGB')
+          assert source.size == (1280,720)
+          assert composite.size == (1280,720)
+
+          # Prove production crop is exactly the WHOLE source card resized once,
+          # not a reconstructed set of individual elements.
+          expected=source.resize((798,449), Image.Resampling.LANCZOS)
+          actual=composite.crop((462,114,462+798,114+449))
+          assert np.array_equal(np.asarray(expected), np.asarray(actual))
+
+          # The exact QR remains functional after whole-card downscaling.
+          bgr=cv2.cvtColor(np.asarray(actual), cv2.COLOR_RGB2BGR)
+          decoded, points, _ = cv2.QRCodeDetector().detectAndDecode(bgr)
+          assert points is not None, 'QR not detected after scaling'
+          assert decoded == expected_url, (decoded, expected_url)
+          print('WHOLE_CARD_PIXEL_IDENTITY=PASS')
+          print('SCALED_QR_DECODE=PASS')
+          PY
+
+      - name: Validate production panel boundaries
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          grep -Fq 'AD_PANEL_BOX = (462, 104, 1260, 574)' services/fgbears-live/bin/ad-overlay.py
+          grep -Fq 'WIDTH, HEIGHT = 1280, 104' services/fgbears-live/bin/bears-news-feed.py
+          grep -Fq 'overlay=x=0:y=574' services/fgbears-live/bin/start-stream.sh
+          python3 - <<'PY'
+          panel=(462,104,798,470)
+          x,y,w,h=panel
+          assert y == 104
+          assert y+h == 574
+          assert x+w == 1260
+          assert y >= 104             # below news y=0..103
+          assert y+h <= 574           # ends where crawl begins
+          print('PRODUCTION_PANEL_BOUNDARIES=PASS')
+          PY
