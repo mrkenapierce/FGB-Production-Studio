@@ -1,4 +1,5 @@
 name: Diagnose YouTube Freeze State
+# rerun marker: safe-window-rejection-20260902
 
 on:
   push:
@@ -34,7 +35,7 @@ jobs:
           echo '=== REFRESH STATUS ==='
           sudo systemctl status fgbears-youtube-freeze-card-refresh.service --no-pager || true
           echo '=== REFRESH JOURNAL ==='
-          sudo journalctl -u fgbears-youtube-freeze-card-refresh.service -n 160 --no-pager || true
+          sudo journalctl -u fgbears-youtube-freeze-card-refresh.service -n 200 --no-pager || true
           echo '=== CARD DIR ==='
           sudo ls -lah /var/lib/fgbears-live 2>/dev/null || true
           sudo cat /var/lib/fgbears-live/youtube-freeze-card.status 2>/dev/null || true
