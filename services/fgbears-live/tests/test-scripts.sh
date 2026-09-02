@@ -59,10 +59,8 @@ if grep -Fq -- '-af ' "$ROOT/bin/start-stream.sh"; then
 fi
 grep -Fq -- '-c:a copy' "$ROOT/bin/start-stream.sh"
 
-# YouTube is intentionally different from Rumble: copy the shared H.264 video,
-# but rebuild AAC framing/timestamps specifically for YouTube RTMPS ingest. The
-# source is already mastered, so these are hard transport constants rather than
-# tunable mastering controls.
+# The legacy YouTube relay is failover-only: shared H.264 video is copied while
+# AAC framing/timestamps are rebuilt at the native 48 kHz source rate.
 grep -Fq -- '-c:v copy' "$ROOT/bin/youtube-relay.sh"
 grep -Fq -- '-c:a aac' "$ROOT/bin/youtube-relay.sh"
 grep -Fq -- '-profile:a aac_low' "$ROOT/bin/youtube-relay.sh"
@@ -71,15 +69,31 @@ grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE=48000' "$ROOT/bin/youtube-relay.sh"
 grep -Fq 'YOUTUBE_AUDIO_CHANNELS=2' "$ROOT/bin/youtube-relay.sh"
 grep -Fq 'aresample=${YOUTUBE_AUDIO_SAMPLE_RATE}:async=1:first_pts=0' "$ROOT/bin/youtube-relay.sh"
 if grep -Eq 'youtube-stream-router|gst-launch|libx264|aacparse|mpegtsmux' "$ROOT/bin/youtube-relay.sh"; then
-  echo 'The canonical YouTube relay must remain isolated FFmpeg video-copy + AAC audio re-clock.' >&2
+  echo 'The fallback YouTube relay must remain isolated FFmpeg video-copy + AAC audio re-clock.' >&2
   exit 1
 fi
 
 # Rumble remains the unchanged copy-remux reference path.
 grep -Fq -- '-c copy' "$ROOT/bin/rumble-relay.sh"
 
-grep -Fq 'FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0' "$ROOT/config/stream.env.example"
-grep -Fq '"FGB_YOUTUBE_PACKET_ROUTER_ENABLE": "0"' "$ROOT/bin/install.sh"
+# Architecture contract: the shared master is destination-independent. Normal
+# YouTube ownership is routing + exact-box compositor. The direct relay is
+# installed only as a disabled owner-aware fallback and must not be a master
+# lifecycle dependency.
+grep -Fq 'install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-lovable-routing.service' "$ROOT/bin/install.sh"
+grep -Fq 'install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service' "$ROOT/bin/install.sh"
+grep -Fq 'systemctl enable fgbears-youtube-lovable-routing.service' "$ROOT/bin/install.sh"
+grep -Fq 'systemctl enable fgbears-youtube-lovable-compositor.service' "$ROOT/bin/install.sh"
+grep -Fq 'systemctl disable fgbears-youtube-relay.service' "$ROOT/bin/install.sh"
+grep -Fq 'systemctl stop fgbears-youtube-relay.service' "$ROOT/bin/install.sh"
+grep -Fq 'ExecStart=/opt/fgbears-live/bin/youtube-lovable-compositor.sh' "$ROOT/systemd/fgbears-youtube-lovable-compositor.service"
+grep -Fq 'Requires=fgbears-youtube-lovable-routing.service' "$ROOT/systemd/fgbears-youtube-lovable-compositor.service"
+grep -Fq 'fgbears-youtube-lovable-compositor.service' "$ROOT/systemd/fgbears-youtube-audio-watchdog.service"
+if grep -Eq '^(After|Wants|Requires)=.*fgbears-youtube-' "$ROOT/systemd/fgbears-live.service"; then
+  echo 'The shared master must not have a YouTube-specific lifecycle dependency.' >&2
+  exit 1
+fi
+
 grep -Fq 'fgbears-youtube-audio-watchdog.timer' "$ROOT/bin/install.sh"
 grep -Fq -- '-f tee -use_fifo 1' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
@@ -93,11 +107,6 @@ fi
 grep -Fq 'onfail=ignore' "$ROOT/bin/start-stream.sh"
 grep -Fq 'StartLimitBurst=3' "$ROOT/systemd/fgbears-live.service"
 grep -Fq 'Restart=on-failure' "$ROOT/systemd/fgbears-live.service"
-grep -Fq 'Wants=network-online.target fgbears-youtube-relay.service' "$ROOT/systemd/fgbears-live.service"
-if grep -Fq 'Requires=fgbears-youtube-relay.service' "$ROOT/systemd/fgbears-live.service"; then
-  echo 'The YouTube relay must not be a hard lifecycle dependency of the primary encoder.' >&2
-  exit 1
-fi
 
 if find "$ROOT" -type f -name 'stream.env' -print -quit | grep -q .; then
   echo 'A real stream.env file must never be committed.' >&2
