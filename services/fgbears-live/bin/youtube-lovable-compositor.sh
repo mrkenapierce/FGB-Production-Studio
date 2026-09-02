@@ -18,33 +18,24 @@ ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 
+# stream.env supplies secrets/endpoints only. Resource/latency controls below
+# are production invariants and intentionally override any stale values still
+# present in stream.env from earlier 5 Mbps experiments.
 : "${YOUTUBE_STREAM_KEY:?YOUTUBE_STREAM_KEY is required}"
 : "${YOUTUBE_LOCAL_UDP_URL:=udp://127.0.0.1:1939?pkt_size=1316}"
 : "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"
-: "${YOUTUBE_QUESTION_MASK_PORT:=8791}"
-: "${YOUTUBE_OUTPUT_WIDTH:=640}"
-: "${YOUTUBE_OUTPUT_HEIGHT:=360}"
-: "${YOUTUBE_OUTPUT_FPS:=30}"
-: "${YOUTUBE_VIDEO_BITRATE:=2200k}"
-: "${YOUTUBE_VIDEO_MAXRATE:=2500k}"
-: "${YOUTUBE_VIDEO_BUFSIZE:=4400k}"
-: "${YOUTUBE_MONITOR_DIR:=/run/fgbears-youtube-lovable-compositor}"
-: "${YOUTUBE_UDP_FIFO_SIZE:=16384}"
-: "${YOUTUBE_MASTER_THREAD_QUEUE:=256}"
-: "${YOUTUBE_OVERLAY_THREAD_QUEUE:=32}"
+YOUTUBE_QUESTION_MASK_PORT=8791
+YOUTUBE_OUTPUT_WIDTH=640
+YOUTUBE_OUTPUT_HEIGHT=360
+YOUTUBE_OUTPUT_FPS=30
+YOUTUBE_VIDEO_BITRATE=2200k
+YOUTUBE_VIDEO_MAXRATE=2500k
+YOUTUBE_VIDEO_BUFSIZE=4400k
+YOUTUBE_MONITOR_DIR=${YOUTUBE_MONITOR_DIR:-/run/fgbears-youtube-lovable-compositor}
+YOUTUBE_UDP_FIFO_SIZE=16384
+YOUTUBE_MASTER_THREAD_QUEUE=256
+YOUTUBE_OVERLAY_THREAD_QUEUE=32
 
-[[ "$YOUTUBE_OUTPUT_WIDTH" == 640 && "$YOUTUBE_OUTPUT_HEIGHT" == 360 && "$YOUTUBE_OUTPUT_FPS" == 30 ]] || {
-  echo "Same-host Lovable compositor is safety-qualified only for 640x360 at 30 fps." >&2
-  exit 78
-}
-[[ "$YOUTUBE_VIDEO_BITRATE" == 2200k && "$YOUTUBE_VIDEO_MAXRATE" == 2500k && "$YOUTUBE_VIDEO_BUFSIZE" == 4400k ]] || {
-  echo "Same-host Lovable compositor is safety-qualified only for 2200k/2500k/4400k video rate control." >&2
-  exit 78
-}
-[[ "$YOUTUBE_UDP_FIFO_SIZE" == 16384 && "$YOUTUBE_MASTER_THREAD_QUEUE" == 256 && "$YOUTUBE_OVERLAY_THREAD_QUEUE" == 32 ]] || {
-  echo "Same-host Lovable compositor requires the locked low-latency queue profile." >&2
-  exit 78
-}
 [[ -d "$YOUTUBE_MONITOR_DIR" && -w "$YOUTUBE_MONITOR_DIR" ]] || {
   echo "Monitor runtime directory is unavailable: $YOUTUBE_MONITOR_DIR" >&2
   exit 78
