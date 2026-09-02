@@ -56,3 +56,5 @@ jobs:
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" \
             'sudo bash /tmp/deploy-stable-tickers.sh'
+
+# Production retry: crawl health now exposes its 30-fps boundary-swap contract.
