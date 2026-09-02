@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-"""High-quality wrapper for the FGB lower-third crawl renderer.
+"""High-quality deterministic wrapper for the FGB lower-third crawl renderer.
 
 The production program remains 1280x720. This wrapper keeps that exact canvas,
-timing, feed, emoji and sequencing contract, but rasterizes crawl glyphs at 2x
-(or CRAWL_TEXT_RENDER_SCALE) and downsamples with LANCZOS before composition.
-That gives moving type a cleaner antialiased edge without changing crawl speed,
-message order, dimensions, or the stable 30 fps transport.
+timing, feed, emoji and sequencing contract, rasterizes crawl glyphs at 2x (or
+CRAWL_TEXT_RENDER_SCALE), and guarantees that the segment already crossing the
+screen completes before a refreshed payload replaces the sequence.
 """
 from __future__ import annotations
 
 import importlib.util
 import os
 import threading
+import time
 from pathlib import Path
 from typing import Any
 
@@ -96,9 +96,76 @@ def rich_line(text: str, size: int, bold: bool = True, emoji_size: int | None = 
     return result
 
 
-# Base.frame() and Base.prime_emoji_cache() resolve rich_line through their
-# module globals, so this one assignment upgrades both normal and trivia crawls.
+class BoundarySequence:
+    """Queue refreshed crawl payloads and swap them only at segment boundaries."""
+
+    def __init__(self) -> None:
+        self.lock = threading.Lock()
+        self.messages: list[str] = []
+        self.pending: list[str] | None = None
+        self.current = ""
+        self.index = 0
+        self.started = time.monotonic()
+
+    @staticmethod
+    def incoming(value: dict[str, Any]) -> list[str]:
+        if not value.get("active"):
+            return []
+        return [str(item) for item in value.get("messages", []) if str(item).strip()]
+
+    def select(self, value: dict[str, Any], now: float) -> tuple[str, float]:
+        incoming = self.incoming(value)
+        with self.lock:
+            if not self.current:
+                if incoming:
+                    self.messages = list(incoming)
+                    self.pending = None
+                    self.index = 0
+                    self.current = self.messages[0]
+                    self.started = now
+                else:
+                    self.messages = []
+                    self.pending = None
+                    self.index = 0
+                    self.started = now
+            elif incoming == self.messages:
+                # The API may refresh metadata such as updatedAt while visible
+                # text is unchanged. That must never reset or alter motion.
+                self.pending = None
+            elif incoming != self.pending:
+                # Keep the currently displayed segment and active sequence intact.
+                # Only the newest normalized payload needs to survive to boundary.
+                self.pending = list(incoming)
+            return self.current, self.started
+
+    def advance_if_complete(self, x: float, text_width_px: int, now: float) -> bool:
+        with self.lock:
+            if not self.current or x > -text_width_px:
+                return False
+            if self.pending is not None:
+                self.messages = self.pending
+                self.pending = None
+                self.index = 0
+                self.current = self.messages[0] if self.messages else ""
+            elif self.messages:
+                self.index = (self.index + 1) % len(self.messages)
+                self.current = self.messages[self.index]
+            else:
+                self.current = ""
+                self.index = 0
+            self.started = now
+            return True
+
+    def pending_count(self) -> int:
+        with self.lock:
+            return len(self.pending or [])
+
+
+# Base.frame() and Base.prime_emoji_cache() resolve these objects through their
+# module globals, so the assignments upgrade the live crawl without forking the
+# feed parser, layout engine, server, or animation clock.
 BASE.rich_line = rich_line
+BASE.SEQUENCE = BoundarySequence()
 
 
 def main() -> None:
