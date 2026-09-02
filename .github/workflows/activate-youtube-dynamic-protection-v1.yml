@@ -1,4 +1,4 @@
-name: Inspect YouTube Sender Ownership
+name: Cut Over YouTube To Native 720p
 
 on:
   push:
@@ -16,14 +16,18 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  inspect:
+  cutover:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
       ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: lovable-routing-bridge-20260902
+
       - name: Configure SSH
         shell: bash
         run: |
@@ -33,23 +37,21 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Inspect sender services and sockets
+      - name: Stage native 720p compositor
         shell: bash
         run: |
           set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/youtube-lovable-compositor.sh \
+            services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service \
+            services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service \
+            .github/scripts/cutover-youtube-720p.sh \
+            "$target:/tmp/"
+
+      - name: Perform single-owner 720p cutover and certify
+        shell: bash
+        run: |
           set -Eeuo pipefail
-          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-relay.service fgbears-youtube-lovable-compositor.service fgbears-youtube-lovable-routing.service; do
-            echo "UNIT=$u active=$(systemctl is-active "$u" 2>/dev/null || true) enabled=$(systemctl is-enabled "$u" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$u" 2>/dev/null || true)"
-          done
-          echo '---443 SOCKET OWNERS---'
-          sudo ss -ntpH state established | grep ':443 ' || true
-          echo '---1935 SOCKET OWNERS---'
-          sudo ss -ntpH state established | grep ':1935 ' || true
-          echo '---YOUTUBE COMMANDS---'
-          pgrep -af 'youtube|a.rtmps.youtube.com' || true
-          echo '---MASK HEALTH---'
-          curl -fsS --max-time 3 http://127.0.0.1:8791/healthz || true
-          echo
-          echo 'SENDER_INSPECTION=PASS'
-          REMOTE
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" \
+            'sudo bash /tmp/cutover-youtube-720p.sh'
