@@ -1,0 +1,65 @@
+name: Emergency YouTube Router State Snapshot
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/emergency-youtube-router-state-snapshot.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read current YouTube routing state
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          for s in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-relay.service fgbears-youtube-router.service fgbears-youtube-audio-watchdog.timer; do
+            echo "$s active=$(systemctl is-active "$s" 2>/dev/null || true) enabled=$(systemctl is-enabled "$s" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$s" 2>/dev/null || true)"
+          done
+          echo "health_dropin=$(test -e /etc/systemd/system/fgbears-live-health.service.d/90-youtube-emergency-router.conf && echo yes || echo no)"
+          router_pid=$(systemctl show -p MainPID --value fgbears-youtube-router.service 2>/dev/null || echo 0)
+          if [[ "$router_pid" =~ ^[1-9][0-9]*$ ]]; then
+            child=$(pgrep -P "$router_pid" ffmpeg | head -n1 || true)
+            echo "router_child_ffmpeg=${child:-none}"
+            if [[ "$child" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -Eq ':[4]43([[:space:]]|$)'; then
+              echo 'router_rtmps_established=yes'
+            else
+              echo 'router_rtmps_established=no'
+            fi
+          fi
+          python3 - <<'PY'
+          import json,urllib.request
+          req=urllib.request.Request('https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing',headers={'Accept':'application/json','Cache-Control':'no-cache'})
+          with urllib.request.urlopen(req,timeout=3) as r: p=json.loads(r.read().decode())
+          t=p.get('trivia') or {}
+          print('routing_active=',t.get('active'))
+          print('routing_phase=',t.get('phase'))
+          print('routing_stale=',t.get('stale'))
+          print('routing_youtubeMaskActive=',t.get('youtubeMaskActive'))
+          PY
+          echo '--- recent router state changes ---'
+          sudo journalctl -u fgbears-youtube-router.service --since '-10 minutes' --no-pager 2>/dev/null \
+            | grep -E 'loaded card|starting YouTube emergency transport|routing config|video route|RTMPS transport exited|fatal router|GStreamer error' \
+            | sed -E 's#(rtmps?://[^/]+/live2/)[^[:space:]]+#\1[REDACTED]#g' | tail -n 40 || true
+          REMOTE
