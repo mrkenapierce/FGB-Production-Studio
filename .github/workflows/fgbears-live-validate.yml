@@ -18,14 +18,34 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: fgbears-live-validate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   validate:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - name: Install validation tools
-        run: sudo apt-get update && sudo apt-get install -y shellcheck ffmpeg jq python3-pil qrencode
+
+      - name: Install only missing validation tools
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          missing=()
+          command -v shellcheck >/dev/null 2>&1 || missing+=(shellcheck)
+          command -v ffmpeg >/dev/null 2>&1 || missing+=(ffmpeg)
+          command -v jq >/dev/null 2>&1 || missing+=(jq)
+          python3 -c 'from PIL import Image' >/dev/null 2>&1 || missing+=(python3-pil)
+          if ((${#missing[@]})); then
+            echo "Installing missing validation tools: ${missing[*]}"
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq --no-install-recommends "${missing[@]}"
+          else
+            echo 'Validation toolchain already present; skipping apt.'
+          fi
+
       - name: ShellCheck
         run: shellcheck --severity=error services/fgbears-live/bin/*.sh services/fgbears-live/tests/*.sh
       - name: Production invariants
