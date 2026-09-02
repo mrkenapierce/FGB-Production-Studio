@@ -8,20 +8,32 @@ PLAYLIST_FILE=${PLAYLIST_FILE:-/srv/fgbears-live/playlist.ffconcat}
 # Playlist admission policy: every production episode must pass the same
 # canonical media and loudness-profile validation used by add-episode.sh.
 # This prevents manually copied/unprofiled media from bypassing normalization.
+#
+# In an installed production tree validate-media.sh is executable. In a source
+# checkout (including CI) the GitHub contents API can leave shell files readable
+# but not executable, so invoke a readable local shell validator through bash
+# instead of requiring an irrelevant file-mode mutation.
 SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 VALIDATOR=${VALIDATOR:-}
-if [[ -z "$VALIDATOR" ]]; then
-  if [[ -x "$SCRIPT_DIR/validate-media.sh" ]]; then
-    VALIDATOR="$SCRIPT_DIR/validate-media.sh"
-  elif [[ -x /usr/local/bin/fgbears-validate ]]; then
-    VALIDATOR=/usr/local/bin/fgbears-validate
+VALIDATOR_CMD=()
+if [[ -n "$VALIDATOR" ]]; then
+  if [[ -x "$VALIDATOR" ]]; then
+    VALIDATOR_CMD=("$VALIDATOR")
+  elif [[ -r "$VALIDATOR" && "$VALIDATOR" == *.sh ]]; then
+    VALIDATOR_CMD=(bash "$VALIDATOR")
   else
-    echo "FGB media validator is unavailable; refusing to rebuild playlist" >&2
+    echo "Validator is unavailable or unreadable: $VALIDATOR" >&2
     exit 69
   fi
+elif [[ -r "$SCRIPT_DIR/validate-media.sh" ]]; then
+  VALIDATOR_CMD=(bash "$SCRIPT_DIR/validate-media.sh")
+elif [[ -x /usr/local/bin/fgbears-validate ]]; then
+  VALIDATOR_CMD=(/usr/local/bin/fgbears-validate)
+else
+  echo "FGB media validator is unavailable; refusing to rebuild playlist" >&2
+  exit 69
 fi
-[[ -x "$VALIDATOR" ]] || { echo "Validator is not executable: $VALIDATOR" >&2; exit 69; }
-"$VALIDATOR" "$MEDIA_DIR"
+"${VALIDATOR_CMD[@]}" "$MEDIA_DIR"
 
 mapfile -d '' files < <(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4' -print0 | sort -zV)
 [[ ${#files[@]} -gt 0 ]] || { echo "No MP4 files found in $MEDIA_DIR" >&2; exit 65; }
