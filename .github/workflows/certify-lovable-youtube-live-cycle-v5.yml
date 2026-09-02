@@ -107,7 +107,7 @@ jobs:
           q0=$(date +%s)
           echo 'QUESTION_ACTIVE=PASS'
 
-          remote=$(curl -fsS --max-time 6 -H 'Accept: application/json' -H 'Cache-Control: no-cache' -A 'FGB-Live-Cycle-Certifier/5.0' "${ROUTING_URL}?_ts=$(date +%s%N)")
+          remote=$(curl -fsS --max-time 6 -H 'Accept: application/json' -H 'Cache-Control: no-cache' -A 'FGB-Live-Cycle-Certifier/5.1' "${ROUTING_URL}?_ts=$(date +%s%N)")
           printf '%s\n' "$remote" | python3 -c 'import json,sys; t=(json.load(sys.stdin).get("trivia") or {}); assert t.get("youtubeMaskActive") is True,t; assert t.get("phase")=="question",t; assert t.get("stale") is not True,t; assert t.get("adsVisible") is not True,t; assert t.get("isAdBreak") is not True and t.get("adBreakActive") is not True,t; assert t.get("youtubeCreativeKey")=="yt_rumble_trivia_redirect",t; r=t.get("maskRegion") or {}; assert {k:r.get(k) for k in ("x","y","width","height")}=={"x":462,"y":104,"width":798,"height":470},r; print("AUTHORITATIVE_QUESTION_STATE=PASS")'
           python3 -c 'import json,urllib.request; h=json.load(urllib.request.urlopen("http://127.0.0.1:8791/healthz",timeout=3)); w,n=h["frameSize"]; need=w*n*4; r=urllib.request.urlopen("http://127.0.0.1:8791/overlay.rgba",timeout=4); d=r.read(need); r.close(); assert len(d)==need; ratio=sum(1 for a in d[3::4] if a)/(w*n); assert ratio>.95,ratio; print("ACTIVE_OVERLAY=PASS alpha_ratio=%.4f"%ratio)'
 
@@ -116,8 +116,8 @@ jobs:
           printf '%s\n' "$health" | python3 -c 'import json,sys; p=json.load(sys.stdin); assert p.get("active") is True and p.get("phase")=="question",p; print("QUESTION_STILL_ACTIVE=PASS")'
           snapshot_question_segment "$q0"
           ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame_rate,sample_rate,channels -of json "$PROBE" | python3 -c 'import json,sys; p=json.load(sys.stdin); s=p.get("streams",[]); v=next((x for x in s if x.get("codec_type")=="video"),None); a=next((x for x in s if x.get("codec_type")=="audio"),None); assert v and v.get("codec_name")=="h264" and v.get("width")==640 and v.get("height")==360 and v.get("r_frame_rate") in ("30/1","60/2"),v; assert a and a.get("codec_name")=="aac" and a.get("sample_rate")=="44100" and a.get("channels")==2,a; print("ENCODED_CONTRACT=PASS")'
-          news=$(ffmpeg -hide_banner -loglevel error -i "$PROBE" -map 0:v:0 -vf 'crop=640:52:0:0' -an -f framemd5 - | awk '!/^#/ {print $NF}' | sort -u | wc -l)
-          crawl=$(ffmpeg -hide_banner -loglevel error -i "$PROBE" -map 0:v:0 -vf 'crop=640:73:0:287' -an -f framemd5 - | awk '!/^#/ {print $NF}' | sort -u | wc -l)
+          news=$(ffmpeg -nostdin -hide_banner -loglevel error -i "$PROBE" -map 0:v:0 -vf 'crop=640:52:0:0' -an -f framemd5 - | awk '!/^#/ {print $NF}' | sort -u | wc -l)
+          crawl=$(ffmpeg -nostdin -hide_banner -loglevel error -i "$PROBE" -map 0:v:0 -vf 'crop=640:73:0:287' -an -f framemd5 - | awk '!/^#/ {print $NF}' | sort -u | wc -l)
           echo "rss_unique_frames=$news crawl_unique_frames=$crawl"
           (( news >= 2 && crawl >= 2 ))
           echo 'RSS_AND_CRAWL_MOTION=PASS'
