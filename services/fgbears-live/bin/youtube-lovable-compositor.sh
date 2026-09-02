@@ -7,6 +7,11 @@ set -Eeuo pipefail
 # measured production CPU safety margin. The upper news and lower crawl remain
 # live because the moving master is continuously decoded/scaled; only Lovable's
 # question panel is overlaid when the routing consumer emits opaque RGBA.
+#
+# Latency policy: this branch must prefer dropping stale buffered packets over
+# replaying old video after a transient YouTube/network stall. The loopback UDP
+# and raw-overlay queues are intentionally bounded, and the tee FIFO discards
+# overflow while recovering from the current keyframe.
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 [[ -r "$ENV_FILE" ]] || { echo "Missing environment file: $ENV_FILE" >&2; exit 78; }
@@ -24,9 +29,20 @@ source "$ENV_FILE"
 : "${YOUTUBE_VIDEO_MAXRATE:=2500k}"
 : "${YOUTUBE_VIDEO_BUFSIZE:=4400k}"
 : "${YOUTUBE_MONITOR_DIR:=/run/fgbears-youtube-lovable-compositor}"
+: "${YOUTUBE_UDP_FIFO_SIZE:=16384}"
+: "${YOUTUBE_MASTER_THREAD_QUEUE:=256}"
+: "${YOUTUBE_OVERLAY_THREAD_QUEUE:=32}"
 
 [[ "$YOUTUBE_OUTPUT_WIDTH" == 640 && "$YOUTUBE_OUTPUT_HEIGHT" == 360 && "$YOUTUBE_OUTPUT_FPS" == 30 ]] || {
   echo "Same-host Lovable compositor is safety-qualified only for 640x360 at 30 fps." >&2
+  exit 78
+}
+[[ "$YOUTUBE_VIDEO_BITRATE" == 2200k && "$YOUTUBE_VIDEO_MAXRATE" == 2500k && "$YOUTUBE_VIDEO_BUFSIZE" == 4400k ]] || {
+  echo "Same-host Lovable compositor is safety-qualified only for 2200k/2500k/4400k video rate control." >&2
+  exit 78
+}
+[[ "$YOUTUBE_UDP_FIFO_SIZE" == 16384 && "$YOUTUBE_MASTER_THREAD_QUEUE" == 256 && "$YOUTUBE_OVERLAY_THREAD_QUEUE" == 32 ]] || {
+  echo "Same-host Lovable compositor requires the locked low-latency queue profile." >&2
   exit 78
 }
 [[ -d "$YOUTUBE_MONITOR_DIR" && -w "$YOUTUBE_MONITOR_DIR" ]] || {
@@ -35,11 +51,12 @@ source "$ENV_FILE"
 }
 
 LOCAL_BASE=${YOUTUBE_LOCAL_UDP_URL%%\?*}
-LOCAL_INPUT="${LOCAL_BASE}?fifo_size=1000000&overrun_nonfatal=1&reuse=1"
+LOCAL_INPUT="${LOCAL_BASE}?fifo_size=${YOUTUBE_UDP_FIFO_SIZE}&overrun_nonfatal=1&reuse=1"
 HEALTH_URL="http://127.0.0.1:${YOUTUBE_QUESTION_MASK_PORT}/healthz"
 OVERLAY_URL="http://127.0.0.1:${YOUTUBE_QUESTION_MASK_PORT}/overlay.rgba"
 UPSTREAM_TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 MONITOR_PATTERN="${YOUTUBE_MONITOR_DIR%/}/monitor-%d.ts"
+FIFO_OPTIONS='attempt_recovery=1:recover_any_error=1:recovery_wait_time=1:drop_pkts_on_overflow=1:restart_with_keyframe=1'
 rm -f "${YOUTUBE_MONITOR_DIR%/}"/monitor-*.ts
 
 health=$(curl -fsS --max-time 3 "$HEALTH_URL")
@@ -62,17 +79,18 @@ EOF
 
 [[ "$CREATIVE" == yt_rumble_trivia_redirect && "$AUTHORITY" == lovable_public_stream_routing ]]
 
-echo "Starting Lovable-controlled YouTube compositor: 640x360/30, panel=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}." >&2
+echo "Starting Lovable-controlled YouTube compositor: 640x360/30, panel=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}, video=2200k, bounded-latency queues." >&2
 
 # A single encode feeds YouTube and a bounded read-only monitor. The monitor is
 # three rotating 2-second MPEG-TS segments in /run (tmpfs), so it is always
 # available for verification, does not need a pre-existing UDP listener, and can
-# never grow without bound. It costs no second encode.
+# never grow without bound. It costs no second encode. The YouTube FIFO recovers
+# aggressively but drops stale queued packets so reconnects resume near-live.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
   -fflags +genpts+discardcorrupt -probesize 10000000 -analyzeduration 10000000 \
-  -thread_queue_size 512 -i "$LOCAL_INPUT" \
-  -thread_queue_size 512 -f rawvideo -pixel_format rgba -video_size "${MASK_WIDTH}x${MASK_HEIGHT}" -framerate "$YOUTUBE_OUTPUT_FPS" \
+  -thread_queue_size "$YOUTUBE_MASTER_THREAD_QUEUE" -i "$LOCAL_INPUT" \
+  -thread_queue_size "$YOUTUBE_OVERLAY_THREAD_QUEUE" -f rawvideo -pixel_format rgba -video_size "${MASK_WIDTH}x${MASK_HEIGHT}" -framerate "$YOUTUBE_OUTPUT_FPS" \
   -i "$OVERLAY_URL" \
   -filter_complex "[0:v:0]scale=${YOUTUBE_OUTPUT_WIDTH}:${YOUTUBE_OUTPUT_HEIGHT}:flags=fast_bilinear[base];[base][1:v:0]overlay=${MASK_X}:${MASK_Y}:format=auto:shortest=1[v]" \
   -map '[v]' -map 0:a:0 \
@@ -82,5 +100,5 @@ exec ffmpeg \
   -threads 1 -x264-params 'repeat-headers=1:keyint=60:min-keyint=60:scenecut=0' \
   -c:a aac -profile:a aac_low -b:a 128k -ar 44100 -ac 2 \
   -af 'aresample=44100:async=1:first_pts=0' \
-  -f tee -use_fifo 1 -fifo_options 'attempt_recovery=1:recover_any_error=1' \
+  -f tee -use_fifo 1 -fifo_options "$FIFO_OPTIONS" \
   "[f=flv:onfail=abort]${UPSTREAM_TARGET}|[f=segment:segment_time=2:segment_wrap=3:segment_format=mpegts:reset_timestamps=1:onfail=ignore]${MONITOR_PATTERN}"
