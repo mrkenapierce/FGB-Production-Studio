@@ -1,0 +1,98 @@
+name: Verify YouTube Exact Card V4 Live Cycle
+
+on:
+  push:
+    paths:
+      - '.github/workflows/verify-youtube-exact-card-v4-live-cycle.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Observe one post-v4 question cycle read-only
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          status_file=/var/lib/fgbears-live/youtube-freeze-card.status
+          status=$(sudo cat "$status_file")
+          echo "freeze_card_status=$status"
+          grep -F 'result=updated ' <<<"$status" >/dev/null
+          grep -F 'panel=462,104,798,470' <<<"$status" >/dev/null
+          grep -F 'card=462,114,798,449' <<<"$status" >/dev/null
+          grep -F 'source=locked-yt_rumble_trivia_redirect' <<<"$status" >/dev/null
+          grep -F 'mode=exact-card-v4' <<<"$status" >/dev/null
+          published=$(sed -n 's/.* at=\([^ ]*\) .*/\1/p' <<<"$status")
+          test -n "$published"
+          echo "V4_PUBLISHED_AT=$published"
+
+          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_before=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          router_before=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ && "$rumble_before" =~ ^[1-9][0-9]*$ && "$router_before" =~ ^[1-9][0-9]*$ ]]
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          systemctl is-active --quiet fgbears-youtube-router.service
+          systemctl is-active --quiet fgbears-youtube-freeze-card-refresh.timer
+          systemctl is-enabled --quiet fgbears-youtube-freeze-card-refresh.timer
+
+          # Wait for a complete route cycle after this exact v4 card publication.
+          verified=0
+          deadline=$(( $(date +%s) + 1250 ))
+          while (( $(date +%s) < deadline )); do
+            logs=$(sudo journalctl -u fgbears-youtube-router.service --since "$published" --no-pager 2>/dev/null || true)
+            hot=0; to_card=0; to_live=0
+            grep -F 'hot-reloaded freeze-box card' <<<"$logs" >/dev/null && hot=1 || true
+            grep -F 'video route switched: live -> card' <<<"$logs" >/dev/null && to_card=1 || true
+            grep -F 'video route switched: card -> live' <<<"$logs" >/dev/null && to_live=1 || true
+            if (( hot == 1 && to_card == 1 && to_live == 1 )); then
+              verified=1
+              echo 'LIVE_V4_QUESTION_CYCLE=live_to_exact_card_to_live'
+              break
+            fi
+            sleep 3
+          done
+          test "$verified" = 1
+
+          # Status must still identify the exact locked-card implementation.
+          current=$(sudo cat "$status_file")
+          grep -F 'mode=exact-card-v4' <<<"$current" >/dev/null
+          grep -F 'source=locked-yt_rumble_trivia_redirect' <<<"$current" >/dev/null
+
+          master_after=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_after=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          router_after=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
+          test "$master_after" = "$master_before"
+          test "$rumble_after" = "$rumble_before"
+          test "$router_after" = "$router_before"
+
+          child=$(pgrep -P "$router_after" ffmpeg | head -n1 || true)
+          [[ "$child" =~ ^[1-9][0-9]*$ ]]
+          sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -E ':443([[:space:]]|$)' >/dev/null
+
+          echo "MASTER_PID_UNCHANGED=$master_after"
+          echo "RUMBLE_PID_UNCHANGED=$rumble_after"
+          echo "YOUTUBE_ROUTER_PID_UNCHANGED=$router_after"
+          echo 'YOUTUBE_RTMPS_ESTABLISHED=yes'
+          echo 'FREEZE_REFRESH_TIMER=enabled_active'
+          echo 'EXACT_CARD_V4_LIVE_VERIFICATION=PASS'
+          REMOTE
