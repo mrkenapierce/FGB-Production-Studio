@@ -1,0 +1,73 @@
+name: Probe Current FGB Audio and Trivia State
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgb-current-audio-overlay-probe.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Inspect current production state
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MEDIA=/srv/fgbears-live/media
+          echo '=== SERVICES ==='
+          for svc in fgbears-live.service fgbears-youtube-relay.service fgbears-rumble-relay.service; do
+            printf '%s=' "$svc"; systemctl is-active "$svc" || true
+          done
+          echo '=== PLAYLIST ==='
+          echo "PLAYLIST_EPISODES=$(grep -c '^file .*FGBears-Episode-' /srv/fgbears-live/playlist.ffconcat || true)"
+          grep '^file .*FGBears-Episode-' /srv/fgbears-live/playlist.ffconcat | tail -n 8 || true
+          echo '=== VERIFIED AUDIO PROFILES ==='
+          echo "PROFILE_COUNT=$(find "$MEDIA" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4.audio-profile.json' | wc -l | tr -d ' ')"
+          for n in $(seq -w 1 33); do
+            f="$MEDIA/FGBears-Episode-${n}.mp4"
+            p="$f.audio-profile.json"
+            if [[ -s "$f" ]]; then
+              if [[ -s "$p" ]]; then
+                sha=$(sha256sum "$f" | awk '{print $1}')
+                ok=$(jq -r --arg sha "$sha" 'if .profile == "fgb-podcast-v1" and .sha256 == $sha and ((.measured_i_lufs + 14) | if . < 0 then -. else . end) <= 0.8 and .measured_tp_dbtp <= -1.0 then "VERIFIED" else "PROFILE_FAIL" end' "$p" 2>/dev/null || echo PROFILE_FAIL)
+                printf 'EPISODE_%s=%s\n' "$n" "$ok"
+              else
+                printf 'EPISODE_%s=MEDIA_ONLY\n' "$n"
+              fi
+            else
+              printf 'EPISODE_%s=ABSENT\n' "$n"
+            fi
+          done
+          echo '=== POSSIBLE 32/33 SOURCES ON ORACLE ==='
+          find /home/ubuntu /srv/fgbears-live -maxdepth 4 -type f \( -iname '*Episode*32*' -o -iname '*Episode*032*' -o -iname '*Episode*33*' -o -iname '*Episode*033*' \) -printf '%s %p\n' 2>/dev/null | sort -k2 || true
+          echo '=== NORMALIZATION PROCESSES ==='
+          pgrep -af 'normalize|loudnorm|audio-migration' || true
+          echo '=== GAME SCREEN PAYLOAD ==='
+          curl -fsS --max-time 8 -H 'Accept: application/json' -H 'Cache-Control: no-cache' \
+            "https://epiccontentcreatorgrants.org/api/public/fgbears/game-screen?_ts=$(date +%s)" | jq . || true
+          echo '=== ROUTING PAYLOAD ==='
+          curl -fsS --max-time 8 -H 'Accept: application/json' -H 'Cache-Control: no-cache' \
+            "https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing?_ts=$(date +%s)" | jq . || true
+          REMOTE
