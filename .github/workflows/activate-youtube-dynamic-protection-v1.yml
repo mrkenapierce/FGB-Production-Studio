@@ -1,4 +1,4 @@
-name: Restore Locked Exact-Box Low-Lag YouTube
+name: Audit Exact-Box YouTube Load
 
 on:
   push:
@@ -11,23 +11,15 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: fgbears-production-overlay-maintenance
-  cancel-in-progress: false
-
 jobs:
-  restore:
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
       ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: lovable-routing-bridge-20260902
-
       - name: Configure SSH
         shell: bash
         run: |
@@ -37,150 +29,75 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Stage locked exact-box files
+      - name: Read-only production audit
         shell: bash
         run: |
           set -Eeuo pipefail
           target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
-          scp -i ~/.ssh/oracle_key \
-            services/fgbears-live/bin/youtube-lovable-compositor.sh \
-            services/fgbears-live/bin/youtube-question-mask.py \
-            services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service \
-            services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service \
-            "$target:/tmp/"
+          ssh -i ~/.ssh/oracle_key "$target" 'python3 -' <<'PY'
+          import json, subprocess, urllib.request
 
-      - name: Restore YouTube only with guarded fallback
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
-          ssh -i ~/.ssh/oracle_key "$target" 'sudo bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          MASTER=fgbears-live.service
-          RUMBLE=fgbears-rumble-relay.service
-          LEGACY=fgbears-youtube-relay.service
-          COMP=fgbears-youtube-lovable-compositor.service
-          ROUTING=fgbears-youtube-lovable-routing.service
-          COMP_SCRIPT=/opt/fgbears-live/bin/youtube-lovable-compositor.sh
-          MASK_SCRIPT=/opt/fgbears-live/bin/youtube-question-mask.py
-          COMP_UNIT=/etc/systemd/system/fgbears-youtube-lovable-compositor.service
-          ROUTING_UNIT=/etc/systemd/system/fgbears-youtube-lovable-routing.service
-          BACKUP=$(mktemp -d /tmp/fgb-exact-box-restore.XXXXXX)
-          CUT=0
-          SUCCESS=0
+          def sh(cmd):
+              return subprocess.check_output(cmd,shell=True,text=True).strip()
+          def pid(unit):
+              return sh(f"systemctl show -p MainPID --value {unit}")
+          def state(unit):
+              return sh(f"systemctl is-active {unit} 2>/dev/null || true")
+          def connected(process_pid,port):
+              raw=sh("ss -ntpH state established 2>/dev/null || true")
+              return any(f"pid={process_pid}" in line and f":{port}" in line for line in raw.splitlines())
 
-          active(){ systemctl is-active --quiet "$1"; }
-          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-          has_port(){ local p="$1" q="$2"; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v p="pid=$p" -v q=":$q" 'index($0,p)&&index($0,q){ok=1} END{exit(ok?0:1)}'; }
-          speed(){ awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true; }
+          units=[
+              "fgbears-live.service",
+              "fgbears-rumble-relay.service",
+              "fgbears-youtube-lovable-compositor.service",
+              "fgbears-youtube-lovable-routing.service",
+              "fgbears-youtube-relay.service",
+              "fgbears-youtube-router.service",
+          ]
+          print("SERVICE_STATES")
+          for u in units:
+              print(u,state(u),pid(u))
 
-          rollback(){
-            rc=$?
-            (( SUCCESS == 0 )) || return 0
-            echo "RESTORE_ROLLBACK=BEGIN rc=$rc cut=$CUT"
-            systemctl stop "$COMP" "$ROUTING" 2>/dev/null || true
-            [[ -f "$BACKUP/compositor.sh" ]] && install -m 0755 "$BACKUP/compositor.sh" "$COMP_SCRIPT" || true
-            [[ -f "$BACKUP/mask.py" ]] && install -m 0755 "$BACKUP/mask.py" "$MASK_SCRIPT" || true
-            [[ -f "$BACKUP/compositor.service" ]] && install -m 0644 "$BACKUP/compositor.service" "$COMP_UNIT" || true
-            [[ -f "$BACKUP/routing.service" ]] && install -m 0644 "$BACKUP/routing.service" "$ROUTING_UNIT" || true
-            systemctl daemon-reload || true
-            if (( CUT == 1 )); then
-              systemctl reset-failed "$LEGACY" || true
-              systemctl start "$LEGACY" || true
-            fi
-            echo "RESTORE_ROLLBACK_FALLBACK legacy_active=$(systemctl is-active "$LEGACY" 2>/dev/null || true) legacy_pid=$(pid "$LEGACY")"
-            rm -rf "$BACKUP"
-            exit "$rc"
-          }
-          trap rollback EXIT
+          assert state("fgbears-live.service")=="active"
+          assert state("fgbears-rumble-relay.service")=="active"
+          assert state("fgbears-youtube-lovable-compositor.service")=="active"
+          assert state("fgbears-youtube-lovable-routing.service")=="active"
+          assert state("fgbears-youtube-relay.service")!="active"
+          assert state("fgbears-youtube-router.service")!="active"
 
-          active "$MASTER"
-          active "$RUMBLE"
-          MASTER0=$(pid "$MASTER")
-          RUMBLE0=$(pid "$RUMBLE")
-          LEGACY0=$(pid "$LEGACY")
-          COMP0=$(pid "$COMP")
-          echo "PRE master=$MASTER0 rumble=$RUMBLE0 legacy=$LEGACY0 compositor=$COMP0 master_speed=$(speed) load=$(cut -d' ' -f1-3 /proc/loadavg)"
-          echo "PRE_YOUTUBE_SERVICES"
-          systemctl --no-pager --plain --type=service --state=running | grep -E 'fgbears.*youtube|youtube.*fgbears' || true
-          has_port "$RUMBLE0" 1935
-          # A known YouTube owner must exist before we cut it over.
-          if ! active "$LEGACY" && ! active "$COMP"; then
-            echo "No known YouTube sender is active; refusing blind cutover." >&2
-            exit 1
-          fi
+          master=pid("fgbears-live.service")
+          rumble=pid("fgbears-rumble-relay.service")
+          comp=pid("fgbears-youtube-lovable-compositor.service")
+          assert connected(rumble,1935),"Rumble socket missing"
+          assert connected(comp,443),"YouTube compositor socket missing"
 
-          cp -a "$COMP_SCRIPT" "$BACKUP/compositor.sh" 2>/dev/null || true
-          cp -a "$MASK_SCRIPT" "$BACKUP/mask.py" 2>/dev/null || true
-          cp -a "$COMP_UNIT" "$BACKUP/compositor.service" 2>/dev/null || true
-          cp -a "$ROUTING_UNIT" "$BACKUP/routing.service" 2>/dev/null || true
+          with urllib.request.urlopen("http://127.0.0.1:8791/healthz",timeout=3) as r:
+              h=json.loads(r.read().decode())
+          assert h.get("canvas")==[640,360],h
+          assert h.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470},h
+          assert h.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235},h
+          assert h.get("frameSize")==[399,235],h
+          assert h.get("executionScaling")=="proportional_downstream",h
+          print("EXACT_BOX_HEALTH=PASS",json.dumps(h,sort_keys=True))
 
-          install -m 0755 /tmp/youtube-lovable-compositor.sh "$COMP_SCRIPT"
-          install -m 0755 /tmp/youtube-question-mask.py "$MASK_SCRIPT"
-          install -m 0644 /tmp/fgbears-youtube-lovable-compositor.service "$COMP_UNIT"
-          install -m 0644 /tmp/fgbears-youtube-lovable-routing.service "$ROUTING_UNIT"
-          systemctl daemon-reload
-          systemctl enable "$COMP" "$ROUTING" >/dev/null
+          cmd=sh(f"tr '\\0' ' ' </proc/{comp}/cmdline")
+          assert "scale=640:360:flags=fast_bilinear" in cmd,cmd
+          assert "overlay=231:52:format=auto:shortest=1" in cmd,cmd
+          assert "aresample=44100:async=1:first_pts=0" in cmd,cmd
+          print("COMPOSITOR_COMMAND=PASS")
 
-          # Prepare and validate the exact-box control plane while the current
-          # YouTube sender remains online.
-          systemctl restart "$ROUTING"
-          MASK_OK=0
-          health=''
-          for _ in $(seq 1 30); do
-            if health=$(curl -fsS --max-time 2 http://127.0.0.1:8791/healthz 2>/dev/null); then
-              if printf '%s' "$health" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("sourceCanvas")==[1280,720],p;assert p.get("canvas")==[640,360],p;assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470},p;assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235},p;assert p.get("frameSize")==[399,235],p;assert p.get("executionScaling")=="proportional_downstream",p;assert p.get("fps")==30,p' 2>/dev/null; then MASK_OK=1; break; fi
-            fi
-            sleep 1
-          done
-          (( MASK_OK == 1 ))
-          echo "EXACT_BOX_CONTROL_PLANE=PASS $health"
+          speed=sh("awk -F= '$1==\"speed\"{v=$2} END{gsub(/x/,\"\",v);print v}' /srv/fgbears-live/logs/ffmpeg-progress.log")
+          cpu=float(sh(f"ps -p {comp} -o %cpu= | tr -d ' '"))
+          load=sh("cut -d' ' -f1-3 /proc/loadavg")
+          print(f"RESOURCE master_speed={speed or 'unknown'}x compositor_cpu={cpu}% load={load}")
+          if speed:
+              assert float(speed)>=0.985,speed
+          assert cpu<=40,cpu
 
-          # Now perform the YouTube-only sender handoff.
-          systemctl stop "$COMP" 2>/dev/null || true
-          systemctl stop "$LEGACY" 2>/dev/null || true
-          CUT=1
-          systemctl disable "$LEGACY" >/dev/null 2>&1 || true
-          systemctl reset-failed "$COMP" || true
-          systemctl start "$COMP"
-
-          CONNECTED=0
-          for _ in $(seq 1 30); do
-            COMP1=$(pid "$COMP")
-            if active "$COMP" && has_port "$COMP1" 443; then CONNECTED=1; break; fi
-            sleep 1
-          done
-          (( CONNECTED == 1 ))
-          echo "YOUTUBE_OWNER=EXACT_BOX_360 compositor_pid=$COMP1"
-
-          SEG=''
-          for _ in $(seq 1 20); do
-            SEG=$(find /run/fgbears-youtube-lovable-compositor -maxdepth 1 -type f -name 'monitor-*.ts' -size +1000c -printf '%T@ %p\n' 2>/dev/null | sort -nr | awk 'NR==1{sub(/^[^ ]+ /,"");print}' || true)
-            [[ -n "$SEG" ]] && break
-            sleep 1
-          done
-          [[ -n "$SEG" ]]
-          ffprobe -v error -show_streams -of json "$SEG" | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p.get("streams",[]);v=next(x for x in s if x.get("codec_type")=="video");a=next(x for x in s if x.get("codec_type")=="audio");assert (int(v.get("width",0)),int(v.get("height",0)))==(640,360),v;assert v.get("r_frame_rate") in {"30/1","60/2"},v;assert int(a.get("sample_rate",0))==44100,a;assert int(a.get("channels",0))==2,a;print("YOUTUBE_MEDIA=PASS 640x360@30 AAC=44100Hz/2ch")'
-
-          sleep 20
-          COMP2=$(pid "$COMP")
-          [[ "$COMP2" == "$COMP1" ]]
-          active "$COMP"
-          active "$ROUTING"
-          ! active "$LEGACY"
-          has_port "$COMP2" 443
-          [[ "$(pid "$MASTER")" == "$MASTER0" ]]
-          [[ "$(pid "$RUMBLE")" == "$RUMBLE0" ]]
-          has_port "$RUMBLE0" 1935
-          CPU=$(ps -p "$COMP2" -o %cpu= | tr -d ' ')
-          SPEED=$(speed)
-          python3 -c 'import sys;c=float(sys.argv[1]);assert c<=40.0,c' "$CPU"
-          if [[ -n "$SPEED" ]]; then python3 -c 'import sys;s=float(sys.argv[1]);assert s>=0.985,s' "$SPEED"; fi
-          echo "POST compositor_cpu=${CPU}% master_speed=${SPEED:-unknown}x load=$(cut -d' ' -f1-3 /proc/loadavg)"
-          echo "MASTER_RUMBLE_UNCHANGED=PASS master=$MASTER0 rumble=$RUMBLE0"
-          echo "EXACT_BOX_LOW_LAG_RESTORE=PASS youtube=$COMP2"
-
-          SUCCESS=1
-          trap - EXIT
-          rm -rf "$BACKUP" /tmp/youtube-lovable-compositor.sh /tmp/youtube-question-mask.py /tmp/fgbears-youtube-lovable-compositor.service /tmp/fgbears-youtube-lovable-routing.service
-          REMOTE
+          print("FFMPEG_PROCESSES")
+          print(sh("ps -eo pid,ppid,%cpu,%mem,etime,comm,args --sort=-%cpu | grep '[f]fmpeg' | head -20"))
+          print("TOP_CPU")
+          print(sh("ps -eo pid,ppid,%cpu,%mem,etime,comm,args --sort=-%cpu | head -16"))
+          print("LOAD_AUDIT=PASS")
+          PY
