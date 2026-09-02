@@ -47,20 +47,16 @@ canonical_relay_process() {
   [[ "$args" == *"ffmpeg"* ]] || return 1
   [[ "$args" == *"udp://127.0.0.1:1939"* ]] || return 1
   [[ "$args" == *"rtmps://a.rtmps.youtube.com/"* || "$args" == *"rtmp://"* ]] || return 1
+  [[ "$args" == *" -c:v copy "* ]] || return 1
+  [[ "$args" == *" -c:a aac "* ]] || return 1
+  [[ "$args" == *" -profile:a aac_low "* ]] || return 1
+  [[ "$args" == *" -b:a 128k "* ]] || return 1
+  [[ "$args" == *" -ar 44100 "* ]] || return 1
+  [[ "$args" == *" -ac 2 "* ]] || return 1
+  [[ "$args" == *"aresample=44100:async=1:first_pts=0"* ]] || return 1
   [[ "$args" != *"youtube-stream-router"* ]] || return 1
   [[ "$args" != *"gst-launch"* ]] || return 1
   [[ "$args" != *"libx264"* ]] || return 1
-
-  # Transition-safe acceptance: the old bitstream-copy relay remains valid only
-  # while the dedicated YouTube AAC relay is being deployed. The new path keeps
-  # video untouched while freshly clocking stereo AAC for YouTube ingest.
-  if [[ "$args" == *" -c:v copy "* && "$args" == *" -c:a aac "* ]]; then
-    [[ "$args" == *" -b:a 128k "* ]] || return 1
-    [[ "$args" == *" -ar 44100 "* ]] || return 1
-    [[ "$args" == *" -ac 2 "* ]] || return 1
-  else
-    [[ "$args" == *" -c copy "* ]] || return 1
-  fi
   return 0
 }
 
@@ -179,6 +175,11 @@ run_source_audio_check() {
   rc=$?
   set -e
   if (( rc == 0 )); then
+    # A successful fresh sample clears a stale source-only warning. Previously
+    # this file persisted indefinitely and caused false WARN supervisor states.
+    if [[ -s "$WARNING_FILE" ]] && grep -q 'reason=SOURCE_AUDIO_WARNING' "$WARNING_FILE"; then
+      rm -f "$WARNING_FILE"
+    fi
     return 0
   fi
   warnings=$(printf '%s\n' "$output" | grep -E '^(AUDIO_WARNINGS|REASON)=' | tr '\n' ' ' || true)
@@ -242,8 +243,6 @@ main() {
 
   rm -f "$SOCKET_FAILURE_FILE"
   run_source_audio_check
-  # Preserve a source warning if one was just recorded; otherwise clear stale
-  # relay warnings now that the transport path is healthy.
   if [[ -s "$WARNING_FILE" ]] && grep -q 'reason=SOURCE_AUDIO_WARNING' "$WARNING_FILE"; then
     write_status WARN SOURCE_AUDIO_WARNING no
   else
