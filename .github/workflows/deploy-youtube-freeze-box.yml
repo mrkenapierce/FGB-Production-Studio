@@ -1,0 +1,214 @@
+name: Deploy YouTube Freeze Box
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/freezebox/**'
+      - '.github/workflows/deploy-youtube-freeze-box.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-freeze-box
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate staged freeze-box files
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n .github/freezebox/youtube-freeze-card-refresh.sh
+          python3 -m py_compile .github/freezebox/youtube-stream-router-freezebox.py
+          grep -Fq 'x=480' .github/freezebox/youtube-freeze-card-refresh.sh
+          grep -Fq 'y=200' .github/freezebox/youtube-freeze-card-refresh.sh
+          grep -Fq 'w=640' .github/freezebox/youtube-freeze-card-refresh.sh
+          grep -Fq 'h=360' .github/freezebox/youtube-freeze-card-refresh.sh
+          grep -Fq 'TRIVIA IS LIVE ON RUMBLE' .github/freezebox/youtube-freeze-card-refresh.sh
+          echo 'STAGED_FREEZE_BOX_VALIDATION=PASS'
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY'; exit 1; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Install, validate, and cut over YouTube only
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          repo=/tmp/fgb-freezebox-deploy
+          unit=/etc/systemd/system/fgbears-youtube-router.service
+          backup=/tmp/fgbears-youtube-router.service.pre-freezebox
+          dynamic=/var/lib/fgbears-live/youtube-freeze-card.h264
+          original=/opt/fgbears-live/assets/youtube-rumble-trivia.h264
+          cutover_started=0
+          success=0
+
+          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_before=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          router_before=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$router_before" =~ ^[1-9][0-9]*$ ]]
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          systemctl is-active --quiet fgbears-youtube-router.service
+
+          rollback() {
+            rc=$?
+            if (( success == 0 && cutover_started == 1 )); then
+              echo 'FREEZE_BOX_ROLLBACK=START'
+              sudo systemctl disable --now fgbears-youtube-freeze-card-refresh.timer >/dev/null 2>&1 || true
+              if [[ -s "$backup" ]]; then
+                sudo install -m 0644 "$backup" "$unit"
+                sudo systemctl daemon-reload
+                sudo systemctl reset-failed fgbears-youtube-router.service || true
+                sudo systemctl restart fgbears-youtube-router.service || true
+                for i in $(seq 1 45); do
+                  systemctl is-active --quiet fgbears-youtube-router.service && break
+                  sleep 1
+                done
+              fi
+              echo 'FREEZE_BOX_ROLLBACK=DONE'
+            fi
+            exit "$rc"
+          }
+          trap rollback ERR INT TERM
+
+          rm -rf "$repo"
+          git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git "$repo" >/dev/null
+          sudo cp "$unit" "$backup"
+
+          # Stage new code and refresh units. Nothing here restarts any stream.
+          sudo install -m 0755 "$repo/.github/freezebox/youtube-stream-router-freezebox.py" /opt/fgbears-live/bin/youtube-stream-router-freezebox.py
+          sudo install -m 0755 "$repo/.github/freezebox/youtube-freeze-card-refresh.sh" /usr/local/bin/fgbears-youtube-freeze-card-refresh
+          sudo install -m 0644 "$repo/.github/freezebox/fgbears-youtube-freeze-card-refresh.service" /etc/systemd/system/fgbears-youtube-freeze-card-refresh.service
+          sudo install -m 0644 "$repo/.github/freezebox/fgbears-youtube-freeze-card-refresh.timer" /etc/systemd/system/fgbears-youtube-freeze-card-refresh.timer
+          sudo install -d -m 0755 -o fgbears -g fgbears /var/lib/fgbears-live
+          if [[ ! -s "$dynamic" ]]; then
+            sudo cp "$original" "$dynamic"
+            sudo chown fgbears:fgbears "$dynamic"
+            sudo chmod 0644 "$dynamic"
+          fi
+          sudo systemctl daemon-reload
+
+          # Create the first actual freeze-box asset BEFORE changing the router.
+          sudo rm -f /var/lib/fgbears-live/youtube-freeze-card.status
+          sudo systemctl start fgbears-youtube-freeze-card-refresh.service
+          status=$(sudo cat /var/lib/fgbears-live/youtube-freeze-card.status 2>/dev/null || true)
+          echo "freeze_card_status=$status"
+          grep -q '^result=updated ' <<<"$status"
+          test -s "$dynamic"
+
+          # Parse validation uses the exact proven production router parser.
+          sudo -u fgbears /usr/bin/python3 /opt/fgbears-live/bin/youtube-stream-router-emergency.py --card "$dynamic" --validate-card >/tmp/freezebox-card-validate.json
+          cat /tmp/freezebox-card-validate.json
+          grep -q '"ok": true' /tmp/freezebox-card-validate.json
+          dimensions=$(ffprobe -v error -f h264 -select_streams v:0 -show_entries stream=codec_name,width,height,pix_fmt -of csv=p=0 "$dynamic")
+          echo "freeze_card_stream=$dimensions"
+          grep -Eq '^h264,1280,720,yuv420p$' <<<"$dimensions"
+
+          # Ensure the master and Rumble have not moved during asset generation.
+          test "$(systemctl show -p MainPID --value fgbears-live.service)" = "$master_before"
+          test "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" = "$rumble_before"
+
+          # Never restart the YouTube router while a question is exposed. Wait for
+          # a fresh non-question routing state, then make the brief YouTube-only handoff.
+          python3 - <<'PY'
+import json, time, urllib.request
+url='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing'
+deadline=time.time()+150
+while time.time()<deadline:
+    try:
+        req=urllib.request.Request(url+'?_cutover='+str(time.time_ns()),headers={'Cache-Control':'no-cache','Pragma':'no-cache'})
+        with urllib.request.urlopen(req,timeout=3) as r: p=json.loads(r.read())
+        t=p.get('trivia') if isinstance(p,dict) else None
+        if isinstance(t,dict) and t.get('stale') is not True and t.get('youtubeMaskActive') is not True and t.get('phase') != 'question':
+            print('CUTOVER_WINDOW=SAFE phase='+str(t.get('phase')))
+            raise SystemExit(0)
+    except SystemExit:
+        raise
+    except Exception as e:
+        print('waiting for safe cutover:',e)
+    time.sleep(2)
+raise SystemExit('No safe YouTube cutover window within 150 seconds')
+PY
+
+          sudo install -m 0644 "$repo/.github/freezebox/fgbears-youtube-router.service" "$unit"
+          sudo systemctl daemon-reload
+          cutover_started=1
+          sudo systemctl reset-failed fgbears-youtube-router.service
+          sudo systemctl restart fgbears-youtube-router.service
+
+          # Router must survive startup and establish its YouTube RTMPS transport.
+          connected=0
+          for i in $(seq 1 50); do
+            if ! systemctl is-active --quiet fgbears-youtube-router.service; then
+              sleep 1
+              continue
+            fi
+            router_pid=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
+            child=$(pgrep -P "$router_pid" ffmpeg | head -n1 || true)
+            if [[ "$child" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -Eq ':443([[:space:]]|$)'; then
+              connected=1
+              break
+            fi
+            sleep 1
+          done
+          test "$connected" = 1
+
+          # Core isolation invariant: only the YouTube router PID may change.
+          master_after=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_after=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          router_after=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
+          test "$master_after" = "$master_before"
+          test "$rumble_after" = "$rumble_before"
+          test "$router_after" != "$router_before"
+
+          # Prove hot reload without restarting YouTube: bump mtime on the already
+          # validated card and require the wrapper to adopt it in memory.
+          sudo touch "$dynamic"
+          hot=0
+          for i in $(seq 1 10); do
+            if sudo journalctl -u fgbears-youtube-router.service --since '-30 seconds' --no-pager | grep -q 'hot-reloaded freeze-box card'; then
+              hot=1
+              break
+            fi
+            sleep 1
+          done
+          test "$hot" = 1
+
+          sudo systemctl enable --now fgbears-youtube-freeze-card-refresh.timer
+          systemctl is-active --quiet fgbears-youtube-freeze-card-refresh.timer
+          systemctl is-enabled --quiet fgbears-youtube-freeze-card-refresh.timer
+
+          echo "MASTER_PID_UNCHANGED=$master_after"
+          echo "RUMBLE_PID_UNCHANGED=$rumble_after"
+          echo "YOUTUBE_ROUTER_PID=$router_after"
+          echo 'YOUTUBE_RTMPS_ESTABLISHED=yes'
+          echo 'FREEZE_BOX_HOT_RELOAD=yes'
+          echo 'FREEZE_BOX_TIMER=enabled_active'
+          echo 'FREEZE_BOX_DEPLOY=PASS'
+          success=1
+          trap - ERR INT TERM
+          REMOTE
