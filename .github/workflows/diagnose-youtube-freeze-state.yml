@@ -25,19 +25,26 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Read safe-state diagnostics only
+      - name: Read freeze-box diagnostics only
         shell: bash
         run: |
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
+          echo '=== REFRESH STATUS ==='
+          sudo systemctl status fgbears-youtube-freeze-card-refresh.service --no-pager || true
           echo '=== REFRESH JOURNAL ==='
-          sudo journalctl -u fgbears-youtube-freeze-card-refresh.service -n 120 --no-pager || true
+          sudo journalctl -u fgbears-youtube-freeze-card-refresh.service -n 160 --no-pager || true
+          echo '=== CARD DIR ==='
+          sudo ls -lah /var/lib/fgbears-live 2>/dev/null || true
+          sudo cat /var/lib/fgbears-live/youtube-freeze-card.status 2>/dev/null || true
           echo '=== CURRENT SANITIZED ROUTING SHAPE ==='
-          python3 - <<'PY'
+          python3 - <<'PY' || true
           import json, urllib.request
           url='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing?_diag=1'
-          req=urllib.request.Request(url,headers={'Cache-Control':'no-cache','Pragma':'no-cache'})
+          req=urllib.request.Request(url,headers={
+              'Cache-Control':'no-cache','Pragma':'no-cache',
+              'Accept':'application/json','User-Agent':'FGBears-YouTube-FreezeDiag/1.0'})
           with urllib.request.urlopen(req,timeout=5) as r:
               p=json.loads(r.read())
           t=p.get('trivia') if isinstance(p,dict) else None
@@ -50,6 +57,6 @@ jobs:
           PY
           echo '=== SERVICES ==='
           for s in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-router.service; do
-            echo "$s active=$(systemctl is-active "$s" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$s" 2>/dev/null || true)"
+            echo "$s active=$(systemctl is-active "$s" 2>/dev/null || true) enabled=$(systemctl is-enabled "$s" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$s" 2>/dev/null || true)"
           done
           REMOTE
