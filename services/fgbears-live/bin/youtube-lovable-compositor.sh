@@ -23,9 +23,14 @@ source "$ENV_FILE"
 : "${YOUTUBE_VIDEO_BITRATE:=2200k}"
 : "${YOUTUBE_VIDEO_MAXRATE:=2500k}"
 : "${YOUTUBE_VIDEO_BUFSIZE:=4400k}"
+: "${YOUTUBE_MONITOR_DIR:=/run/fgbears-youtube-lovable-compositor}"
 
 [[ "$YOUTUBE_OUTPUT_WIDTH" == 640 && "$YOUTUBE_OUTPUT_HEIGHT" == 360 && "$YOUTUBE_OUTPUT_FPS" == 30 ]] || {
   echo "Same-host Lovable compositor is safety-qualified only for 640x360 at 30 fps." >&2
+  exit 78
+}
+[[ -d "$YOUTUBE_MONITOR_DIR" && -w "$YOUTUBE_MONITOR_DIR" ]] || {
+  echo "Monitor runtime directory is unavailable: $YOUTUBE_MONITOR_DIR" >&2
   exit 78
 }
 
@@ -34,6 +39,8 @@ LOCAL_INPUT="${LOCAL_BASE}?fifo_size=1000000&overrun_nonfatal=1&reuse=1"
 HEALTH_URL="http://127.0.0.1:${YOUTUBE_QUESTION_MASK_PORT}/healthz"
 OVERLAY_URL="http://127.0.0.1:${YOUTUBE_QUESTION_MASK_PORT}/overlay.rgba"
 UPSTREAM_TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
+MONITOR_PATTERN="${YOUTUBE_MONITOR_DIR%/}/monitor-%d.ts"
+rm -f "${YOUTUBE_MONITOR_DIR%/}"/monitor-*.ts
 
 health=$(curl -fsS --max-time 3 "$HEALTH_URL")
 read -r MASK_X MASK_Y MASK_WIDTH MASK_HEIGHT CREATIVE AUTHORITY <<EOF
@@ -57,13 +64,15 @@ EOF
 
 echo "Starting Lovable-controlled YouTube compositor: 640x360/30, panel=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}." >&2
 
-# A single video encode feeds both YouTube and a loopback MPEG-TS monitor. The
-# monitor exists only for read-only verification and costs no second encode.
+# A single encode feeds YouTube and a bounded read-only monitor. The monitor is
+# three rotating 2-second MPEG-TS segments in /run (tmpfs), so it is always
+# available for verification, does not need a pre-existing UDP listener, and can
+# never grow without bound. It costs no second encode.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
   -fflags +genpts+discardcorrupt -probesize 10000000 -analyzeduration 10000000 \
-  -i "$LOCAL_INPUT" \
-  -f rawvideo -pixel_format rgba -video_size "${MASK_WIDTH}x${MASK_HEIGHT}" -framerate "$YOUTUBE_OUTPUT_FPS" \
+  -thread_queue_size 512 -i "$LOCAL_INPUT" \
+  -thread_queue_size 512 -f rawvideo -pixel_format rgba -video_size "${MASK_WIDTH}x${MASK_HEIGHT}" -framerate "$YOUTUBE_OUTPUT_FPS" \
   -i "$OVERLAY_URL" \
   -filter_complex "[0:v:0]scale=${YOUTUBE_OUTPUT_WIDTH}:${YOUTUBE_OUTPUT_HEIGHT}:flags=fast_bilinear[base];[base][1:v:0]overlay=${MASK_X}:${MASK_Y}:format=auto:shortest=1[v]" \
   -map '[v]' -map 0:a:0 \
@@ -74,4 +83,4 @@ exec ffmpeg \
   -c:a aac -profile:a aac_low -b:a 128k -ar 44100 -ac 2 \
   -af 'aresample=44100:async=1:first_pts=0' \
   -f tee -use_fifo 1 -fifo_options 'attempt_recovery=1:recover_any_error=1' \
-  "[f=flv:onfail=abort]${UPSTREAM_TARGET}|[f=mpegts:onfail=ignore]udp://127.0.0.1:1941?pkt_size=1316"
+  "[f=flv:onfail=abort]${UPSTREAM_TARGET}|[f=segment:segment_time=2:segment_wrap=3:segment_format=mpegts:reset_timestamps=1:onfail=ignore]${MONITOR_PATTERN}"
