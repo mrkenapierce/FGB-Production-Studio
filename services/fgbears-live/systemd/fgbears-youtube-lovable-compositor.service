@@ -16,8 +16,8 @@ Environment=YOUTUBE_OUTPUT_FPS=30
 Environment=YOUTUBE_VIDEO_BITRATE=2200k
 Environment=YOUTUBE_VIDEO_MAXRATE=2500k
 Environment=YOUTUBE_VIDEO_BUFSIZE=4400k
-Environment=YOUTUBE_UDP_FIFO_SIZE=16384
-Environment=YOUTUBE_MASTER_THREAD_QUEUE=256
+Environment=YOUTUBE_UDP_FIFO_SIZE=1000000
+Environment=YOUTUBE_MASTER_THREAD_QUEUE=512
 Environment=YOUTUBE_OVERLAY_THREAD_QUEUE=32
 Environment=YOUTUBE_MONITOR_DIR=/run/fgbears-youtube-lovable-compositor
 RuntimeDirectory=fgbears-youtube-lovable-compositor
