@@ -46,6 +46,10 @@ jobs:
               return sh(f"systemctl show -p MainPID --value {unit}")
           def restarts(unit):
               return sh(f"systemctl show -p NRestarts --value {unit}")
+          def youtube_connected(process_pid):
+              raw=sh("ss -ntpH state established 2>/dev/null || true")
+              needle=f"pid={process_pid}"
+              return any(needle in line and ":443" in line for line in raw.splitlines())
           def health():
               with urllib.request.urlopen(HEALTH_URL,timeout=3) as r:
                   p=json.loads(r.read().decode())
@@ -78,7 +82,7 @@ jobs:
           assert "scale=640:360:flags=fast_bilinear" in cmd,cmd
           assert "overlay=231:52:format=auto:shortest=1" in cmd,cmd
           assert "aresample=44100:async=1:first_pts=0" in cmd,cmd
-          assert sh(f"ss -ntpH state established | grep -F 'pid={comp}' | grep -E ':443([[:space:]]|$)' >/dev/null && echo yes || echo no")=="yes"
+          assert youtube_connected(comp),"YouTube RTMPS socket not found for compositor"
           base=health()
           print("BASELINE_EXACT_BOX=PASS",json.dumps(base,sort_keys=True))
 
@@ -134,7 +138,7 @@ jobs:
           if speed:
               assert float(speed)>=0.985,speed
           assert cpu<=40,cpu
-          assert sh(f"ss -ntpH state established | grep -F 'pid={comp}' | grep -E ':443([[:space:]]|$)' >/dev/null && echo yes || echo no")=="yes"
+          assert youtube_connected(comp),"YouTube RTMPS socket disappeared during certification"
           print(f"NO_RESTARTS=PASS compositor_cpu={cpu}% master_speed={speed or 'unknown'}x")
           print("RUMBLE_UNTOUCHED=PASS")
           print("EXACT_BOX_LIVE_CYCLE_CERTIFICATION=PASS")
