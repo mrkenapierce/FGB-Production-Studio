@@ -1,0 +1,24 @@
+name: Probe OCI Install Status
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-oci-install-status.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: SSH status
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+          ssh -i ~/.ssh/oracle_key ubuntu@$ORACLE_HOST "set +e; echo ARCH=\$(uname -m); echo LOCAL_OCI=\$(command -v ~/.local/bin/oci); ps -eo pid,pcpu,pmem,etime,cmd | grep -E 'get-pip|pip.*oci-cli|oci-cli' | grep -v grep || true; systemctl is-active fgbears-live.service; systemctl is-active fgbears-youtube-relay.service; systemctl is-active fgbears-rumble-relay.service"
