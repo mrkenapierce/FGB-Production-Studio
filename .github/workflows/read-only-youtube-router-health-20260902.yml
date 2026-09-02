@@ -1,0 +1,49 @@
+name: Read Only YouTube Router Health 20260902
+
+on:
+  push:
+    paths:
+      - '.github/workflows/read-only-youtube-router-health-20260902.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read production state only
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          for s in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-router.service fgbears-youtube-relay.service fgbears-youtube-audio-watchdog.timer; do
+            printf '%s active=%s enabled=%s pid=%s\n' "$s" \
+              "$(systemctl is-active "$s" 2>/dev/null || true)" \
+              "$(systemctl is-enabled "$s" 2>/dev/null || true)" \
+              "$(systemctl show -p MainPID --value "$s" 2>/dev/null || true)"
+          done
+          router_pid=$(systemctl show -p MainPID --value fgbears-youtube-router.service 2>/dev/null || echo 0)
+          child=$(pgrep -P "$router_pid" ffmpeg | head -n1 || true)
+          if [[ "$child" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -Eq ':443([[:space:]]|$)'; then
+            echo 'youtube_rtmps_established=yes'
+          else
+            echo 'youtube_rtmps_established=no'
+          fi
+          echo "health_dropin=$(test -e /etc/systemd/system/fgbears-live-health.service.d/90-youtube-emergency-router.conf && echo yes || echo no)"
+          REMOTE
