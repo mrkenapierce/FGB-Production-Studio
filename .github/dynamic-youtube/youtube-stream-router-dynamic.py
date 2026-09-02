@@ -49,12 +49,7 @@ class DynamicStreamRouter(base.StreamRouter):
 
     @staticmethod
     def _buffer_contains_idr(buffer: Gst.Buffer) -> bool:
-        """Detect an Annex-B IDR directly when Gst delta flags are unreliable.
-
-        The inactive live selector pad can retain DELTA_UNIT on parsed buffers in
-        mixed-framerate tests. Reading the AU itself keeps the return switch
-        keyframe-safe without forcing a mid-GOP cut.
-        """
+        """Detect an Annex-B IDR directly when Gst delta flags are unreliable."""
         ok, mapped = buffer.map(Gst.MapFlags.READ)
         if not ok:
             return False
@@ -73,6 +68,13 @@ class DynamicStreamRouter(base.StreamRouter):
 
     def _build_pipeline(self) -> None:
         super()._build_pipeline()
+
+        # The protected branch runs at 10 fps while the normal program is 30 fps.
+        # Cross-pad clock synchronization can stop the inactive 30-fps pad from
+        # advancing while the 10-fps pad is active, which prevents seeing the next
+        # live IDR and returning cleanly. Keep inactive inputs flowing instead;
+        # switches themselves remain keyframe-gated by the pad probes below.
+        self.selector.set_property("sync-streams", False)
 
         self.static_card_selector_pad = self.card_selector_pad
         dynamic_port = int(os.getenv("FGB_YOUTUBE_DYNAMIC_CARD_PORT", "2942"))
@@ -127,8 +129,6 @@ class DynamicStreamRouter(base.StreamRouter):
         if self.dynamic_caps.get_static_pad("src").link(dynamic_pad) != Gst.PadLinkReturn.OK:
             raise RuntimeError("could not link protected video to selector")
 
-        # Every inherited card-mode switch now targets the animated protected
-        # branch rather than the static appsrc branch.
         self.card_selector_pad = dynamic_pad
         self.dynamic_selector_pad = dynamic_pad
         self.dynamic_demux.connect("pad-added", self._on_dynamic_demux_pad)
@@ -165,48 +165,20 @@ class DynamicStreamRouter(base.StreamRouter):
             "?fifo_size=1000000&overrun_nonfatal=1&reuse=1"
         )
         command = [
-            "ffmpeg",
-            "-hide_banner",
-            "-nostdin",
-            "-loglevel",
+            "ffmpeg", "-hide_banner", "-nostdin", "-loglevel",
             os.getenv("FFMPEG_LOGLEVEL", "warning"),
-            "-fflags",
-            "+genpts",
-            "-probesize",
-            "10000000",
-            "-analyzeduration",
-            "10000000",
-            "-i",
-            local_input,
-            "-map",
-            "0:v:0",
-            "-map",
-            "0:a:0",
-            "-c:v",
-            "copy",
-            "-c:a",
-            "aac",
-            "-b:a",
-            "128k",
-            "-ar",
-            "44100",
-            "-ac",
-            "2",
-            "-af",
-            "aresample=44100:async=1:first_pts=0",
-            "-f",
-            "flv",
-            "-flvflags",
-            "no_duration_filesize",
+            "-fflags", "+genpts", "-probesize", "10000000",
+            "-analyzeduration", "10000000", "-i", local_input,
+            "-map", "0:v:0", "-map", "0:a:0",
+            "-c:v", "copy",
+            "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-ac", "2",
+            "-af", "aresample=44100:async=1:first_pts=0",
+            "-f", "flv", "-flvflags", "no_duration_filesize",
             self.upstream_target,
         ]
         LOG.info("starting repaired-audio FFmpeg RTMPS transport on loopback port %d", self.output_port)
         self.ffmpeg = subprocess.Popen(command)
-        threading.Thread(
-            target=self._monitor_ffmpeg,
-            daemon=True,
-            name="ffmpeg-transport",
-        ).start()
+        threading.Thread(target=self._monitor_ffmpeg, daemon=True, name="ffmpeg-transport").start()
 
 
 def main() -> int:
@@ -232,8 +204,7 @@ def main() -> int:
     if not args.test:
         key = os.getenv("YOUTUBE_STREAM_KEY", "").strip()
         upstream = os.getenv(
-            "YOUTUBE_UPSTREAM_RTMP_BASE",
-            "rtmps://a.rtmps.youtube.com/live2",
+            "YOUTUBE_UPSTREAM_RTMP_BASE", "rtmps://a.rtmps.youtube.com/live2"
         ).rstrip("/")
         if not key or key == "REPLACE_WITH_YOUTUBE_STREAM_KEY":
             raise ValueError("YOUTUBE_STREAM_KEY is required")
