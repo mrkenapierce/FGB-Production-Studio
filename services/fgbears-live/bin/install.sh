@@ -127,8 +127,9 @@ updates = {
     "CRAWL_OVERLAY_FPS": "30",
     "CRAWL_OVERLAY_SCRIPT": "/opt/fgbears-live/bin/crawl-overlay-hq.py",
     "CRAWL_TEXT_RENDER_SCALE": "2",
+    "BEARS_NEWS_SCRIPT": "/opt/fgbears-live/bin/bears-news-feed-hq.py",
     "BEARS_NEWS_OVERLAY_PORT": "8789",
-    "BEARS_NEWS_OVERLAY_FPS": "15",
+    "BEARS_NEWS_OVERLAY_FPS": "30",
     "BEARS_NEWS_SCROLL_PPS": "76",
 }
 retired_prefixes = ("X_", "INSTAGRAM_", "FACEBOOK_", "YOUTUBE_TRIVIA_")
