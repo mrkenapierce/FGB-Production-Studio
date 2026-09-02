@@ -1,0 +1,73 @@
+name: Diagnose Emergency YouTube Router Startup
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/emergency-diagnose-youtube-router-startup.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Read isolated router failure evidence
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== rollback state ==='
+          for service in fgbears-live.service fgbears-youtube-relay.service fgbears-rumble-relay.service fgbears-youtube-router.service; do
+            printf '%s active=%s enabled=%s\n' "$service" \
+              "$(systemctl is-active "$service" 2>/dev/null || true)" \
+              "$(systemctl is-enabled "$service" 2>/dev/null || true)"
+            systemctl show "$service" -p MainPID -p Result -p ExecMainCode -p ExecMainStatus -p NRestarts --no-pager 2>/dev/null || true
+          done
+          printf 'youtube_watchdog active=%s enabled=%s\n' \
+            "$(systemctl is-active fgbears-youtube-audio-watchdog.timer 2>/dev/null || true)" \
+            "$(systemctl is-enabled fgbears-youtube-audio-watchdog.timer 2>/dev/null || true)"
+          printf 'health_dropin_exists=%s\n' "$(test -e /etc/systemd/system/fgbears-live-health.service.d/90-youtube-emergency-router.conf && echo yes || echo no)"
+
+          echo '=== staged files ==='
+          for path in /opt/fgbears-live/bin/youtube-stream-router.py /opt/fgbears-live/bin/youtube-stream-router-emergency.py /opt/fgbears-live/assets/youtube-rumble-trivia.h264 /etc/systemd/system/fgbears-youtube-router.service; do
+            if sudo test -e "$path"; then
+              sudo stat -c '%n mode=%a owner=%U:%G bytes=%s' "$path"
+            else
+              echo "$path absent"
+            fi
+          done
+
+          echo '=== unit validation ==='
+          sudo systemd-analyze verify /etc/systemd/system/fgbears-youtube-router.service 2>&1 || true
+          sudo systemctl cat fgbears-youtube-router.service 2>/dev/null || true
+
+          echo '=== router journal redacted ==='
+          sudo journalctl -u fgbears-youtube-router.service --since '-20 minutes' --no-pager 2>&1 \
+            | sed -E 's#(rtmps?://[^/]+/live2/)[^[:space:]]+#\1[REDACTED]#g; s#(rtmp://[^/]+/live/)[^[:space:]]+#\1[REDACTED]#g'
+
+          echo '=== direct relay remains restored ==='
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          systemctl is-active fgbears-rumble-relay.service
+          echo 'production_changes=none'
+          REMOTE
