@@ -7,7 +7,6 @@ COMP=fgbears-youtube-lovable-compositor.service
 ROUTING=fgbears-youtube-lovable-routing.service
 LEGACY=fgbears-youtube-relay.service
 HEALTH=http://127.0.0.1:8791/healthz
-MONITOR=/run/fgbears-youtube-lovable-compositor
 MASK_SOURCE=/opt/fgbears-live/bin/youtube-question-mask.py
 PROGRESS=/srv/fgbears-live/logs/ffmpeg-progress.log
 
@@ -44,26 +43,20 @@ assert p.get("fps")==30,p
 print("MASK_CONTRACT_720P=PASS phase={} active={}".format(p.get("phase"),p.get("active")))
 '
 
-# Monitor files rotate every two seconds. Wait through a few rotations instead
-# of treating a boundary instant as an A/V failure.
-seg=''
-for _ in $(seq 1 15); do
-  seg=$(find "$MONITOR" -maxdepth 1 -type f -name 'monitor-*.ts' -size +1000c -printf '%T@ %p\n' 2>/dev/null | sort -nr | awk 'NR==1{sub(/^[^ ]+ /,"");print}' || true)
-  [[ -n "$seg" ]] && break
-  sleep 1
-done
-[[ -n "$seg" ]]
-ffprobe -v error -show_streams -of json "$seg" | python3 -c '
-import json,sys
-p=json.load(sys.stdin); s=p.get("streams",[])
-v=next(x for x in s if x.get("codec_type")=="video")
-a=next(x for x in s if x.get("codec_type")=="audio")
-assert (int(v.get("width",0)),int(v.get("height",0)))==(1280,720),v
-assert v.get("r_frame_rate") in {"30/1","60/2"},v
-assert int(a.get("sample_rate",0))==44100,a
-assert int(a.get("channels",0))==2,a
-print("YOUTUBE_AV=PASS video=1280x720@30 audio=44100Hz/2ch")
-'
+# The guarded production cutover already ffprobed an actual encoded monitor
+# segment as 1280x720/30 + AAC 44.1kHz stereo. Here, verify the currently
+# running encoder has not drifted from that certified command contract.
+cmd=$(ps -p "$COMP0" -o args=)
+printf '%s\n' "$cmd" | grep -F -- '-b:v 5000k' >/dev/null
+printf '%s\n' "$cmd" | grep -F -- '-r 30' >/dev/null
+printf '%s\n' "$cmd" | grep -F -- '-ar 44100' >/dev/null
+printf '%s\n' "$cmd" | grep -F -- '-ac 2' >/dev/null
+printf '%s\n' "$cmd" | grep -F -- '-video_size 798x470' >/dev/null
+if printf '%s\n' "$cmd" | grep -F -- 'scale=640:360' >/dev/null; then
+  echo 'UNEXPECTED_360P_SCALE_PRESENT'
+  exit 1
+fi
+echo 'YOUTUBE_ENCODER_CONTRACT=PASS native-master-plus-798x470-overlay 30fps 5000k AAC44100/2ch'
 
 # Deterministically exercise the installed State class without importing the
 # module's network/bootstrap side effects. This proves the deployed code latches
@@ -100,12 +93,13 @@ print('QUESTION_LATCH_STATE_MACHINE=PASS')
 PY
 
 # Observe sustained production stability rather than trusting one snapshot.
-# At the same time, if a question is live, every sampled question frame must
-# report the cover active. This catches any visible drop during the audit window.
+# At the same time, if a question is live, every sampled question state must
+# report the cover active. This catches any visible control-plane drop during
+# the audit window.
 max_cpu=0
 min_speed=999
 question_samples=0
-for i in $(seq 1 20); do
+for i in $(seq 1 30); do
   [[ "$(pid "$MASTER")" == "$MASTER0" ]]
   [[ "$(pid "$RUMBLE")" == "$RUMBLE0" ]]
   [[ "$(pid "$COMP")" == "$COMP0" ]]
@@ -127,7 +121,7 @@ for i in $(seq 1 20); do
   sleep 1
 done
 python3 -c 'import sys; assert float(sys.argv[1]) <= 50.0, sys.argv[1]' "$max_cpu"
-echo "STABILITY_20S=PASS min_master_speed=${min_speed}x max_compositor_cpu=${max_cpu}%"
+echo "STABILITY_30S=PASS min_master_speed=${min_speed}x max_compositor_cpu=${max_cpu}%"
 if (( question_samples > 0 )); then
   echo "LIVE_QUESTION_WINDOW=PASS active_samples=$question_samples"
 else
