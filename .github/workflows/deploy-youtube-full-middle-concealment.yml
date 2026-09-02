@@ -1,0 +1,51 @@
+name: Deploy YouTube Full-Middle Concealment
+
+on:
+  push:
+    branches:
+      - lovable-routing-bridge-20260902
+    paths:
+      - 'services/fgbears-live/bin/youtube-question-mask.py'
+      - 'services/fgbears-live/bin/youtube-lovable-compositor.sh'
+      - '.github/scripts/deploy-youtube-full-middle-concealment.sh'
+      - '.github/workflows/deploy-youtube-full-middle-concealment.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgb-youtube-full-middle-concealment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: lovable-routing-bridge-20260902
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy YouTube-only concealment safely
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-question-mask.py "$target:/tmp/youtube-question-mask.py"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-lovable-compositor.sh "$target:/tmp/youtube-lovable-compositor.sh"
+          scp -i ~/.ssh/oracle_key .github/scripts/deploy-youtube-full-middle-concealment.sh "$target:/tmp/deploy-youtube-full-middle-concealment.sh"
+          ssh -i ~/.ssh/oracle_key "$target" 'chmod 700 /tmp/deploy-youtube-full-middle-concealment.sh && sudo /tmp/deploy-youtube-full-middle-concealment.sh'
