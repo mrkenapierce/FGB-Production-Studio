@@ -1,4 +1,12 @@
 #!/usr/bin/env bash
+# Canonical YouTube transport for FGBears Live.
+#
+# Production invariant: this service must never decode, re-encode, re-clock,
+# parse/remux through GStreamer, or insert platform-specific video. It consumes
+# the exact MPEG-TS mirror emitted by the shared master and copy-remuxes both
+# H.264 video and AAC audio directly to YouTube RTMPS. Keeping this path boring
+# is intentional: Rumble receives the sibling copy of the same master program,
+# so any YouTube-only DSP/router/compositor is a regression risk.
 set -Eeuo pipefail
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
@@ -6,33 +14,34 @@ ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 
-ROUTER=/opt/fgbears-live/bin/youtube-stream-router.py
-CARD=${FGB_YOUTUBE_TRIVIA_CARD_H264:-/opt/fgbears-live/assets/youtube-rumble-trivia.h264}
-LEGACY=/opt/fgbears-live/bin/youtube-relay-legacy.sh
-: "${FGB_YOUTUBE_PACKET_ROUTER_ENABLE:=1}"
+: "${YOUTUBE_STREAM_KEY:?YOUTUBE_STREAM_KEY is required}"
+: "${YOUTUBE_LOCAL_UDP_URL:=udp://127.0.0.1:1939?pkt_size=1316}"
+: "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"
+: "${FFMPEG_LOGLEVEL:=warning}"
 
-if [[ "$FGB_YOUTUBE_PACKET_ROUTER_ENABLE" == "1" \
-      && -r "$ROUTER" \
-      && -r "$CARD" \
-      && -x /usr/bin/python3 \
-      && -x /usr/bin/gst-launch-1.0 ]]; then
-  echo "Starting low-CPU YouTube stream router (legacy copy relay armed as fallback)." >&2
-  set +e
-  /usr/bin/python3 "$ROUTER" --card "$CARD"
-  rc=$?
-  set -e
+[[ "$YOUTUBE_STREAM_KEY" != "REPLACE_WITH_YOUTUBE_STREAM_KEY" ]] || {
+  echo "Replace the placeholder YouTube stream key in $ENV_FILE" >&2
+  exit 78
+}
+[[ "$YOUTUBE_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
+  echo "YOUTUBE_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
+  exit 78
+}
+[[ "$YOUTUBE_UPSTREAM_RTMP_BASE" == rtmp://* || "$YOUTUBE_UPSTREAM_RTMP_BASE" == rtmps://* ]] || {
+  echo "YOUTUBE_UPSTREAM_RTMP_BASE must be an RTMP or RTMPS URL." >&2
+  exit 78
+}
 
-  # A clean exit is a normal systemd stop. Do not resurrect the relay while the
-  # unit is intentionally being stopped.
-  if [[ $rc -eq 0 || $rc -eq 130 || $rc -eq 143 ]]; then
-    exit "$rc"
-  fi
-  echo "YouTube stream router exited rc=$rc; falling back to safe copy relay." >&2
-else
-  echo "YouTube stream router unavailable/disabled; using safe copy relay." >&2
-fi
+LOCAL_BASE=${YOUTUBE_LOCAL_UDP_URL%%\?*}
+LOCAL_INPUT="${LOCAL_BASE}?fifo_size=1000000&overrun_nonfatal=1&reuse=1"
+UPSTREAM_TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 
-# Full installs preserve repository blob modes, and newly created fallback
-# scripts can arrive as 0644. Invoke through Bash so fallback remains usable
-# even when the file itself lacks an execute bit.
-exec /usr/bin/bash "$LEGACY"
+echo "Starting canonical YouTube copy-remux relay; video/audio bitstreams remain untouched." >&2
+exec ffmpeg \
+  -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
+  -fflags +genpts -probesize 10000000 -analyzeduration 10000000 \
+  -i "$LOCAL_INPUT" \
+  -map 0:v:0 -map 0:a:0 \
+  -c copy \
+  -f flv -flvflags no_duration_filesize \
+  "$UPSTREAM_TARGET"
