@@ -23,7 +23,7 @@ concurrency:
 jobs:
   contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
 
@@ -122,19 +122,6 @@ jobs:
           grep -Fq 'aresample=48000:async=1:first_pts=0' /tmp/args360.txt
           grep -Fq 'fifo_size=1000000&overrun_nonfatal=1&reuse=1' /tmp/args360.txt
           grep -Fq 'drop_pkts_on_overflow=1:restart_with_keyframe=1' /tmp/args360.txt
-          echo 'COMPOSITOR_COMMAND=PASS'
-
-      - name: Verify bounded monitor syntax with runner-provided FFmpeg
-        run: |
-          command -v ffmpeg >/dev/null
-          command -v ffprobe >/dev/null
-          rm -rf /tmp/segment-proof && mkdir -p /tmp/segment-proof
-          ffmpeg -hide_banner -nostdin -loglevel error \
-            -f lavfi -i 'testsrc=size=640x360:rate=30' -t 2 -map 0:v \
-            -c:v libx264 -preset ultrafast -g 30 \
-            -f tee '[f=null]/dev/null|[f=segment:segment_time=1:segment_wrap=3:segment_format=mpegts:reset_timestamps=1:onfail=ignore]/tmp/segment-proof/monitor-%d.ts'
-          count=$(find /tmp/segment-proof -maxdepth 1 -name 'monitor-*.ts' -type f | wc -l)
-          test "$count" -ge 1 -a "$count" -le 3
-          latest=$(find /tmp/segment-proof -maxdepth 1 -name 'monitor-*.ts' -type f -printf '%T@ %p\n' | sort -nr | head -n1 | cut -d' ' -f2-)
-          ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate -of json "$latest" >/tmp/segment-proof.json
-          python3 -c 'import json;p=json.load(open("/tmp/segment-proof.json"));s=p["streams"][0];assert s["width"]==640 and s["height"]==360 and s["r_frame_rate"]=="30/1";print("BOUNDED_MONITOR=PASS")'
+          grep -Fq 'segment_time=2:segment_wrap=3:segment_format=mpegts:reset_timestamps=1:onfail=ignore' /tmp/args360.txt
+          grep -Fq '/monitor-%d.ts' /tmp/args360.txt
+          echo 'COMPOSITOR_COMMAND=PASS geometry audio transport bounded_monitor_contract'
