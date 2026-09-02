@@ -3,9 +3,8 @@ set -Eeuo pipefail
 
 # Thin YouTube-only media executor for the Lovable routing plane.
 # The shared master and Rumble remain untouched at 1280x720/30. YouTube
-# preserves that native 720p canvas and overlays only Lovable's question panel.
-# The master already arrives at the target canvas, so this path deliberately
-# avoids any redundant scale pass before the overlay/encode operation.
+# preserves that native 720p canvas and overlays the full protected middle band
+# during trivia questions. News above and crawl below remain continuously live.
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 [[ -r "$ENV_FILE" ]] || { echo "Missing environment file: $ENV_FILE" >&2; exit 78; }
@@ -53,19 +52,21 @@ assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470}
 assert p.get("creativeKey")=="yt_rumble_trivia_redirect"
 assert p.get("presentationMode")=="full_creative_scaled"
 assert p.get("routingAuthority")=="lovable_public_stream_routing"
+assert p.get("executionScaling")=="full_middle_protection"
 r=p["maskRegion"]
-assert r=={"x":462,"y":104,"width":798,"height":470},r
+assert r=={"x":0,"y":104,"width":1280,"height":470},r
+assert p.get("frameSize")==[1280,470],p
 print(r["x"],r["y"],r["width"],r["height"],p["creativeKey"],p["routingAuthority"])
 ')
 EOF
 
 [[ "$CREATIVE" == yt_rumble_trivia_redirect && "$AUTHORITY" == lovable_public_stream_routing ]]
 
-echo "Starting Lovable-controlled YouTube compositor: 1280x720/30, panel=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}." >&2
+echo "Starting Lovable-controlled YouTube compositor: 1280x720/30, protected middle=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}." >&2
 
-# A single encode feeds YouTube and a bounded read-only monitor. The monitor is
-# three rotating 2-second MPEG-TS segments in /run (tmpfs), so it cannot grow.
-# No scale filter is used: the shared master already arrives at 1280x720/30.
+# A single encode feeds YouTube and a bounded read-only monitor. The overlay is
+# transparent between questions and fully opaque across the middle band while a
+# question is active, so no trivia pixels can leak around the redirect creative.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
   -fflags +genpts+discardcorrupt -probesize 10000000 -analyzeduration 10000000 \
