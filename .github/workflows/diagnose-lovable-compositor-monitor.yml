@@ -1,0 +1,49 @@
+name: Diagnose Lovable Compositor Monitor
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-lovable-compositor-monitor.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read-only post-rollback diagnosis
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          printf 'master=%s pid=%s\n' "$(systemctl is-active fgbears-live.service)" "$(systemctl show -p MainPID --value fgbears-live.service)"
+          printf 'rumble=%s pid=%s\n' "$(systemctl is-active fgbears-rumble-relay.service)" "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)"
+          printf 'direct=%s enabled=%s pid=%s\n' "$(systemctl is-active fgbears-youtube-relay.service)" "$(systemctl is-enabled fgbears-youtube-relay.service 2>/dev/null || true)" "$(systemctl show -p MainPID --value fgbears-youtube-relay.service)"
+          printf 'compositor=%s enabled=%s result=%s status=%s restarts=%s\n' \
+            "$(systemctl is-active fgbears-youtube-lovable-compositor.service 2>/dev/null || true)" \
+            "$(systemctl is-enabled fgbears-youtube-lovable-compositor.service 2>/dev/null || true)" \
+            "$(systemctl show -p Result --value fgbears-youtube-lovable-compositor.service 2>/dev/null || true)" \
+            "$(systemctl show -p ExecMainStatus --value fgbears-youtube-lovable-compositor.service 2>/dev/null || true)" \
+            "$(systemctl show -p NRestarts --value fgbears-youtube-lovable-compositor.service 2>/dev/null || true)"
+          printf 'consumer=%s pid=%s\n' "$(systemctl is-active fgbears-youtube-lovable-routing.service)" "$(systemctl show -p MainPID --value fgbears-youtube-lovable-routing.service)"
+          curl -fsS --max-time 2 http://127.0.0.1:8791/healthz | python3 -m json.tool
+          printf 'audio_watchdog_timer=%s enabled=%s\n' "$(systemctl is-active fgbears-youtube-audio-watchdog.timer 2>/dev/null || true)" "$(systemctl is-enabled fgbears-youtube-audio-watchdog.timer 2>/dev/null || true)"
+          printf 'health_override_present=%s\n' "$([[ -e /etc/systemd/system/fgbears-live-health.service.d/95-lovable-compositor.conf ]] && echo yes || echo no)"
+          echo '--- redacted compositor journal ---'
+          sudo journalctl -u fgbears-youtube-lovable-compositor.service -n 160 --no-pager 2>&1 \
+            | sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g; s#(udp://)[^ ]+#\1[REDACTED]#g; s#(srt://)[^ ]+#\1[REDACTED]#g'
+          REMOTE
