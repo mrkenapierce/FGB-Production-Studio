@@ -1,0 +1,129 @@
+name: Verify YouTube No-Freeze Live Cycle V1
+
+on:
+  push:
+    paths:
+      - '.github/workflows/verify-youtube-no-freeze-live-cycle-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-no-freeze-verify
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Observe a trivia question with continuous live program
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          routing='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing'
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+
+          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_before=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          direct_before=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ && "$rumble_before" =~ ^[1-9][0-9]*$ && "$direct_before" =~ ^[1-9][0-9]*$ ]]
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          ! systemctl is-active --quiet fgbears-youtube-router.service
+          ! systemctl is-active --quiet fgbears-youtube-freeze-card-refresh.timer
+
+          state() {
+            python3 - "$routing" <<'PY'
+          import json,sys,time,urllib.parse,urllib.request
+          u=sys.argv[1]
+          p=urllib.parse.urlsplit(u)
+          q=urllib.parse.parse_qsl(p.query,keep_blank_values=True); q.append(('_ts',str(time.time_ns())))
+          u=urllib.parse.urlunsplit((p.scheme,p.netloc,p.path,urllib.parse.urlencode(q),p.fragment))
+          req=urllib.request.Request(u,headers={'Accept':'application/json','Cache-Control':'no-cache','Pragma':'no-cache','User-Agent':'FGBears-NoFreeze-Verify/1.0'})
+          with urllib.request.urlopen(req,timeout=4) as r: payload=json.loads(r.read().decode())
+          t=payload.get('trivia') if isinstance(payload,dict) else None
+          if not isinstance(t,dict): print('invalid'); raise SystemExit(2)
+          print(json.dumps({'phase':t.get('phase'),'youtubeMaskActive':t.get('youtubeMaskActive'),'stale':t.get('stale')},separators=(',',':')))
+          PY
+          }
+
+          echo 'Waiting for next authoritative question phase...'
+          deadline=$(( $(date +%s) + 1250 ))
+          seen=0
+          while (( $(date +%s) < deadline )); do
+            s=$(state || true)
+            if grep -Fq '"phase":"question"' <<<"$s" && grep -Fq '"youtubeMaskActive":true' <<<"$s" && ! grep -Fq '"stale":true' <<<"$s"; then
+              echo "QUESTION_STATE=$s"
+              seen=1
+              break
+            fi
+            sleep 2
+          done
+          test "$seen" = 1
+
+          # During the actual question, prove the program clock keeps advancing.
+          sample_progress() {
+            sudo tail -n 30 "$progress" | sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' | tail -n1
+          }
+          p1=$(sample_progress)
+          [[ "$p1" =~ ^[0-9]+$ ]]
+
+          news1=$(curl --silent --fail --max-time 3 http://127.0.0.1:8789/healthz)
+          crawl1=$(curl --silent --fail --max-time 3 http://127.0.0.1:8788/healthz)
+          printf '%s' "$news1" | jq -e '.ok == true and .active == true and .messageChars > 0' >/dev/null
+          printf '%s' "$crawl1" | jq -e '.ok == true' >/dev/null
+
+          sleep 5
+          p2=$(sample_progress)
+          [[ "$p2" =~ ^[0-9]+$ ]]
+          advance=$((p2-p1))
+          test "$advance" -ge 4000000
+
+          # The question must still use the continuous direct transport, not a card selector.
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          ! systemctl is-active --quiet fgbears-youtube-router.service
+          ! systemctl is-active --quiet fgbears-youtube-freeze-card-refresh.timer
+          direct_now=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          [[ "$direct_now" =~ ^[1-9][0-9]*$ ]]
+          socket_ok=0
+          if sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$direct_now" | grep -E ':443([[:space:]]|$)' >/dev/null; then socket_ok=1; fi
+          child=$(pgrep -P "$direct_now" ffmpeg | head -n1 || true)
+          if [[ "$child" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -E ':443([[:space:]]|$)' >/dev/null; then socket_ok=1; fi
+          test "$socket_ok" = 1
+
+          # Confirm the live UI generators are still healthy after the sample.
+          news2=$(curl --silent --fail --max-time 3 http://127.0.0.1:8789/healthz)
+          crawl2=$(curl --silent --fail --max-time 3 http://127.0.0.1:8788/healthz)
+          printf '%s' "$news2" | jq -e '.ok == true and .active == true and .messageChars > 0' >/dev/null
+          printf '%s' "$crawl2" | jq -e '.ok == true' >/dev/null
+
+          master_after=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_after=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          test "$master_after" = "$master_before"
+          test "$rumble_after" = "$rumble_before"
+
+          echo "PROGRAM_CLOCK_ADVANCE_US=$advance"
+          echo 'NEWS_HEALTH_DURING_QUESTION=PASS'
+          echo 'CRAWL_HEALTH_DURING_QUESTION=PASS'
+          echo 'YOUTUBE_CONTINUOUS_DIRECT_RTMPS=PASS'
+          echo 'FREEZE_ROUTER_DURING_QUESTION=inactive'
+          echo 'NO_FREEZE_LIVE_CYCLE=PASS'
+          REMOTE
