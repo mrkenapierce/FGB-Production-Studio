@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 02 Sep 2026 04:26:44 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 02 Sep 2026 08:54:41 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears GM not sure if $40 million star Kyler Gordon will play at all this season in injury mystery</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears GM not sure if $40 million star Kyler Gordon will play at all this season in injury mystery</description>
+      <link>https://sports.yahoo.com/articles/bears-gm-not-sure-40-031302342.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-aaa0cb4cf801af9ce597</guid>
+      <pubDate>Wed, 02 Sep 2026 03:13:02 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Chicago Bears offer floor and ceiling cases in Round 4 of Yahoo Fantasy Expert League draft</title>
@@ -15,16 +25,6 @@
       <link>https://sports.yahoo.com/fantasy/article/chicago-bears-offer-floor-and-ceiling-cases-in-round-4-of-yahoo-fantasy-expert-league-draft-014700275.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-79fcaefd34b4f14d23d0</guid>
       <pubDate>Wed, 02 Sep 2026 01:47:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Thank You, Caleb Williams: The Chicago Bears have a real, actual, NFL QB</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Thank You, Caleb Williams: The Chicago Bears have a real, actual, NFL QB</description>
-      <link>https://sports.yahoo.com/articles/thank-caleb-williams-chicago-bears-220000553.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ae8eca68fddf90e09622</guid>
-      <pubDate>Tue, 01 Sep 2026 22:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
