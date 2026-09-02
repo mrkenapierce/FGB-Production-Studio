@@ -1,5 +1,5 @@
 name: Diagnose FGBears Live Audio v2
-# Diagnostic trigger: 2026-09-01 YouTube distortion investigation
+# Diagnostic trigger: 2026-09-02 YouTube-only distortion; Rumble viewer audio reported clean
 
 on:
   workflow_dispatch:
