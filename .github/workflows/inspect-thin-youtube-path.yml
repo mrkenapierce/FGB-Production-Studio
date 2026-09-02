@@ -53,4 +53,5 @@ jobs:
           echo '=== compositor health ==='
           curl -fsS --max-time 3 http://127.0.0.1:8791/healthz || true
           echo
+          echo 'inspection_generation=4'
           REMOTE
