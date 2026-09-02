@@ -46,7 +46,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Stop only the superseded server-side migration and build manifest
+      - name: Stop only superseded server-side migration and build manifest
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -54,44 +54,27 @@ jobs:
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           MEDIA_DIR=/srv/fgbears-live/media
-
-          # Stop only offline migration processes. Never signal the live encoder or relays.
           sudo pkill -TERM -f '/srv/fgbears-live/.audio-mastering-v2/.*partial\.mp4' 2>/dev/null || true
           sudo pkill -TERM -f '/usr/local/bin/fgbears-normalize /srv/fgbears-live/media/' 2>/dev/null || true
           sleep 2
           sudo pkill -KILL -f '/srv/fgbears-live/.audio-mastering-v2/.*partial\.mp4' 2>/dev/null || true
           sudo pkill -KILL -f '/usr/local/bin/fgbears-normalize /srv/fgbears-live/media/' 2>/dev/null || true
           sudo rm -rf /srv/fgbears-live/.audio-mastering-v2
-
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet fgbears-youtube-relay.service
           systemctl is-active --quiet fgbears-rumble-relay.service
 
           : > /tmp/fgb-v2-mastering-manifest.txt
-          total=0
-          already=0
-          remaining=0
+          total=0; already=0; remaining=0
           while IFS= read -r -d '' file; do
-            total=$((total + 1))
-            base=$(basename "$file")
-            marker="${file}.audio-profile.json"
-            valid=false
+            total=$((total + 1)); base=$(basename "$file"); marker="${file}.audio-profile.json"; valid=false
             if [[ -s "$marker" ]]; then
               sha=$(sha256sum "$file" | awk '{print $1}')
-              if jq -e --arg sha "$sha" \
-                '.profile == "fgb-podcast-v2-mastered" and .mastered == true and
-                 .sha256 == $sha and .audio_codec == "aac" and
-                 .audio_bitrate_kbps == 192 and .sample_rate_hz == 48000 and .channels == 2' \
-                 "$marker" >/dev/null; then
+              if jq -e --arg sha "$sha" '.profile == "fgb-podcast-v2-mastered" and .mastered == true and .sha256 == $sha and .audio_codec == "aac" and .audio_bitrate_kbps == 192 and .sample_rate_hz == 48000 and .channels == 2' "$marker" >/dev/null; then
                 valid=true
               fi
             fi
-            if [[ "$valid" == true ]]; then
-              already=$((already + 1))
-            else
-              printf '%s\n' "$base" >> /tmp/fgb-v2-mastering-manifest.txt
-              remaining=$((remaining + 1))
-            fi
+            if [[ "$valid" == true ]]; then already=$((already + 1)); else printf '%s\n' "$base" >> /tmp/fgb-v2-mastering-manifest.txt; remaining=$((remaining + 1)); fi
           done < <(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4' -print0 | sort -zV)
           echo "production_files=$total"
           echo "already_v2=$already"
@@ -99,8 +82,6 @@ jobs:
           test "$total" -gt 0
           REMOTE
           scp -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-v2-mastering-manifest.txt" /tmp/fgb-v2-mastering-manifest.txt
-          echo 'Manifest:'
-          cat /tmp/fgb-v2-mastering-manifest.txt
 
       - name: Download only unmastered production assets
         env:
@@ -108,13 +89,8 @@ jobs:
         run: |
           set -Eeuo pipefail
           mkdir -p /tmp/fgb-input /tmp/fgb-mastered /tmp/fgb-master-logs
-          if [[ ! -s /tmp/fgb-v2-mastering-manifest.txt ]]; then
-            echo 'All production files are already v2-mastered.'
-            exit 0
-          fi
-          rsync -a --partial --files-from=/tmp/fgb-v2-mastering-manifest.txt \
-            -e 'ssh -i ~/.ssh/oracle_key' \
-            "$ORACLE_USER@$ORACLE_HOST:/srv/fgbears-live/media/" /tmp/fgb-input/
+          if [[ ! -s /tmp/fgb-v2-mastering-manifest.txt ]]; then echo 'All production files are already v2-mastered.'; exit 0; fi
+          rsync -a --partial --files-from=/tmp/fgb-v2-mastering-manifest.txt -e 'ssh -i ~/.ssh/oracle_key' "$ORACLE_USER@$ORACLE_HOST:/srv/fgbears-live/media/" /tmp/fgb-input/
           expected=$(wc -l < /tmp/fgb-v2-mastering-manifest.txt)
           actual=$(find /tmp/fgb-input -maxdepth 1 -type f -name '*.mp4' | wc -l)
           [[ "$actual" -eq "$expected" ]]
@@ -124,16 +100,9 @@ jobs:
       - name: Master remaining episodes in parallel off-host
         run: |
           set -Eeuo pipefail
-          if [[ ! -s /tmp/fgb-v2-mastering-manifest.txt ]]; then
-            echo 'Nothing to master.'
-            exit 0
-          fi
+          if [[ ! -s /tmp/fgb-v2-mastering-manifest.txt ]]; then echo 'Nothing to master.'; exit 0; fi
           python3 - <<'PY'
-          import concurrent.futures
-          import os
-          import pathlib
-          import subprocess
-
+          import concurrent.futures, os, pathlib, subprocess
           root = pathlib.Path(os.environ['GITHUB_WORKSPACE'])
           normalizer = root / 'services/fgbears-live/bin/normalize-library.sh'
           input_dir = pathlib.Path('/tmp/fgb-input')
@@ -142,25 +111,18 @@ jobs:
           names = [line.strip() for line in pathlib.Path('/tmp/fgb-v2-mastering-manifest.txt').read_text().splitlines() if line.strip()]
           workers = max(1, min(4, os.cpu_count() or 1, len(names)))
           print(f'offhost_workers={workers}', flush=True)
-
-          def master(name: str) -> str:
-              src = input_dir / name
-              dst = output_dir / name
-              log = log_dir / f'{name}.log'
+          def master(name):
+              src=input_dir/name; dst=output_dir/name; log=log_dir/f'{name}.log'
               with log.open('wb') as fh:
-                  proc = subprocess.run([str(normalizer), str(src), str(dst)], stdout=fh, stderr=subprocess.STDOUT)
+                  proc=subprocess.run(['bash', str(normalizer), str(src), str(dst)], stdout=fh, stderr=subprocess.STDOUT)
               if proc.returncode != 0:
-                  tail = log.read_text(errors='replace')[-12000:]
-                  raise RuntimeError(f'mastering failed for {name}\n{tail}')
+                  raise RuntimeError(f'mastering failed for {name}\n{log.read_text(errors="replace")[-12000:]}')
               return name
-
-          completed = 0
+          completed=0
           with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
-              futures = {pool.submit(master, name): name for name in names}
+              futures={pool.submit(master,name):name for name in names}
               for future in concurrent.futures.as_completed(futures):
-                  name = future.result()
-                  completed += 1
-                  print(f'MASTERED {completed}/{len(names)}: {name}', flush=True)
+                  name=future.result(); completed+=1; print(f'MASTERED {completed}/{len(names)}: {name}', flush=True)
           PY
           bash services/fgbears-live/bin/validate-media.sh /tmp/fgb-mastered
           echo 'Off-host mastering validation passed.'
@@ -170,14 +132,9 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           set -Eeuo pipefail
-          if [[ ! -s /tmp/fgb-v2-mastering-manifest.txt ]]; then
-            echo 'Nothing to upload.'
-            exit 0
-          fi
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
-            'sudo rm -rf /srv/fgbears-live/.audio-mastering-v2-offhost && sudo install -d -o ubuntu -g ubuntu -m 0755 /srv/fgbears-live/.audio-mastering-v2-offhost'
-          rsync -a --partial -e 'ssh -i ~/.ssh/oracle_key' \
-            /tmp/fgb-mastered/ "$ORACLE_USER@$ORACLE_HOST:/srv/fgbears-live/.audio-mastering-v2-offhost/"
+          if [[ ! -s /tmp/fgb-v2-mastering-manifest.txt ]]; then echo 'Nothing to upload.'; exit 0; fi
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo rm -rf /srv/fgbears-live/.audio-mastering-v2-offhost && sudo install -d -o ubuntu -g ubuntu -m 0755 /srv/fgbears-live/.audio-mastering-v2-offhost'
+          rsync -a --partial -e 'ssh -i ~/.ssh/oracle_key' /tmp/fgb-mastered/ "$ORACLE_USER@$ORACLE_HOST:/srv/fgbears-live/.audio-mastering-v2-offhost/"
 
       - name: Atomically activate v2 assets without stream restart
         env:
@@ -189,7 +146,6 @@ jobs:
           MEDIA_DIR=/srv/fgbears-live/media
           STAGE=/srv/fgbears-live/.audio-mastering-v2-offhost
           MANIFEST=/tmp/fgb-v2-mastering-manifest.txt
-
           master_pid=$(systemctl show -p MainPID --value fgbears-live.service)
           youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
           rumble_pid=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
@@ -198,63 +154,36 @@ jobs:
           systemctl is-active --quiet fgbears-rumble-relay.service
 
           if [[ -s "$MANIFEST" ]]; then
-            # Validate every staged file before touching production.
             /usr/local/bin/fgbears-validate "$STAGE"
             while IFS= read -r base; do
               [[ -n "$base" ]] || continue
-              file="$STAGE/$base"
-              marker="$file.audio-profile.json"
+              file="$STAGE/$base"; marker="$file.audio-profile.json"
               [[ -s "$file" && -s "$marker" ]]
               sha=$(sha256sum "$file" | awk '{print $1}')
-              jq -e --arg sha "$sha" \
-                '.profile == "fgb-podcast-v2-mastered" and .mastered == true and
-                 .sha256 == $sha and .audio_codec == "aac" and
-                 .audio_bitrate_kbps == 192 and .sample_rate_hz == 48000 and .channels == 2 and
-                 (.measured_i_lufs >= -14.8 and .measured_i_lufs <= -13.2) and
-                 .measured_tp_dbtp <= -1.0' "$marker" >/dev/null
-              sudo chown fgbears:fgbears "$file" "$marker"
-              sudo chmod 0644 "$file" "$marker"
-              sudo mv -f "$file" "$MEDIA_DIR/$base"
-              sudo mv -f "$marker" "$MEDIA_DIR/$base.audio-profile.json"
+              jq -e --arg sha "$sha" '.profile == "fgb-podcast-v2-mastered" and .mastered == true and .sha256 == $sha and .audio_codec == "aac" and .audio_bitrate_kbps == 192 and .sample_rate_hz == 48000 and .channels == 2 and (.measured_i_lufs >= -14.8 and .measured_i_lufs <= -13.2) and .measured_tp_dbtp <= -1.0' "$marker" >/dev/null
+              sudo chown fgbears:fgbears "$file" "$marker"; sudo chmod 0644 "$file" "$marker"
+              sudo mv -f "$file" "$MEDIA_DIR/$base"; sudo mv -f "$marker" "$MEDIA_DIR/$base.audio-profile.json"
               echo "ACTIVATED: $base"
             done < "$MANIFEST"
           fi
 
           /usr/local/bin/fgbears-validate "$MEDIA_DIR"
           /usr/local/bin/fgbears-rebuild-playlist
-
           [[ "$(systemctl show -p MainPID --value fgbears-live.service)" == "$master_pid" ]]
           [[ "$(systemctl show -p MainPID --value fgbears-youtube-relay.service)" == "$youtube_pid" ]]
           [[ "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" == "$rumble_pid" ]]
-
           yargs=$(tr '\0' ' ' < "/proc/$youtube_pid/cmdline")
           [[ "$yargs" == *"ffmpeg"* && "$yargs" == *" -c copy "* ]]
           [[ "$yargs" != *"youtube-stream-router"* && "$yargs" != *"gst-launch"* ]]
 
-          total=$(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4' | wc -l)
-          v2=0
-          for marker in "$MEDIA_DIR"/*.mp4.audio-profile.json; do
-            [[ -s "$marker" ]] || continue
-            if jq -e '.profile == "fgb-podcast-v2-mastered" and .mastered == true' "$marker" >/dev/null; then
-              v2=$((v2 + 1))
-            fi
-          done
+          total=$(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4' | wc -l); v2=0
+          for marker in "$MEDIA_DIR"/*.mp4.audio-profile.json; do [[ -s "$marker" ]] || continue; if jq -e '.profile == "fgb-podcast-v2-mastered" and .mastered == true' "$marker" >/dev/null; then v2=$((v2+1)); fi; done
           [[ "$v2" -eq "$total" ]]
-
-          jq -s '{
-            profile: "fgb-podcast-v2-mastered",
-            files: length,
-            min_lufs: (map(.measured_i_lufs) | min),
-            max_lufs: (map(.measured_i_lufs) | max),
-            max_true_peak_dbtp: (map(.measured_tp_dbtp) | max),
-            all_mastered: (all(.mastered == true)),
-            all_192k: (all(.audio_bitrate_kbps == 192)),
-            all_48k_stereo: (all(.sample_rate_hz == 48000 and .channels == 2))
-          }' "$MEDIA_DIR"/*.mp4.audio-profile.json
+          jq -s '{profile:"fgb-podcast-v2-mastered",files:length,min_lufs:(map(.measured_i_lufs)|min),max_lufs:(map(.measured_i_lufs)|max),max_true_peak_dbtp:(map(.measured_tp_dbtp)|max),all_mastered:(all(.mastered==true)),all_192k:(all(.audio_bitrate_kbps==192)),all_48k_stereo:(all(.sample_rate_hz==48000 and .channels==2))}' "$MEDIA_DIR"/*.mp4.audio-profile.json
           echo "production_files=$total"
           echo "v2_mastered_files=$v2"
-          echo "stream_pids_unchanged=yes"
-          echo "youtube_copy_relay_preserved=yes"
-          echo "offhost_audio_mastering_v2=PASS"
+          echo 'stream_pids_unchanged=yes'
+          echo 'youtube_copy_relay_preserved=yes'
+          echo 'offhost_audio_mastering_v2=PASS'
           sudo rm -rf "$STAGE"
           REMOTE
