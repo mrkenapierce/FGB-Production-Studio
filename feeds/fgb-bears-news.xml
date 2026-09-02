@@ -5,18 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 02 Sep 2026 13:05:00 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 02 Sep 2026 17:08:31 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Ryan Poles explains where Bears QB Caleb Williams has grown most</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ryan Poles explains where Bears QB Caleb Williams has grown most</description>
-      <link>https://sports.yahoo.com/articles/ryan-poles-explains-where-bears-123503413.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-24141a18e9e43866577d</guid>
-      <pubDate>Wed, 02 Sep 2026 05:34:00 GMT</pubDate>
+      <title>Chicago Bears launch Vamos Bears, new Spanish-language initiative for fans worldwide</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears launch Vamos Bears, new Spanish-language initiative for fans worldwide</description>
+      <link>https://www.chicagobears.com/news/chicago-bears-launch-vamos-bears-new-spanish-language-initiative-for-fans-worldwide</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e5b4ccb41b4db19d86ea</guid>
+      <pubDate>Wed, 02 Sep 2026 14:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears presenta Vamos Bears, una nueva iniciativa en Español para aficionados de todo el mundo</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears presenta Vamos Bears, una nueva iniciativa en Español para aficionados de todo el mundo</description>
+      <link>https://www.chicagobears.com/news/chicago-bears-presenta-vamos-bears-una-nueva-iniciativa-en-espanol-para-aficionados-de-todo-el-mundo</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-658ef2f818a8304692c5</guid>
+      <pubDate>Wed, 02 Sep 2026 13:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; HC Ben Johnson Reveals Caleb Williams&apos; Biggest Switch-Up After Years of Goofy Display</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears&apos; HC Ben Johnson Reveals Caleb Williams&apos; Biggest Switch-Up After Years of Goofy Display</description>
+      <link>https://sports.yahoo.com/articles/bears-hc-ben-johnson-reveals-161617560.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b256b70b10b85f735cb2</guid>
+      <pubDate>Wed, 02 Sep 2026 09:17:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Why Bears TE Colston Loveland is a Mismatch Nightmare for Defenses</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Why Bears TE Colston Loveland is a Mismatch Nightmare for Defenses</description>
+      <link>https://sports.yahoo.com/articles/why-bears-te-colston-loveland-160838333.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-21e7df236ac8505a018d</guid>
+      <pubDate>Wed, 02 Sep 2026 09:08:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears Named Potential Suitor for Bargain Free Agent Safeties After Roster Cuts</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Named Potential Suitor for Bargain Free Agent Safeties After Roster Cuts</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-named-potential-suitor-for-bargain-free-agent-safeties-after-roster-cuts</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6943ab55607dc873cecf</guid>
+      <pubDate>Wed, 02 Sep 2026 08:47:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>6 Roster Decisions That Could Define the Chicago Bears&apos; Season</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 6 Roster Decisions That Could Define the Chicago Bears&apos; Season</description>
+      <link>https://www.si.com/nfl/bears/onsi/6-roster-decisions-that-could-define-the-chicago-bears-season</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b3dea2da47ea850bd691</guid>
+      <pubDate>Wed, 02 Sep 2026 07:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -30,63 +80,13 @@
     </item>
 
     <item>
-      <title>Deep dive into 53-man roster | Bears, etc. Podcast</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Deep dive into 53-man roster | Bears, etc. Podcast</description>
-      <link>https://www.chicagobears.com/audio/deep-dive-into-53-man-roster-bears-etc-podcast</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f352c186388c69c91da2</guid>
-      <pubDate>Wed, 02 Sep 2026 05:01:00 GMT</pubDate>
+      <title>NFL execs rank NFC teams: Rams, Seahawks clear favorites. Can the Bears keep rising?</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: NFL execs rank NFC teams: Rams, Seahawks clear favorites. Can the Bears keep rising?</description>
+      <link>https://www.nytimes.com/athletic/7557099/2026/09/02/nfc-rankings-rams-seahawks-eagles-cowboys-bears/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1f0572c6475226913075</guid>
+      <pubDate>Wed, 02 Sep 2026 02:30:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Mascot History: From Mr. Bear to Staley Da Bear</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Mascot History: From Mr. Bear to Staley Da Bear</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-mascot-history-mr-120000643.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fa17f99c10412e163409</guid>
-      <pubDate>Wed, 02 Sep 2026 05:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Ryan Poles and Bears Personnel Beating the Bushes as Well as Anyone</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ryan Poles and Bears Personnel Beating the Bushes as Well as Anyone</description>
-      <link>https://www.si.com/nfl/bears/onsi/ryan-poles-and-bears-personnel-beating-the-bushes-as-well-as-anyone</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-96bf99e3a840214d41b6</guid>
-      <pubDate>Wed, 02 Sep 2026 04:42:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Ryan Poles: &apos;I don&apos;t know&apos; if CB Kyler Gordon will play for Bears again</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Ryan Poles: &apos;I don&apos;t know&apos; if CB Kyler Gordon will play for Bears again</description>
-      <link>https://www.nfl.com/news/ryan-poles-kyler-gordon-i-dont-know-cb-play-for-bears-again</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-03975049e03a871155b7</guid>
-      <pubDate>Tue, 01 Sep 2026 22:34:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>8 things we learned from Bears GM Ryan Poles</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 8 things we learned from Bears GM Ryan Poles</description>
-      <link>https://www.chicagobears.com/news/8-things-we-learned-from-bears-gm-ryan-poles-53-man-roster-2026</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-347a15bb885fa51c4978</guid>
-      <pubDate>Tue, 01 Sep 2026 19:41:51 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Stephen Carlson: Gets added to Bears&apos; practice squad</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Stephen Carlson: Gets added to Bears&apos; practice squad</description>
-      <link>https://www.cbssports.com/fantasy/football/news/stephen-carlson-gets-added-to-bears-practice-squad/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-150907abb7bcfa98dcaa</guid>
-      <pubDate>Tue, 01 Sep 2026 17:33:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
