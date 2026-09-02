@@ -1,0 +1,206 @@
+name: Certify YouTube Dynamic Protection V1
+
+on:
+  push:
+    branches:
+      - lovable-routing-bridge-20260902
+    paths:
+      - '.github/workflows/certify-youtube-dynamic-protection-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-dynamic-certification
+  cancel-in-progress: false
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 28
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Certify one real trivia question cycle
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=4 -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          DIRECT=fgbears-youtube-relay.service
+          ROUTER=fgbears-youtube-router.service
+          DYNAMIC=fgbears-youtube-dynamic-card.service
+          ROUTING_URL='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing'
+          work=/tmp/fgb-youtube-dynamic-live-cert
+          rm -rf "$work"; mkdir -p "$work"
+          trap 'rm -rf "$work"' EXIT
+
+          active() { systemctl is-active --quiet "$1"; }
+          pid() { systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          child_ffmpeg() { pgrep -P "$1" -x ffmpeg 2>/dev/null | sed -n '1p' || true; }
+          connected_443() {
+            local p="$1"
+            sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" 'index($0,q) && $0 ~ /:443([[:space:]]|$)/ {f=1} END {exit(f?0:1)}'
+          }
+          routing_field() {
+            local field="$1"
+            python3 - "$ROUTING_URL" "$field" <<'PY'
+          import json, sys, time, urllib.parse, urllib.request
+          url, field = sys.argv[1], sys.argv[2]
+          parts=urllib.parse.urlsplit(url)
+          q=urllib.parse.parse_qsl(parts.query, keep_blank_values=True)
+          q.append(("_ts", str(time.time_ns())))
+          url=urllib.parse.urlunsplit((parts.scheme,parts.netloc,parts.path,urllib.parse.urlencode(q),parts.fragment))
+          req=urllib.request.Request(url,headers={'Accept':'application/json','Cache-Control':'no-cache','Pragma':'no-cache','User-Agent':'FGBears-Dynamic-Cert/1.0'})
+          with urllib.request.urlopen(req,timeout=4) as r: data=json.loads(r.read().decode())
+          trivia=data.get('trivia') or {}
+          val=trivia
+          for part in field.split('.'):
+              val=val.get(part) if isinstance(val,dict) else None
+          if isinstance(val,bool): print('true' if val else 'false')
+          elif val is None: print('')
+          else: print(val)
+          PY
+          }
+
+          active "$MASTER"
+          active "$RUMBLE"
+          active "$ROUTER"
+          active "$DYNAMIC"
+          ! active "$DIRECT"
+          master0=$(pid "$MASTER")
+          rumble0=$(pid "$RUMBLE")
+          router0=$(pid "$ROUTER")
+          dynamic0=$(pid "$DYNAMIC")
+          [[ "$master0" =~ ^[1-9][0-9]*$ && "$rumble0" =~ ^[1-9][0-9]*$ && "$router0" =~ ^[1-9][0-9]*$ && "$dynamic0" =~ ^[1-9][0-9]*$ ]]
+          ff=$(child_ffmpeg "$router0")
+          [[ "$ff" =~ ^[1-9][0-9]*$ ]]
+          connected_443 "$ff"
+          echo "BASE_MASTER_PID=$master0"
+          echo "BASE_RUMBLE_PID=$rumble0"
+          echo "BASE_ROUTER_PID=$router0"
+          echo "BASE_DYNAMIC_PID=$dynamic0"
+          echo 'BASE_YOUTUBE_RTMPS=established'
+
+          # Wait up to 20 minutes for the authoritative Lovable question state.
+          found=0
+          question_epoch=0
+          for _ in $(seq 1 240); do
+            phase=$(routing_field phase || true)
+            mask=$(routing_field youtubeMaskActive || true)
+            creative=$(routing_field youtubeCreativeKey || true)
+            if [[ "$phase" == question && "$mask" == true && "$creative" == yt_rumble_trivia_redirect ]]; then
+              found=1
+              question_epoch=$(date +%s)
+              echo "LIVE_LOVABLE_PHASE=$phase"
+              echo "LIVE_LOVABLE_MASK=$mask"
+              echo "LIVE_LOVABLE_CREATIVE=$creative"
+              break
+            fi
+            sleep 5
+          done
+          (( found == 1 ))
+
+          region_x=$(routing_field maskRegion.x)
+          region_y=$(routing_field maskRegion.y)
+          region_w=$(routing_field maskRegion.width)
+          region_h=$(routing_field maskRegion.height)
+          [[ "$region_x,$region_y,$region_w,$region_h" == '462,104,798,470' ]]
+          echo "LIVE_LOVABLE_REGION=$region_x,$region_y,$region_w,$region_h"
+
+          # The production router must actually enter protected mode for this real question.
+          switched_in=0
+          for _ in $(seq 1 20); do
+            if sudo journalctl -u "$ROUTER" --since "@$question_epoch" --no-pager 2>/dev/null | grep -Fq 'video route switched: live -> card'; then
+              switched_in=1
+              break
+            fi
+            sleep 1
+          done
+          (( switched_in == 1 ))
+          echo 'REAL_QUESTION_ROUTER_SWITCH=live_to_protected'
+
+          # Record three seconds of the actual 1280x720 protected source currently
+          # selected by the router. It contains the exact middle card + live bands.
+          timeout 10 ffmpeg -hide_banner -nostdin -loglevel error \
+            -fflags +genpts -probesize 5000000 -analyzeduration 5000000 \
+            -i 'udp://127.0.0.1:2942?reuse=1&fifo_size=1000000&overrun_nonfatal=1' \
+            -t 3 -map 0:v:0 -c:v copy -an -y "$work/protected.ts"
+          test -s "$work/protected.ts"
+          probe=$(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate -of csv=p=0 "$work/protected.ts")
+          printf 'PROTECTED_VIDEO_PROBE=%s\n' "$probe"
+          [[ "$probe" == h264,1280,720,10/1* ]]
+
+          # Quantify motion in the two regions that must NEVER freeze. framemd5
+          # hashes decoded crops; >1 unique hash proves changing video frames.
+          ffmpeg -hide_banner -nostdin -loglevel error -i "$work/protected.ts" \
+            -vf 'crop=1280:104:0:0' -an -f framemd5 "$work/news.md5"
+          ffmpeg -hide_banner -nostdin -loglevel error -i "$work/protected.ts" \
+            -vf 'crop=1280:146:0:574' -an -f framemd5 "$work/crawl.md5"
+          news_unique=$(awk -F', ' '!/^#/ {print $NF}' "$work/news.md5" | sort -u | wc -l)
+          crawl_unique=$(awk -F', ' '!/^#/ {print $NF}' "$work/crawl.md5" | sort -u | wc -l)
+          echo "RSS_NEWS_UNIQUE_FRAMES=$news_unique"
+          echo "TRIVIA_CRAWL_UNIQUE_FRAMES=$crawl_unique"
+          (( news_unique > 1 ))
+          (( crawl_unique > 1 ))
+          echo 'RSS_NEWS_DURING_REAL_QUESTION=LIVE'
+          echo 'TRIVIA_CRAWL_DURING_REAL_QUESTION=LIVE'
+
+          # Wait for Lovable to leave question mode, then prove the router returns
+          # to the normal live 30-fps branch on a real-master IDR.
+          clear=0
+          for _ in $(seq 1 90); do
+            phase=$(routing_field phase || true)
+            mask=$(routing_field youtubeMaskActive || true)
+            if [[ "$phase" != question || "$mask" != true ]]; then
+              clear=1
+              break
+            fi
+            sleep 2
+          done
+          (( clear == 1 ))
+          switched_out=0
+          for _ in $(seq 1 15); do
+            if sudo journalctl -u "$ROUTER" --since "@$question_epoch" --no-pager 2>/dev/null | grep -Fq 'video route switched: card -> live'; then
+              switched_out=1
+              break
+            fi
+            sleep 1
+          done
+          (( switched_out == 1 ))
+          echo 'REAL_QUESTION_ROUTER_SWITCH=protected_to_live'
+
+          active "$MASTER"
+          active "$RUMBLE"
+          active "$ROUTER"
+          active "$DYNAMIC"
+          ! active "$DIRECT"
+          test "$(pid "$MASTER")" = "$master0"
+          test "$(pid "$RUMBLE")" = "$rumble0"
+          test "$(pid "$ROUTER")" = "$router0"
+          test "$(pid "$DYNAMIC")" = "$dynamic0"
+          ff2=$(child_ffmpeg "$router0")
+          test "$ff2" = "$ff"
+          connected_443 "$ff2"
+          echo 'MASTER_PID_UNCHANGED=yes'
+          echo 'RUMBLE_PID_UNCHANGED=yes'
+          echo 'YOUTUBE_ROUTER_PID_UNCHANGED=yes'
+          echo 'DYNAMIC_SOURCE_PID_UNCHANGED=yes'
+          echo 'YOUTUBE_RTMPS_CONTINUOUS=yes'
+          echo 'REAL_LOVABLE_DYNAMIC_TRIVIA_CYCLE=PASS'
+          REMOTE
