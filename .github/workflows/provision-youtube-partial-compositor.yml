@@ -1,0 +1,176 @@
+name: Provision YouTube Partial Compositor
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  COMPOSITOR_HOST: ${{ secrets.COMPOSITOR_HOST }}
+  COMPOSITOR_USER: ${{ secrets.COMPOSITOR_USER }}
+  COMPOSITOR_SSH_KEY: ${{ secrets.COMPOSITOR_SSH_KEY }}
+  YOUTUBE_STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require compositor credentials
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -n "$COMPOSITOR_HOST" || { echo 'Missing COMPOSITOR_HOST secret'; exit 2; }
+          test -n "$COMPOSITOR_SSH_KEY" || { echo 'Missing COMPOSITOR_SSH_KEY secret'; exit 2; }
+          test -n "$YOUTUBE_STREAM_KEY" || { echo 'Missing YOUTUBE_STREAM_KEY secret'; exit 2; }
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$COMPOSITOR_SSH_KEY" > ~/.ssh/compositor_key
+          chmod 600 ~/.ssh/compositor_key
+          ssh-keyscan -H "$COMPOSITOR_HOST" >> ~/.ssh/known_hosts
+
+      - name: Install compositor runtime and scripts
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          user="${COMPOSITOR_USER:-ubuntu}"
+          scp -i ~/.ssh/compositor_key \
+            services/fgbears-live/bin/youtube-question-mask.py \
+            services/fgbears-live/bin/youtube-offhost-compositor.sh \
+            "$user@$COMPOSITOR_HOST:/tmp/"
+          ssh -i ~/.ssh/compositor_key "$user@$COMPOSITOR_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+
+          # Wait for unattended upgrades/cloud-init apt activity instead of racing it.
+          for i in $(seq 1 120); do
+            if ! sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 && \
+               ! sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; then
+              break
+            fi
+            sleep 2
+          done
+
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y ffmpeg python3 python3-pil curl ca-certificates
+
+          if ! id -u fgbcomp >/dev/null 2>&1; then
+            sudo useradd --system --home /opt/fgbears-compositor --shell /usr/sbin/nologin fgbcomp
+          fi
+          sudo install -d -o fgbcomp -g fgbcomp -m 0755 /opt/fgbears-compositor/bin
+          sudo install -d -o root -g fgbcomp -m 0750 /etc/fgbears-compositor
+          sudo install -m 0755 /tmp/youtube-question-mask.py /opt/fgbears-compositor/bin/youtube-question-mask.py
+          sudo install -m 0755 /tmp/youtube-offhost-compositor.sh /opt/fgbears-compositor/bin/youtube-offhost-compositor.sh
+
+          sudo tee /etc/systemd/system/fgbears-youtube-question-mask.service >/dev/null <<'UNIT'
+          [Unit]
+          Description=FGBears YouTube partial question-box overlay renderer
+          After=network-online.target
+          Wants=network-online.target
+
+          [Service]
+          Type=simple
+          User=fgbcomp
+          Group=fgbcomp
+          Environment=YOUTUBE_QUESTION_MASK_X=480
+          Environment=YOUTUBE_QUESTION_MASK_Y=200
+          Environment=YOUTUBE_QUESTION_MASK_WIDTH=640
+          Environment=YOUTUBE_QUESTION_MASK_HEIGHT=360
+          Environment=YOUTUBE_QUESTION_MASK_PORT=8791
+          Environment=FGB_STREAM_ROUTING_URL=https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing
+          ExecStart=/opt/fgbears-compositor/bin/youtube-question-mask.py
+          Restart=on-failure
+          RestartSec=3
+          NoNewPrivileges=true
+          PrivateTmp=true
+          ProtectHome=true
+          ProtectSystem=strict
+          ReadOnlyPaths=/opt/fgbears-compositor /etc/fgbears-compositor
+          RestrictSUIDSGID=true
+          LockPersonality=true
+
+          [Install]
+          WantedBy=multi-user.target
+          UNIT
+
+          sudo tee /etc/systemd/system/fgbears-youtube-partial-compositor.service >/dev/null <<'UNIT'
+          [Unit]
+          Description=FGBears off-host YouTube partial compositor
+          After=network-online.target fgbears-youtube-question-mask.service
+          Wants=network-online.target
+          Requires=fgbears-youtube-question-mask.service
+
+          [Service]
+          Type=simple
+          User=fgbcomp
+          Group=fgbcomp
+          EnvironmentFile=/etc/fgbears-compositor/stream.env
+          Environment=FGB_COMPOSITOR_SRT_PORT=9000
+          Environment=YOUTUBE_QUESTION_MASK_X=480
+          Environment=YOUTUBE_QUESTION_MASK_Y=200
+          Environment=YOUTUBE_QUESTION_MASK_WIDTH=640
+          Environment=YOUTUBE_QUESTION_MASK_HEIGHT=360
+          Environment=YOUTUBE_QUESTION_MASK_PORT=8791
+          Environment=FGB_COMPOSITOR_X264_PRESET=ultrafast
+          ExecStart=/opt/fgbears-compositor/bin/youtube-offhost-compositor.sh
+          Restart=on-failure
+          RestartSec=5
+          SuccessExitStatus=130 143
+          TimeoutStopSec=15
+          KillSignal=SIGINT
+          UMask=0077
+          NoNewPrivileges=true
+          PrivateTmp=true
+          ProtectHome=true
+          ProtectSystem=strict
+          ReadOnlyPaths=/opt/fgbears-compositor /etc/fgbears-compositor
+          RestrictSUIDSGID=true
+          LockPersonality=true
+          LimitNOFILE=65536
+
+          [Install]
+          WantedBy=multi-user.target
+          UNIT
+
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now fgbears-youtube-question-mask.service
+          # Intentionally do NOT start or enable the video compositor yet. It must
+          # receive an isolated source and pass a real-time benchmark before cutover.
+          sudo systemctl disable fgbears-youtube-partial-compositor.service >/dev/null 2>&1 || true
+          sudo systemctl stop fgbears-youtube-partial-compositor.service >/dev/null 2>&1 || true
+
+          curl --silent --show-error --fail --max-time 5 http://127.0.0.1:8791/healthz
+          ffmpeg -hide_banner -encoders 2>/dev/null | grep -q 'libx264'
+          echo 'COMPOSITOR_RUNTIME_PROVISIONED=yes'
+          echo 'VIDEO_COMPOSITOR_STARTED=no'
+          REMOTE
+
+      - name: Install YouTube key securely without printing it
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          user="${COMPOSITOR_USER:-ubuntu}"
+          # Send on stdin so the secret is never embedded in a command line or log.
+          printf '%s' "$YOUTUBE_STREAM_KEY" | \
+            ssh -i ~/.ssh/compositor_key "$user@$COMPOSITOR_HOST" \
+            'sudo install -m 0600 -o root -g fgbcomp /dev/stdin /etc/fgbears-compositor/youtube.key && sudo bash -c '\''printf "YOUTUBE_STREAM_KEY=" > /etc/fgbears-compositor/stream.env; cat /etc/fgbears-compositor/youtube.key >> /etc/fgbears-compositor/stream.env; printf "\\n" >> /etc/fgbears-compositor/stream.env; chown root:fgbcomp /etc/fgbears-compositor/stream.env; chmod 0640 /etc/fgbears-compositor/stream.env; rm -f /etc/fgbears-compositor/youtube.key'\'''
+
+      - name: Final read-only readiness report
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          user="${COMPOSITOR_USER:-ubuntu}"
+          ssh -i ~/.ssh/compositor_key "$user@$COMPOSITOR_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo "mask_service=$(systemctl is-active fgbears-youtube-question-mask.service 2>/dev/null || true)"
+          echo "compositor_service=$(systemctl is-active fgbears-youtube-partial-compositor.service 2>/dev/null || true)"
+          echo "compositor_enabled=$(systemctl is-enabled fgbears-youtube-partial-compositor.service 2>/dev/null || true)"
+          curl --silent --show-error --fail --max-time 5 http://127.0.0.1:8791/healthz
+          test -s /etc/fgbears-compositor/stream.env
+          echo 'READY_FOR_ISOLATED_SOURCE_BENCHMARK=yes'
+          REMOTE
