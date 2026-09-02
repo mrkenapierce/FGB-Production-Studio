@@ -1,5 +1,5 @@
 name: Read Only YouTube Router Health 20260902
-# Expanded read-only topology probe 2026-09-02.
+# Guarded read-only live-cycle verification for the active Lovable compositor.
 
 on:
   push:
@@ -13,6 +13,7 @@ permissions:
 jobs:
   health:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
@@ -27,54 +28,200 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Read production state only
+
+      - name: Verify active Lovable YouTube path through one trivia cycle
         shell: bash
         run: |
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          echo '=== core states ==='
-          for s in \
-            fgbears-live.service \
-            fgbears-rumble-relay.service \
-            fgbears-youtube-router.service \
-            fgbears-youtube-relay.service \
-            fgbears-youtube-audio-watchdog.timer \
-            fgbears-youtube-freeze-card-refresh.service \
-            fgbears-youtube-freeze-card-refresh.timer; do
-            printf '%s active=%s enabled=%s pid=%s\n' "$s" \
-              "$(systemctl is-active "$s" 2>/dev/null || true)" \
-              "$(systemctl is-enabled "$s" 2>/dev/null || true)" \
-              "$(systemctl show -p MainPID --value "$s" 2>/dev/null || true)"
-          done
 
-          echo '=== youtube/fgb systemd units ==='
-          systemctl list-unit-files --no-pager --no-legend 2>/dev/null \
-            | awk '$1 ~ /^fgbears-/ && $1 ~ /(youtube|live|rumble)/ {print $1, $2}' \
-            | sort || true
+          ROUTING_URL='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing'
+          HEALTH_URL='http://127.0.0.1:8791/healthz'
+          OVERLAY_URL='http://127.0.0.1:8791/overlay.rgba'
+          MONITOR_DIR='/run/fgbears-youtube-lovable-compositor'
 
-          echo '=== running media processes (no arguments) ==='
-          ps -eo pid=,ppid=,comm= \
-            | awk '$3 ~ /^(ffmpeg|python3|node)$/ {print $1, $2, $3}' \
-            | sort -n || true
+          state() { systemctl is-active "$1" 2>/dev/null || true; }
+          pid() { systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          restarts() { systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
+          safe_monitor() {
+            local f
+            f=$(find "$MONITOR_DIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | awk 'NR==2{print $2}')
+            if [[ -z "$f" ]]; then
+              f=$(find "$MONITOR_DIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | awk 'NR==1{print $2}')
+            fi
+            printf '%s' "$f"
+          }
 
-          echo '=== established port-443 media pids ==='
-          media_pids=$(pgrep -d, -x ffmpeg || true)
-          if [[ -n "$media_pids" ]]; then
-            sudo ss -ntpH state established 2>/dev/null \
-              | grep -E ':443([[:space:]]|$)' \
-              | grep -E 'pid=([0-9]+)' \
-              | sed -E 's/.*pid=([0-9]+).*/pid=\1/' \
-              | sort -u || true
+          master_pid_before=$(pid fgbears-live.service)
+          rumble_pid_before=$(pid fgbears-rumble-relay.service)
+          comp_pid_before=$(pid fgbears-youtube-lovable-compositor.service)
+          route_pid_before=$(pid fgbears-youtube-lovable-routing.service)
+          comp_restarts_before=$(restarts fgbears-youtube-lovable-compositor.service)
+          route_restarts_before=$(restarts fgbears-youtube-lovable-routing.service)
+
+          echo "master active=$(state fgbears-live.service) pid=$master_pid_before"
+          echo "rumble active=$(state fgbears-rumble-relay.service) pid=$rumble_pid_before"
+          echo "lovable_compositor active=$(state fgbears-youtube-lovable-compositor.service) pid=$comp_pid_before restarts=$comp_restarts_before"
+          echo "lovable_routing active=$(state fgbears-youtube-lovable-routing.service) pid=$route_pid_before restarts=$route_restarts_before"
+
+          [[ "$(state fgbears-live.service)" == active ]]
+          [[ "$(state fgbears-rumble-relay.service)" == active ]]
+          [[ "$(state fgbears-youtube-lovable-compositor.service)" == active ]]
+          [[ "$(state fgbears-youtube-lovable-routing.service)" == active ]]
+          [[ "$master_pid_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$rumble_pid_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$comp_pid_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$route_pid_before" =~ ^[1-9][0-9]*$ ]]
+
+          if sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$comp_pid_before" | grep -Eq ':443([[:space:]]|$)'; then
+            echo 'youtube_rtmps_established=yes'
           else
-            echo 'none'
+            echo 'youtube_rtmps_established=no'
+            exit 1
           fi
 
-          echo '=== service ownership for ffmpeg pids ==='
-          for pid in $(pgrep -x ffmpeg || true); do
-            unit=$(systemctl status "$pid" 2>/dev/null | sed -n '1s/^[^●]*● \([^ ]*\).*/\1/p' || true)
-            printf 'pid=%s unit=%s\n' "$pid" "${unit:-unknown}"
-          done
+          echo '=== compositor resource snapshot ==='
+          ps -p "$comp_pid_before" -o pid=,etime=,%cpu=,%mem=,rss=,comm=
+          systemctl show fgbears-youtube-lovable-compositor.service -p ActiveEnterTimestamp -p MemoryCurrent -p MemoryPeak -p CPUUsageNSec -p NRestarts --no-pager
 
-          echo "health_dropin=$(test -e /etc/systemd/system/fgbears-live-health.service.d/90-youtube-emergency-router.conf && echo yes || echo no)"
+          echo '=== local Lovable bridge health ==='
+          initial_health=$(curl -fsS --max-time 3 "$HEALTH_URL")
+          printf '%s\n' "$initial_health" | python3 -c '
+import json,sys
+p=json.load(sys.stdin)
+assert p.get("ok") is True,p
+assert p.get("canvas")==[640,360],p
+assert p.get("routingAuthority")=="lovable_public_stream_routing",p
+assert p.get("creativeKey")=="yt_rumble_trivia_redirect",p
+assert p.get("presentationMode")=="full_creative_scaled",p
+assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470},p
+assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235},p
+assert p.get("lastError") in (None,""),p
+print("local_phase=%s local_active=%s age=%s mask=%s"%(p.get("phase"),p.get("active"),p.get("lastGoodAgeSeconds"),p.get("maskRegion")))
+'
+
+          echo '=== bounded monitor contract ==='
+          sleep 2
+          monitor=$(safe_monitor)
+          [[ -n "$monitor" && -s "$monitor" ]]
+          ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame_rate,sample_rate,channels -of json "$monitor" | python3 -c '
+import json,sys
+p=json.load(sys.stdin); streams=p.get("streams",[])
+v=next((s for s in streams if s.get("codec_type")=="video"),None)
+a=next((s for s in streams if s.get("codec_type")=="audio"),None)
+assert v and v.get("codec_name")=="h264" and v.get("width")==640 and v.get("height")==360 and v.get("r_frame_rate") in ("30/1","60/2"),v
+assert a and a.get("codec_name")=="aac" and a.get("sample_rate")=="44100" and a.get("channels")==2,a
+print("monitor_video=h264 640x360/30 monitor_audio=aac 44100 stereo")
+'
+
+          echo '=== waiting for next authoritative question phase ==='
+          deadline=$((SECONDS + 1400))
+          active_seen=0
+          while (( SECONDS < deadline )); do
+            h=$(curl -fsS --max-time 3 "$HEALTH_URL" 2>/dev/null || true)
+            if [[ -n "$h" ]] && printf '%s' "$h" | python3 -c 'import json,sys; p=json.load(sys.stdin); raise SystemExit(0 if p.get("active") is True and p.get("phase")=="question" and not p.get("lastError") else 1)' 2>/dev/null; then
+              active_seen=1
+              break
+            fi
+            sleep 1
+          done
+          [[ "$active_seen" == 1 ]] || { echo 'No authoritative question phase observed before timeout'; exit 1; }
+          echo 'QUESTION_PHASE_DETECTED=yes'
+
+          active_health=$(curl -fsS --max-time 3 "$HEALTH_URL")
+          printf '%s\n' "$active_health" | python3 -c '
+import json,sys
+p=json.load(sys.stdin); age=p.get("lastGoodAgeSeconds")
+assert p.get("active") is True and p.get("phase")=="question",p
+assert p.get("lastError") in (None,""),p
+assert age is not None and age < 3,p
+print("active_local_health=PASS age=%s"%age)
+'
+
+          remote=$(curl -fsS --max-time 6 -H 'Accept: application/json' -H 'Cache-Control: no-cache' -A 'FGB-Live-Cycle-Verifier/1.0' "${ROUTING_URL}?_ts=$(date +%s%N)")
+          printf '%s\n' "$remote" | python3 -c '
+import json,sys
+p=json.load(sys.stdin); t=p.get("trivia") or {}
+assert t.get("youtubeMaskActive") is True,t
+assert t.get("phase")=="question",t
+assert t.get("stale") is not True,t
+assert t.get("adsVisible") is not True,t
+assert t.get("isAdBreak") is not True and t.get("adBreakActive") is not True,t
+assert t.get("youtubeCreativeKey")=="yt_rumble_trivia_redirect",t
+r=t.get("maskRegion") or {}
+assert {k:r.get(k) for k in ("x","y","width","height")}=={"x":462,"y":104,"width":798,"height":470},r
+print("authoritative_lovable_question_state=PASS mask=462,104 798x470")
+'
+
+          python3 - "$HEALTH_URL" "$OVERLAY_URL" <<'PY'
+import json,sys,urllib.request
+health=json.load(urllib.request.urlopen(sys.argv[1], timeout=3)); w,h=health["frameSize"]; need=w*h*4
+with urllib.request.urlopen(sys.argv[2], timeout=4) as r: data=r.read(need)
+assert len(data)==need,(len(data),need)
+alpha=data[3::4]; ratio=sum(1 for a in alpha if a)/len(alpha)
+assert ratio > .95,ratio
+print(f"active_overlay_rgba=PASS nonzero_alpha_ratio={ratio:.4f} frame={w}x{h}")
+PY
+
+          monitor_active=$(safe_monitor)
+          [[ -n "$monitor_active" && -s "$monitor_active" ]]
+          ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate -of default=nw=1 "$monitor_active"
+
+          if sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$comp_pid_before" | grep -Eq ':443([[:space:]]|$)'; then
+            echo 'youtube_rtmps_during_question=yes'
+          else
+            echo 'youtube_rtmps_during_question=no'
+            exit 1
+          fi
+
+          echo '=== waiting for overlay clear ==='
+          deadline=$((SECONDS + 90))
+          inactive_seen=0
+          while (( SECONDS < deadline )); do
+            h=$(curl -fsS --max-time 3 "$HEALTH_URL" 2>/dev/null || true)
+            if [[ -n "$h" ]] && printf '%s' "$h" | python3 -c 'import json,sys; p=json.load(sys.stdin); raise SystemExit(0 if p.get("active") is False else 1)' 2>/dev/null; then
+              inactive_seen=1
+              break
+            fi
+            sleep 1
+          done
+          [[ "$inactive_seen" == 1 ]] || { echo 'Overlay did not clear after question phase'; exit 1; }
+
+          python3 - "$HEALTH_URL" "$OVERLAY_URL" <<'PY'
+import json,sys,urllib.request
+health=json.load(urllib.request.urlopen(sys.argv[1], timeout=3)); w,h=health["frameSize"]; need=w*h*4
+with urllib.request.urlopen(sys.argv[2], timeout=4) as r: data=r.read(need)
+assert len(data)==need,(len(data),need)
+nonzero=sum(1 for a in data[3::4] if a)
+assert nonzero==0,nonzero
+print(f"inactive_overlay_transparent=PASS frame={w}x{h}")
+PY
+
+          master_pid_after=$(pid fgbears-live.service)
+          rumble_pid_after=$(pid fgbears-rumble-relay.service)
+          comp_pid_after=$(pid fgbears-youtube-lovable-compositor.service)
+          route_pid_after=$(pid fgbears-youtube-lovable-routing.service)
+          comp_restarts_after=$(restarts fgbears-youtube-lovable-compositor.service)
+          route_restarts_after=$(restarts fgbears-youtube-lovable-routing.service)
+
+          [[ "$master_pid_after" == "$master_pid_before" ]]
+          [[ "$rumble_pid_after" == "$rumble_pid_before" ]]
+          [[ "$comp_pid_after" == "$comp_pid_before" ]]
+          [[ "$route_pid_after" == "$route_pid_before" ]]
+          [[ "$comp_restarts_after" == "$comp_restarts_before" ]]
+          [[ "$route_restarts_after" == "$route_restarts_before" ]]
+
+          if sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$comp_pid_after" | grep -Eq ':443([[:space:]]|$)'; then
+            echo 'youtube_rtmps_after_question=yes'
+          else
+            echo 'youtube_rtmps_after_question=no'
+            exit 1
+          fi
+
+          echo "master_pid_unchanged=$master_pid_after"
+          echo "rumble_pid_unchanged=$rumble_pid_after"
+          echo "compositor_pid_unchanged=$comp_pid_after restarts=$comp_restarts_after"
+          echo "routing_pid_unchanged=$route_pid_after restarts=$route_restarts_after"
+          echo 'LOVABLE_YOUTUBE_LIVE_CYCLE=PASS'
           REMOTE
