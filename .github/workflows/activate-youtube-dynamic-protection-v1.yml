@@ -1,4 +1,4 @@
-name: Recover FGB Master Safely
+name: Verify Recovered Production
 
 on:
   push:
@@ -16,7 +16,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  recover:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -28,13 +28,12 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Recover master and verify transports
+      - name: Verify and repair only missing transport
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -45,53 +44,32 @@ jobs:
           COMP=fgbears-youtube-lovable-compositor.service
           ROUTING=fgbears-youtube-lovable-routing.service
 
-          if ! systemctl is-active --quiet "$MASTER"; then
-            sudo systemctl reset-failed "$MASTER"
-            sudo systemctl start "$MASTER"
-          fi
-
-          for _ in $(seq 1 30); do
-            if systemctl is-active --quiet "$MASTER" && curl -fsS --max-time 1 http://127.0.0.1:8788/healthz >/dev/null 2>&1 && curl -fsS --max-time 1 http://127.0.0.1:8789/healthz >/dev/null 2>&1; then
-              break
-            fi
-            sleep 1
-          done
-
-          if ! systemctl is-active --quiet "$MASTER"; then
-            echo 'MASTER_RECOVERY=FAIL'
-            systemctl status "$MASTER" --no-pager -l || true
-            journalctl -u "$MASTER" -n 80 --no-pager || true
-            exit 1
-          fi
-
+          systemctl is-active --quiet "$MASTER"
           curl -fsS --max-time 2 http://127.0.0.1:8788/healthz >/dev/null
           curl -fsS --max-time 2 http://127.0.0.1:8789/healthz >/dev/null
-          systemctl is-active --quiet "$RUMBLE"
           systemctl is-active --quiet "$COMP"
           systemctl is-active --quiet "$ROUTING"
 
-          # Give existing relays a chance to resume when master UDP returns.
-          sleep 6
-          if ! sudo ss -ntpH state established | grep -q ':1935 '; then
+          has_port() { sudo ss -ntpH state established 2>/dev/null | grep -q ":$1 "; }
+          if ! has_port 1935; then
+            sudo systemctl reset-failed "$RUMBLE" || true
             sudo systemctl restart "$RUMBLE"
-            sleep 5
+            for _ in $(seq 1 20); do has_port 1935 && break; sleep 1; done
           fi
-          if ! sudo ss -ntpH state established | grep -q ':443 '; then
+          if ! has_port 443; then
             sudo systemctl restart "$COMP"
-            sleep 8
+            for _ in $(seq 1 20); do has_port 443 && break; sleep 1; done
           fi
 
-          sudo ss -ntpH state established | grep ':1935 '
-          sudo ss -ntpH state established | grep ':443 '
-          systemctl is-active --quiet "$MASTER"
+          has_port 1935
+          has_port 443
           systemctl is-active --quiet "$RUMBLE"
-          systemctl is-active --quiet "$COMP"
-          systemctl is-active --quiet "$ROUTING"
 
-          echo "MASTER_PID=$(systemctl show -p MainPID --value "$MASTER")"
-          echo "RUMBLE_PID=$(systemctl show -p MainPID --value "$RUMBLE")"
-          echo "COMPOSITOR_PID=$(systemctl show -p MainPID --value "$COMP")"
-          echo "CRAWL_HEALTH=$(curl -fsS --max-time 2 http://127.0.0.1:8788/healthz)"
-          echo "RSS_HEALTH=$(curl -fsS --max-time 2 http://127.0.0.1:8789/healthz)"
-          echo 'MASTER_RECOVERY=PASS'
+          echo "MASTER=active pid=$(systemctl show -p MainPID --value "$MASTER")"
+          echo "RUMBLE=active pid=$(systemctl show -p MainPID --value "$RUMBLE")"
+          echo "YOUTUBE=active pid=$(systemctl show -p MainPID --value "$COMP")"
+          echo "CRAWL=$(curl -fsS --max-time 2 http://127.0.0.1:8788/healthz)"
+          echo "RSS=$(curl -fsS --max-time 2 http://127.0.0.1:8789/healthz)"
+          echo "PROGRESS=$(tail -20 /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null | tr '\n' ' ')"
+          echo 'RECOVERED_PRODUCTION=PASS'
           REMOTE
