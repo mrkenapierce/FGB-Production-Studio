@@ -1,0 +1,60 @@
+name: Diagnose YouTube Dynamic Selector V1
+
+on:
+  push:
+    branches:
+      - lovable-routing-bridge-20260902
+    paths:
+      - '.github/workflows/diagnose-youtube-dynamic-selector-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Inspect safe selector-test state
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo "MASTER_STATE=$(systemctl is-active fgbears-live.service || true)"
+          echo "RUMBLE_STATE=$(systemctl is-active fgbears-rumble-relay.service || true)"
+          echo "YOUTUBE_DIRECT_STATE=$(systemctl is-active fgbears-youtube-relay.service || true)"
+          echo "YOUTUBE_ROUTER_STATE=$(systemctl is-active fgbears-youtube-router.service || true)"
+          echo "DYNAMIC_SOURCE_STATE=$(systemctl is-active fgbears-youtube-dynamic-card.service || true)"
+          echo '--- DYNAMIC SOURCE JOURNAL ---'
+          sudo journalctl -u fgbears-youtube-dynamic-card.service -n 35 --no-pager \
+            | sed -E 's#rtmps?://[^[:space:]]+#<redacted-url>#g'
+          echo '--- SELECTOR TEST LOG ---'
+          if [[ -f /tmp/fgb-youtube-dynamic-router-test.log ]]; then
+            sed -E 's#rtmps?://[^[:space:]]+#<redacted-url>#g' /tmp/fgb-youtube-dynamic-router-test.log | tail -n 120
+          else
+            echo 'selector_test_log_missing=yes'
+          fi
+          echo '--- SYNTH LOG ---'
+          if [[ -f /tmp/fgb-youtube-selector-synth.log ]]; then
+            tail -n 80 /tmp/fgb-youtube-selector-synth.log
+          else
+            echo 'synth_log_missing=yes'
+          fi
+          echo 'DIAGNOSE_DYNAMIC_SELECTOR=PASS'
+          REMOTE
