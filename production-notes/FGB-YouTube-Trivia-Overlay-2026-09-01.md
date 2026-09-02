@@ -1,118 +1,141 @@
 # FGB YouTube-only trivia overlay — production status
 
-**Original status time:** 2026-09-01 23:52 America/Chicago  
-**Current emergency status time:** 2026-09-02 02:20 America/Chicago
+**Original work:** 2026-09-01  
+**Current authoritative status:** 2026-09-02 after no-freeze live-cycle verification
 
-## Approved architecture retained
+## CURRENT AUTHORITATIVE REQUIREMENT
 
-- Production VM remains the master source and must not perform the YouTube mask video re-encode.
-- Source-to-compositor transport is copy-only SRT/MPEG-TS using `youtube-compositor-source-relay.sh` (`-c copy`).
-- YouTube video composition and encoding are isolated to the dedicated off-host compositor using `youtube-offhost-compositor.sh`.
-- The YouTube-only mask covers only the configured live question-and-choice region; the rest of the frame remains transparent.
-- Mask activation trusts authoritative `trivia.youtubeMaskActive === true` only during `phase === "question"`.
-- Missing, malformed, stale, or unreachable routing state fails transparent.
-- Rumble remains on the unmasked master feed.
-- Free Oracle capacity must be checked first. Do not provision a paid resource without separate authorization.
+The YouTube picture must **not freeze during trivia**. The RSS/news upper-third and the messaging crawl must remain functional and visibly moving at all times, including while a trivia question is active.
 
-The off-host compositor remains the preferred long-term architecture. The emergency packet router described below is an authorized interim production safeguard because the direct YouTube copy-remux path exposed trivia questions.
+A whole-frame packet switch to a pre-encoded/static card does not satisfy this requirement, even if the artwork itself only occupies the trivia panel, because the encoded YouTube frame is replaced as a whole. The previous freeze-card/router approach is therefore **deprecated and prohibited for production**.
 
-## Verification completed before emergency switch
+The desired final behavior is:
 
-- Off-host compositor CI tests previously passed syntax, partial-mask geometry/transparency, and source-host isolation checks; the compositor implementation has not changed since that test commit.
-- Live routing was observed in both states:
-  - revealed phase: `questionActive=false`, `youtubeMaskActive=false`
-  - question phase: `questionActive=true`, `stale=false`, `youtubeMaskActive=true`
-- Final read-only production health verification before the emergency work showed:
-  - `fgbears-live.service`: active
-  - `fgbears-youtube-relay.service`: active
-  - `fgbears-rumble-relay.service`: active
-  - YouTube direct relay was copy-only and had an established RTMPS socket
-  - audio health result: `OVERALL_STATUS=OK`
+- Rumble: unchanged live master program, including the real trivia question.
+- YouTube outside a question: unchanged live master program.
+- YouTube during a fresh authoritative question: replace only the production trivia panel with the approved `yt_rumble_trivia_redirect` creative while every other live pixel — particularly RSS/news and crawl — continues advancing normally.
+- Trigger: `trivia.youtubeMaskActive === true`, `phase === "question"`, and non-stale state.
+- Routing failure, stale state, or malformed state: fail open/transparent to live video.
 
-## Oracle provisioning blocker — historical context
+## CURRENT PRODUCTION STATE — NO FREEZE
 
-A prior instance-principal check confirmed:
+The freeze router was removed from the active YouTube path and the canonical continuous direct relay was restored in guarded workflow run `33613628467`.
 
-- OCI region enumeration succeeded with the production VM instance principal.
-- OCI Compute access returned `NotAuthorizedOrNotFound` for `get_instance`.
-- The VM principal therefore could not safely provision the dedicated compositor itself.
-- GitHub Actions did not contain OCI/Oracle user API credentials.
+Verified after the handoff:
 
-The user later proceeded through the Oracle console manually, but the emergency packet-router path below was activated first to stop YouTube question exposure without touching Rumble or restarting the master encoder.
+- `fgbears-live.service` remained running without restart.
+- `fgbears-rumble-relay.service` remained running without restart.
+- `fgbears-youtube-relay.service` is the active continuous YouTube branch.
+- YouTube RTMPS was established and remained stable through the post-cutover hold.
+- `fgbears-youtube-router.service` is disabled/inactive.
+- `fgbears-youtube-freeze-card-refresh.timer` is disabled/inactive.
+- `fgbears-youtube-audio-watchdog.timer` is enabled again for the canonical direct relay.
 
-## Emergency YouTube-only production override — ACTIVE
+A real question-cycle verification then passed in workflow run `33613808963`. During an authoritative state of `phase="question"`, `youtubeMaskActive=true`, `stale=false`:
 
-The user explicitly authorized the emergency switch on 2026-09-02 after confirming that trivia questions were still visible on YouTube.
+- master program clock advanced exactly 5,000,000 microseconds during the 5-second sample;
+- RSS/news health remained active with a non-empty live message;
+- crawl health remained OK;
+- the continuous direct YouTube RTMPS transport remained established;
+- the freeze router remained inactive;
+- result: `NO_FREEZE_LIVE_CYCLE=PASS`.
 
-The active emergency path uses the already-tested low-CPU packet router:
+**Current tradeoff:** because the active direct relay is copy-only and performs no pixel composition, YouTube currently shows the trivia question. This is intentional as the safe interim state: continuously moving RSS/crawl takes precedence over the rejected full-frame freeze solution.
 
-- `fgbears-youtube-router.service` is the active/enabled YouTube branch.
-- The router receives the existing encoded H.264/AAC MPEG-TS branch, performs packet-level video selection, and does **not** re-encode video.
-- During a fresh authoritative question state, defined as `trivia.youtubeMaskActive === true`, `trivia.phase === "question"`, and `trivia.stale === false`, YouTube switches at a keyframe from the live H.264 program to the pre-encoded full-frame Rumble trivia card.
-- When the question-safe state clears, YouTube switches back to the live encoded program at a keyframe.
-- The YouTube audio repair is preserved: AAC-LC, 128 kbps, 44.1 kHz, stereo, asynchronous resampling.
-- Endpoint failures or stale/malformed state fail open to the normal live program.
-- `fgbears-youtube-relay.service`, the old direct path that exposed questions, is disabled while emergency mode is active.
-- `fgbears-youtube-audio-watchdog.timer` is disabled because it would otherwise restart the old direct relay.
-- The normal `fgbears-live-health.service` remains enabled and is redirected through a systemd drop-in to supervise `fgbears-youtube-router.service` instead of the disabled direct relay.
-- The router itself is configured `Restart=on-failure` and enabled for boot persistence.
+## PRODUCTION GEOMETRY
 
-## Emergency cutover verification — PASSED
+The production middle trivia/ad panel is exactly:
 
-The guarded cutover completed successfully in GitHub Actions run `33602535496`.
+- `x=462`
+- `y=104`
+- `width=798`
+- `height=470`
+- bounds `(462,104)-(1260,574)`
 
-Observed production results:
+The RSS/news band occupies `y=0..103`. The crawl begins at `y=574`. Therefore the production trivia panel is exactly the safe middle region between those two continuously moving bands.
 
-- YouTube RTMPS transport established 13 seconds after the authorized branch handoff.
-- Router PID after cutover: `2195195`.
-- No fatal router, GStreamer, or FFmpeg-transport exit events were detected during the post-connect stability window.
-- `fgbears-live.service` remained on PID `2112260`; master encoder restart: **no**.
-- `fgbears-rumble-relay.service` remained on PID `2191628`; Rumble restart: **no**.
-- Video re-encode added by emergency path: **no**.
-- YouTube audio repair preserved: **yes**.
+Lovable's routing contract has been reconciled to this geometry and identifies the locked full redirect creative as `yt_rumble_trivia_redirect`.
 
-A separate next-question verification completed successfully in GitHub Actions run `33602815656`:
+## EXACT APPROVED CREATIVE
 
-- 2026-09-02 02:20:03 America/Chicago: authoritative question-safe state observed.
-- 02:20:04: router logged `video route switched: live -> card`.
-- YouTube RTMPS remained established while the card was active.
-- 02:20:16: authoritative state cleared to `phase=revealed`, `youtubeMaskActive=false`, `stale=false`.
-- 02:20:17: router logged `video route switched: card -> live`.
-- Verification result: `NEXT_QUESTION_EMERGENCY_SWITCH=PASS`.
-- Master encoder restart: **no**.
-- Rumble relay restart: **no**.
-- Emergency YouTube router remained active after verification.
-- Direct YouTube relay remained inactive after verification.
+The repository's canonical exact-card builder is:
 
-This confirms that the production YouTube branch now substitutes the full-frame Rumble card during the actual protected question interval and returns to the normal live program after the question. It is a full-frame emergency substitution, so the YouTube crawl/news layers are also hidden for the protected question interval. Rumble remains on the unmodified master program.
+`services/fgbears-live/tools/build-youtube-rumble-trivia-card.py`
 
-## Rollback protocol
+It renders the locked 1280x720 YouTube-to-Rumble creative, including the QR code and approved visual copy. When used inside the final compositor, the complete creative is to be treated as one immutable asset and proportionally scaled to `798x449`, centered at `x=462,y=114` inside the `798x470` production panel. Individual elements must not be reconstructed or independently resized.
 
-If the emergency router becomes unhealthy or must be removed:
+## CURRENT-HOST CAPACITY TESTS — FINAL RESULT
 
-1. Stop and disable `fgbears-youtube-router.service`.
-2. Remove `/etc/systemd/system/fgbears-live-health.service.d/90-youtube-emergency-router.conf` and run `systemctl daemon-reload`.
-3. Re-enable and start `fgbears-youtube-relay.service`.
-4. Re-enable and start `fgbears-youtube-audio-watchdog.timer`.
-5. Verify YouTube RTMPS transport, master health, and Rumble continuity.
-6. Do not restart or modify the master encoder or Rumble relay as part of this rollback.
+Three isolated, non-publishing tests were performed while production services remained live.
 
-The guarded deployment workflows already implement this YouTube-only rollback automatically on cutover failure.
+### 1. Full moving software compositor
 
-## Security remediation performed
+Workflow: `benchmark-youtube-live-compositor-v1.yml`, run `33613350129`.
 
-A diagnostic workflow was found to print full relay command lines into GitHub Actions logs. Future runs were changed to redact RTMP/RTMPS/SRT destinations before printing process arguments. Commit: `c85fd279cd28e5e977833484d3040a4da0fe2f35`.
+Result: `ENCODE_REALTIME_MULTIPLIER=0.675x` — insufficient for a continuous 1.0x live stream, before reserving a safety margin.
 
-Because an earlier public Actions log contained live ingest destinations, the YouTube and Rumble ingest credentials shown in that historical log should be treated as exposed. They were not reproduced in this note. Remaining remediation is to rotate the affected platform ingest credentials and purge the historical log when platform/GitHub controls are available; this was not done here because Rumble disruption was explicitly prohibited for this task.
+### 2. Static middle/background with only RSS and crawl moving
 
-## Long-term production step
+Workflow: `benchmark-youtube-dynamic-bands-v1.yml`, run `33614228597`.
 
-The emergency packet router is now the active protective layer. The preferred final architecture remains the dedicated off-host compositor because it can mask only the question/answer region while preserving the rest of the YouTube picture.
+The actual local overlay sources were measured as:
 
-Before replacing the emergency router with the off-host compositor:
+- RSS/news: `1280x104`, 25 fps
+- crawl: `1280x139`, 25 fps
 
-1. Provision and verify the dedicated compositor without touching the master or Rumble path.
-2. Connect the copy-only SRT source relay.
-3. Verify transparent fail-safe behavior, partial-mask geometry, live question activation, video/audio health, and Rumble continuity.
-4. Perform a guarded YouTube-only handoff with the direct relay retained as rollback.
-5. Remove the emergency full-frame router only after the partial-mask compositor passes a live question-cycle verification.
+Result: `DYNAMIC_BANDS_REALTIME_MULTIPLIER=0.552x` — also insufficient.
+
+### 3. Hardware encoder probe / VAAPI
+
+The VM exposes `/dev/dri/card0` and `/dev/dri/renderD128`, and its FFmpeg build lists VAAPI encoder support. However an actual isolated H.264 VAAPI encode failed before encoding with:
+
+- `Failed to initialise VAAPI connection`
+- `unknown libva error`
+- `Failed to set value '/dev/dri/renderD128' for option 'vaapi_device': Input/output error`
+
+Therefore the current Oracle VM does **not** provide a usable hardware H.264 encode path for this compositor.
+
+### Capacity conclusion
+
+The existing production VM cannot safely perform the required live partial-frame YouTube composition in software, and its exposed DRM device does not provide a usable VAAPI encode path. Do not put a real-time YouTube compositor on this source VM.
+
+## REQUIRED FINAL ARCHITECTURE
+
+The correct final architecture remains a separate YouTube-only compositor host:
+
+1. The production VM emits a copy-only encoded source branch; master and Rumble remain untouched.
+2. The compositor receives that branch, keeps the full moving live frame, and replaces only `(462,104)-(1260,574)` during the authoritative question interval.
+3. The compositor uses the locked `yt_rumble_trivia_redirect` creative as the panel source.
+4. RSS/news and crawl remain part of the continuously moving live picture and are never substituted with a static full frame.
+5. The compositor publishes the resulting YouTube-only stream.
+6. Failure must fall back to the continuous direct relay, never to the deprecated full-frame freeze router.
+
+The repository already contains the architectural starting point:
+
+- `services/fgbears-live/bin/youtube-question-mask.py`
+- `services/fgbears-live/bin/youtube-offhost-compositor.sh`
+- `services/fgbears-live/bin/youtube-compositor-source-relay.sh`
+
+These must be reconciled to the authoritative `462,104,798x470` geometry and exact locked creative before final deployment.
+
+## FREEZE PATHS PERMANENTLY DEPRECATED
+
+The following activation/deployment workflows have been replaced with blocked tombstones so a manual run cannot silently restore the rejected whole-frame freeze behavior:
+
+- `activate-youtube-exact-card-v4.yml`
+- `activate-youtube-exact-card-v4b.yml`
+- `activate-youtube-exact-card-v4c.yml`
+- `activate-youtube-freeze-box-card.yml`
+- `deploy-youtube-freeze-box.yml`
+- `emergency-cutover-youtube-trivia-router.yml`
+- `emergency-cutover-youtube-trivia-router-v2.yml`
+
+Historical packet-router verification remains useful as diagnostic history only. It is not an approved production solution going forward.
+
+## COST / PROVISIONING BOUNDARY
+
+Free separate compute should be attempted first. Do not provision paid compute without separate explicit authorization. Previous Oracle A1 free-capacity attempts in `us-chicago-1` were blocked by capacity, and the current tools do not have Oracle Compute provisioning authority.
+
+## SECURITY
+
+Never print or expose YouTube/Rumble ingest targets, stream keys, SSH private keys, or environment secrets in Actions logs or production notes. Historical ingest credentials exposed in an older public diagnostic log should continue to be treated as compromised until rotated; they are intentionally not reproduced here.
