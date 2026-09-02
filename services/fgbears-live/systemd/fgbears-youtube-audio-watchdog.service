@@ -1,6 +1,6 @@
 [Unit]
-Description=FGBears YouTube audio and relay watchdog
-After=network-online.target fgbears-live.service fgbears-youtube-relay.service
+Description=FGBears YouTube owner-aware audio and transport watchdog
+After=network-online.target fgbears-live.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service
 Wants=network-online.target
 
 [Service]
