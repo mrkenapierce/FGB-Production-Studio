@@ -5,16 +5,16 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 01 Sep 2026 22:01:26 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 02 Sep 2026 00:08:40 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>What is your grade and assessment of the Chicago Bears Offseason?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: What is your grade and assessment of the Chicago Bears Offseason?</description>
-      <link>https://sports.yahoo.com/articles/grade-assessment-chicago-bears-offseason-200000676.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a4947e8a936f35072a2e</guid>
-      <pubDate>Tue, 01 Sep 2026 20:00:00 GMT</pubDate>
+      <title>Thank You, Caleb Williams: The Chicago Bears have a real, actual, NFL QB</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Thank You, Caleb Williams: The Chicago Bears have a real, actual, NFL QB</description>
+      <link>https://sports.yahoo.com/articles/thank-caleb-williams-chicago-bears-220000553.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ae8eca68fddf90e09622</guid>
+      <pubDate>Tue, 01 Sep 2026 22:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -30,16 +30,6 @@
     </item>
 
     <item>
-      <title>Chicago Bears Sign 3 More Players to 2026 Practice Squad</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Sign 3 More Players to 2026 Practice Squad</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-signed-11-players-000535834.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e9df245fc683c4bf1e72</guid>
-      <pubDate>Tue, 01 Sep 2026 19:18:43 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Chicago Bears announce roster moves</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears announce roster moves</description>
       <link>https://www.chicagobears.com/news/chicago-bears-announce-roster-moves-practice-squad-2026</link>
@@ -47,6 +37,16 @@
       <pubDate>Tue, 01 Sep 2026 19:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>What is your Chicago Bears 2026 record prediction?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: What is your Chicago Bears 2026 record prediction?</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-2026-record-prediction-000000736.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8177b2f78d66896bcee6</guid>
+      <pubDate>Tue, 01 Sep 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
