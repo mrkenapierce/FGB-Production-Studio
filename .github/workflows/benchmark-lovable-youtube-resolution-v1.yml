@@ -1,0 +1,105 @@
+name: Benchmark Lovable YouTube Resolution V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/benchmark-lovable-youtube-resolution-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Benchmark 540p and 480p Lovable compositor without publishing
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          work=/tmp/fgb-lovable-resolution-benchmark
+          rm -rf "$work"; mkdir -p "$work"
+          trap 'rm -rf "$work"' EXIT
+
+          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_before=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          youtube_before=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          consumer_before=$(systemctl show -p MainPID --value fgbears-youtube-lovable-routing.service)
+          test "$master_before" -gt 0; test "$rumble_before" -gt 0; test "$youtube_before" -gt 0; test "$consumer_before" -gt 0
+
+          nice -n 19 ionice -c3 timeout 20 ffmpeg -hide_banner -nostdin -loglevel error \
+            -fflags +genpts -probesize 5000000 -analyzeduration 5000000 \
+            -i 'udp://127.0.0.1:1939?reuse=1&fifo_size=1000000&overrun_nonfatal=1' \
+            -t 12 -map 0:v:0 -map 0:a:0? -c copy -f mpegts -y "$work/sample.ts"
+          test -s "$work/sample.ts"
+
+          PYTHONPATH=/opt/fgbears-live/exact-card-pylib python3 /opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py "$work/source.png" >/dev/null
+
+          benchmark_one() {
+            local name=$1 width=$2 height=$3
+            # Scale Lovable's production panel from the 1280x720 coordinate space.
+            local x y w h
+            x=$(python3 -c "print(round(462*${width}/1280))")
+            y=$(python3 -c "print(round(104*${height}/720))")
+            w=$(python3 -c "print(round(798*${width}/1280))")
+            h=$(python3 -c "print(round(470*${height}/720))")
+            PYTHONPATH=/opt/fgbears-live/exact-card-pylib python3 - "$work/source.png" "$work/${name}-panel.png" "$w" "$h" <<'PY'
+          import sys
+          from PIL import Image
+          src=Image.open(sys.argv[1]).convert('RGBA')
+          w,h=map(int,sys.argv[3:5])
+          src.thumbnail((w,h),Image.Resampling.LANCZOS)
+          panel=Image.new('RGBA',(w,h),(11,22,42,255))
+          panel.alpha_composite(src,((w-src.width)//2,(h-src.height)//2))
+          panel.save(sys.argv[2])
+          PY
+            start=$(date +%s%N)
+            nice -n 19 ionice -c3 ffmpeg -hide_banner -nostdin -loglevel error \
+              -i "$work/sample.ts" -loop 1 -framerate 30 -i "$work/${name}-panel.png" \
+              -filter_complex "[0:v:0]scale=${width}:${height}:flags=fast_bilinear[base];[base][1:v:0]overlay=${x}:${y}:format=auto:shortest=1[v]" \
+              -map '[v]' -map 0:a:0? \
+              -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
+              -pix_fmt yuv420p -r 30 -g 60 -keyint_min 60 -sc_threshold 0 \
+              -b:v 3000k -maxrate 3300k -bufsize 6000k -threads 1 \
+              -c:a aac -profile:a aac_low -b:a 128k -ar 44100 -ac 2 \
+              -af 'aresample=44100:async=1:first_pts=0' \
+              -f null -
+            end=$(date +%s%N)
+            elapsed_ms=$(( (end-start)/1000000 ))
+            duration_ms=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$work/sample.ts" | awk '{printf "%d", $1*1000}')
+            python3 - "$name" "$duration_ms" "$elapsed_ms" "$width" "$height" <<'PY'
+          import sys
+          name,d,e,w,h=sys.argv[1],float(sys.argv[2]),float(sys.argv[3]),sys.argv[4],sys.argv[5]
+          ratio=d/e if e else 0
+          print(f'{name.upper()}_SIZE={w}x{h}')
+          print(f'{name.upper()}_REALTIME_MULTIPLIER={ratio:.3f}x')
+          print(f'{name.upper()}_CAPACITY=' + ('PASS' if ratio >= 1.30 else 'INSUFFICIENT'))
+          PY
+          }
+
+          benchmark_one p540 960 540
+          benchmark_one p480 854 480
+
+          test "$(systemctl show -p MainPID --value fgbears-live.service)" = "$master_before"
+          test "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" = "$rumble_before"
+          test "$(systemctl show -p MainPID --value fgbears-youtube-relay.service)" = "$youtube_before"
+          test "$(systemctl show -p MainPID --value fgbears-youtube-lovable-routing.service)" = "$consumer_before"
+          echo "MASTER_PID_UNCHANGED=$master_before"
+          echo "RUMBLE_PID_UNCHANGED=$rumble_before"
+          echo "YOUTUBE_DIRECT_PID_UNCHANGED=$youtube_before"
+          echo 'BENCHMARK_DID_NOT_PUBLISH=yes'
+          REMOTE
