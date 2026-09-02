@@ -1,39 +1,43 @@
 #!/usr/bin/env python3
-from __future__ import annotations
+"""Static regression guard for the supported YouTube exact-box renderer.
 
-import importlib.util
-import time
+The production renderer obtains its live geometry from Lovable at startup, so
+this integration test deliberately avoids importing it (which would perform a
+network contract fetch). Instead it locks the architectural invariants that are
+safe to verify offline. Live geometry and transport are certified separately by
+the exact-card and production-audit workflows.
+"""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MODULE = ROOT / "bin" / "youtube-trivia-overlay.py"
-spec = importlib.util.spec_from_file_location("fgb_youtube_trivia_overlay_test", MODULE)
-assert spec and spec.loader
-m = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(m)
+MASK = ROOT / "bin" / "youtube-question-mask.py"
+FULLSCREEN = ROOT / "bin" / "youtube-trivia-overlay.py"
 
-assert m.CARD_IMAGE.size == (1280, 720)
-assert m.CARD_IMAGE.mode == "RGBA"
-assert m.CARD_IMAGE.getpixel((640, 360))[3] == 255
-assert len(m.TRANSPARENT_BYTES) == 1280 * 720 * 4
+assert MASK.is_file(), "supported exact-box renderer is missing"
+assert not FULLSCREEN.exists(), "retired full-screen YouTube renderer was resurrected"
 
-state = m.TriviaState()
-state.update({"visible": True})
-active, age, error = state.snapshot()
-assert active is True
-assert age < 1
-assert error is None
+source = MASK.read_text(encoding="utf-8")
 
-state.update({"visible": False})
-assert state.snapshot()[0] is False
-state.update({"triviaActive": "yes"})
-assert state.snapshot()[0] is True
-state.last_good_refresh = time.time() - m.STALE_SECONDS - 1
-assert state.snapshot()[0] is False
+required = (
+    "SOURCE_CANVAS_WIDTH = 1280",
+    "SOURCE_CANVAS_HEIGHT = 720",
+    "SOURCE_NEWS_BOTTOM = 104",
+    "SOURCE_CRAWL_TOP = 574",
+    'EXPECTED_CREATIVE = "yt_rumble_trivia_redirect"',
+    'youtube.get("rendersRealQuestion") is not False',
+    'rumble.get("rendersRealQuestion") is not True',
+    'youtube.get("presentationMode") != "full_creative_scaled"',
+    "scaled maskRegion would overlap the always-live news or crawl bands",
+    "Lovable presentation contract changed",
+)
+for marker in required:
+    assert marker in source, f"missing exact-box invariant: {marker}"
 
-m.STATE.update({"visible": False})
-assert m.frame_bytes() == m.TRANSPARENT_BYTES
-m.STATE.update({"visible": True})
-assert m.frame_bytes() == m.CARD_BYTES
+for retired in (
+    "full_middle_protection",
+    "youtube-stream-router",
+    "youtube-dynamic-card",
+):
+    assert retired not in source, f"retired YouTube architecture marker returned: {retired}"
 
-print("YouTube-only Rumble trivia overlay tests passed.")
+print("YouTube exact-box renderer regression guards passed.")
