@@ -34,7 +34,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
-          ssh -i ~/.ssh/oracle_key "$target" "python3 - <<'PY'
+          ssh -i ~/.ssh/oracle_key "$target" "PYTHONPATH=/opt/fgbears-live/exact-card-pylib python3 - <<'PY'
           import importlib.util, sys
           p='/opt/fgbears-live/bin/youtube-question-mask.py'
           spec=importlib.util.spec_from_file_location('maskaudit',p)
