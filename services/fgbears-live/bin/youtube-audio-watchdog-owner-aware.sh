@@ -3,14 +3,13 @@ set -Eeuo pipefail
 
 # FGBears YouTube owner-aware audio/transport watchdog.
 #
-# Primary owner: Lovable-controlled 640x360 exact-question-box compositor.
-# Fallback owner: legacy H.264-copy / AAC-repair relay.
+# Primary owner: Lovable-controlled exact-question-box compositor.
+# Fallback owner: legacy H.264-copy / transparent AAC clock-repair relay.
 #
-# This watchdog never restarts or stops the shared master or Rumble. It also
-# enforces that the primary compositor and fallback relay do not remain active
-# together, eliminating duplicate YouTube ingest. The primary contract includes
-# the qualified 2.2 Mbps low-latency queue/recovery profile so production cannot
-# silently drift back to a high-bitrate/backlogged branch.
+# The source program is already mastered. This watchdog checks signal integrity,
+# timestamp/transport continuity and YouTube output format; it never applies or
+# requests a second mastering pass. It never restarts or stops the shared master
+# or Rumble.
 
 COMP_SERVICE=${FGB_YOUTUBE_COMP_SERVICE:-fgbears-youtube-lovable-compositor.service}
 ROUTING_SERVICE=${FGB_YOUTUBE_ROUTING_SERVICE:-fgbears-youtube-lovable-routing.service}
@@ -25,6 +24,9 @@ WARNING_FILE=${FGB_YOUTUBE_AUDIO_WATCHDOG_WARNING_FILE:-$STATE_DIR/warning.env}
 COMP_SOCKET_FAILURE_FILE=${FGB_YOUTUBE_COMP_SOCKET_FAILURE_FILE:-$STATE_DIR/compositor-socket-failures}
 CAPTURE_SECONDS=${FGB_YOUTUBE_AUDIO_WATCHDOG_CAPTURE_SECONDS:-8}
 COMP_SOCKET_FAILURES_BEFORE_FALLBACK=${FGB_YOUTUBE_COMP_SOCKET_FAILURES_BEFORE_FALLBACK:-2}
+MONITOR_DIR=${FGB_YOUTUBE_MONITOR_DIR:-/run/fgbears-youtube-lovable-compositor}
+TRANSPORT_LOOKBACK=${FGB_YOUTUBE_TRANSPORT_LOOKBACK:-75 seconds ago}
+TRANSPORT_FAULT_LIMIT=${FGB_YOUTUBE_TRANSPORT_FAULT_LIMIT:-3}
 
 mkdir -p "$STATE_DIR"
 
@@ -77,8 +79,8 @@ canonical_compositor_process() {
   local pid=$1 args
   args=$(cmdline_of "$pid") || return 1
   [[ "$args" == *"ffmpeg"* ]] || return 1
-  [[ "$args" == *"udp://127.0.0.1:1939?fifo_size=16384&overrun_nonfatal=1&reuse=1"* ]] || return 1
-  [[ "$args" == *" -thread_queue_size 256 "* ]] || return 1
+  [[ "$args" == *"udp://127.0.0.1:1939?fifo_size=1000000&overrun_nonfatal=1&reuse=1"* ]] || return 1
+  [[ "$args" == *" -thread_queue_size 512 "* ]] || return 1
   [[ "$args" == *" -thread_queue_size 32 -f rawvideo "* ]] || return 1
   [[ "$args" == *"scale=640:360:flags=fast_bilinear"* ]] || return 1
   [[ "$args" == *"overlay=231:52:format=auto:shortest=1"* ]] || return 1
@@ -89,28 +91,66 @@ canonical_compositor_process() {
   [[ "$args" == *" -c:a aac "* ]] || return 1
   [[ "$args" == *" -profile:a aac_low "* ]] || return 1
   [[ "$args" == *" -b:a 128k "* ]] || return 1
-  [[ "$args" == *" -ar 44100 "* ]] || return 1
+  [[ "$args" == *" -ar 48000 "* ]] || return 1
   [[ "$args" == *" -ac 2 "* ]] || return 1
-  [[ "$args" == *"aresample=44100:async=1:first_pts=0"* ]] || return 1
+  [[ "$args" == *"aresample=48000:async=1:first_pts=0"* ]] || return 1
   [[ "$args" == *"attempt_recovery=1:recover_any_error=1:recovery_wait_time=1:drop_pkts_on_overflow=1:restart_with_keyframe=1"* ]] || return 1
   [[ "$args" == *"rtmps://a.rtmps.youtube.com/"* ]] || return 1
   return 0
 }
 
+latest_completed_monitor_segment() {
+  find "$MONITOR_DIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null \
+    | sort -nr \
+    | sed -n '2{s/^[^ ]* //;p;q;}'
+}
+
+output_audio_format_ok() {
+  local seg probe
+  seg=$(latest_completed_monitor_segment)
+  [[ -n "$seg" && -s "$seg" ]] || return 1
+  probe=$(ffprobe -v fatal -select_streams a:0 \
+    -show_entries stream=codec_name,sample_rate,channels \
+    -of json "$seg" 2>/dev/null) || return 1
+  printf '%s' "$probe" | python3 -c '
+import json,sys
+p=json.load(sys.stdin)
+s=(p.get("streams") or [{}])[0]
+assert s.get("codec_name")=="aac"
+assert str(s.get("sample_rate"))=="48000"
+assert int(s.get("channels") or 0)==2
+' >/dev/null 2>&1
+}
+
+transport_fault_count() {
+  local pid=$1
+  [[ "$pid" =~ ^[1-9][0-9]*$ ]] || { echo 999; return 0; }
+  journalctl _PID="$pid" --since "$TRANSPORT_LOOKBACK" --no-pager 2>/dev/null \
+    | grep -Eci 'Circular buffer overrun|timestamp discontinuity|Packet corrupt|Non-monotonous DTS|Invalid DTS|Queue input is backward in time' \
+    || true
+}
+
 compositor_healthy() {
-  local pid
+  local pid faults
   active "$ROUTING_SERVICE" || return 1
   active "$COMP_SERVICE" || return 1
   exact_box_health_ok || return 1
   pid=$(pid_of "$COMP_SERVICE")
   canonical_compositor_process "$pid" || return 1
   rtmps_socket_ok "$pid" || return 1
+  output_audio_format_ok || return 1
+  faults=$(transport_fault_count "$pid")
+  [[ "$faults" =~ ^[0-9]+$ ]] || return 1
+  (( faults < TRANSPORT_FAULT_LIMIT )) || return 1
   return 0
 }
 
 write_status() {
-  local state=$1 reason=$2 owner=$3 repaired=${4:-no} now temporary
+  local state=$1 reason=$2 owner=$3 repaired=${4:-no} now temporary owner_service owner_pid faults=0
   now=$(date +%s)
+  owner_service=$([[ "$owner" == exact_box_compositor ]] && printf '%s' "$COMP_SERVICE" || printf '%s' "$RELAY_SERVICE")
+  owner_pid=$(pid_of "$owner_service")
+  if [[ "$owner" == exact_box_compositor ]]; then faults=$(transport_fault_count "$owner_pid"); fi
   temporary="${STATUS_FILE}.partial"
   {
     printf 'checked_epoch=%s\n' "$now"
@@ -118,11 +158,14 @@ write_status() {
     printf 'reason=%s\n' "$reason"
     printf 'owner=%s\n' "$owner"
     printf 'repaired=%s\n' "$repaired"
-    printf 'youtube_pid=%s\n' "$(pid_of "$([[ "$owner" == exact_box_compositor ]] && printf '%s' "$COMP_SERVICE" || printf '%s' "$RELAY_SERVICE")")"
+    printf 'youtube_pid=%s\n' "$owner_pid"
     printf 'compositor_pid=%s\n' "$(pid_of "$COMP_SERVICE")"
     printf 'relay_pid=%s\n' "$(pid_of "$RELAY_SERVICE")"
     printf 'master_pid=%s\n' "$(pid_of "$MASTER_SERVICE")"
     printf 'rumble_pid=%s\n' "$(pid_of "$RUMBLE_SERVICE")"
+    printf 'youtube_audio_rate=48000\n'
+    printf 'youtube_audio_channels=2\n'
+    printf 'recent_transport_faults=%s\n' "$faults"
   } > "$temporary"
   mv -f "$temporary" "$STATUS_FILE"
 }
@@ -175,7 +218,7 @@ fallback_to_legacy() {
 }
 
 main() {
-  local failures=0
+  local failures=0 pid faults
 
   # The master health system owns master recovery. This watchdog never does.
   if ! active "$MASTER_SERVICE"; then
@@ -185,8 +228,6 @@ main() {
 
   if compositor_healthy; then
     rm -f "$COMP_SOCKET_FAILURE_FILE"
-    # Enforce a single YouTube sender. A stale fallback must not coexist with
-    # the healthy exact-box compositor.
     if active "$RELAY_SERVICE"; then
       log "Duplicate YouTube fallback relay detected while exact-box compositor is healthy; stopping fallback relay."
       systemctl stop "$RELAY_SERVICE" 2>/dev/null || true
@@ -202,10 +243,13 @@ main() {
     return 0
   fi
 
-  # A running compositor gets two consecutive watchdog opportunities to
-  # recover its socket/control state before fallback. This avoids reacting to
-  # a transient handshake while still preventing a prolonged dead YouTube path.
+  # A running compositor gets two consecutive watchdog opportunities before
+  # fallback. This tolerates one transient handshake/segment rotation but does
+  # not allow repeated buffer overruns or timestamp discontinuities to remain
+  # invisible while the RTMP socket is technically still connected.
   if active "$COMP_SERVICE"; then
+    pid=$(pid_of "$COMP_SERVICE")
+    faults=$(transport_fault_count "$pid")
     if [[ -s "$COMP_SOCKET_FAILURE_FILE" ]]; then
       failures=$(cat "$COMP_SOCKET_FAILURE_FILE" 2>/dev/null || printf '0')
     fi
@@ -213,15 +257,13 @@ main() {
     failures=$((failures + 1))
     printf '%s\n' "$failures" > "$COMP_SOCKET_FAILURE_FILE"
     if (( failures < COMP_SOCKET_FAILURES_BEFORE_FALLBACK )); then
-      write_status WARN COMPOSITOR_HEALTH_TRANSIENT exact_box_compositor no
+      write_status WARN "COMPOSITOR_HEALTH_TRANSIENT_faults_${faults}" exact_box_compositor no
       return 0
     fi
-    fallback_to_legacy "COMPOSITOR_HEALTH_FAILED_${failures}_CHECKS"
+    fallback_to_legacy "COMPOSITOR_HEALTH_FAILED_${failures}_CHECKS_faults_${faults}"
     return 0
   fi
 
-  # If the compositor is not the current owner, retain the proven legacy
-  # watchdog behavior, including AAC/timestamp repair and circuit breaking.
   fallback_to_legacy COMPOSITOR_NOT_ACTIVE
 }
 
