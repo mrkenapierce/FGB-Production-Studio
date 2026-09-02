@@ -8,7 +8,9 @@ set -Eeuo pipefail
 #
 # This watchdog never restarts or stops the shared master or Rumble. It also
 # enforces that the primary compositor and fallback relay do not remain active
-# together, eliminating duplicate YouTube ingest.
+# together, eliminating duplicate YouTube ingest. The primary contract includes
+# the qualified 2.2 Mbps low-latency queue/recovery profile so production cannot
+# silently drift back to a high-bitrate/backlogged branch.
 
 COMP_SERVICE=${FGB_YOUTUBE_COMP_SERVICE:-fgbears-youtube-lovable-compositor.service}
 ROUTING_SERVICE=${FGB_YOUTUBE_ROUTING_SERVICE:-fgbears-youtube-lovable-routing.service}
@@ -75,16 +77,22 @@ canonical_compositor_process() {
   local pid=$1 args
   args=$(cmdline_of "$pid") || return 1
   [[ "$args" == *"ffmpeg"* ]] || return 1
-  [[ "$args" == *"udp://127.0.0.1:1939"* ]] || return 1
+  [[ "$args" == *"udp://127.0.0.1:1939?fifo_size=16384&overrun_nonfatal=1&reuse=1"* ]] || return 1
+  [[ "$args" == *" -thread_queue_size 256 "* ]] || return 1
+  [[ "$args" == *" -thread_queue_size 32 -f rawvideo "* ]] || return 1
   [[ "$args" == *"scale=640:360:flags=fast_bilinear"* ]] || return 1
   [[ "$args" == *"overlay=231:52:format=auto:shortest=1"* ]] || return 1
   [[ "$args" == *" -c:v libx264 "* ]] || return 1
+  [[ "$args" == *" -b:v 2200k "* ]] || return 1
+  [[ "$args" == *" -maxrate 2500k "* ]] || return 1
+  [[ "$args" == *" -bufsize 4400k "* ]] || return 1
   [[ "$args" == *" -c:a aac "* ]] || return 1
   [[ "$args" == *" -profile:a aac_low "* ]] || return 1
   [[ "$args" == *" -b:a 128k "* ]] || return 1
   [[ "$args" == *" -ar 44100 "* ]] || return 1
   [[ "$args" == *" -ac 2 "* ]] || return 1
   [[ "$args" == *"aresample=44100:async=1:first_pts=0"* ]] || return 1
+  [[ "$args" == *"attempt_recovery=1:recover_any_error=1:recovery_wait_time=1:drop_pkts_on_overflow=1:restart_with_keyframe=1"* ]] || return 1
   [[ "$args" == *"rtmps://a.rtmps.youtube.com/"* ]] || return 1
   return 0
 }
