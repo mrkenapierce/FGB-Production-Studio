@@ -11,6 +11,7 @@ permissions:
   contents: read
   actions: write
 
+# Authorized final retry after source recovery and rollback hardening.
 jobs:
   dispatch:
     runs-on: ubuntu-latest
