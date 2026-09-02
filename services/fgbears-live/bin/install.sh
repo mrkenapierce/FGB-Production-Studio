@@ -81,12 +81,13 @@ if [[ ! -e "$ENV_PATH" ]]; then
   install -o root -g fgbears -m 0640 /opt/fgbears-live/config/stream.env.example "$ENV_PATH"
 fi
 
-# Preserve credentials and migrate YouTube's internal handoff to the isolated
-# loopback MPEG-TS relay. Remove all retired social-simulcast keys. Lock the
-# Bears news overlay to its dedicated local MJPEG renderer so stale host values
-# cannot reactivate the retired FFmpeg drawtext/crop path. Static/slow-changing
-# ad and news overlays run at 15 fps while the final program and lower crawl
-# remain 30 fps, reducing redundant JPEG work without changing broadcast cadence.
+# Preserve credentials while locking each platform to its isolated transport.
+# The shared master carries pre-mastered AAC unchanged. Rumble receives the
+# shared MPEG-TS program by copy-remux. YouTube copies the shared H.264 video
+# but regenerates only AAC-LC audio at 44.1 kHz stereo / 128 kb/s with async
+# timestamp correction, preventing the TS->FLV AAC timing/framing problem that
+# produced degraded YouTube playback. Retired live audio DSP and packet-router
+# settings are removed so a future full install cannot reactivate them.
 python3 - "$ENV_PATH" <<'PY'
 from pathlib import Path
 import sys
@@ -108,9 +109,11 @@ if not upstream:
         upstream = "rtmps://a.rtmps.youtube.com/live2"
 
 updates = {
-    "PODCAST_AUDIO_FILTER": "volume=-2dB,aresample=48000:first_pts=0",
     "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
+    "YOUTUBE_AUDIO_BITRATE": "128k",
+    "YOUTUBE_AUDIO_SAMPLE_RATE": "44100",
+    "YOUTUBE_AUDIO_CHANNELS": "2",
     "YOUTUBE_VIDEO_BITRATE": "5000k",
     "YOUTUBE_VIDEO_MAXRATE": "5500k",
     "YOUTUBE_VIDEO_BUFSIZE": "10000k",
@@ -129,12 +132,13 @@ updates = {
     "BEARS_NEWS_SCROLL_PPS": "76",
 }
 retired_prefixes = ("X_", "INSTAGRAM_", "FACEBOOK_", "YOUTUBE_TRIVIA_")
+retired_exact = {"FGB_YOUTUBE_TRIVIA_CARD_H264", "PODCAST_AUDIO_FILTER"}
 seen = set()
 out = []
 for line in lines:
     if "=" in line and not line.lstrip().startswith("#"):
         key = line.split("=", 1)[0]
-        if key.startswith(retired_prefixes) or key == "FGB_YOUTUBE_TRIVIA_CARD_H264":
+        if key.startswith(retired_prefixes) or key in retired_exact:
             continue
         if key in updates:
             if key not in seen:
@@ -154,12 +158,11 @@ chmod 0640 "$ENV_PATH"
 
 systemctl daemon-reload
 systemctl enable fgbears-youtube-relay.service
-# The YouTube relay remains a dedicated single-output service. It consumes the
-# isolated local program and bitstream-copies video and audio so the
-# capacity-limited Oracle host does not run a second live video encoder.
+# The capacity-limited Oracle host still runs only one live video encoder.
+# YouTube copies H.264 and re-encodes audio only; Rumble remains copy-remux.
 systemctl reset-failed fgbears-youtube-relay.service || true
 systemctl restart fgbears-youtube-relay.service
 systemctl enable --now fgbears-live-health.timer
 systemctl enable --now fgbears-youtube-audio-watchdog.timer
 
-echo "Installed FGBears Live with isolated YouTube and Rumble copy-remux relays."
+echo "Installed FGBears Live with YouTube H.264-copy/AAC-reclock and Rumble copy-remux isolation."
