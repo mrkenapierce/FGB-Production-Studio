@@ -46,7 +46,7 @@ jobs:
         run: |
           set +e
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > production-status.env <<'REMOTE'
-          set -Eeuo pipefail
+          set -u
           MASTER=fgbears-live.service
           RUMBLE=fgbears-rumble-relay.service
           ROUTING=fgbears-youtube-lovable-routing.service
@@ -60,55 +60,55 @@ jobs:
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
           active(){ systemctl is-active --quiet "$1"; }
           socket(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v port=":$port" 'index($0,q)&&index($0,port){ok=1} END{exit(ok?0:1)}'; }
+          fail(){ echo 'OVERALL_STATUS=FAIL'; echo "REASON=$1"; exit 1; }
 
-          active "$MASTER"
-          active "$RUMBLE"
-          active "$ROUTING"
-          active "$COMP"
-          active "$WATCHDOG_TIMER"
-          active "$HEALTH_TIMER"
-          ! active "$LEGACY"
+          active "$MASTER" || fail MASTER_INACTIVE
+          active "$RUMBLE" || fail RUMBLE_INACTIVE
+          active "$ROUTING" || fail YOUTUBE_ROUTING_INACTIVE
+          active "$COMP" || fail YOUTUBE_COMPOSITOR_INACTIVE
+          active "$WATCHDOG_TIMER" || fail YOUTUBE_WATCHDOG_TIMER_INACTIVE
+          active "$HEALTH_TIMER" || fail MASTER_HEALTH_TIMER_INACTIVE
+          active "$LEGACY" && fail LEGACY_YOUTUBE_RELAY_ACTIVE
 
           MPID=$(pid "$MASTER"); RPID=$(pid "$RUMBLE"); CPID=$(pid "$COMP")
-          socket "$RPID" 1935
-          socket "$CPID" 443
+          socket "$RPID" 1935 || fail RUMBLE_SOCKET_MISSING
+          socket "$CPID" 443 || fail YOUTUBE_SOCKET_MISSING
 
           speed=$(sudo awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
-          [[ -z "$speed" ]] || python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$speed"
+          if [[ -n "$speed" ]] && ! python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$speed"; then fail MASTER_BELOW_REALTIME; fi
 
-          mask=$(curl -fsS --max-time 3 http://127.0.0.1:8791/healthz)
-          printf '%s' "$mask" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("sourceCanvas")==[1280,720];assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470};assert p.get("creativeKey")=="yt_rumble_trivia_redirect";assert p.get("routingAuthority")=="lovable_public_stream_routing";assert int(p.get("fps",0))==30'
+          mask=$(curl -fsS --max-time 3 http://127.0.0.1:8791/healthz) || fail YOUTUBE_MASK_HEALTH_UNREACHABLE
+          printf '%s' "$mask" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("sourceCanvas")==[1280,720];assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470};assert p.get("creativeKey")=="yt_rumble_trivia_redirect";assert p.get("routingAuthority")=="lovable_public_stream_routing";assert int(p.get("fps",0))==30' || fail YOUTUBE_MASK_CONTRACT_INVALID
 
-          news=$(curl -fsS --max-time 3 http://127.0.0.1:8789/healthz)
-          crawl=$(curl -fsS --max-time 3 http://127.0.0.1:8788/healthz)
-          printf '%s' "$news" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert int(p.get("scrollPps",0))==76;assert p.get("payloadSwap")=="next-cycle-boundary"'
-          printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert p.get("payloadSwap")=="next-segment-boundary"'
+          news=$(curl -fsS --max-time 3 http://127.0.0.1:8789/healthz) || fail RSS_HEALTH_UNREACHABLE
+          crawl=$(curl -fsS --max-time 3 http://127.0.0.1:8788/healthz) || fail CRAWL_HEALTH_UNREACHABLE
+          printf '%s' "$news" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert int(p.get("scrollPps",0))==76;assert p.get("payloadSwap")=="next-cycle-boundary"' || fail RSS_CONTRACT_INVALID
+          printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert p.get("payloadSwap")=="next-segment-boundary"' || fail CRAWL_CONTRACT_INVALID
 
-          sudo test -s "$STATUS"
+          sudo test -s "$STATUS" || fail YOUTUBE_WATCHDOG_STATUS_MISSING
           now=$(date +%s)
           checked=$(sudo sed -n 's/^checked_epoch=\([0-9][0-9]*\)$/\1/p' "$STATUS" | tail -n1)
           state=$(sudo sed -n 's/^state=\([^[:space:]]*\)$/\1/p' "$STATUS" | tail -n1)
           owner=$(sudo sed -n 's/^owner=\([^[:space:]]*\)$/\1/p' "$STATUS" | tail -n1)
-          [[ "$checked" =~ ^[0-9]+$ ]]
+          [[ "$checked" =~ ^[0-9]+$ ]] || fail YOUTUBE_WATCHDOG_TIMESTAMP_INVALID
           age=$((now-checked))
-          (( age >= 0 && age <= 180 ))
-          [[ "$state" == OK || "$state" == WARN ]]
-          [[ "$owner" == exact_box_compositor ]]
+          (( age >= 0 && age <= 180 )) || fail YOUTUBE_WATCHDOG_STATUS_STALE
+          [[ "$state" == OK || "$state" == WARN ]] || fail YOUTUBE_WATCHDOG_STATE_BAD
+          [[ "$owner" == exact_box_compositor ]] || fail YOUTUBE_OWNER_NOT_COMPOSITOR
 
           SEG=$(sudo find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
-          [[ -n "$SEG" && -s "$SEG" ]]
-          sudo ffprobe -v fatal -show_entries stream=codec_type,codec_name,sample_rate,channels,width,height,r_frame_rate -of json "$SEG" | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p.get("streams",[]);a=next(x for x in s if x.get("codec_type")=="audio");v=next(x for x in s if x.get("codec_type")=="video");assert a.get("codec_name")=="aac";assert int(a.get("sample_rate") or 0) in (44100,48000);assert int(a.get("channels") or 0)==2;assert int(v.get("width") or 0)>0 and int(v.get("height") or 0)>0;print("MEDIA video=%sx%s fps=%s audio=%sHz/%sch"%(v.get("width"),v.get("height"),v.get("r_frame_rate"),a.get("sample_rate"),a.get("channels")))'
+          [[ -n "$SEG" && -s "$SEG" ]] || fail YOUTUBE_MONITOR_SEGMENT_MISSING
+          media=$(sudo ffprobe -v fatal -show_entries stream=codec_type,codec_name,sample_rate,channels,width,height,r_frame_rate -of json "$SEG" 2>/dev/null) || fail YOUTUBE_MONITOR_PROBE_FAILED
+          media_line=$(printf '%s' "$media" | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p.get("streams",[]);a=next(x for x in s if x.get("codec_type")=="audio");v=next(x for x in s if x.get("codec_type")=="video");assert a.get("codec_name")=="aac";assert int(a.get("sample_rate") or 0) in (44100,48000);assert int(a.get("channels") or 0)==2;assert int(v.get("width") or 0)>0 and int(v.get("height") or 0)>0;print("video=%sx%s fps=%s audio=%sHz/%sch"%(v.get("width"),v.get("height"),v.get("r_frame_rate"),a.get("sample_rate"),a.get("channels")))') || fail YOUTUBE_MEDIA_CONTRACT_INVALID
 
-          echo "OVERALL_STATUS=OK"
-          echo "REASON=PRODUCTION_HEALTHY"
+          echo 'OVERALL_STATUS=OK'
+          echo 'REASON=PRODUCTION_HEALTHY'
           echo "TOPOLOGY master=$MPID rumble=$RPID youtube=$CPID legacy=off master_speed=${speed:-unknown}x watchdog=$state age=${age}s"
+          echo "MEDIA $media_line"
           REMOTE
           rc=$?
           set -e
           cat production-status.env || true
-          if (( rc != 0 )); then
-            printf 'OVERALL_STATUS=FAIL\nREASON=PRODUCTION_AUDIT_FAILED\n' >> production-status.env
-          fi
           status=$(sed -n 's/^OVERALL_STATUS=\(OK\|FAIL\)$/\1/p' production-status.env | tail -n1)
           reason=$(sed -n 's/^REASON=\([A-Z0-9_]*\)$/\1/p' production-status.env | tail -n1)
           [[ -n "$status" ]] || status=FAIL
@@ -117,6 +117,7 @@ jobs:
           printf '## FGBears Live: %s\n\n```text\n' "$status" >> "$GITHUB_STEP_SUMMARY"
           cat production-status.env >> "$GITHUB_STEP_SUMMARY"
           printf '```\n' >> "$GITHUB_STEP_SUMMARY"
+          exit 0
 
       - name: Manage stream incident
         if: always()
