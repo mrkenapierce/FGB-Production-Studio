@@ -1,0 +1,80 @@
+name: Verify Lovable Routing Consumer Live Cycle
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-lovable-routing-consumer-live-cycle.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Observe one authoritative question cycle without changing services
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          master=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          youtube=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          consumer=$(systemctl show -p MainPID --value fgbears-youtube-lovable-routing.service)
+          test "$master" -gt 0; test "$rumble" -gt 0; test "$youtube" -gt 0; test "$consumer" -gt 0
+
+          saw_active=0
+          saw_return=0
+          deadline=$((SECONDS + 1320))
+          while (( SECONDS < deadline )); do
+            h=$(curl -fsS --max-time 2 http://127.0.0.1:8791/healthz)
+            active=$(printf '%s' "$h" | python3 -c 'import json,sys; print("true" if json.load(sys.stdin).get("active") is True else "false")')
+            phase=$(printf '%s' "$h" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("phase"))')
+            if [[ "$active" == true ]]; then
+              saw_active=1
+              printf 'LOVABLE_QUESTION_ACTIVE phase=%s health=%s\n' "$phase" "$h"
+            elif (( saw_active == 1 )); then
+              saw_return=1
+              printf 'LOVABLE_RETURNED_TRANSPARENT phase=%s health=%s\n' "$phase" "$h"
+              break
+            fi
+            sleep 1
+          done
+          test "$saw_active" = 1
+          test "$saw_return" = 1
+
+          # Prove the shared live components and direct platform outputs were never restarted.
+          test "$(systemctl show -p MainPID --value fgbears-live.service)" = "$master"
+          test "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" = "$rumble"
+          test "$(systemctl show -p MainPID --value fgbears-youtube-relay.service)" = "$youtube"
+          test "$(systemctl show -p MainPID --value fgbears-youtube-lovable-routing.service)" = "$consumer"
+          curl -fsS --max-time 2 http://127.0.0.1:8788/healthz >/tmp/crawl-health.json
+          curl -fsS --max-time 2 http://127.0.0.1:8789/healthz >/tmp/news-health.json
+          python3 - <<'PY'
+          import json
+          crawl=json.load(open('/tmp/crawl-health.json'))
+          news=json.load(open('/tmp/news-health.json'))
+          assert crawl.get('ok') is True, crawl
+          assert news.get('ok') is True, news
+          print('RSS_AND_CRAWL_HEALTH=PASS')
+          PY
+          echo "MASTER_PID_UNCHANGED=$master"
+          echo "RUMBLE_PID_UNCHANGED=$rumble"
+          echo "YOUTUBE_DIRECT_PID_UNCHANGED=$youtube"
+          echo "LOVABLE_CONSUMER_PID_UNCHANGED=$consumer"
+          echo 'LIVE_LOVABLE_TRIGGER_CYCLE=PASS'
+          REMOTE
