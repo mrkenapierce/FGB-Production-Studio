@@ -1,0 +1,9 @@
+[Unit]
+Description=FGBears YouTube audio and relay watchdog
+After=network-online.target fgbears-live.service fgbears-youtube-relay.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/fgbears-youtube-audio-watchdog
+TimeoutStartSec=45
