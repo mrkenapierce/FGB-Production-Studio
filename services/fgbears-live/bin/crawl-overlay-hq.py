@@ -25,6 +25,9 @@ if spec is None or spec.loader is None:
 BASE: Any = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(BASE)
 
+# Keep the moving crawl locked to the finished 30-fps program clock even if an
+# older environment file still contains a lower renderer cadence.
+BASE.FPS = max(30, int(os.getenv("CRAWL_OVERLAY_FPS", "30")))
 RENDER_SCALE = max(1, min(3, int(os.getenv("CRAWL_TEXT_RENDER_SCALE", "2"))))
 _CACHE: dict[tuple[str, int, bool, int, int], tuple[Image.Image, int]] = {}
 _CACHE_LOCK = threading.Lock()
@@ -129,12 +132,11 @@ class BoundarySequence:
                     self.index = 0
                     self.started = now
             elif incoming == self.messages:
-                # The API may refresh metadata such as updatedAt while visible
-                # text is unchanged. That must never reset or alter motion.
+                # Metadata-only API refreshes must never alter motion.
                 self.pending = None
             elif incoming != self.pending:
-                # Keep the currently displayed segment and active sequence intact.
-                # Only the newest normalized payload needs to survive to boundary.
+                # Keep the segment already crossing the screen intact; retain only
+                # the newest normalized payload for the next clean boundary.
                 self.pending = list(incoming)
             return self.current, self.started
 
@@ -162,10 +164,43 @@ class BoundarySequence:
 
 
 # Base.frame() and Base.prime_emoji_cache() resolve these objects through their
-# module globals, so the assignments upgrade the live crawl without forking the
-# feed parser, layout engine, server, or animation clock.
+# module globals, so these assignments upgrade the live crawl without forking
+# the feed parser, layout engine, server, or animation clock.
 BASE.rich_line = rich_line
 BASE.SEQUENCE = BoundarySequence()
+
+# Extend health with the motion contract so production certification can verify
+# cadence and boundary swapping without inspecting visual content or restarting
+# the renderer independently.
+_original_do_get = BASE.Handler.do_GET
+
+
+def do_get(self: Any) -> None:
+    if self.path.startswith("/healthz"):
+        value, error = BASE.STATE.snapshot()
+        body = BASE.json.dumps(
+            {
+                "ok": True,
+                "active": value["active"],
+                "lastError": error,
+                "emojiRenderer": "twemoji-png",
+                "messageGraphemes": len(BASE.graphemes(str(value["message"]))),
+                "messageCount": int(value.get("messageCount") or 0),
+                "fps": BASE.FPS,
+                "payloadSwap": "next-segment-boundary",
+                "pendingCount": BASE.SEQUENCE.pending_count(),
+            }
+        ).encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+        return
+    _original_do_get(self)
+
+
+BASE.Handler.do_GET = do_get
 
 
 def main() -> None:
