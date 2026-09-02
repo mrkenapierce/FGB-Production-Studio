@@ -2,11 +2,10 @@
 set -Eeuo pipefail
 
 # Thin YouTube-only media executor for the Lovable routing plane.
-# The shared master and Rumble remain untouched at 1280x720/30. YouTube now
+# The shared master and Rumble remain untouched at 1280x720/30. YouTube
 # preserves that native 720p canvas and overlays only Lovable's question panel.
-# This tier is production-qualified by the 2026-09-02 same-host capacity test,
-# which sustained 4.87x real-time at the target 720p x264 settings while both
-# platform transports remained established.
+# The master already arrives at the target canvas, so this path deliberately
+# avoids any redundant scale pass before the overlay/encode operation.
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 [[ -r "$ENV_FILE" ]] || { echo "Missing environment file: $ENV_FILE" >&2; exit 78; }
@@ -66,15 +65,14 @@ echo "Starting Lovable-controlled YouTube compositor: 1280x720/30, panel=${MASK_
 
 # A single encode feeds YouTube and a bounded read-only monitor. The monitor is
 # three rotating 2-second MPEG-TS segments in /run (tmpfs), so it cannot grow.
-# The program already arrives at 1280x720; scale is retained as a deterministic
-# format/canvas guard and is effectively 1:1 at this production tier.
+# No scale filter is used: the shared master already arrives at 1280x720/30.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
   -fflags +genpts+discardcorrupt -probesize 10000000 -analyzeduration 10000000 \
   -thread_queue_size 512 -i "$LOCAL_INPUT" \
   -thread_queue_size 512 -f rawvideo -pixel_format rgba -video_size "${MASK_WIDTH}x${MASK_HEIGHT}" -framerate "$YOUTUBE_OUTPUT_FPS" \
   -i "$OVERLAY_URL" \
-  -filter_complex "[0:v:0]scale=${YOUTUBE_OUTPUT_WIDTH}:${YOUTUBE_OUTPUT_HEIGHT}:flags=fast_bilinear[base];[base][1:v:0]overlay=${MASK_X}:${MASK_Y}:format=auto:shortest=1[v]" \
+  -filter_complex "[0:v:0][1:v:0]overlay=${MASK_X}:${MASK_Y}:format=auto:shortest=1[v]" \
   -map '[v]' -map 0:a:0 \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
   -pix_fmt yuv420p -r "$YOUTUBE_OUTPUT_FPS" -g 60 -keyint_min 60 -sc_threshold 0 \
