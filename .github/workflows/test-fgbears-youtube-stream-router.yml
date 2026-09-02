@@ -28,26 +28,38 @@ jobs:
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg
           python3 -m pip install --quiet pillow qrcode
 
-      - name: Build exact card asset and synthetic MPEG-TS input
+      - name: Build master-compatible card and synthetic MPEG-TS input
         run: |
           mkdir -p /tmp/fgb-router-assets
           python3 services/fgbears-live/tools/build-youtube-rumble-trivia-card.py \
             /tmp/fgb-router-assets/youtube-rumble-trivia.png
+
+          # Match the production master encoder settings. A separately encoded
+          # cover can only be switched safely into a copy-only H.264 stream if
+          # its decoder configuration is compatible with the master.
           ffmpeg -hide_banner -loglevel error -y \
             -loop 1 -framerate 30 -i /tmp/fgb-router-assets/youtube-rumble-trivia.png \
-            -t 1 -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p \
-            -profile:v high -level 4.0 -g 30 -keyint_min 30 -sc_threshold 0 -bf 0 \
+            -t 1 -an -c:v libx264 -preset ultrafast -tune zerolatency \
+            -profile:v high -b:v 5000k -maxrate 5500k -bufsize 10000k \
+            -pix_fmt yuv420p -g 60 -keyint_min 60 -sc_threshold 0 -r 30 -fps_mode cfr \
             -x264-params 'repeat-headers=1:aud=1' \
             -f h264 /tmp/fgb-router-assets/youtube-rumble-trivia.h264
+
           ffmpeg -hide_banner -loglevel error -y \
             -f lavfi -i 'testsrc2=size=1280x720:rate=30' \
             -f lavfi -i 'sine=frequency=880:sample_rate=48000' \
-            -t 12 -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
-            -g 60 -keyint_min 60 -sc_threshold 0 -bf 0 \
+            -t 12 -c:v libx264 -preset ultrafast -tune zerolatency \
+            -profile:v high -b:v 5000k -maxrate 5500k -bufsize 10000k \
+            -pix_fmt yuv420p -g 60 -keyint_min 60 -sc_threshold 0 -r 30 -fps_mode cfr \
             -c:a aac -b:a 128k -ar 48000 -ac 2 \
             -f mpegts /tmp/fgb-router-assets/synthetic.ts
-          ffprobe -v error -show_entries stream=codec_name,profile,width,height,r_frame_rate \
+
+          echo '--- synthetic master ---'
+          ffprobe -v error -show_entries stream=codec_name,profile,level,width,height,pix_fmt,r_frame_rate \
             -of compact /tmp/fgb-router-assets/synthetic.ts
+          echo '--- card elementary stream ---'
+          ffprobe -v error -f h264 -show_entries stream=codec_name,profile,level,width,height,pix_fmt,r_frame_rate \
+            -of compact /tmp/fgb-router-assets/youtube-rumble-trivia.h264
           ls -lh /tmp/fgb-router-assets/*
 
       - name: Configure SSH
@@ -105,7 +117,6 @@ jobs:
           }
           trap cleanup EXIT
 
-          # Capture the router's exact UDP datagrams without remuxing them.
           python3 - <<'PY' >/tmp/fgb-router-test/capture.log 2>&1 &
           import socket,time
           s=socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
@@ -155,12 +166,18 @@ jobs:
           test -s /tmp/fgb-router-test/router-output.ts
 
           echo '=== exact GStreamer router output packet health ==='
-          ffprobe -v error -show_entries stream=index,codec_name,codec_type,time_base,start_time \
-            -of compact /tmp/fgb-router-test/router-output.ts
+          ffprobe -v warning -show_entries stream=index,codec_name,codec_type,profile,level,time_base,start_time \
+            -of compact /tmp/fgb-router-test/router-output.ts \
+            >/tmp/fgb-router-test/probe.out 2>/tmp/fgb-router-test/probe.err
+          cat /tmp/fgb-router-test/probe.out
+          cat /tmp/fgb-router-test/probe.err
+          video_errors=$(grep -Eic 'luma_log2_weight_denom|illegal memory management|PES packet size mismatch|Packet corrupt|corrupt input packet' /tmp/fgb-router-test/probe.err || true)
+          echo "router_video_corruption_warnings=$video_errors"
+
           ffprobe -v error -show_packets -show_entries packet=stream_index,pts_time,dts_time,duration_time,flags \
             -of csv=p=0 /tmp/fgb-router-test/router-output.ts > /tmp/fgb-router-test/router-packets.csv
           python3 - /tmp/fgb-router-test/router-packets.csv <<'PY'
-          import csv,math,sys
+          import csv,sys
           rows={}
           for r in csv.reader(open(sys.argv[1])):
               if len(r)<5: continue
@@ -168,55 +185,39 @@ jobs:
               except: continue
               rows.setdefault(idx,[]).append((pts,dts,r[4]))
           if len(rows)<2: raise SystemExit(f'expected audio+video streams, got {list(rows)}')
+          bad=False
           for idx,p in sorted(rows.items()):
               pts_reg=sum(p[i][0] < p[i-1][0]-0.001 for i in range(1,len(p)))
               dts_reg=sum(p[i][1] < p[i-1][1]-0.001 for i in range(1,len(p)))
               pts_lt_dts=sum(x[0] < x[1]-0.001 for x in p)
               print(f'stream={idx} packets={len(p)} pts_regressions={pts_reg} dts_regressions={dts_reg} pts_lt_dts={pts_lt_dts}')
+              bad = bad or pts_reg or dts_reg or pts_lt_dts
+          if bad: raise SystemExit('non-monotonic router timestamps detected')
           PY
 
-          echo '=== current YouTube FFmpeg remux behavior ==='
-          set +e
-          timeout -s INT 8 ffmpeg -hide_banner -nostdin -loglevel warning -y \
+          echo '=== exact current YouTube FFmpeg copy/remux ==='
+          ffmpeg -hide_banner -nostdin -loglevel warning -y \
             -fflags +genpts -probesize 10000000 -analyzeduration 10000000 \
             -i /tmp/fgb-router-test/router-output.ts \
             -map 0:v:0 -map 0:a:0 -c copy \
             -f flv -flvflags no_duration_filesize /tmp/fgb-router-test/current.flv \
             >/tmp/fgb-router-test/current-remux.log 2>&1
-          current_rc=$?
-          set -e
-          [[ $current_rc -eq 0 || $current_rc -eq 124 || $current_rc -eq 130 ]]
           cat /tmp/fgb-router-test/current-remux.log
-          current_invalid=$(grep -Eic 'Invalid timestamps|Non-monotonous DTS|non monotonically increasing dts' /tmp/fgb-router-test/current-remux.log || true)
-          echo "current_invalid_timestamp_warnings=$current_invalid"
-
-          echo '=== timestamp-sanitized candidate remux behavior ==='
-          set +e
-          timeout -s INT 8 ffmpeg -hide_banner -nostdin -loglevel warning -y \
-            -fflags +genpts+igndts -avoid_negative_ts make_zero \
-            -probesize 10000000 -analyzeduration 10000000 \
-            -i /tmp/fgb-router-test/router-output.ts \
-            -map 0:v:0 -map 0:a:0 -c copy \
-            -f flv -flvflags no_duration_filesize /tmp/fgb-router-test/candidate.flv \
-            >/tmp/fgb-router-test/candidate-remux.log 2>&1
-          candidate_rc=$?
-          set -e
-          [[ $candidate_rc -eq 0 || $candidate_rc -eq 124 || $candidate_rc -eq 130 ]]
-          cat /tmp/fgb-router-test/candidate-remux.log
-          candidate_invalid=$(grep -Eic 'Invalid timestamps|Non-monotonous DTS|non monotonically increasing dts' /tmp/fgb-router-test/candidate-remux.log || true)
-          echo "candidate_invalid_timestamp_warnings=$candidate_invalid"
+          remux_errors=$(grep -Eic 'Invalid timestamps|Non-monotonous DTS|non monotonically increasing dts|luma_log2_weight_denom|illegal memory management|PES packet size mismatch|Packet corrupt|corrupt input packet' /tmp/fgb-router-test/current-remux.log || true)
+          echo "remux_corruption_or_timestamp_warnings=$remux_errors"
 
           test -s /tmp/fgb-router-test/current.flv
-          test -s /tmp/fgb-router-test/candidate.flv
-          ffmpeg -hide_banner -nostdin -loglevel error -i /tmp/fgb-router-test/candidate.flv -map 0:a:0 -f null -
+          ffmpeg -hide_banner -nostdin -loglevel error -i /tmp/fgb-router-test/current.flv -map 0:a:0 -f null -
 
-          # This is a diagnostic comparison rather than a premature production
-          # gate. Preserve the counts so the production patch can be selected
-          # from evidence rather than assumption.
           echo '=== production isolation check ==='
           systemctl is-active fgbears-live.service
           systemctl is-active fgbears-youtube-relay.service
           systemctl is-active fgbears-rumble-relay.service
           uptime
           echo 'production_ports_touched=no'
+
+          # The switch is not production-safe unless decoder/remux corruption is
+          # completely absent in this exact-settings synthetic test.
+          [[ "$video_errors" -eq 0 ]]
+          [[ "$remux_errors" -eq 0 ]]
           REMOTE
