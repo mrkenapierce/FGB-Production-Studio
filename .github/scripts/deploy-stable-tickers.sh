@@ -10,6 +10,7 @@ LEGACY=fgbears-youtube-relay.service
 ENV=/etc/fgbears-live/stream.env
 BACKUP=$(mktemp -d /srv/fgbears-live/runtime/ticker-deploy-backup.XXXXXX)
 SUCCESS=0
+BACKUP_READY=0
 
 active() { systemctl is-active --quiet "$1"; }
 mainpid() { systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
@@ -23,6 +24,10 @@ connected_port() {
 restore_old() {
   local rc=${1:-1}
   trap - ERR EXIT
+  if (( BACKUP_READY == 0 )); then
+    rm -rf "$BACKUP"
+    exit "$rc"
+  fi
   echo "TICKER_ROLLBACK=BEGIN rc=$rc" >&2
   install -m 0755 "$BACKUP/crawl-overlay-hq.py" /opt/fgbears-live/bin/crawl-overlay-hq.py || true
   if [[ -f "$BACKUP/bears-news-feed-hq.py" ]]; then
@@ -48,11 +53,8 @@ restore_old() {
   exit "$rc"
 }
 
-trap 'rc=$?; (( SUCCESS == 1 )) || restore_old "$rc"' EXIT
-
-# Preflight: ticker work may restart only the shared master. Independent
-# destination services must already be healthy and the legacy YouTube fallback
-# must not own transport.
+# Preflight failures are read-only. Rollback is not armed until every previous
+# production file has been captured successfully.
 active "$MASTER"
 active "$RUMBLE"
 active "$COMP"
@@ -70,7 +72,6 @@ connected_port "$RUMBLE0" 1935
 connected_port "$COMP0" 443
 echo "PRE master=$MASTER0 rumble=$RUMBLE0 youtube=$COMP0 routing=$ROUTING0 load=$(cut -d' ' -f1-3 /proc/loadavg)"
 
-# Required staged source files.
 for f in /tmp/bears-news-feed-hq.py /tmp/crawl-overlay-hq.py /tmp/start-stream.sh; do
   [[ -s "$f" ]] || { echo "Missing staged ticker file: $f" >&2; exit 66; }
 done
@@ -80,6 +81,8 @@ cp -a /opt/fgbears-live/bin/crawl-overlay-hq.py "$BACKUP/crawl-overlay-hq.py"
 cp -a /opt/fgbears-live/bin/start-stream.sh "$BACKUP/start-stream-opt.sh"
 cp -a /usr/local/bin/fgbears-start-stream "$BACKUP/fgbears-start-stream"
 cp -a "$ENV" "$BACKUP/stream.env"
+BACKUP_READY=1
+trap 'rc=$?; (( SUCCESS == 1 )) || restore_old "$rc"' EXIT
 
 install -m 0755 /tmp/bears-news-feed-hq.py /opt/fgbears-live/bin/bears-news-feed-hq.py
 install -m 0755 /tmp/crawl-overlay-hq.py /opt/fgbears-live/bin/crawl-overlay-hq.py
@@ -124,7 +127,7 @@ python3 -m py_compile \
 bash -n /opt/fgbears-live/bin/start-stream.sh
 
 # Exactly one intentional master restart loads both moving renderers. No
-# destination service is restarted by this deployment or by its success path.
+# destination service is restarted by this deployment or its success path.
 systemctl reset-failed "$MASTER" || true
 systemctl restart "$MASTER"
 
@@ -146,7 +149,6 @@ printf '%s' "$CRAWL" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert
 echo "RSS_CONTRACT=PASS $RSS"
 echo "CRAWL_CONTRACT=PASS $CRAWL"
 
-# Destination isolation contract: same service PIDs and established uplinks.
 active "$RUMBLE"
 active "$COMP"
 active "$ROUTING"
