@@ -2,12 +2,8 @@ name: Monitor FGBears Live
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/fgbears-live-monitor.yml'
 
 permissions:
   contents: read
@@ -22,43 +18,43 @@ env:
 
 jobs:
   monitor:
-    name: Check Oracle stream, video and audio health
+    name: Independently verify Oracle master, frame pacing and YouTube watchdog
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 5
     steps:
       - name: Require Oracle access secrets
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
+          set -Eeuo pipefail
           test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
           test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
 
       - name: Configure SSH
         env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
+          set -Eeuo pipefail
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Trust Oracle host key
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      - name: Measure stream, video pacing and exact YouTube-bound audio health
+      - name: Measure shared master and read owner-aware YouTube status
         id: health
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           set +e
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
-            'sudo /usr/local/bin/fgbears-stream-status --sample-seconds 20' \
-            > stream-status.env
-          stream_rc=$?
+            'sudo /usr/local/bin/fgbears-stream-status --sample-seconds 10' \
+            > stream-status.env &
+          stream_job=$!
 
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > video-status.env <<'REMOTE'
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > video-status.env <<'REMOTE' &
+          set -Eeuo pipefail
           progress=/srv/fgbears-live/logs/ffmpeg-progress.log
           d1=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
           u1=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
@@ -71,12 +67,56 @@ jobs:
           t2=$(date +%s%N)
           awk -v d1="${d1:-0}" -v d2="${d2:-0}" -v u1="${u1:-0}" -v u2="${u2:-0}" -v f1="${f1:-0}" -v f2="${f2:-0}" -v t1="$t1" -v t2="$t2" 'BEGIN{wall=(t2-t1)/1e9;if(wall<=0||f2<f1||d2<d1||u2<u1){print "OVERALL_STATUS=FAIL";print "REASON=VIDEO_PROGRESS_RESET_OR_INVALID";exit 1}fps=(f2-f1)/wall;dd=d2-d1;du=u2-u1;printf "VIDEO_WINDOW_SECONDS=%.3f\nVIDEO_FPS=%.2f\nVIDEO_DROP_DELTA=%d\nVIDEO_DUP_DELTA=%d\n",wall,fps,dd,du;if(fps<28.5||dd!=0||du>5){print "OVERALL_STATUS=FAIL";print "REASON=VIDEO_FRAME_PACING_DEGRADED";exit 1}print "OVERALL_STATUS=OK";print "REASON=VIDEO_FRAME_PACING_HEALTHY"}'
           REMOTE
-          video_rc=$?
+          video_job=$!
 
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
-            'sudo /usr/local/bin/fgbears-audio-health --capture-seconds 20' \
-            > audio-status.env
-          audio_rc=$?
+          wait "$stream_job"; stream_rc=$?
+          wait "$video_job"; video_rc=$?
+
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > youtube-status.env <<'REMOTE'
+          set -Eeuo pipefail
+          status_file=/srv/fgbears-live/health/youtube-audio/status.env
+          now=$(date +%s)
+          if ! systemctl is-active --quiet fgbears-youtube-audio-watchdog.timer; then
+            printf 'OVERALL_STATUS=FAIL\nREASON=YOUTUBE_WATCHDOG_TIMER_INACTIVE\n'
+            exit 1
+          fi
+          if [[ ! -s "$status_file" ]]; then
+            printf 'OVERALL_STATUS=FAIL\nREASON=YOUTUBE_WATCHDOG_STATUS_MISSING\n'
+            exit 1
+          fi
+          checked=$(sed -n 's/^checked_epoch=\([0-9][0-9]*\)$/\1/p' "$status_file" | tail -n1)
+          state=$(sed -n 's/^state=\([A-Z][A-Z]*\)$/\1/p' "$status_file" | tail -n1)
+          reason=$(sed -n 's/^reason=\([^[:space:]]*\)$/\1/p' "$status_file" | tail -n1)
+          owner=$(sed -n 's/^owner=\([^[:space:]]*\)$/\1/p' "$status_file" | tail -n1)
+          [[ "$checked" =~ ^[0-9]+$ ]] || checked=0
+          age=$((now - checked))
+          cat "$status_file"
+          printf 'STATUS_AGE_SECONDS=%s\n' "$age"
+          if (( age < 0 || age > 180 )); then
+            printf 'OVERALL_STATUS=FAIL\nREASON=YOUTUBE_WATCHDOG_STATUS_STALE\n'
+            exit 1
+          fi
+          case "$state" in
+            OK)
+              if [[ "$owner" == exact_box_compositor ]]; then
+                systemctl is-active --quiet fgbears-youtube-lovable-compositor.service
+                systemctl is-active --quiet fgbears-youtube-lovable-routing.service
+                ! systemctl is-active --quiet fgbears-youtube-relay.service
+                printf 'OVERALL_STATUS=OK\nREASON=YOUTUBE_EXACT_BOX_HEALTHY\n'
+              else
+                printf 'OVERALL_STATUS=WARN\nREASON=YOUTUBE_ON_FALLBACK\n'
+              fi
+              ;;
+            WARN)
+              printf 'OVERALL_STATUS=WARN\nREASON=%s\n' "${reason:-YOUTUBE_WATCHDOG_WARNING}"
+              ;;
+            *)
+              printf 'OVERALL_STATUS=FAIL\nREASON=%s\n' "${reason:-YOUTUBE_WATCHDOG_FAILURE}"
+              exit 1
+              ;;
+          esac
+          REMOTE
+          youtube_rc=$?
           set -e
 
           if (( stream_rc != 0 )); then
@@ -95,52 +135,46 @@ jobs:
           SSH_EXIT_CODE=$video_rc
           REPORT
           fi
-          if (( audio_rc != 0 )) && ! grep -q '^OVERALL_STATUS=' audio-status.env 2>/dev/null; then
-            cat > audio-status.env <<REPORT
+          if (( youtube_rc != 0 )) && ! grep -q '^OVERALL_STATUS=' youtube-status.env 2>/dev/null; then
+            cat > youtube-status.env <<REPORT
           OVERALL_STATUS=FAIL
-          REASON=AUDIO_HEALTH_COMMAND_FAILED
+          REASON=YOUTUBE_WATCHDOG_QUERY_FAILED
           CHECKED_AT_EPOCH=$(date +%s)
-          SSH_EXIT_CODE=$audio_rc
+          SSH_EXIT_CODE=$youtube_rc
           REPORT
           fi
 
-          status=$(sed -n 's/^OVERALL_STATUS=\(OK\|WARN\|CRITICAL\)$/\1/p' stream-status.env | tail -n 1)
-          reason=$(sed -n 's/^REASON=\([A-Z0-9_]*\)$/\1/p' stream-status.env | tail -n 1)
+          status=$(sed -n 's/^OVERALL_STATUS=\(OK\|WARN\|CRITICAL\)$/\1/p' stream-status.env | tail -n1)
+          reason=$(sed -n 's/^REASON=\([A-Z0-9_]*\)$/\1/p' stream-status.env | tail -n1)
           [[ -n "$status" ]] || status=CRITICAL
           [[ -n "$reason" ]] || reason=INVALID_STATUS_REPORT
 
-          video_status=$(sed -n 's/^OVERALL_STATUS=\(OK\|FAIL\)$/\1/p' video-status.env | tail -n 1)
-          video_reason=$(sed -n 's/^REASON=\([A-Z0-9_]*\)$/\1/p' video-status.env | tail -n 1)
-          if [[ "$video_status" != "OK" ]]; then
+          video_status=$(sed -n 's/^OVERALL_STATUS=\(OK\|FAIL\)$/\1/p' video-status.env | tail -n1)
+          video_reason=$(sed -n 's/^REASON=\([A-Z0-9_]*\)$/\1/p' video-status.env | tail -n1)
+          if [[ "$video_status" != OK ]]; then
             status=CRITICAL
             reason=${video_reason:-VIDEO_FRAME_PACING_DEGRADED}
           fi
 
-          audio_status=$(sed -n 's/^OVERALL_STATUS=\(OK\|FAIL\)$/\1/p' audio-status.env | tail -n 1)
-          audio_warnings=$(sed -n 's/^AUDIO_WARNINGS=//p' audio-status.env | tail -n 1)
-          if [[ "$audio_status" != "OK" ]]; then
+          youtube_status=$(sed -n 's/^OVERALL_STATUS=\(OK\|WARN\|FAIL\)$/\1/p' youtube-status.env | tail -n1)
+          youtube_reason=$(sed -n 's/^REASON=\([A-Z0-9_]*\)$/\1/p' youtube-status.env | tail -n1)
+          if [[ "$youtube_status" == FAIL || -z "$youtube_status" ]]; then
             status=CRITICAL
-            reason=AUDIO_QUALITY_DEGRADED
+            reason=${youtube_reason:-YOUTUBE_WATCHDOG_FAILURE}
+          elif [[ "$youtube_status" == WARN && "$status" == OK ]]; then
+            status=WARN
+            reason=${youtube_reason:-YOUTUBE_WATCHDOG_WARNING}
           fi
 
           printf 'status=%s\nreason=%s\n' "$status" "$reason" >> "$GITHUB_OUTPUT"
-
           {
-            printf '## FGBears Live: %s\n\n' "$status"
-            printf 'Reason: `%s`\n\n' "$reason"
-            printf '### Stream transport\n```text\n'
-            cat stream-status.env
-            printf '```\n\n### Video frame pacing\n```text\n'
-            cat video-status.env
-            printf '```\n\n### Exact YouTube-bound audio\n```text\n'
-            cat audio-status.env
-            printf '```\n'
-            if [[ -n "$audio_warnings" && "$audio_warnings" != "NONE" ]]; then
-              printf '\nAudio warnings: `%s`\n' "$audio_warnings"
-            fi
+            printf '## FGBears Live: %s\n\nReason: `%s`\n\n' "$status" "$reason"
+            printf '### Shared master\n```text\n'; cat stream-status.env; printf '```\n\n'
+            printf '### Video frame pacing\n```text\n'; cat video-status.env; printf '```\n\n'
+            printf '### YouTube owner-aware watchdog\n```text\n'; cat youtube-status.env; printf '```\n'
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Archive status reports
+      - name: Archive compact status reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -148,8 +182,8 @@ jobs:
           path: |
             stream-status.env
             video-status.env
-            audio-status.env
-          retention-days: 14
+            youtube-status.env
+          retention-days: 7
 
       - name: Manage stream incident
         if: always()
@@ -159,6 +193,7 @@ jobs:
           STREAM_STATUS: ${{ steps.health.outputs.status }}
           STREAM_REASON: ${{ steps.health.outputs.reason }}
         run: |
+          set -Eeuo pipefail
           status=${STREAM_STATUS:-CRITICAL}
           reason=${STREAM_REASON:-MONITOR_STEP_FAILED}
           gh label create stream-monitor --color B60205 \
@@ -166,13 +201,13 @@ jobs:
           issue=$(gh issue list --state open --label stream-monitor \
             --json number --jq '.[0].number // empty')
 
-          if [[ "$status" != "OK" ]]; then
+          if [[ "$status" != OK ]]; then
             if [[ -z "$issue" ]]; then
               {
                 printf 'The independent stream monitor detected `%s`.\n\n' "$reason"
-                printf '[Open the monitoring run](%s/%s/actions/runs/%s) for the full stream, video and audio reports.\n\n' \
+                printf '[Open the monitoring run](%s/%s/actions/runs/%s) for the compact reports.\n\n' \
                   "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
-                printf 'The local restart circuit breaker remains authoritative; this monitor does not restart the stream.\n'
+                printf 'Local circuit breakers and owner-aware watchdogs remain authoritative; this external monitor never restarts production.\n'
               } > incident.md
               gh issue create --title '[Stream Monitor] FGBears Live incident' \
                 --label stream-monitor --body-file incident.md
@@ -183,5 +218,5 @@ jobs:
 
           if [[ -n "$issue" ]]; then
             gh issue close "$issue" --comment \
-              "Recovered automatically. Current monitoring run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+              "Recovered. Current monitoring run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           fi
