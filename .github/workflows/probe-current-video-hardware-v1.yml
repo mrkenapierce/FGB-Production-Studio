@@ -1,0 +1,50 @@
+name: Probe Current Video Hardware V1
+
+on:
+  push:
+    paths:
+      - '.github/workflows/probe-current-video-hardware-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read-only hardware encoder probe
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          master=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          youtube=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          echo "DEV_DRI_PRESENT=$([[ -d /dev/dri ]] && echo yes || echo no)"
+          if [[ -d /dev/dri ]]; then ls -l /dev/dri; fi
+          echo 'FFMPEG_HARDWARE_ENCODERS_BEGIN'
+          ffmpeg -hide_banner -encoders 2>/dev/null | grep -E 'h264_(vaapi|nvenc|qsv|v4l2m2m|amf)|hevc_(vaapi|nvenc|qsv|v4l2m2m|amf)' || true
+          echo 'FFMPEG_HARDWARE_ENCODERS_END'
+          command -v vainfo >/dev/null && vainfo 2>&1 | sed -n '1,40p' || echo 'VAINFO=unavailable'
+          command -v nvidia-smi >/dev/null && nvidia-smi -L || echo 'NVIDIA_GPU=unavailable'
+          command -v rocminfo >/dev/null && rocminfo 2>/dev/null | sed -n '1,30p' || echo 'ROCM=unavailable'
+          test "$(systemctl show -p MainPID --value fgbears-live.service)" = "$master"
+          test "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" = "$rumble"
+          test "$(systemctl show -p MainPID --value fgbears-youtube-relay.service)" = "$youtube"
+          echo 'PROBE_DID_NOT_MODIFY_STREAMS=yes'
+          REMOTE
