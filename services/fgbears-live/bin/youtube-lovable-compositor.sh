@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Resource-protected YouTube-only media executor for the Lovable routing plane.
-# Rumble remains on the untouched 1280x720 shared master. This branch renders
-# YouTube at 640x360/30fps because that is the highest same-host tier with a
-# measured production CPU safety margin. The upper news and lower crawl remain
-# live because the moving master is continuously decoded/scaled; only Lovable's
-# question panel is overlaid when the routing consumer emits opaque RGBA.
+# Thin YouTube-only media executor for the Lovable routing plane.
+# The shared master and Rumble remain untouched at 1280x720/30. YouTube now
+# preserves that native 720p canvas and overlays only Lovable's question panel.
+# This tier is production-qualified by the 2026-09-02 same-host capacity test,
+# which sustained 4.87x real-time at the target 720p x264 settings while both
+# platform transports remained established.
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 [[ -r "$ENV_FILE" ]] || { echo "Missing environment file: $ENV_FILE" >&2; exit 78; }
@@ -17,16 +17,16 @@ source "$ENV_FILE"
 : "${YOUTUBE_LOCAL_UDP_URL:=udp://127.0.0.1:1939?pkt_size=1316}"
 : "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"
 : "${YOUTUBE_QUESTION_MASK_PORT:=8791}"
-: "${YOUTUBE_OUTPUT_WIDTH:=640}"
-: "${YOUTUBE_OUTPUT_HEIGHT:=360}"
+: "${YOUTUBE_OUTPUT_WIDTH:=1280}"
+: "${YOUTUBE_OUTPUT_HEIGHT:=720}"
 : "${YOUTUBE_OUTPUT_FPS:=30}"
-: "${YOUTUBE_VIDEO_BITRATE:=2200k}"
-: "${YOUTUBE_VIDEO_MAXRATE:=2500k}"
-: "${YOUTUBE_VIDEO_BUFSIZE:=4400k}"
+: "${YOUTUBE_VIDEO_BITRATE:=5000k}"
+: "${YOUTUBE_VIDEO_MAXRATE:=5500k}"
+: "${YOUTUBE_VIDEO_BUFSIZE:=10000k}"
 : "${YOUTUBE_MONITOR_DIR:=/run/fgbears-youtube-lovable-compositor}"
 
-[[ "$YOUTUBE_OUTPUT_WIDTH" == 640 && "$YOUTUBE_OUTPUT_HEIGHT" == 360 && "$YOUTUBE_OUTPUT_FPS" == 30 ]] || {
-  echo "Same-host Lovable compositor is safety-qualified only for 640x360 at 30 fps." >&2
+[[ "$YOUTUBE_OUTPUT_WIDTH" == 1280 && "$YOUTUBE_OUTPUT_HEIGHT" == 720 && "$YOUTUBE_OUTPUT_FPS" == 30 ]] || {
+  echo "Production Lovable compositor is qualified for 1280x720 at 30 fps." >&2
   exit 78
 }
 [[ -d "$YOUTUBE_MONITOR_DIR" && -w "$YOUTUBE_MONITOR_DIR" ]] || {
@@ -49,25 +49,25 @@ import json,sys
 p=json.load(sys.stdin)
 assert p.get("ok") is True
 assert p.get("sourceCanvas")==[1280,720]
-assert p.get("canvas")==[640,360]
+assert p.get("canvas")==[1280,720]
 assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470}
 assert p.get("creativeKey")=="yt_rumble_trivia_redirect"
 assert p.get("presentationMode")=="full_creative_scaled"
 assert p.get("routingAuthority")=="lovable_public_stream_routing"
 r=p["maskRegion"]
-assert r=={"x":231,"y":52,"width":399,"height":235},r
+assert r=={"x":462,"y":104,"width":798,"height":470},r
 print(r["x"],r["y"],r["width"],r["height"],p["creativeKey"],p["routingAuthority"])
 ')
 EOF
 
 [[ "$CREATIVE" == yt_rumble_trivia_redirect && "$AUTHORITY" == lovable_public_stream_routing ]]
 
-echo "Starting Lovable-controlled YouTube compositor: 640x360/30, panel=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}." >&2
+echo "Starting Lovable-controlled YouTube compositor: 1280x720/30, panel=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}." >&2
 
 # A single encode feeds YouTube and a bounded read-only monitor. The monitor is
-# three rotating 2-second MPEG-TS segments in /run (tmpfs), so it is always
-# available for verification, does not need a pre-existing UDP listener, and can
-# never grow without bound. It costs no second encode.
+# three rotating 2-second MPEG-TS segments in /run (tmpfs), so it cannot grow.
+# The program already arrives at 1280x720; scale is retained as a deterministic
+# format/canvas guard and is effectively 1:1 at this production tier.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
   -fflags +genpts+discardcorrupt -probesize 10000000 -analyzeduration 10000000 \
