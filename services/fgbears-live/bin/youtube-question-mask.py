@@ -5,12 +5,10 @@ Lovable's public stream-routing endpoint is the control plane. This worker does
 not own platform routing decisions or source geometry: it consumes
 `trivia.maskRegion`, `trivia.youtubeCreativeKey`, and `trivia.presentation`.
 
-The Lovable mask region is validated as the authoritative question location,
-but the YouTube execution cover intentionally expands to the entire middle band
-between the always-live news and crawl. This guarantees that no part of a real
-trivia question can remain visible on YouTube if the question layout extends
-outside the narrower source mask. When inactive, the same full-band frame is
-fully transparent.
+The Lovable mask region is validated as the authoritative question location and
+the YouTube execution cover uses that exact question rectangle. News, crawl,
+and unrelated middle-panel pixels remain live and untouched. When inactive,
+the same question-box frame is fully transparent.
 """
 from __future__ import annotations
 
@@ -168,20 +166,19 @@ def parse_contract(payload: dict[str, Any]) -> Contract:
     if not isinstance(masked, dict) or any(masked.get(k) != v for k, v in expected_source.items()):
         raise ValueError("YouTube presentation maskedRegion differs from trivia.maskRegion")
 
-    # The API region above remains authoritative and is fully validated. For
-    # execution, protect the complete middle program band. This is intentionally
-    # conservative: news remains live above y=104 and crawl remains live at/after
-    # y=574, while every pixel capable of containing a trivia question is covered.
+    # Execute exactly the Lovable-authoritative question rectangle. The news
+    # above and crawl below remain live and unrelated middle-panel pixels remain
+    # untouched. Geometry is proportionally mapped to the YouTube canvas.
+    x = scaled(source_x, SOURCE_CANVAS_WIDTH, OUTPUT_CANVAS_WIDTH)
+    y = scaled(source_y, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
+    width = scaled(source_width, SOURCE_CANVAS_WIDTH, OUTPUT_CANVAS_WIDTH)
+    height = scaled(source_height, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
     output_news_bottom = scaled(SOURCE_NEWS_BOTTOM, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
     output_crawl_top = scaled(SOURCE_CRAWL_TOP, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
-    x = 0
-    y = output_news_bottom
-    width = OUTPUT_CANVAS_WIDTH
-    height = output_crawl_top - output_news_bottom
-    if width <= 0 or height <= 0 or x < 0 or y < 0:
-        raise ValueError("invalid full-middle YouTube protection region")
+    if width <= 0 or height <= 0 or x < 0 or y < output_news_bottom or y + height > output_crawl_top:
+        raise ValueError("scaled maskRegion would overlap the always-live news or crawl bands")
     if x + width > OUTPUT_CANVAS_WIDTH or y + height > OUTPUT_CANVAS_HEIGHT:
-        raise ValueError("full-middle YouTube protection region exceeds execution canvas")
+        raise ValueError("scaled maskRegion exceeds the YouTube execution canvas")
 
     return Contract(
         source_x=source_x,
@@ -230,8 +227,8 @@ def build_locked_creative(contract: Contract) -> bytes:
                 raise ValueError(f"locked creative must be 1280x720, got {raw.size}")
             source = raw.convert("RGBA")
 
-    # Fit the approved full card inside the protected middle band without
-    # changing its internal layout. The remainder of the band is opaque navy.
+    # Fit the approved full card inside the exact protected question box without
+    # changing its internal layout. The remainder of the box is opaque navy.
     scaled_card = source.copy()
     scaled_card.thumbnail((contract.width, contract.height), Image.Resampling.LANCZOS)
 
@@ -339,7 +336,7 @@ class Handler(BaseHTTPRequestHandler):
                 "creativeKey": CONTRACT.creative_key,
                 "presentationMode": "full_creative_scaled",
                 "routingAuthority": "lovable_public_stream_routing",
-                "executionScaling": "full_middle_protection",
+                "executionScaling": "proportional_downstream",
                 "fps": FPS,
             }).encode()
             self.send_response(200)
