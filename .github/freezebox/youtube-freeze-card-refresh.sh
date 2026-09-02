@@ -6,12 +6,14 @@ set -Eeuo pipefail
 # This runs BETWEEN trivia rounds; it never continuously encodes the stream.
 #
 # Safety properties:
-# - authoritative routing state must be fresh and outside a question/ad break
-#   both BEFORE capture and AFTER encode;
+# - explicit question/mask/ad states are always rejected;
+# - a fresh routing state is accepted outside a question;
+# - the expected idle-between-games `stale` state is accepted only in the safe
+#   portion of the fixed 20-minute schedule (minutes 1..18 after an anchor),
+#   never during anchor minute :00/:20/:40 or the final minute before one;
 # - geometry must exactly match the reconciled 480,200 640x360 contract;
-# - output is written by atomic rename, so the live router never sees a partial
-#   H.264 file;
-# - any failure leaves the previous known-good card untouched.
+# - routing is checked both BEFORE capture and AFTER encode;
+# - output is written by atomic rename; failures retain the prior known-good card.
 
 ROUTING_URL="${FGB_STREAM_ROUTING_URL:-https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing}"
 INPUT_URL="${YOUTUBE_LOCAL_UDP_URL:-udp://127.0.0.1:1939?fifo_size=1000000&overrun_nonfatal=1&reuse=1}"
@@ -45,7 +47,7 @@ req = urllib.request.Request(url, headers={
     "Accept":"application/json",
     "Cache-Control":"no-cache",
     "Pragma":"no-cache",
-    "User-Agent":"FGBears-YouTube-FreezeCard/1.0",
+    "User-Agent":"FGBears-YouTube-FreezeCard/1.1",
 })
 try:
     with urllib.request.urlopen(req, timeout=3) as r:
@@ -59,8 +61,6 @@ trivia = payload.get("trivia")
 if not isinstance(trivia, dict):
     print("unsafe: missing trivia object", file=sys.stderr); raise SystemExit(2)
 phase = trivia.get("phase")
-if trivia.get("stale") is True:
-    print("unsafe: trivia state stale", file=sys.stderr); raise SystemExit(2)
 if phase == "question" or trivia.get("youtubeMaskActive") is True:
     print(f"unsafe: active question phase={phase!r}", file=sys.stderr); raise SystemExit(2)
 # Be conservative across both root- and trivia-level ad-state variants.
@@ -75,7 +75,17 @@ expected = {
 }
 if not isinstance(region, dict) or any(region.get(k) != v for k,v in expected.items()):
     print(f"unsafe: unexpected maskRegion={region!r}", file=sys.stderr); raise SystemExit(2)
-print(f"safe phase={phase!r}")
+remote_stale = trivia.get("stale") is True
+if remote_stale:
+    # Trivia is intentionally stale/idle for most of the 20-minute interval.
+    # Minute offsets are timezone invariant because Central differs from UTC by
+    # whole hours. Only accept minutes 1..18 after each :00/:20/:40 anchor.
+    minute = time.localtime().tm_min
+    cycle_minute = minute % 20
+    if not (1 <= cycle_minute <= 18):
+        print(f"unsafe: stale state too close to trivia anchor minute={minute:02d}", file=sys.stderr)
+        raise SystemExit(2)
+print(f"safe phase={phase!r} stale={remote_stale}")
 PY
 }
 
@@ -126,7 +136,6 @@ nice -n 19 ionice -c3 ffmpeg -hide_banner -nostdin -loglevel warning \
   -f h264 -y "$candidate"
 test -s "$candidate"
 
-# Validate dimensions/codec and make sure the router can parse AUD/IDR units.
 probe=$(ffprobe -v error -f h264 -select_streams v:0 \
   -show_entries stream=codec_name,profile,width,height,pix_fmt,level \
   -of json "$candidate")
@@ -138,9 +147,6 @@ assert s.get("width")==1280 and s.get("height")==720, s
 assert s.get("pix_fmt")=="yuv420p", s
 PY
 
-# Re-check routing AFTER the ~4-second capture/encode. If trivia or an ad began
-# during generation, discard this candidate rather than publishing a frame from
-# an unsafe moment.
 if ! safe_state; then
   echo "Routing changed during generation; discarding candidate" >&2
   printf 'result=discarded reason=state-changed at=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$STATUS_FILE.tmp"
@@ -149,7 +155,6 @@ if ! safe_state; then
 fi
 
 chmod 0644 "$candidate"
-# Atomic same-filesystem publication.
 mv -f "$candidate" "${OUT_FILE}.new"
 mv -f "${OUT_FILE}.new" "$OUT_FILE"
 printf 'result=updated at=%s bytes=%s geometry=480,200,640,360\n' \
