@@ -1,0 +1,55 @@
+name: Diagnose YouTube Freeze State
+
+on:
+  push:
+    paths:
+      - '.github/workflows/diagnose-youtube-freeze-state.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read safe-state diagnostics only
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== REFRESH JOURNAL ==='
+          sudo journalctl -u fgbears-youtube-freeze-card-refresh.service -n 120 --no-pager || true
+          echo '=== CURRENT SANITIZED ROUTING SHAPE ==='
+          python3 - <<'PY'
+          import json, urllib.request
+          url='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing?_diag=1'
+          req=urllib.request.Request(url,headers={'Cache-Control':'no-cache','Pragma':'no-cache'})
+          with urllib.request.urlopen(req,timeout=5) as r:
+              p=json.loads(r.read())
+          t=p.get('trivia') if isinstance(p,dict) else None
+          def pick(o, keys):
+              return {k:o.get(k) for k in keys if isinstance(o,dict) and k in o}
+          print(json.dumps({
+              'root': pick(p,['adsVisible','isAdBreak','adBreakActive','configVersion']),
+              'trivia': pick(t,['active','phase','stale','youtubeMaskActive','maskRegion','adsVisible','isAdBreak','adBreakActive']),
+          }, indent=2, sort_keys=True))
+          PY
+          echo '=== SERVICES ==='
+          for s in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-router.service; do
+            echo "$s active=$(systemctl is-active "$s" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$s" 2>/dev/null || true)"
+          done
+          REMOTE
