@@ -32,26 +32,31 @@ jobs:
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -u
+          redact() { sed -E 's#(youtube\.com/live2/)[^ |]+#\1[REDACTED]#g; s#(rumble\.com/live/)[^ |]+#\1[REDACTED]#g'; }
           units=(fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-relay.service fgbears-youtube-lovable-compositor.service fgbears-youtube-lovable-routing.service)
           for u in "${units[@]}"; do
             echo "=== $u ==="
-            systemctl show "$u" -p ActiveState -p SubState -p MainPID -p NRestarts -p ExecStart --no-pager 2>/dev/null || true
+            systemctl show "$u" -p ActiveState -p SubState -p MainPID -p NRestarts -p ExecStart --no-pager 2>/dev/null | redact || true
             pid=$(systemctl show -p MainPID --value "$u" 2>/dev/null || true)
-            if [[ "$pid" =~ ^[1-9][0-9]*$ && -r "/proc/$pid/cmdline" ]]; then
-              echo -n 'cmdline='; tr '\0' ' ' <"/proc/$pid/cmdline"; echo
-              echo 'connections:'
-              sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$pid" || true
-              ps -p "$pid" -o pid=,etime=,%cpu=,%mem=,rss=,comm= || true
+            if [[ "$pid" =~ ^[1-9][0-9]*$ ]]; then
+              ps -p "$pid" -o pid=,ppid=,etime=,%cpu=,%mem=,rss=,comm= || true
             fi
           done
+          echo '=== all ffmpeg processes ==='
+          ps -eo pid=,ppid=,etime=,%cpu=,%mem=,rss=,args= | grep '[f]fmpeg' | redact || true
+          echo '=== all established streaming sockets ==='
+          sudo ss -ntpH state established 2>/dev/null | grep -E ':(443|1935)([[:space:]]|$)' | redact || true
+          echo '=== process tree for master ==='
+          master=$(systemctl show -p MainPID --value fgbears-live.service 2>/dev/null || true)
+          [[ "$master" =~ ^[1-9][0-9]*$ ]] && pstree -ap "$master" 2>/dev/null | redact || true
           echo '=== host ==='
           uptime
           free -m
           echo '=== compositor health ==='
           curl -fsS --max-time 3 http://127.0.0.1:8791/healthz || true
           echo
-          echo '=== compositor journal tail ==='
-          sudo journalctl -u fgbears-youtube-lovable-compositor.service -n 25 --no-pager 2>/dev/null || true
-          echo '=== routing journal tail ==='
-          sudo journalctl -u fgbears-youtube-lovable-routing.service -n 20 --no-pager 2>/dev/null || true
+          echo '=== compositor errors since start ==='
+          sudo journalctl -u fgbears-youtube-lovable-compositor.service --since '3 hours ago' --no-pager 2>/dev/null | grep -Ei 'youtube|rtmp|tls|error|fail|broken|reset|eof|server' | tail -80 | redact || true
+          echo '=== direct relay journal ==='
+          sudo journalctl -u fgbears-youtube-relay.service --since '3 hours ago' --no-pager 2>/dev/null | tail -60 | redact || true
           REMOTE
