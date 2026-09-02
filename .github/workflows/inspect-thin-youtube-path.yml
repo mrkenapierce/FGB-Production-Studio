@@ -1,0 +1,57 @@
+name: Inspect Thin YouTube Path
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-thin-youtube-path.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read only production inspection
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          units=(fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-relay.service fgbears-youtube-lovable-compositor.service fgbears-youtube-lovable-routing.service)
+          for u in "${units[@]}"; do
+            echo "=== $u ==="
+            systemctl show "$u" -p ActiveState -p SubState -p MainPID -p NRestarts -p ExecStart --no-pager 2>/dev/null || true
+            pid=$(systemctl show -p MainPID --value "$u" 2>/dev/null || true)
+            if [[ "$pid" =~ ^[1-9][0-9]*$ && -r "/proc/$pid/cmdline" ]]; then
+              echo -n 'cmdline='; tr '\0' ' ' <"/proc/$pid/cmdline"; echo
+              echo 'connections:'
+              sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$pid" || true
+              ps -p "$pid" -o pid=,etime=,%cpu=,%mem=,rss=,comm= || true
+            fi
+          done
+          echo '=== host ==='
+          uptime
+          free -m
+          echo '=== compositor health ==='
+          curl -fsS --max-time 3 http://127.0.0.1:8791/healthz || true
+          echo
+          echo '=== compositor journal tail ==='
+          sudo journalctl -u fgbears-youtube-lovable-compositor.service -n 25 --no-pager 2>/dev/null || true
+          echo '=== routing journal tail ==='
+          sudo journalctl -u fgbears-youtube-lovable-routing.service -n 20 --no-pager 2>/dev/null || true
+          REMOTE
