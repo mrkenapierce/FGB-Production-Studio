@@ -32,13 +32,13 @@ jobs:
         run: |
           set -Eeuo pipefail
           target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
-          ssh -i ~/.ssh/oracle_key "$target" 'python3 - <<'"'"'PY'"'"'
-          import json, os, subprocess, time, urllib.request
+          ssh -i ~/.ssh/oracle_key "$target" 'python3 -' <<'PY'
+          import json, subprocess, time, urllib.request
 
-          H="http://127.0.0.1:8791/healthz"
-          O="http://127.0.0.1:8791/overlay.rgba"
-          W,HGT=399,235
-          FRAME=W*HGT*4
+          HEALTH_URL="http://127.0.0.1:8791/healthz"
+          OVERLAY_URL="http://127.0.0.1:8791/overlay.rgba"
+          W,H=399,235
+          FRAME=W*H*4
 
           def sh(s):
               return subprocess.check_output(s,shell=True,text=True).strip()
@@ -47,7 +47,7 @@ jobs:
           def restarts(unit):
               return sh(f"systemctl show -p NRestarts --value {unit}")
           def health():
-              with urllib.request.urlopen(H,timeout=3) as r:
+              with urllib.request.urlopen(HEALTH_URL,timeout=3) as r:
                   p=json.loads(r.read().decode())
               assert p.get("ok") is True,p
               assert p.get("sourceCanvas")==[1280,720],p
@@ -59,11 +59,12 @@ jobs:
               assert p.get("fps")==30,p
               return p
           def alpha():
-              with urllib.request.urlopen(O,timeout=5) as r:
+              with urllib.request.urlopen(OVERLAY_URL,timeout=5) as r:
                   b=bytearray()
                   while len(b)<FRAME:
                       c=r.read(FRAME-len(b))
-                      if not c: raise RuntimeError("overlay ended early")
+                      if not c:
+                          raise RuntimeError("overlay ended early")
                       b.extend(c)
               a=b[3::4]
               return min(a),max(a),sum(1 for x in a if x)/len(a)
@@ -81,7 +82,6 @@ jobs:
           base=health()
           print("BASELINE_EXACT_BOX=PASS",json.dumps(base,sort_keys=True))
 
-          # Between questions the question box must be completely transparent.
           if not base.get("active"):
               amin,amax,ratio=alpha()
               assert amin==0 and amax==0 and ratio==0,(amin,amax,ratio)
@@ -99,17 +99,21 @@ jobs:
           print("LIVE_QUESTION_DETECTED=YES")
 
           samples=0
+          opacity_checks=0
           while samples<40:
               p=health()
-              if p.get("phase")!="question": break
+              if p.get("phase")!="question":
+                  break
               assert p.get("active") is True,p
               if samples%2==0:
                   amin,amax,ratio=alpha()
                   assert amin==255 and amax==255 and ratio==1.0,(amin,amax,ratio)
+                  opacity_checks+=1
               samples+=1
               time.sleep(.5)
           assert samples>=4,samples
-          print(f"LIVE_EXACT_BOX_OPACITY=PASS samples={samples} alpha=255/255 pixels={W*HGT}")
+          assert opacity_checks>=2,opacity_checks
+          print(f"LIVE_EXACT_BOX_OPACITY=PASS samples={samples} opacity_frames={opacity_checks} alpha=255/255 pixels={W*H}")
 
           deadline=time.time()+90
           while time.time()<deadline:
@@ -134,4 +138,4 @@ jobs:
           print(f"NO_RESTARTS=PASS compositor_cpu={cpu}% master_speed={speed or 'unknown'}x")
           print("RUMBLE_UNTOUCHED=PASS")
           print("EXACT_BOX_LIVE_CYCLE_CERTIFICATION=PASS")
-          PY'
+          PY
