@@ -58,6 +58,14 @@ if grep -Fq -- '-af ' "$ROOT/bin/start-stream.sh"; then
   exit 1
 fi
 grep -Fq -- '-c:a copy' "$ROOT/bin/start-stream.sh"
+grep -Fq -- '-c copy' "$ROOT/bin/youtube-relay.sh"
+if grep -Eq 'youtube-stream-router|gst-launch|libx264|aacparse|mpegtsmux' "$ROOT/bin/youtube-relay.sh"; then
+  echo 'The canonical YouTube relay must remain a direct FFmpeg copy-remux path.' >&2
+  exit 1
+fi
+grep -Fq 'FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0' "$ROOT/config/stream.env.example"
+grep -Fq '"FGB_YOUTUBE_PACKET_ROUTER_ENABLE": "0"' "$ROOT/bin/install.sh"
+grep -Fq 'fgbears-youtube-audio-watchdog.timer' "$ROOT/bin/install.sh"
 grep -Fq -- '-f tee -use_fifo 1' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
 grep -Fq '${YOUTUBE_LOCAL_UDP_URL}|[f=mpegts:' "$ROOT/bin/start-stream.sh"

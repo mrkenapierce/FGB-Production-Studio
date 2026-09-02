@@ -8,8 +8,6 @@ SOURCE_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
 export DEBIAN_FRONTEND=noninteractive
 required_packages=(
   ffmpeg ca-certificates curl git jq rsync python3 python3-pil python3-qrcode qrencode fonts-dejavu-core
-  gstreamer1.0-tools gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-plugins-bad
-  python3-gi python3-gst-1.0 gir1.2-gstreamer-1.0
 )
 missing_packages=()
 for package in "${required_packages[@]}"; do
@@ -53,40 +51,6 @@ install -m 0644 \
   /opt/fgbears-live/assets/fgb-epic-default-interstitial.jpg
 python3 -c 'from PIL import Image; p="/opt/fgbears-live/assets/fgb-epic-default-interstitial.jpg"; im=Image.open(p); im.load(); assert im.format == "JPEG"; assert im.size == (798, 470)'
 
-# Rebuild the pre-encoded YouTube trivia cover on every full install. The
-# service tree is synchronized with rsync --delete, so keeping this generated
-# asset outside the repository without rebuilding it caused subsequent full
-# deploys to remove the card and force the YouTube relay back to the legacy
-# copy-only fallback. This render happens only at deploy time; production still
-# performs no second live video encode.
-TRIVIA_CARD_PNG=$(mktemp --suffix=.png)
-trap 'rm -f "$TRIVIA_CARD_PNG"' EXIT
-python3 "$SOURCE_DIR/tools/build-youtube-rumble-trivia-card.py" "$TRIVIA_CARD_PNG"
-ffmpeg -hide_banner -loglevel error -y \
-  -loop 1 -framerate 30 -i "$TRIVIA_CARD_PNG" \
-  -t 1 -an -c:v libx264 -preset medium -crf 18 -pix_fmt yuv420p \
-  -profile:v high -level 4.0 -g 30 -keyint_min 30 -sc_threshold 0 -bf 0 \
-  -x264-params 'repeat-headers=1:aud=1' \
-  -f h264 /opt/fgbears-live/assets/youtube-rumble-trivia.h264
-chmod 0644 /opt/fgbears-live/assets/youtube-rumble-trivia.h264
-test -s /opt/fgbears-live/assets/youtube-rumble-trivia.h264
-rm -f "$TRIVIA_CARD_PNG"
-trap - EXIT
-
-# The packet router requires these elements but performs only parse/select/mux
-# operations. Verify the low-CPU runtime now so a full deployment cannot
-# silently lose the YouTube-only trivia protection again.
-for element in input-selector tsdemux h264parse aacparse mpegtsmux udpsrc udpsink queue appsrc; do
-  gst-inspect-1.0 "$element" >/dev/null
- done
-python3 - <<'PY'
-import gi
-gi.require_version('Gst', '1.0')
-from gi.repository import Gst
-Gst.init(None)
-print('YouTube packet router runtime:', Gst.version_string())
-PY
-
 install -d -o fgbears -g fgbears -m 0755 /srv/fgbears-live /srv/fgbears-live/media /srv/fgbears-live/incoming /srv/fgbears-live/logs /srv/fgbears-live/runtime
 install -d -o root -g root -m 0755 /srv/fgbears-live/health
 install -d -o root -g fgbears -m 0750 /etc/fgbears-live
@@ -101,6 +65,7 @@ install -m 0755 /opt/fgbears-live/bin/rebuild-playlist.sh /usr/local/bin/fgbears
 install -m 0755 /opt/fgbears-live/bin/add-episode.sh /usr/local/bin/fgbears-add-episode
 install -m 0755 /opt/fgbears-live/bin/healthcheck.sh /usr/local/bin/fgbears-healthcheck
 install -m 0755 /opt/fgbears-live/bin/audio-health.py /usr/local/bin/fgbears-audio-health
+install -m 0755 /opt/fgbears-live/bin/youtube-audio-watchdog.sh /usr/local/bin/fgbears-youtube-audio-watchdog
 install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-stream-status
 
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
@@ -108,6 +73,8 @@ install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-relay.service /etc/sys
 install -m 0644 /opt/fgbears-live/systemd/fgbears-rumble-relay.service /etc/systemd/system/fgbears-rumble-relay.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.service /etc/systemd/system/fgbears-live-health.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.timer /etc/systemd/system/fgbears-live-health.timer
+install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-audio-watchdog.service /etc/systemd/system/fgbears-youtube-audio-watchdog.service
+install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-audio-watchdog.timer /etc/systemd/system/fgbears-youtube-audio-watchdog.timer
 
 ENV_PATH=/etc/fgbears-live/stream.env
 if [[ ! -e "$ENV_PATH" ]]; then
@@ -147,13 +114,7 @@ updates = {
     "YOUTUBE_VIDEO_BITRATE": "5000k",
     "YOUTUBE_VIDEO_MAXRATE": "5500k",
     "YOUTUBE_VIDEO_BUFSIZE": "10000k",
-    "FGB_YOUTUBE_PACKET_ROUTER_ENABLE": "1",
-    "FGB_YOUTUBE_TRIVIA_CARD_H264": "/opt/fgbears-live/assets/youtube-rumble-trivia.h264",
-    "YOUTUBE_TRIVIA_OVERLAY_SCRIPT": "/opt/fgbears-live/bin/youtube-trivia-overlay.py",
-    "YOUTUBE_TRIVIA_OVERLAY_PORT": "8790",
-    "YOUTUBE_TRIVIA_OVERLAY_FPS": "2",
-    "YOUTUBE_TRIVIA_POLL_SECONDS": "2",
-    "YOUTUBE_TRIVIA_STALE_SECONDS": "10",
+    "FGB_YOUTUBE_PACKET_ROUTER_ENABLE": "0",
     "RUMBLE_TRIVIA_URL": "https://rumble.com/v7eqrsu-chicago-bears-live-trivia-every-20-minutes-cash-prizes-fgb.html",
     "RUMBLE_TRIVIA_DISPLAY_URL": "rumble.com/v7eqrsu",
     "RUMBLE_LOCAL_UDP_URL": "udp://127.0.0.1:1940?pkt_size=1316",
@@ -167,13 +128,13 @@ updates = {
     "BEARS_NEWS_OVERLAY_FPS": "15",
     "BEARS_NEWS_SCROLL_PPS": "76",
 }
-retired_prefixes = ("X_", "INSTAGRAM_", "FACEBOOK_")
+retired_prefixes = ("X_", "INSTAGRAM_", "FACEBOOK_", "YOUTUBE_TRIVIA_")
 seen = set()
 out = []
 for line in lines:
     if "=" in line and not line.lstrip().startswith("#"):
         key = line.split("=", 1)[0]
-        if key.startswith(retired_prefixes):
+        if key.startswith(retired_prefixes) or key == "FGB_YOUTUBE_TRIVIA_CARD_H264":
             continue
         if key in updates:
             if key not in seen:
@@ -199,5 +160,6 @@ systemctl enable fgbears-youtube-relay.service
 systemctl reset-failed fgbears-youtube-relay.service || true
 systemctl restart fgbears-youtube-relay.service
 systemctl enable --now fgbears-live-health.timer
+systemctl enable --now fgbears-youtube-audio-watchdog.timer
 
 echo "Installed FGBears Live with isolated YouTube and Rumble copy-remux relays."
