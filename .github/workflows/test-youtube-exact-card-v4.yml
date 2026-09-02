@@ -85,16 +85,18 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          grep -Fq 'AD_PANEL_BOX = (462, 104, 1260, 574)' services/fgbears-live/bin/ad-overlay.py
+          grep -Fq 'WIDTH = 1280' services/fgbears-live/bin/ad-overlay.py
+          grep -Fq 'AD_PANEL_BOX = (462, 104, WIDTH - 20, 574)' services/fgbears-live/bin/ad-overlay.py
           grep -Fq 'WIDTH, HEIGHT = 1280, 104' services/fgbears-live/bin/bears-news-feed.py
           grep -Fq 'overlay=x=0:y=574' services/fgbears-live/bin/start-stream.sh
           python3 - <<'PY'
-          panel=(462,104,798,470)
-          x,y,w,h=panel
-          assert y == 104
-          assert y+h == 574
-          assert x+w == 1260
-          assert y >= 104             # below news y=0..103
-          assert y+h <= 574           # ends where crawl begins
+          width=1280
+          declared=(462,104,width-20,574)
+          assert declared == (462,104,1260,574)
+          x1,y1,x2,y2=declared
+          panel=(x1,y1,x2-x1,y2-y1)
+          assert panel == (462,104,798,470)
+          assert y1 == 104            # immediately below news y=0..103
+          assert y2 == 574            # exactly where crawl begins
           print('PRODUCTION_PANEL_BOUNDARIES=PASS')
           PY
