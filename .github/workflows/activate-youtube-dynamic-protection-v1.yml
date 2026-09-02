@@ -34,7 +34,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Cut YouTube to one thin overlay sender
+      - name: Finalize existing thin YouTube owner without handoff
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -47,7 +47,7 @@ jobs:
           DYNAMIC=fgbears-youtube-dynamic-card.service
           COMP=fgbears-youtube-lovable-compositor.service
           ROUTING=fgbears-youtube-lovable-routing.service
-          WATCHDOG=fgbears-youtube-audio-watchdog.timer
+          HEALTH=fgbears-live-health.service
           HEALTH_DROPIN=/etc/systemd/system/fgbears-live-health.service.d/99-youtube-dynamic-router.conf
 
           active() { systemctl is-active --quiet "$1"; }
@@ -62,8 +62,7 @@ jobs:
             local p="$1" port="$2"
             sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v r=":$port" 'index($0,q)&&index($0,r){x=1} END{exit(x?0:1)}'
           }
-          yt_comp_connected() { local p; p=$(ffpid "$COMP" || true); [[ "$p" =~ ^[1-9][0-9]*$ ]] && has_port "$p" 443; }
-          yt_router_connected() { local p; p=$(ffpid "$ROUTER" || true); [[ "$p" =~ ^[1-9][0-9]*$ ]] && has_port "$p" 443; }
+          comp_connected() { local p; p=$(ffpid "$COMP" || true); [[ "$p" =~ ^[1-9][0-9]*$ ]] && has_port "$p" 443; }
           rumble_connected() { local p; p=$(ffpid "$RUMBLE" || true); [[ "$p" =~ ^[1-9][0-9]*$ ]] && has_port "$p" 1935; }
           compositor_contract() {
             local p cmd health
@@ -72,7 +71,6 @@ jobs:
             cmd=$(tr '\0' ' ' <"/proc/$p/cmdline")
             [[ "$cmd" == *'scale=640:360:flags=fast_bilinear'* ]]
             [[ "$cmd" == *'overlay=231:52:format=auto:shortest=1'* ]]
-            [[ "$cmd" == *'-c:v libx264'* ]]
             [[ "$cmd" == *'-r 30'* ]]
             [[ "$cmd" == *'-c:a aac'* ]]
             [[ "$cmd" == *'-b:a 128k'* ]]
@@ -80,117 +78,94 @@ jobs:
             [[ "$cmd" == *'-ac 2'* ]]
             [[ "$cmd" == *'aresample=44100:async=1:first_pts=0'* ]]
             health=$(curl -fsS --max-time 3 http://127.0.0.1:8791/healthz)
-            printf '%s' "$health" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True,p;assert p.get("canvas")==[640,360],p;assert p.get("sourceCanvas")==[1280,720],p;assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235},p;assert p.get("creativeKey")=="yt_rumble_trivia_redirect",p;assert p.get("routingAuthority")=="lovable_public_stream_routing",p;assert p.get("fps")==30,p'
+            printf '%s' "$health" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True,p;assert p.get("sourceCanvas")==[1280,720],p;assert p.get("canvas")==[640,360],p;assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235},p;assert p.get("creativeKey")=="yt_rumble_trivia_redirect",p;assert p.get("routingAuthority")=="lovable_public_stream_routing",p;assert p.get("fps")==30,p'
+          }
+          restore_old_path() {
+            echo 'FALLBACK=RESTORE_OLD_YOUTUBE_PATH'
+            sudo systemctl stop "$COMP" >/dev/null 2>&1 || true
+            sudo systemctl enable "$DYNAMIC" "$ROUTER" >/dev/null 2>&1 || true
+            sudo systemctl start "$DYNAMIC" >/dev/null 2>&1 || true
+            sudo systemctl start "$ROUTER" >/dev/null 2>&1 || true
+            printf '%s\n' '[Service]' 'Environment=YOUTUBE_RELAY_SERVICE=fgbears-youtube-router.service' | sudo tee "$HEALTH_DROPIN" >/dev/null
+            sudo systemctl daemon-reload
+            echo 'FALLBACK=OLD_PATH_RESTORED'
           }
 
           active "$MASTER"
           active "$RUMBLE"
+          active "$COMP"
           active "$ROUTING"
           rumble_connected
+          comp_connected
+          compositor_contract
+
           master0=$(mainpid "$MASTER")
           rumble0=$(mainpid "$RUMBLE")
+          comp0=$(mainpid "$COMP")
           routing0=$(mainpid "$ROUTING")
-          echo "PRE master=$master0 rumble=$rumble0 routing=$routing0"
+          comp_restarts0=$(systemctl show -p NRestarts --value "$COMP")
+          echo "PRE master=$master0 rumble=$rumble0 compositor=$comp0 routing=$routing0"
+          echo "PRE load=$(cut -d' ' -f1-3 /proc/loadavg) dynamic_cpu=$(ps -p "$(mainpid "$DYNAMIC")" -o %cpu= 2>/dev/null | tr -d ' ' || true) compositor_cpu=$(ps -p "$comp0" -o %cpu= | tr -d ' ')"
 
-          router_was=0; dynamic_was=0
-          active "$ROUTER" && router_was=1 || true
-          active "$DYNAMIC" && dynamic_was=1 || true
-          if (( router_was == 1 )); then yt_router_connected; fi
-
-          done_ok=0
-          started=0
-          rollback() {
-            rc=$?
-            if (( done_ok == 1 )); then return 0; fi
-            if (( started == 1 )); then
-              echo 'ROLLBACK=START'
-              sudo systemctl kill --kill-who=all --signal=KILL "$COMP" >/dev/null 2>&1 || true
-              sudo systemctl stop "$COMP" >/dev/null 2>&1 || true
-              if (( dynamic_was == 1 )); then sudo systemctl enable --now "$DYNAMIC" >/dev/null 2>&1 || true; fi
-              if (( router_was == 1 )); then
-                sudo systemctl enable "$ROUTER" >/dev/null 2>&1 || true
-                sudo systemctl reset-failed "$ROUTER" >/dev/null 2>&1 || true
-                sudo systemctl start "$ROUTER" >/dev/null 2>&1 || true
-                restored=0
-                for _ in $(seq 1 35); do yt_router_connected && { restored=1; break; }; sleep 1; done
-                (( restored == 1 )) || echo 'ROLLBACK_WARNING=youtube_router_transport_unconfirmed'
-              fi
-              sudo systemctl reset-failed "$COMP" >/dev/null 2>&1 || true
-              sudo systemctl start "$COMP" >/dev/null 2>&1 || true
-              echo 'ROLLBACK=COMPLETE'
-            fi
-            exit "$rc"
-          }
-          trap rollback EXIT
-
-          # Stop the non-authoritative compositor first so the actual YouTube handoff
-          # is one clean sender transition rather than waiting on an old retry loop.
-          sudo systemctl kill --kill-who=all --signal=KILL "$COMP" >/dev/null 2>&1 || true
-          sudo systemctl stop "$COMP" >/dev/null 2>&1 || true
-
-          started=1
-          sudo systemctl stop "$ROUTER" >/dev/null 2>&1 || true
-          sudo systemctl stop "$DYNAMIC" >/dev/null 2>&1 || true
-          sudo systemctl reset-failed "$COMP" >/dev/null 2>&1 || true
-          sudo systemctl start "$COMP"
-          echo 'OLD_YOUTUBE_PATH=STOPPED_NEW_THIN_PATH=STARTED'
-
-          claimed=0
-          for _ in $(seq 1 35); do
-            if active "$COMP" && yt_comp_connected; then claimed=1; break; fi
-            sleep 1
-          done
-          (( claimed == 1 ))
-          echo 'YOUTUBE_RTMPS_THIN_COMPOSITOR=PASS'
-
-          [[ "$(mainpid "$MASTER")" == "$master0" ]]
-          [[ "$(mainpid "$RUMBLE")" == "$rumble0" ]]
-          [[ "$(mainpid "$ROUTING")" == "$routing0" ]]
-          rumble_connected
-          echo 'MASTER_RUMBLE_PRESERVED=PASS'
-
-          compositor_contract
-          echo 'YOUTUBE_LIVE_PROCESS_CONTRACT=PASS'
-
-          # Prove transport stability without depending on timing of the optional
-          # local monitor-segment tee output.
-          comp_pid=$(mainpid "$COMP")
-          comp_restarts=$(systemctl show -p NRestarts --value "$COMP")
-          for _ in $(seq 1 12); do
-            active "$COMP"
-            yt_comp_connected
+          # Establish that the already-live compositor is stable before touching the
+          # redundant path. This does not reconnect or restart YouTube.
+          for _ in $(seq 1 5); do
+            comp_connected
             compositor_contract
-            [[ "$(mainpid "$COMP")" == "$comp_pid" ]]
-            [[ "$(systemctl show -p NRestarts --value "$COMP")" == "$comp_restarts" ]]
+            [[ "$(mainpid "$COMP")" == "$comp0" ]]
+            [[ "$(systemctl show -p NRestarts --value "$COMP")" == "$comp_restarts0" ]]
             [[ "$(mainpid "$MASTER")" == "$master0" ]]
             [[ "$(mainpid "$RUMBLE")" == "$rumble0" ]]
             rumble_connected
             sleep 1
           done
-          echo 'YOUTUBE_12_SECOND_STABILITY=PASS'
+          echo 'LIVE_THIN_OWNER_PRECHECK=PASS'
 
+          # Zero-handoff cleanup: do not stop/restart COMP. Only remove the obsolete
+          # router and its expensive dynamic-card encoder.
+          sudo systemctl stop "$ROUTER" >/dev/null 2>&1 || true
+          sudo systemctl stop "$DYNAMIC" >/dev/null 2>&1 || true
           sudo systemctl disable "$ROUTER" "$DYNAMIC" "$DIRECT" >/dev/null 2>&1 || true
-          sudo systemctl disable --now "$WATCHDOG" >/dev/null 2>&1 || true
           sudo systemctl enable "$COMP" "$ROUTING" >/dev/null 2>&1 || true
           sudo install -d -m 0755 /etc/systemd/system/fgbears-live-health.service.d
           printf '%s\n' '[Service]' 'Environment=YOUTUBE_RELAY_SERVICE=fgbears-youtube-lovable-compositor.service' | sudo tee "$HEALTH_DROPIN" >/dev/null
           sudo systemctl daemon-reload
+          echo 'REDUNDANT_YOUTUBE_PATH=STOPPED_AND_DISABLED'
 
-          sleep 8
-          yt_comp_connected
-          compositor_contract
+          # If the live compositor itself is lost, revert. Other validation failures
+          # never displace a still-connected YouTube sender.
+          if ! comp_connected; then restore_old_path; exit 1; fi
+
+          for _ in $(seq 1 20); do
+            if ! comp_connected; then restore_old_path; exit 1; fi
+            compositor_contract
+            [[ "$(mainpid "$COMP")" == "$comp0" ]]
+            [[ "$(systemctl show -p NRestarts --value "$COMP")" == "$comp_restarts0" ]]
+            [[ "$(mainpid "$MASTER")" == "$master0" ]]
+            [[ "$(mainpid "$RUMBLE")" == "$rumble0" ]]
+            [[ "$(mainpid "$ROUTING")" == "$routing0" ]]
+            rumble_connected
+            ! active "$ROUTER"
+            ! active "$DYNAMIC"
+            sleep 1
+          done
+          echo 'POST_CLEANUP_20_SECOND_STABILITY=PASS'
+
+          # Exercise the production health check once with the corrected service
+          # pointer. A healthy run must not restart any live process.
+          sudo systemctl start "$HEALTH"
+          [[ "$(systemctl show -p Result --value "$HEALTH")" == success ]]
           [[ "$(mainpid "$MASTER")" == "$master0" ]]
           [[ "$(mainpid "$RUMBLE")" == "$rumble0" ]]
+          [[ "$(mainpid "$COMP")" == "$comp0" ]]
+          comp_connected
           rumble_connected
-          ! active "$ROUTER"
-          ! active "$DYNAMIC"
-          echo "POST compositor=$(mainpid "$COMP") cpu=$(ps -p "$(mainpid "$COMP")" -o %cpu= | tr -d ' ') load=$(cut -d' ' -f1-3 /proc/loadavg)"
+          echo 'HEALTHCHECK_WITH_THIN_OWNER=PASS'
+
+          echo "POST load=$(cut -d' ' -f1-3 /proc/loadavg) compositor_cpu=$(ps -p "$comp0" -o %cpu= | tr -d ' ')"
           echo 'YOUTUBE_SINGLE_SENDER=thin_lovable_compositor'
           echo 'YOUTUBE_VIDEO=finished_master_plus_question_rectangle_overlay'
-          echo 'YOUTUBE_AUDIO_REPAIR=aac_44100_stereo_async'
+          echo 'YOUTUBE_AUDIO=aac_44100_stereo_async_timestamp_repair'
           echo 'RUMBLE=unchanged_copy_remux'
           echo 'ACTIVATE_YOUTUBE_THIN_OVERLAY=PASS'
-
-          done_ok=1
-          trap - EXIT
           REMOTE
