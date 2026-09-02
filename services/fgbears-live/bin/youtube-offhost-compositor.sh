@@ -1,28 +1,55 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Dedicated/off-host YouTube compositor. This is intentionally NOT suitable for
-# the 0.5-OCPU production Oracle source VM. It accepts the already-encoded master
-# over SRT, overlays only the question-box RGBA mask, re-encodes video on this
-# separate worker, copies AAC audio, and publishes to YouTube RTMPS.
+# Dedicated/off-host YouTube compositor. Lovable is the routing/control plane;
+# youtube-question-mask.py consumes that contract and publishes the exact active
+# mask geometry through /healthz. This compositor refuses to start until that
+# contract is healthy, then overlays only the Lovable-defined trivia panel onto
+# continuously moving live video. RSS/news and crawl remain live at all times.
 
 : "${YOUTUBE_STREAM_KEY:?YOUTUBE_STREAM_KEY is required}"
 SRT_LISTEN_PORT="${FGB_COMPOSITOR_SRT_PORT:-9000}"
 MASK_PORT="${YOUTUBE_QUESTION_MASK_PORT:-8791}"
-MASK_X="${YOUTUBE_QUESTION_MASK_X:-480}"
-MASK_Y="${YOUTUBE_QUESTION_MASK_Y:-200}"
-MASK_WIDTH="${YOUTUBE_QUESTION_MASK_WIDTH:-640}"
-MASK_HEIGHT="${YOUTUBE_QUESTION_MASK_HEIGHT:-360}"
 YOUTUBE_BASE="${YOUTUBE_UPSTREAM_RTMP_BASE:-rtmps://a.rtmps.youtube.com/live2}"
 VIDEO_BITRATE="${FGB_COMPOSITOR_VIDEO_BITRATE:-5000k}"
 VIDEO_MAXRATE="${FGB_COMPOSITOR_VIDEO_MAXRATE:-5500k}"
 VIDEO_BUFSIZE="${FGB_COMPOSITOR_VIDEO_BUFSIZE:-10000k}"
 X264_PRESET="${FGB_COMPOSITOR_X264_PRESET:-veryfast}"
 THREADS="${FGB_COMPOSITOR_THREADS:-0}"
+MASK_HEALTH="http://127.0.0.1:${MASK_PORT}/healthz"
 
-# Hard safety boundary: the RGBA input itself is only 640x360 by default, so it
-# cannot cover the full 1280x720 picture even if every pixel in the mask becomes
-# opaque. The input is anchored over the verified question/answer rectangle.
+contract_json=""
+for _ in $(seq 1 60); do
+  if contract_json=$(curl --silent --fail --max-time 2 "$MASK_HEALTH" 2>/dev/null); then
+    break
+  fi
+  sleep 1
+done
+[[ -n "$contract_json" ]] || { echo "Lovable-driven mask renderer is not healthy" >&2; exit 69; }
+
+# Parse and validate the execution contract without jq. The mask worker itself
+# obtained these values from Lovable's /api/public/fgbears/stream-routing.
+read -r MASK_X MASK_Y MASK_WIDTH MASK_HEIGHT CREATIVE MODE AUTHORITY < <(
+  python3 -c '
+import json, sys
+p=json.load(sys.stdin)
+r=p.get("maskRegion") or {}
+vals=(r.get("x"),r.get("y"),r.get("width"),r.get("height"),p.get("creativeKey"),p.get("presentationMode"),p.get("routingAuthority"))
+if p.get("ok") is not True: raise SystemExit("mask renderer unhealthy")
+if vals[4] != "yt_rumble_trivia_redirect": raise SystemExit("unexpected creative")
+if vals[5] != "full_creative_scaled": raise SystemExit("unexpected presentation mode")
+if vals[6] != "lovable_public_stream_routing": raise SystemExit("unexpected routing authority")
+x,y,w,h=map(int,vals[:4])
+if w <= 0 or h <= 0 or x < 0 or y < 104 or x+w > 1280 or y+h > 574:
+    raise SystemExit("mask geometry violates live news/crawl safety bands")
+print(x,y,w,h,vals[4],vals[5],vals[6])
+' <<<"$contract_json"
+)
+
+# Hard safety boundary: the raw RGBA input is exactly the Lovable-published
+# trivia panel size, never a 1280x720 full-frame overlay. Only this region can
+# become opaque; the continuously moving program, RSS/news and crawl remain the
+# underlying live video.
 exec ffmpeg -hide_banner -nostdin -loglevel warning \
   -fflags +genpts \
   -probesize 10000000 -analyzeduration 10000000 \
