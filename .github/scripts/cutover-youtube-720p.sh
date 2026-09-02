@@ -103,10 +103,20 @@ for _ in $(seq 1 20); do
   sleep 1
 done
 [[ -n "$SEG" ]]
-V=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate -of csv=p=0 "$SEG")
-A=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate,channels -of csv=p=0 "$SEG")
-python3 -c 'import sys; w,h,f=sys.argv[1].split(","); assert (w,h)==("1280","720"),(w,h); assert f in ("30/1","60/2"),f; sr,ch=sys.argv[2].split(","); assert sr=="44100",sr; assert ch=="2",ch' "$V" "$A"
-echo "YOUTUBE_AV=PASS video=$V audio=$A"
+PROBE=$(ffprobe -v error -show_streams -of json "$SEG")
+printf '%s' "$PROBE" | python3 -c '
+import json,sys
+p=json.load(sys.stdin)
+streams=p.get("streams",[])
+v=next(s for s in streams if s.get("codec_type")=="video")
+a=next(s for s in streams if s.get("codec_type")=="audio")
+assert int(v.get("width",0))==1280,v
+assert int(v.get("height",0))==720,v
+assert v.get("r_frame_rate") in {"30/1","60/2"},v
+assert int(a.get("sample_rate",0))==44100,a
+assert int(a.get("channels",0))==2,a
+print(f"YOUTUBE_AV=PASS video={v.get('width')}x{v.get('height')}@{v.get('r_frame_rate')} audio={a.get('sample_rate')}Hz/{a.get('channels')}ch")
+'
 
 # Shared paths are invariants: neither master nor Rumble may restart.
 [[ "$(mainpid "$MASTER")" == "$MASTER0" ]]
@@ -126,10 +136,7 @@ echo "STABILITY master_speed=${SPEED}x compositor_cpu=${CPU}% load=$(cut -d' ' -
 # There must be one FGB YouTube sender socket, owned by the compositor.
 FGB_443=$(ss -ntpH state established 2>/dev/null | awk '/:443 / && /ffmpeg/ {print}' | grep -c "pid=$COMP2" || true)
 [[ "$FGB_443" -ge 1 ]]
-! pgrep -x -f '/usr/local/bin/fgbears-youtube-relay|ffmpeg .*rtmps://a.rtmps.youtube.com/live2' >/dev/null 2>&1 || {
-  # pgrep may also see the compositor command; explicitly reject only the old service PID/state.
-  ! active "$LEGACY"
-}
+! active "$LEGACY"
 
 echo "POST master=$(mainpid "$MASTER") rumble=$(mainpid "$RUMBLE") youtube=$(mainpid "$COMP")"
 echo 'YOUTUBE_720P_CUTOVER=PASS'
