@@ -18,7 +18,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 8
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
@@ -43,14 +43,13 @@ jobs:
         shell: bash
         run: |
           set -Eeuo pipefail
-          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST'; exit 1; }
-          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY'; exit 1; }
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Install, validate, and cut over YouTube only
+      - name: Install hot-reload router and scheduled refresher
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -84,10 +83,6 @@ jobs:
                 sudo systemctl daemon-reload
                 sudo systemctl reset-failed fgbears-youtube-router.service || true
                 sudo systemctl restart fgbears-youtube-router.service || true
-                for i in $(seq 1 45); do
-                  systemctl is-active --quiet fgbears-youtube-router.service && break
-                  sleep 1
-                done
               fi
               echo 'FREEZE_BOX_ROLLBACK=DONE'
             fi
@@ -104,66 +99,41 @@ jobs:
           sudo install -m 0644 "$repo/.github/freezebox/fgbears-youtube-freeze-card-refresh.service" /etc/systemd/system/fgbears-youtube-freeze-card-refresh.service
           sudo install -m 0644 "$repo/.github/freezebox/fgbears-youtube-freeze-card-refresh.timer" /etc/systemd/system/fgbears-youtube-freeze-card-refresh.timer
           sudo install -d -m 0755 -o fgbears -g fgbears /var/lib/fgbears-live
+
+          # Start with the proven full-screen emergency card. It remains the
+          # fail-safe until the scheduled refresher publishes the first small-box
+          # freeze frame. This makes the rollout independent of the current game phase.
           if [[ ! -s "$dynamic" ]]; then
             sudo cp "$original" "$dynamic"
             sudo chown fgbears:fgbears "$dynamic"
             sudo chmod 0644 "$dynamic"
           fi
+          sudo -u fgbears /usr/bin/python3 /opt/fgbears-live/bin/youtube-stream-router-emergency.py --card "$dynamic" --validate-card >/tmp/freezebox-seed-validate.json
+          grep -q '"ok": true' /tmp/freezebox-seed-validate.json
           sudo systemctl daemon-reload
 
-          sudo rm -f /var/lib/fgbears-live/youtube-freeze-card.status
-          sudo systemctl reset-failed fgbears-youtube-freeze-card-refresh.service || true
-          sudo systemctl start fgbears-youtube-freeze-card-refresh.service
-          status=$(sudo cat /var/lib/fgbears-live/youtube-freeze-card.status 2>/dev/null || true)
-          echo "freeze_card_status=$status"
-          grep -q '^result=updated ' <<<"$status"
-          test -s "$dynamic"
-
-          sudo -u fgbears /usr/bin/python3 /opt/fgbears-live/bin/youtube-stream-router-emergency.py --card "$dynamic" --validate-card >/tmp/freezebox-card-validate.json
-          cat /tmp/freezebox-card-validate.json
-          grep -q '"ok": true' /tmp/freezebox-card-validate.json
-          dimensions=$(ffprobe -v error -f h264 -select_streams v:0 -show_entries stream=codec_name,width,height,pix_fmt -of csv=p=0 "$dynamic")
-          echo "freeze_card_stream=$dimensions"
-          grep -Eq '^h264,1280,720,yuv420p$' <<<"$dimensions"
-
-          test "$(systemctl show -p MainPID --value fgbears-live.service)" = "$master_before"
-          test "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" = "$rumble_before"
-
-          # Use the same safety model as card generation. Explicit question/mask/ad
-          # state is always rejected. Idle/stale state is accepted only in minutes
-          # 1..18 of the fixed 20-minute cycle, away from :00/:20/:40 anchors.
+          # Wait only until the real question is NOT exposed. Ads/reveals/transitions
+          # are acceptable because the new router initially renders the same fallback.
           python3 - <<'PY'
           import json, time, urllib.request
           url='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing'
-          deadline=time.time()+150
+          deadline=time.time()+120
           while time.time()<deadline:
               try:
-                  req=urllib.request.Request(
-                      url+'?_cutover='+str(time.time_ns()),
-                      headers={
-                          'Cache-Control':'no-cache','Pragma':'no-cache',
-                          'Accept':'application/json','User-Agent':'FGBears-YouTube-FreezeCutover/1.0'})
-                  with urllib.request.urlopen(req,timeout=3) as r:
-                      p=json.loads(r.read())
+                  req=urllib.request.Request(url+'?_cutover='+str(time.time_ns()),headers={
+                      'Cache-Control':'no-cache','Pragma':'no-cache','Accept':'application/json',
+                      'User-Agent':'FGBears-YouTube-FreezeCutover/1.1'})
+                  with urllib.request.urlopen(req,timeout=3) as r: p=json.loads(r.read())
                   t=p.get('trivia') if isinstance(p,dict) else None
-                  if not isinstance(t,dict):
-                      raise ValueError('missing trivia object')
-                  if t.get('phase') == 'question' or t.get('youtubeMaskActive') is True:
-                      raise ValueError('question/mask active')
-                  if any((p.get(k) is True or t.get(k) is True) for k in ('adsVisible','isAdBreak','adBreakActive')):
-                      raise ValueError('ad state active')
-                  stale=t.get('stale') is True
-                  cycle_minute=time.localtime().tm_min % 20
-                  if stale and not (1 <= cycle_minute <= 18):
-                      raise ValueError('stale state too close to trivia anchor')
-                  print('CUTOVER_WINDOW=SAFE phase='+str(t.get('phase'))+' stale='+str(stale))
-                  raise SystemExit(0)
+                  if isinstance(t,dict) and t.get('phase') != 'question' and t.get('youtubeMaskActive') is not True:
+                      print('CUTOVER_WINDOW=SAFE phase='+str(t.get('phase')))
+                      raise SystemExit(0)
               except SystemExit:
                   raise
-              except Exception as e:
-                  print('waiting for safe cutover:',e)
-              time.sleep(2)
-          raise SystemExit('No safe YouTube cutover window within 150 seconds')
+              except Exception as exc:
+                  print('waiting for safe cutover:',exc)
+              time.sleep(1)
+          raise SystemExit('No non-question cutover window within 120 seconds')
           PY
 
           sudo install -m 0644 "$repo/.github/freezebox/fgbears-youtube-router.service" "$unit"
@@ -174,15 +144,13 @@ jobs:
 
           connected=0
           for i in $(seq 1 50); do
-            if ! systemctl is-active --quiet fgbears-youtube-router.service; then
-              sleep 1
-              continue
-            fi
-            router_pid=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
-            child=$(pgrep -P "$router_pid" ffmpeg | head -n1 || true)
-            if [[ "$child" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -Eq ':443([[:space:]]|$)'; then
-              connected=1
-              break
+            if systemctl is-active --quiet fgbears-youtube-router.service; then
+              router_pid=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
+              child=$(pgrep -P "$router_pid" ffmpeg | head -n1 || true)
+              if [[ "$child" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -Eq ':443([[:space:]]|$)'; then
+                connected=1
+                break
+              fi
             fi
             sleep 1
           done
@@ -195,9 +163,10 @@ jobs:
           test "$rumble_after" = "$rumble_before"
           test "$router_after" != "$router_before"
 
+          # Prove that a completed card can be adopted without restarting YouTube.
           sudo touch "$dynamic"
           hot=0
-          for i in $(seq 1 10); do
+          for i in $(seq 1 12); do
             if sudo journalctl -u fgbears-youtube-router.service --since '-30 seconds' --no-pager | grep -q 'hot-reloaded freeze-box card'; then
               hot=1
               break
@@ -216,7 +185,7 @@ jobs:
           echo 'YOUTUBE_RTMPS_ESTABLISHED=yes'
           echo 'FREEZE_BOX_HOT_RELOAD=yes'
           echo 'FREEZE_BOX_TIMER=enabled_active'
-          echo 'FREEZE_BOX_DEPLOY=PASS'
+          echo 'FREEZE_BOX_ROUTER_DEPLOY=PASS'
           success=1
           trap - ERR INT TERM
           REMOTE
