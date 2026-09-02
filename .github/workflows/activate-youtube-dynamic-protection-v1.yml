@@ -55,3 +55,5 @@ jobs:
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" \
             'sudo bash /tmp/cutover-youtube-720p.sh'
+
+# Retry uses ffprobe JSON stream validation because MPEG-TS CSV may emit repeated program fields.
