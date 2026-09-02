@@ -22,7 +22,9 @@ STATE_DIR=${FGB_YOUTUBE_AUDIO_WATCHDOG_STATE_DIR:-/srv/fgbears-live/health/youtu
 STATUS_FILE=${FGB_YOUTUBE_AUDIO_WATCHDOG_STATUS_FILE:-$STATE_DIR/status.env}
 WARNING_FILE=${FGB_YOUTUBE_AUDIO_WATCHDOG_WARNING_FILE:-$STATE_DIR/warning.env}
 COMP_SOCKET_FAILURE_FILE=${FGB_YOUTUBE_COMP_SOCKET_FAILURE_FILE:-$STATE_DIR/compositor-socket-failures}
+LAST_DEEP_AUDIO_CHECK_FILE=${FGB_YOUTUBE_DEEP_AUDIO_EPOCH_FILE:-$STATE_DIR/deep-audio-epoch}
 CAPTURE_SECONDS=${FGB_YOUTUBE_AUDIO_WATCHDOG_CAPTURE_SECONDS:-8}
+DEEP_AUDIO_INTERVAL_SECONDS=${FGB_YOUTUBE_DEEP_AUDIO_INTERVAL_SECONDS:-900}
 COMP_SOCKET_FAILURES_BEFORE_FALLBACK=${FGB_YOUTUBE_COMP_SOCKET_FAILURES_BEFORE_FALLBACK:-2}
 MONITOR_DIR=${FGB_YOUTUBE_MONITOR_DIR:-/run/fgbears-youtube-lovable-compositor}
 TRANSPORT_LOOKBACK=${FGB_YOUTUBE_TRANSPORT_LOOKBACK:-75 seconds ago}
@@ -170,9 +172,22 @@ write_status() {
   mv -f "$temporary" "$STATUS_FILE"
 }
 
+deep_audio_check_due() {
+  local now last=0
+  now=$(date +%s)
+  if [[ -s "$LAST_DEEP_AUDIO_CHECK_FILE" ]]; then
+    last=$(cat "$LAST_DEEP_AUDIO_CHECK_FILE" 2>/dev/null || printf '0')
+  fi
+  [[ "$last" =~ ^[0-9]+$ ]] || last=0
+  (( now - last >= DEEP_AUDIO_INTERVAL_SECONDS ))
+}
+
 run_source_audio_check() {
-  local output rc warnings
+  local output rc warnings now
   [[ -x "$AUDIO_HEALTH_BIN" ]] || return 0
+  now=$(date +%s)
+  printf '%s\n' "$now" > "${LAST_DEEP_AUDIO_CHECK_FILE}.partial"
+  mv -f "${LAST_DEEP_AUDIO_CHECK_FILE}.partial" "$LAST_DEEP_AUDIO_CHECK_FILE"
   set +e
   output=$("$AUDIO_HEALTH_BIN" --capture-seconds "$CAPTURE_SECONDS" 2>&1)
   rc=$?
@@ -182,7 +197,7 @@ run_source_audio_check() {
     return 0
   fi
   warnings=$(printf '%s\n' "$output" | grep -E '^(AUDIO_WARNINGS|REASON)=' | tr '\n' ' ' || true)
-  printf 'epoch=%s reason=SOURCE_AUDIO_WARNING detail=%q\n' "$(date +%s)" "$warnings" > "$WARNING_FILE"
+  printf 'epoch=%s reason=SOURCE_AUDIO_WARNING detail=%q\n' "$now" "$warnings" > "$WARNING_FILE"
   log "YouTube-bound source audio warning; no shared-stream restart: $warnings"
   return 1
 }
@@ -235,10 +250,17 @@ main() {
     systemctl disable "$RELAY_SERVICE" >/dev/null 2>&1 || true
     systemctl enable "$COMP_SERVICE" >/dev/null 2>&1 || true
 
-    if run_source_audio_check; then
-      write_status OK EXACT_BOX_HEALTHY exact_box_compositor no
-    else
+    if deep_audio_check_due; then
+      if run_source_audio_check; then
+        write_status OK EXACT_BOX_HEALTHY exact_box_compositor no
+      else
+        write_status WARN SOURCE_AUDIO_WARNING exact_box_compositor no
+      fi
+    elif [[ -s "$WARNING_FILE" ]] && grep -q 'reason=SOURCE_AUDIO_WARNING' "$WARNING_FILE"; then
       write_status WARN SOURCE_AUDIO_WARNING exact_box_compositor no
+    else
+      rm -f "$WARNING_FILE"
+      write_status OK EXACT_BOX_HEALTHY exact_box_compositor no
     fi
     return 0
   fi
