@@ -1,0 +1,87 @@
+name: Benchmark Lovable YouTube Low Resolution V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/benchmark-lovable-youtube-lowres-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Benchmark 432p and 360p without publishing
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          work=/tmp/fgb-lovable-lowres-benchmark
+          rm -rf "$work"; mkdir -p "$work"
+          trap 'rm -rf "$work"' EXIT
+          master=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          youtube=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          consumer=$(systemctl show -p MainPID --value fgbears-youtube-lovable-routing.service)
+
+          nice -n 19 ionice -c3 timeout 20 ffmpeg -hide_banner -nostdin -loglevel error \
+            -fflags +genpts -probesize 5000000 -analyzeduration 5000000 \
+            -i 'udp://127.0.0.1:1939?reuse=1&fifo_size=1000000&overrun_nonfatal=1' \
+            -t 12 -map 0:v:0 -map 0:a:0? -c copy -f mpegts -y "$work/sample.ts"
+          PYTHONPATH=/opt/fgbears-live/exact-card-pylib python3 /opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py "$work/source.png" >/dev/null
+
+          bench() {
+            local name=$1 width=$2 height=$3
+            local x y w h
+            x=$(python3 -c "print(round(462*${width}/1280))")
+            y=$(python3 -c "print(round(104*${height}/720))")
+            w=$(python3 -c "print(round(798*${width}/1280))")
+            h=$(python3 -c "print(round(470*${height}/720))")
+            PYTHONPATH=/opt/fgbears-live/exact-card-pylib python3 - "$work/source.png" "$work/${name}.png" "$w" "$h" <<'PY'
+          import sys
+          from PIL import Image
+          src=Image.open(sys.argv[1]).convert('RGBA'); w,h=map(int,sys.argv[3:5])
+          src.thumbnail((w,h),Image.Resampling.LANCZOS)
+          panel=Image.new('RGBA',(w,h),(11,22,42,255)); panel.alpha_composite(src,((w-src.width)//2,(h-src.height)//2)); panel.save(sys.argv[2])
+          print(f'PANEL={w}x{h} CARD={src.width}x{src.height}')
+          PY
+            start=$(date +%s%N)
+            nice -n 19 ionice -c3 ffmpeg -hide_banner -nostdin -loglevel error \
+              -i "$work/sample.ts" -loop 1 -framerate 30 -i "$work/${name}.png" \
+              -filter_complex "[0:v]scale=${width}:${height}:flags=fast_bilinear[b];[b][1:v]overlay=${x}:${y}:format=auto:shortest=1[v]" \
+              -map '[v]' -map 0:a:0? -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
+              -pix_fmt yuv420p -r 30 -g 60 -keyint_min 60 -sc_threshold 0 -b:v 2200k -maxrate 2500k -bufsize 4400k -threads 1 \
+              -c:a aac -profile:a aac_low -b:a 128k -ar 44100 -ac 2 -af 'aresample=44100:async=1:first_pts=0' -f null -
+            end=$(date +%s%N)
+            duration=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$work/sample.ts")
+            python3 - "$name" "$duration" "$start" "$end" <<'PY'
+          import sys
+          name=sys.argv[1].upper(); dur=float(sys.argv[2]); elapsed=(int(sys.argv[4])-int(sys.argv[3]))/1e9; ratio=dur/elapsed
+          print(f'{name}_REALTIME_MULTIPLIER={ratio:.3f}x')
+          print(f'{name}_CAPACITY=' + ('PASS' if ratio >= 1.30 else 'INSUFFICIENT'))
+          PY
+          }
+          bench p432 768 432
+          bench p360 640 360
+
+          test "$(systemctl show -p MainPID --value fgbears-live.service)" = "$master"
+          test "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" = "$rumble"
+          test "$(systemctl show -p MainPID --value fgbears-youtube-relay.service)" = "$youtube"
+          test "$(systemctl show -p MainPID --value fgbears-youtube-lovable-routing.service)" = "$consumer"
+          echo 'LOWRES_BENCHMARK_DID_NOT_PUBLISH=yes'
+          REMOTE
