@@ -1,6 +1,4 @@
-name: Read Only YouTube Router Health 20260902
-# Guarded read-only live-cycle certification for the active Lovable compositor.
-# This workflow never restarts or modifies any production service.
+name: Repair YouTube Exact Question Box Low Lag
 
 on:
   push:
@@ -11,204 +9,23 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: fgbears-production-overlay-maintenance
+  cancel-in-progress: false
+
 jobs:
-  health:
+  repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
       ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
-      - name: Configure SSH
+      - uses: actions/checkout@v4
+        with:
+          ref: lovable-routing-bridge-20260902
+          fetch-depth: 0
+      - name: Restore exact question box on resource-protected YouTube branch
         shell: bash
-        run: |
-          set -Eeuo pipefail
-          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
-          chmod 600 ~/.ssh/oracle_key
-          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      - name: Certify active Lovable YouTube path through one trivia cycle
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          ROUTING_URL='https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing'
-          HEALTH_URL='http://127.0.0.1:8791/healthz'
-          OVERLAY_URL='http://127.0.0.1:8791/overlay.rgba'
-          MONITOR_DIR='/run/fgbears-youtube-lovable-compositor'
-
-          state() { systemctl is-active "$1" 2>/dev/null || true; }
-          pid() { systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-          restarts() { systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
-          unit_ffmpeg() {
-            local cg p c
-            cg=$(systemctl show -p ControlGroup --value "$1" 2>/dev/null || true)
-            [[ -n "$cg" ]] || return 1
-            for p in $(cat "/sys/fs/cgroup${cg}/cgroup.procs" 2>/dev/null || true); do
-              c=$(cat "/proc/$p/comm" 2>/dev/null || true)
-              [[ "$c" == ffmpeg ]] && { echo "$p"; return 0; }
-            done
-            return 1
-          }
-          closed_monitor_after() {
-            local ffpid="$1" since="$2" candidate=''
-            for _ in $(seq 1 12); do
-              candidate=$(python3 - "$MONITOR_DIR" "$ffpid" "$since" <<'PY'
-import os,sys
-from pathlib import Path
-root=Path(sys.argv[1]); pid=sys.argv[2]; since=float(sys.argv[3])
-open_paths=set()
-fdroot=Path('/proc')/pid/'fd'
-try:
-    for fd in fdroot.iterdir():
-        try: open_paths.add(str(fd.resolve()))
-        except OSError: pass
-except OSError:
-    pass
-candidates=[]
-for p in root.glob('monitor-*.ts'):
-    try: st=p.stat()
-    except OSError: continue
-    if st.st_size < 50000 or st.st_mtime < since or str(p.resolve()) in open_paths:
-        continue
-    candidates.append((st.st_mtime,str(p)))
-if candidates:
-    print(max(candidates)[1])
-PY
-)
-              if [[ -n "$candidate" && -s "$candidate" ]]; then printf '%s' "$candidate"; return 0; fi
-              sleep 1
-            done
-            return 1
-          }
-          assert_monitor_contract() {
-            local monitor="$1"
-            ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame_rate,sample_rate,channels -of json "$monitor" | python3 -c '
-import json,sys
-p=json.load(sys.stdin); s=p.get("streams",[])
-v=next((x for x in s if x.get("codec_type")=="video"),None)
-a=next((x for x in s if x.get("codec_type")=="audio"),None)
-assert v and v.get("codec_name")=="h264" and v.get("width")==640 and v.get("height")==360 and v.get("r_frame_rate") in ("30/1","60/2"),v
-assert a and a.get("codec_name")=="aac" and a.get("sample_rate")=="44100" and a.get("channels")==2,a
-print("encoded_contract=PASS video=h264_640x360_30 audio=aac_44100_stereo")'
-          }
-          assert_live_bands_move() {
-            local monitor="$1" news_unique crawl_unique
-            news_unique=$(ffmpeg -hide_banner -loglevel error -i "$monitor" -map 0:v:0 -vf 'crop=640:52:0:0' -an -f framemd5 - | awk '!/^#/ {print $NF}' | sort -u | wc -l)
-            crawl_unique=$(ffmpeg -hide_banner -loglevel error -i "$monitor" -map 0:v:0 -vf 'crop=640:73:0:287' -an -f framemd5 - | awk '!/^#/ {print $NF}' | sort -u | wc -l)
-            echo "rss_unique_frames=$news_unique crawl_unique_frames=$crawl_unique"
-            (( news_unique >= 2 ))
-            (( crawl_unique >= 2 ))
-            echo 'RSS_AND_CRAWL_MOTION=PASS'
-          }
-
-          master_pid_before=$(pid fgbears-live.service)
-          rumble_pid_before=$(pid fgbears-rumble-relay.service)
-          comp_pid_before=$(pid fgbears-youtube-lovable-compositor.service)
-          route_pid_before=$(pid fgbears-youtube-lovable-routing.service)
-          comp_restarts_before=$(restarts fgbears-youtube-lovable-compositor.service)
-          route_restarts_before=$(restarts fgbears-youtube-lovable-routing.service)
-          comp_ffmpeg_before=$(unit_ffmpeg fgbears-youtube-lovable-compositor.service || true)
-
-          echo "master active=$(state fgbears-live.service) pid=$master_pid_before"
-          echo "rumble active=$(state fgbears-rumble-relay.service) pid=$rumble_pid_before"
-          echo "lovable_compositor active=$(state fgbears-youtube-lovable-compositor.service) main_pid=$comp_pid_before ffmpeg_pid=${comp_ffmpeg_before:-none} restarts=$comp_restarts_before"
-          echo "lovable_routing active=$(state fgbears-youtube-lovable-routing.service) pid=$route_pid_before restarts=$route_restarts_before"
-          [[ "$(state fgbears-live.service)" == active ]]
-          [[ "$(state fgbears-rumble-relay.service)" == active ]]
-          [[ "$(state fgbears-youtube-lovable-compositor.service)" == active ]]
-          [[ "$(state fgbears-youtube-lovable-routing.service)" == active ]]
-          [[ "$master_pid_before" =~ ^[1-9][0-9]*$ && "$rumble_pid_before" =~ ^[1-9][0-9]*$ && "$comp_pid_before" =~ ^[1-9][0-9]*$ && "$route_pid_before" =~ ^[1-9][0-9]*$ && "$comp_ffmpeg_before" =~ ^[1-9][0-9]*$ ]]
-
-          if sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$comp_ffmpeg_before" | grep -Eq ':443([[:space:]]|$)'; then
-            echo 'youtube_rtmps_established=yes'
-          else
-            echo 'youtube_rtmps_established=no'; exit 1
-          fi
-
-          echo '=== running compositor command contract ==='
-          tr '\0' ' ' <"/proc/$comp_ffmpeg_before/cmdline" | grep -Fq 'scale=640:360:flags=fast_bilinear'
-          tr '\0' ' ' <"/proc/$comp_ffmpeg_before/cmdline" | grep -Fq 'overlay=231:52:format=auto:shortest=1'
-          tr '\0' ' ' <"/proc/$comp_ffmpeg_before/cmdline" | grep -Fq 'aresample=44100:async=1:first_pts=0'
-          echo 'RUNNING_COMPOSITOR_PIPELINE=PASS'
-
-          echo '=== compositor resource snapshot ==='
-          ps -p "$comp_ffmpeg_before" -o pid=,etime=,%cpu=,%mem=,rss=,comm=
-          systemctl show fgbears-youtube-lovable-compositor.service -p ActiveEnterTimestamp -p MemoryCurrent -p MemoryPeak -p CPUUsageNSec -p NRestarts --no-pager
-
-          echo '=== local Lovable bridge health ==='
-          initial_health=$(curl -fsS --max-time 3 "$HEALTH_URL")
-          printf '%s\n' "$initial_health" | python3 -c 'import json,sys; p=json.load(sys.stdin); assert p.get("ok") is True,p; assert p.get("canvas")==[640,360],p; assert p.get("routingAuthority")=="lovable_public_stream_routing",p; assert p.get("creativeKey")=="yt_rumble_trivia_redirect",p; assert p.get("presentationMode")=="full_creative_scaled",p; assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470},p; assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235},p; assert p.get("lastError") in (None,""),p; print("local_contract=PASS phase=%s active=%s age=%s frame=%s"%(p.get("phase"),p.get("active"),p.get("lastGoodAgeSeconds"),p.get("frameSize")))'
-
-          echo '=== encoded output contract from a closed tee segment ==='
-          baseline_epoch=$(date +%s)
-          baseline_monitor=$(closed_monitor_after "$comp_ffmpeg_before" "$baseline_epoch")
-          [[ -n "$baseline_monitor" && -s "$baseline_monitor" ]]
-          echo "baseline_monitor=$baseline_monitor bytes=$(stat -c %s "$baseline_monitor")"
-          assert_monitor_contract "$baseline_monitor"
-
-          echo '=== waiting for next authoritative question phase ==='
-          deadline=$((SECONDS + 1200)); active_seen=0
-          while (( SECONDS < deadline )); do
-            h=$(curl -fsS --max-time 3 "$HEALTH_URL" 2>/dev/null || true)
-            if [[ -n "$h" ]] && printf '%s' "$h" | python3 -c 'import json,sys; p=json.load(sys.stdin); raise SystemExit(0 if p.get("active") is True and p.get("phase")=="question" and not p.get("lastError") else 1)' 2>/dev/null; then active_seen=1; break; fi
-            sleep 1
-          done
-          [[ "$active_seen" == 1 ]] || { echo 'No authoritative question phase observed before timeout'; exit 1; }
-          question_epoch=$(date +%s)
-          echo 'QUESTION_PHASE_DETECTED=yes'
-
-          active_health=$(curl -fsS --max-time 3 "$HEALTH_URL")
-          printf '%s\n' "$active_health" | python3 -c 'import json,sys; p=json.load(sys.stdin); age=p.get("lastGoodAgeSeconds"); assert p.get("active") is True and p.get("phase")=="question",p; assert p.get("lastError") in (None,""),p; assert age is not None and age < 3,p; print("active_local_health=PASS age=%s"%age)'
-
-          remote=$(curl -fsS --max-time 6 -H 'Accept: application/json' -H 'Cache-Control: no-cache' -A 'FGB-Live-Cycle-Verifier/2.0' "${ROUTING_URL}?_ts=$(date +%s%N)")
-          printf '%s\n' "$remote" | python3 -c 'import json,sys; p=json.load(sys.stdin); t=p.get("trivia") or {}; assert t.get("youtubeMaskActive") is True,t; assert t.get("phase")=="question",t; assert t.get("stale") is not True,t; assert t.get("adsVisible") is not True,t; assert t.get("isAdBreak") is not True and t.get("adBreakActive") is not True,t; assert t.get("youtubeCreativeKey")=="yt_rumble_trivia_redirect",t; r=t.get("maskRegion") or {}; assert {k:r.get(k) for k in ("x","y","width","height")}=={"x":462,"y":104,"width":798,"height":470},r; print("authoritative_lovable_question_state=PASS mask=462,104_798x470")'
-
-          python3 -c 'import json,urllib.request; h=json.load(urllib.request.urlopen("http://127.0.0.1:8791/healthz",timeout=3)); w,n=h["frameSize"]; need=w*n*4; r=urllib.request.urlopen("http://127.0.0.1:8791/overlay.rgba",timeout=4); data=r.read(need); r.close(); assert len(data)==need,(len(data),need); a=data[3::4]; ratio=sum(1 for x in a if x)/len(a); assert ratio>.95,ratio; print("active_overlay_rgba=PASS alpha_ratio=%.4f frame=%sx%s"%(ratio,w,n))'
-
-          # Wait for a tee segment that was finalized after the question began.
-          question_monitor=$(closed_monitor_after "$comp_ffmpeg_before" "$question_epoch")
-          [[ -n "$question_monitor" && -s "$question_monitor" ]]
-          echo "question_monitor=$question_monitor bytes=$(stat -c %s "$question_monitor")"
-          assert_monitor_contract "$question_monitor"
-          assert_live_bands_move "$question_monitor"
-
-          if sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$comp_ffmpeg_before" | grep -Eq ':443([[:space:]]|$)'; then
-            echo 'youtube_rtmps_during_question=yes'
-          else
-            echo 'youtube_rtmps_during_question=no'; exit 1
-          fi
-
-          echo '=== waiting for overlay clear ==='
-          deadline=$((SECONDS + 90)); inactive_seen=0
-          while (( SECONDS < deadline )); do
-            h=$(curl -fsS --max-time 3 "$HEALTH_URL" 2>/dev/null || true)
-            if [[ -n "$h" ]] && printf '%s' "$h" | python3 -c 'import json,sys; p=json.load(sys.stdin); raise SystemExit(0 if p.get("active") is False else 1)' 2>/dev/null; then inactive_seen=1; break; fi
-            sleep 1
-          done
-          [[ "$inactive_seen" == 1 ]] || { echo 'Overlay did not clear after question phase'; exit 1; }
-          python3 -c 'import json,urllib.request; h=json.load(urllib.request.urlopen("http://127.0.0.1:8791/healthz",timeout=3)); w,n=h["frameSize"]; need=w*n*4; r=urllib.request.urlopen("http://127.0.0.1:8791/overlay.rgba",timeout=4); data=r.read(need); r.close(); assert len(data)==need,(len(data),need); nonzero=sum(1 for x in data[3::4] if x); assert nonzero==0,nonzero; print("inactive_overlay_transparent=PASS frame=%sx%s"%(w,n))'
-
-          master_pid_after=$(pid fgbears-live.service)
-          rumble_pid_after=$(pid fgbears-rumble-relay.service)
-          comp_pid_after=$(pid fgbears-youtube-lovable-compositor.service)
-          route_pid_after=$(pid fgbears-youtube-lovable-routing.service)
-          comp_restarts_after=$(restarts fgbears-youtube-lovable-compositor.service)
-          route_restarts_after=$(restarts fgbears-youtube-lovable-routing.service)
-          comp_ffmpeg_after=$(unit_ffmpeg fgbears-youtube-lovable-compositor.service || true)
-          [[ "$master_pid_after" == "$master_pid_before" && "$rumble_pid_after" == "$rumble_pid_before" && "$comp_pid_after" == "$comp_pid_before" && "$route_pid_after" == "$route_pid_before" && "$comp_ffmpeg_after" == "$comp_ffmpeg_before" && "$comp_restarts_after" == "$comp_restarts_before" && "$route_restarts_after" == "$route_restarts_before" ]]
-          if sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$comp_ffmpeg_after" | grep -Eq ':443([[:space:]]|$)'; then
-            echo 'youtube_rtmps_after_question=yes'
-          else
-            echo 'youtube_rtmps_after_question=no'; exit 1
-          fi
-          echo "master_pid_unchanged=$master_pid_after"
-          echo "rumble_pid_unchanged=$rumble_pid_after"
-          echo "compositor_pid_unchanged=$comp_pid_after ffmpeg_pid=$comp_ffmpeg_after restarts=$comp_restarts_after"
-          echo "routing_pid_unchanged=$route_pid_after restarts=$route_restarts_after"
-          echo 'LOVABLE_YOUTUBE_LIVE_CYCLE=PASS'
-          REMOTE
+        run: bash .github/scripts/restore-exact-question-box-low-lag.sh
