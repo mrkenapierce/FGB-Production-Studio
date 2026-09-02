@@ -1,4 +1,4 @@
-name: Guarded Single-Owner Exact-Box YouTube Handoff
+name: Audit Rumble Restart and YouTube State
 
 on:
   push:
@@ -11,14 +11,10 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: fgbears-production-overlay-maintenance
-  cancel-in-progress: false
-
 jobs:
-  handoff:
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+    timeout-minutes: 5
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
@@ -33,139 +29,58 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Hand YouTube to exact-box compositor with automatic fallback
+      - name: Read-only production audit
         shell: bash
         run: |
           set -Eeuo pipefail
           target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
           ssh -i ~/.ssh/oracle_key "$target" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          MASTER=fgbears-live.service
-          RUMBLE=fgbears-rumble-relay.service
-          COMP=fgbears-youtube-lovable-compositor.service
-          ROUTING=fgbears-youtube-lovable-routing.service
-          LEGACY=fgbears-youtube-relay.service
-          ROUTER=fgbears-youtube-router.service
-          CUT=0
-          SUCCESS=0
-
-          active(){ systemctl is-active --quiet "$1"; }
-          state(){ systemctl is-active "$1" 2>/dev/null || true; }
-          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-          restarts(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
-          has_port(){ local p="$1" q="$2"; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v p="pid=$p" -v q=":$q" 'index($0,p)&&index($0,q){ok=1} END{exit(ok?0:1)}'; }
-          speed(){ awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true; }
-
-          fallback(){
-            rc=$?
-            (( SUCCESS == 0 )) || return 0
-            echo "HANDOFF_FALLBACK=BEGIN rc=$rc cut=$CUT"
-            systemctl stop "$COMP" 2>/dev/null || true
-            systemctl unmask "$LEGACY" "$ROUTER" >/dev/null 2>&1 || true
-            systemctl reset-failed "$LEGACY" >/dev/null 2>&1 || true
-            systemctl enable "$LEGACY" >/dev/null 2>&1 || true
-            systemctl start "$LEGACY" || true
-            for _ in $(seq 1 20); do
-              lp=$(pid "$LEGACY")
-              if active "$LEGACY" && has_port "$lp" 443; then
-                echo "HANDOFF_FALLBACK=RESTORED legacy=$lp"
-                break
-              fi
-              sleep 1
-            done
-            [[ "$(pid "$MASTER")" == "$MASTER0" ]] || echo "WARNING master PID changed during fallback"
-            [[ "$(pid "$RUMBLE")" == "$RUMBLE0" ]] || echo "WARNING Rumble PID changed during fallback"
-            exit "$rc"
-          }
-          trap fallback EXIT
-
-          active "$MASTER"
-          active "$RUMBLE"
-          active "$ROUTING"
-          MASTER0=$(pid "$MASTER")
-          RUMBLE0=$(pid "$RUMBLE")
-          MASTER_R0=$(restarts "$MASTER")
-          RUMBLE_R0=$(restarts "$RUMBLE")
-          LEGACY0=$(pid "$LEGACY")
-          COMP0=$(pid "$COMP")
-          has_port "$RUMBLE0" 1935
-          echo "PRE master=$MASTER0 rumble=$RUMBLE0 legacy=$LEGACY0 compositor=$COMP0 master_speed=$(speed)"
-
-          # Validate the exact Lovable-driven question-box geometry before any sender cut.
-          health=$(curl -fsS --max-time 3 http://127.0.0.1:8791/healthz)
-          printf '%s' "$health" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True,p;assert p.get("sourceCanvas")==[1280,720],p;assert p.get("canvas")==[640,360],p;assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470},p;assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235},p;assert p.get("frameSize")==[399,235],p;assert p.get("executionScaling")=="proportional_downstream",p;assert p.get("fps")==30,p'
-          echo "EXACT_BOX_CONTROL_PLANE=PASS"
-
-          # There must be a known YouTube path available before the handoff.
-          if ! active "$LEGACY" && ! active "$COMP"; then
-            echo "No known YouTube sender is active; refusing blind handoff." >&2
-            exit 1
-          fi
-
-          # Remove any stale compositor process, then cut only the YouTube sender.
-          systemctl stop "$COMP" 2>/dev/null || true
-          systemctl stop "$ROUTER" 2>/dev/null || true
-          systemctl stop "$LEGACY" 2>/dev/null || true
-          CUT=1
-          systemctl reset-failed "$COMP" >/dev/null 2>&1 || true
-          systemctl start "$COMP"
-
-          CONNECTED=0
-          COMP1=0
-          for _ in $(seq 1 35); do
-            COMP1=$(pid "$COMP")
-            if active "$COMP" && has_port "$COMP1" 443; then
-              CONNECTED=1
-              break
-            fi
-            sleep 1
+          units=(fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-lovable-compositor.service fgbears-youtube-lovable-routing.service fgbears-youtube-relay.service fgbears-youtube-router.service)
+          echo 'SERVICE_STATE'
+          for u in "${units[@]}"; do
+            echo "--- $u"
+            systemctl show "$u" -p ActiveState -p SubState -p MainPID -p NRestarts -p ExecMainStatus -p Result -p Restart -p RestartUSec -p ActiveEnterTimestamp --no-pager 2>/dev/null || true
           done
-          (( CONNECTED == 1 ))
-          echo "YOUTUBE_EXACT_BOX_CONNECTED=PASS compositor=$COMP1"
 
-          # Only after the exact-box sender owns an established YouTube socket,
-          # permanently suppress the competing legacy/router paths.
-          systemctl disable "$LEGACY" "$ROUTER" >/dev/null 2>&1 || true
-          systemctl mask "$LEGACY" "$ROUTER" >/dev/null 2>&1 || true
+          echo 'RUMBLE_RELATIONSHIPS'
+          systemctl show fgbears-rumble-relay.service -p Requires -p Wants -p BindsTo -p PartOf -p ConsistsOf -p Before -p After -p TriggeredBy -p Triggers --no-pager || true
 
-          sleep 15
-          active "$COMP"
-          active "$ROUTING"
-          ! active "$LEGACY"
-          ! active "$ROUTER"
-          COMP2=$(pid "$COMP")
-          [[ "$COMP2" == "$COMP1" ]]
-          has_port "$COMP2" 443
-          [[ "$(pid "$MASTER")" == "$MASTER0" ]]
-          [[ "$(pid "$RUMBLE")" == "$RUMBLE0" ]]
-          [[ "$(restarts "$MASTER")" == "$MASTER_R0" ]]
-          [[ "$(restarts "$RUMBLE")" == "$RUMBLE_R0" ]]
-          has_port "$RUMBLE0" 1935
+          echo 'RUMBLE_UNIT'
+          systemctl cat fgbears-rumble-relay.service 2>/dev/null | sed -E 's#(rtmps?://[^/]+/[^/]+/)[^ ]+#\1[REDACTED]#g; s#(YOUTUBE_STREAM_KEY|RUMBLE_STREAM_KEY)=.*#\1=[REDACTED]#g' || true
 
-          cmd=$(tr '\0' ' ' </proc/$COMP2/cmdline)
-          grep -Fq 'scale=640:360:flags=fast_bilinear' <<<"$cmd"
-          grep -Fq 'overlay=231:52:format=auto:shortest=1' <<<"$cmd"
-          grep -Fq 'aresample=44100:async=1:first_pts=0' <<<"$cmd"
-          echo "EXACT_BOX_MEDIA_PIPELINE=PASS"
+          echo 'FGB_TIMERS'
+          systemctl list-timers --all --no-pager | grep -Ei 'fgb|rumble|youtube|rss|crawl' || true
 
-          CPU=$(ps -p "$COMP2" -o %cpu= | tr -d ' ')
-          SPEED=$(speed)
-          LOAD=$(cut -d' ' -f1-3 /proc/loadavg)
-          python3 -c 'import sys;c=float(sys.argv[1]);assert c<=40.0,c' "$CPU"
-          if [[ -n "$SPEED" ]]; then python3 -c 'import sys;s=float(sys.argv[1]);assert s>=0.985,s' "$SPEED"; fi
+          echo 'RECENT_RUMBLE_EVENTS'
+          journalctl -u fgbears-rumble-relay.service --since '15 minutes ago' --no-pager -o short-iso 2>/dev/null \
+            | grep -Ei 'Started|Stopped|Stopping|Failed|Main process exited|Scheduled restart|restart counter|Connection|Broken pipe|Input/output|error|signal|code=' \
+            | sed -E 's#(rtmps?://[^/]+/[^/]+/)[^ ]+#\1[REDACTED]#g; s#([A-Za-z0-9_-]{20,})#[REDACTED]#g' \
+            | tail -120 || true
 
-          # Prove there is exactly one active FGB YouTube sender service.
-          senders=0
-          active "$COMP" && senders=$((senders+1))
-          active "$LEGACY" && senders=$((senders+1))
-          active "$ROUTER" && senders=$((senders+1))
-          [[ "$senders" -eq 1 ]]
+          echo 'RECENT_YOUTUBE_EVENTS'
+          for u in fgbears-youtube-lovable-compositor.service fgbears-youtube-relay.service; do
+            echo "--- $u"
+            journalctl -u "$u" --since '15 minutes ago' --no-pager -o short-iso 2>/dev/null \
+              | grep -Ei 'Started|Stopped|Stopping|Failed|Main process exited|Scheduled restart|restart counter|Connection|Broken pipe|Input/output|error|signal|code=' \
+              | sed -E 's#(rtmps?://[^/]+/[^/]+/)[^ ]+#\1[REDACTED]#g; s#([A-Za-z0-9_-]{20,})#[REDACTED]#g' \
+              | tail -80 || true
+          done
 
-          echo "SINGLE_YOUTUBE_SENDER=PASS compositor=$COMP2 legacy=$(state "$LEGACY") router=$(state "$ROUTER")"
-          echo "MASTER_RUMBLE_UNTOUCHED=PASS master=$MASTER0 rumble=$RUMBLE0"
-          echo "RESOURCE compositor_cpu=${CPU}% master_speed=${SPEED:-unknown}x load=$LOAD"
-          echo "GUARDED_EXACT_BOX_HANDOFF=PASS"
+          echo 'RESOURCE_STATE'
+          printf 'load='; cut -d' ' -f1-3 /proc/loadavg
+          free -m
+          df -h / /run /srv 2>/dev/null || true
+          echo 'TOP_CPU'
+          ps -eo pid,ppid,%cpu,%mem,etime,comm,args --sort=-%cpu | head -20 | sed -E 's#(rtmps?://[^/]+/[^/]+/)[^ ]+#\1[REDACTED]#g' || true
 
-          SUCCESS=1
-          trap - EXIT
+          echo 'KERNEL_OOM'
+          journalctl -k --since '15 minutes ago' --no-pager 2>/dev/null | grep -Ei 'oom|out of memory|killed process' | tail -40 || true
+
+          echo 'SOCKET_OWNERS'
+          ss -ntpH state established 2>/dev/null | grep -E ':443|:1935' | sed -E 's#users:\(\("[^\"]+",pid=([0-9]+),fd=[0-9]+\)\)#pid=\1#g' || true
+
+          echo 'MASTER_SPEED'
+          awk -F= '$1=="speed"{v=$2} END{print v}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true
+          echo 'AUDIT_COMPLETE=PASS'
           REMOTE
