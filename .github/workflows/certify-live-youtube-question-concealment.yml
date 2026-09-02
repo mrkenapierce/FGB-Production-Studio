@@ -1,0 +1,91 @@
+name: Certify Live YouTube Question Concealment
+
+on:
+  push:
+    branches:
+      - lovable-routing-bridge-20260902
+    paths:
+      - '.github/workflows/certify-live-youtube-question-concealment.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  certify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Observe a real question and verify every cover pixel
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
+          ssh -i ~/.ssh/oracle_key "$target" "python3 - <<'PY'
+          import json, socket, time, urllib.request
+          HEALTH='http://127.0.0.1:8791/healthz'
+          OVERLAY='http://127.0.0.1:8791/overlay.rgba'
+          W,H=1280,470
+          FRAME=W*H*4
+
+          def health():
+              with urllib.request.urlopen(HEALTH, timeout=3) as r:
+                  p=json.loads(r.read().decode())
+              assert p.get('ok') is True,p
+              assert p.get('canvas')==[1280,720],p
+              assert p.get('maskRegion')=={'x':0,'y':104,'width':1280,'height':470},p
+              assert p.get('frameSize')==[1280,470],p
+              assert p.get('executionScaling')=='full_middle_protection',p
+              return p
+
+          def read_frame():
+              with urllib.request.urlopen(OVERLAY, timeout=5) as r:
+                  b=bytearray()
+                  while len(b)<FRAME:
+                      chunk=r.read(FRAME-len(b))
+                      if not chunk: raise RuntimeError('overlay stream ended early')
+                      b.extend(chunk)
+              assert len(b)==FRAME,len(b)
+              alpha=b[3::4]
+              return min(alpha),max(alpha),len(alpha)
+
+          deadline=time.time()+330
+          start=None
+          while time.time()<deadline:
+              p=health()
+              if p.get('phase')=='question' and p.get('active') is True:
+                  start=time.time(); break
+              time.sleep(0.5)
+          assert start is not None,'No active live question observed within certification window'
+          print('LIVE_QUESTION_DETECTED phase=question active=true')
+
+          samples=0
+          opacity_checks=0
+          while samples<120:
+              p=health()
+              if p.get('phase')!='question':
+                  break
+              assert p.get('active') is True,p
+              if samples % 2 == 0:
+                  amin,amax,pixels=read_frame()
+                  assert amin==255 and amax==255,(amin,amax)
+                  opacity_checks+=1
+              samples+=1
+              time.sleep(0.5)
+          assert samples>=4,samples
+          assert opacity_checks>=2,opacity_checks
+          print(f'LIVE_FULL_WIDTH_CONCEALMENT=PASS health_samples={samples} opacity_frames={opacity_checks} alpha=255/255 pixels_per_frame={pixels}')
+          PY"
