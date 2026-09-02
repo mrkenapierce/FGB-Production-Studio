@@ -1,4 +1,4 @@
-name: Restore Exact YouTube Question Box Low Lag
+name: Restore Locked Exact-Box Low-Lag YouTube
 
 on:
   push:
@@ -27,37 +27,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: lovable-routing-bridge-20260902
-          fetch-depth: 0
-
-      - name: Build exact-box low-load production files
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          mkdir -p stage
-          git show 6b88e4ea368fdb1b05ad2ba43b2fe5c0a4067617:services/fgbears-live/bin/youtube-lovable-compositor.sh > stage/youtube-lovable-compositor.sh
-          python3 - <<'PY'
-          from pathlib import Path
-          src=Path('services/fgbears-live/bin/youtube-question-mask.py').read_text()
-          old='''    # The API region above remains authoritative and is fully validated. For\n    # execution, protect the complete middle program band. This is intentionally\n    # conservative: news remains live above y=104 and crawl remains live at/after\n    # y=574, while every pixel capable of containing a trivia question is covered.\n    output_news_bottom = scaled(SOURCE_NEWS_BOTTOM, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    output_crawl_top = scaled(SOURCE_CRAWL_TOP, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    x = 0\n    y = output_news_bottom\n    width = OUTPUT_CANVAS_WIDTH\n    height = output_crawl_top - output_news_bottom\n    if width <= 0 or height <= 0 or x < 0 or y < 0:\n        raise ValueError("invalid full-middle YouTube protection region")\n    if x + width > OUTPUT_CANVAS_WIDTH or y + height > OUTPUT_CANVAS_HEIGHT:\n        raise ValueError("full-middle YouTube protection region exceeds execution canvas")\n'''
-          new='''    # Execute exactly the Lovable-authoritative question rectangle. The news\n    # above and crawl below remain live, and no unrelated middle-panel pixels\n    # are covered. Geometry is proportionally mapped to the YouTube canvas.\n    x = scaled(source_x, SOURCE_CANVAS_WIDTH, OUTPUT_CANVAS_WIDTH)\n    y = scaled(source_y, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    width = scaled(source_width, SOURCE_CANVAS_WIDTH, OUTPUT_CANVAS_WIDTH)\n    height = scaled(source_height, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    output_news_bottom = scaled(SOURCE_NEWS_BOTTOM, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    output_crawl_top = scaled(SOURCE_CRAWL_TOP, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)\n    if width <= 0 or height <= 0 or x < 0 or y < output_news_bottom or y + height > output_crawl_top:\n        raise ValueError("scaled maskRegion would overlap the always-live news or crawl bands")\n    if x + width > OUTPUT_CANVAS_WIDTH or y + height > OUTPUT_CANVAS_HEIGHT:\n        raise ValueError("scaled maskRegion exceeds the YouTube execution canvas")\n'''
-          if src.count(old) != 1:
-              raise SystemExit('full-middle source block not found exactly once')
-          src=src.replace(old,new)
-          src=src.replace('"executionScaling": "full_middle_protection"','"executionScaling": "proportional_downstream"')
-          Path('stage/youtube-question-mask.py').write_text(src)
-
-          comp=Path('services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service').read_text()
-          comp=comp.replace('Description=FGBears YouTube Lovable-Controlled 720p Compositor','Description=FGBears YouTube Lovable-Controlled Resource-Protected 360p Compositor')
-          comp=comp.replace('Environment=YOUTUBE_OUTPUT_WIDTH=1280','Environment=YOUTUBE_OUTPUT_WIDTH=640')
-          comp=comp.replace('Environment=YOUTUBE_OUTPUT_HEIGHT=720','Environment=YOUTUBE_OUTPUT_HEIGHT=360')
-          Path('stage/fgbears-youtube-lovable-compositor.service').write_text(comp)
-
-          route=Path('services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service').read_text()
-          route=route.replace('Environment=YOUTUBE_OUTPUT_CANVAS_WIDTH=1280','Environment=YOUTUBE_OUTPUT_CANVAS_WIDTH=640')
-          route=route.replace('Environment=YOUTUBE_OUTPUT_CANVAS_HEIGHT=720','Environment=YOUTUBE_OUTPUT_CANVAS_HEIGHT=360')
-          Path('stage/fgbears-youtube-lovable-routing.service').write_text(route)
-          PY
-          chmod 755 stage/youtube-lovable-compositor.sh stage/youtube-question-mask.py
 
       - name: Configure SSH
         shell: bash
@@ -68,19 +37,19 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Stage production files
+      - name: Stage locked exact-box files
         shell: bash
         run: |
           set -Eeuo pipefail
           target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
           scp -i ~/.ssh/oracle_key \
-            stage/youtube-lovable-compositor.sh \
-            stage/youtube-question-mask.py \
-            stage/fgbears-youtube-lovable-compositor.service \
-            stage/fgbears-youtube-lovable-routing.service \
+            services/fgbears-live/bin/youtube-lovable-compositor.sh \
+            services/fgbears-live/bin/youtube-question-mask.py \
+            services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service \
+            services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service \
             "$target:/tmp/"
 
-      - name: Cut over YouTube only and certify load
+      - name: Restore YouTube only with guarded fallback
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -96,7 +65,8 @@ jobs:
           MASK_SCRIPT=/opt/fgbears-live/bin/youtube-question-mask.py
           COMP_UNIT=/etc/systemd/system/fgbears-youtube-lovable-compositor.service
           ROUTING_UNIT=/etc/systemd/system/fgbears-youtube-lovable-routing.service
-          BACKUP=$(mktemp -d /tmp/fgb-youtube-exact360.XXXXXX)
+          BACKUP=$(mktemp -d /tmp/fgb-exact-box-restore.XXXXXX)
+          CUT=0
           SUCCESS=0
 
           active(){ systemctl is-active --quiet "$1"; }
@@ -107,18 +77,18 @@ jobs:
           rollback(){
             rc=$?
             (( SUCCESS == 0 )) || return 0
-            echo "EXACT360_ROLLBACK=BEGIN rc=$rc"
+            echo "RESTORE_ROLLBACK=BEGIN rc=$rc cut=$CUT"
             systemctl stop "$COMP" "$ROUTING" 2>/dev/null || true
             [[ -f "$BACKUP/compositor.sh" ]] && install -m 0755 "$BACKUP/compositor.sh" "$COMP_SCRIPT" || true
             [[ -f "$BACKUP/mask.py" ]] && install -m 0755 "$BACKUP/mask.py" "$MASK_SCRIPT" || true
             [[ -f "$BACKUP/compositor.service" ]] && install -m 0644 "$BACKUP/compositor.service" "$COMP_UNIT" || true
             [[ -f "$BACKUP/routing.service" ]] && install -m 0644 "$BACKUP/routing.service" "$ROUTING_UNIT" || true
             systemctl daemon-reload || true
-            # Never fall back to the lag-producing 720p software compositor.
-            systemctl stop "$COMP" "$ROUTING" 2>/dev/null || true
-            systemctl reset-failed "$LEGACY" || true
-            systemctl start "$LEGACY" || true
-            echo "EXACT360_ROLLBACK_FALLBACK=DIRECT_YOUTUBE master=$(pid "$MASTER") rumble=$(pid "$RUMBLE") legacy=$(pid "$LEGACY")"
+            if (( CUT == 1 )); then
+              systemctl reset-failed "$LEGACY" || true
+              systemctl start "$LEGACY" || true
+            fi
+            echo "RESTORE_ROLLBACK_FALLBACK legacy_active=$(systemctl is-active "$LEGACY" 2>/dev/null || true) legacy_pid=$(pid "$LEGACY")"
             rm -rf "$BACKUP"
             exit "$rc"
           }
@@ -128,15 +98,22 @@ jobs:
           active "$RUMBLE"
           MASTER0=$(pid "$MASTER")
           RUMBLE0=$(pid "$RUMBLE")
+          LEGACY0=$(pid "$LEGACY")
           COMP0=$(pid "$COMP")
-          SPEED0=$(speed)
-          echo "PRE master=$MASTER0 rumble=$RUMBLE0 compositor=$COMP0 speed=${SPEED0:-unknown} load=$(cut -d' ' -f1-3 /proc/loadavg)"
+          echo "PRE master=$MASTER0 rumble=$RUMBLE0 legacy=$LEGACY0 compositor=$COMP0 master_speed=$(speed) load=$(cut -d' ' -f1-3 /proc/loadavg)"
+          echo "PRE_YOUTUBE_SERVICES"
+          systemctl --no-pager --plain --type=service --state=running | grep -E 'fgbears.*youtube|youtube.*fgbears' || true
           has_port "$RUMBLE0" 1935
+          # A known YouTube owner must exist before we cut it over.
+          if ! active "$LEGACY" && ! active "$COMP"; then
+            echo "No known YouTube sender is active; refusing blind cutover." >&2
+            exit 1
+          fi
 
-          cp -a "$COMP_SCRIPT" "$BACKUP/compositor.sh"
-          cp -a "$MASK_SCRIPT" "$BACKUP/mask.py"
-          cp -a "$COMP_UNIT" "$BACKUP/compositor.service"
-          cp -a "$ROUTING_UNIT" "$BACKUP/routing.service"
+          cp -a "$COMP_SCRIPT" "$BACKUP/compositor.sh" 2>/dev/null || true
+          cp -a "$MASK_SCRIPT" "$BACKUP/mask.py" 2>/dev/null || true
+          cp -a "$COMP_UNIT" "$BACKUP/compositor.service" 2>/dev/null || true
+          cp -a "$ROUTING_UNIT" "$BACKUP/routing.service" 2>/dev/null || true
 
           install -m 0755 /tmp/youtube-lovable-compositor.sh "$COMP_SCRIPT"
           install -m 0755 /tmp/youtube-question-mask.py "$MASK_SCRIPT"
@@ -144,25 +121,29 @@ jobs:
           install -m 0644 /tmp/fgbears-youtube-lovable-routing.service "$ROUTING_UNIT"
           systemctl daemon-reload
           systemctl enable "$COMP" "$ROUTING" >/dev/null
-          systemctl stop "$LEGACY" 2>/dev/null || true
-          systemctl disable "$LEGACY" >/dev/null 2>&1 || true
 
-          systemctl stop "$COMP" 2>/dev/null || true
+          # Prepare and validate the exact-box control plane while the current
+          # YouTube sender remains online.
           systemctl restart "$ROUTING"
-
           MASK_OK=0
           health=''
-          for _ in $(seq 1 25); do
+          for _ in $(seq 1 30); do
             if health=$(curl -fsS --max-time 2 http://127.0.0.1:8791/healthz 2>/dev/null); then
-              if printf '%s' "$health" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("sourceCanvas")==[1280,720],p;assert p.get("canvas")==[640,360],p;assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470},p;assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235},p;assert p.get("executionScaling")=="proportional_downstream",p;assert p.get("fps")==30,p' 2>/dev/null; then MASK_OK=1; break; fi
+              if printf '%s' "$health" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("sourceCanvas")==[1280,720],p;assert p.get("canvas")==[640,360],p;assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470},p;assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235},p;assert p.get("frameSize")==[399,235],p;assert p.get("executionScaling")=="proportional_downstream",p;assert p.get("fps")==30,p' 2>/dev/null; then MASK_OK=1; break; fi
             fi
             sleep 1
           done
           (( MASK_OK == 1 ))
-          echo "EXACT_QUESTION_BOX=PASS $health"
+          echo "EXACT_BOX_CONTROL_PLANE=PASS $health"
 
+          # Now perform the YouTube-only sender handoff.
+          systemctl stop "$COMP" 2>/dev/null || true
+          systemctl stop "$LEGACY" 2>/dev/null || true
+          CUT=1
+          systemctl disable "$LEGACY" >/dev/null 2>&1 || true
           systemctl reset-failed "$COMP" || true
           systemctl start "$COMP"
+
           CONNECTED=0
           for _ in $(seq 1 30); do
             COMP1=$(pid "$COMP")
@@ -170,7 +151,7 @@ jobs:
             sleep 1
           done
           (( CONNECTED == 1 ))
-          echo "YOUTUBE_OWNER=EXACT360_COMPOSITOR pid=$COMP1"
+          echo "YOUTUBE_OWNER=EXACT_BOX_360 compositor_pid=$COMP1"
 
           SEG=''
           for _ in $(seq 1 20); do
@@ -179,28 +160,26 @@ jobs:
             sleep 1
           done
           [[ -n "$SEG" ]]
-          ffprobe -v error -show_streams -of json "$SEG" | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p.get("streams",[]);v=next(x for x in s if x.get("codec_type")=="video");a=next(x for x in s if x.get("codec_type")=="audio");assert (int(v.get("width",0)),int(v.get("height",0)))==(640,360),v;assert v.get("r_frame_rate") in {"30/1","60/2"},v;assert int(a.get("sample_rate",0))==44100,a;assert int(a.get("channels",0))==2,a;print("YOUTUBE_AV=PASS 640x360@30 audio=44100Hz/2ch")'
-
-          [[ "$(pid "$MASTER")" == "$MASTER0" ]]
-          [[ "$(pid "$RUMBLE")" == "$RUMBLE0" ]]
-          has_port "$RUMBLE0" 1935
+          ffprobe -v error -show_streams -of json "$SEG" | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p.get("streams",[]);v=next(x for x in s if x.get("codec_type")=="video");a=next(x for x in s if x.get("codec_type")=="audio");assert (int(v.get("width",0)),int(v.get("height",0)))==(640,360),v;assert v.get("r_frame_rate") in {"30/1","60/2"},v;assert int(a.get("sample_rate",0))==44100,a;assert int(a.get("channels",0))==2,a;print("YOUTUBE_MEDIA=PASS 640x360@30 AAC=44100Hz/2ch")'
 
           sleep 20
           COMP2=$(pid "$COMP")
           [[ "$COMP2" == "$COMP1" ]]
+          active "$COMP"
+          active "$ROUTING"
+          ! active "$LEGACY"
           has_port "$COMP2" 443
-          CPU=$(ps -p "$COMP2" -o %cpu= | tr -d ' ')
-          SPEED=$(speed)
-          echo "POST_RESOURCE compositor_cpu=${CPU}% master_speed=${SPEED:-unknown}x load=$(cut -d' ' -f1-3 /proc/loadavg)"
-          python3 -c 'import sys;c=float(sys.argv[1]);assert c<=40.0,c' "$CPU"
-          if [[ -n "$SPEED" ]]; then python3 -c 'import sys;s=float(sys.argv[1]);assert s>=0.985,s' "$SPEED"; fi
           [[ "$(pid "$MASTER")" == "$MASTER0" ]]
           [[ "$(pid "$RUMBLE")" == "$RUMBLE0" ]]
           has_port "$RUMBLE0" 1935
-          has_port "$COMP2" 443
-          ! active "$LEGACY"
+          CPU=$(ps -p "$COMP2" -o %cpu= | tr -d ' ')
+          SPEED=$(speed)
+          python3 -c 'import sys;c=float(sys.argv[1]);assert c<=40.0,c' "$CPU"
+          if [[ -n "$SPEED" ]]; then python3 -c 'import sys;s=float(sys.argv[1]);assert s>=0.985,s' "$SPEED"; fi
+          echo "POST compositor_cpu=${CPU}% master_speed=${SPEED:-unknown}x load=$(cut -d' ' -f1-3 /proc/loadavg)"
+          echo "MASTER_RUMBLE_UNCHANGED=PASS master=$MASTER0 rumble=$RUMBLE0"
+          echo "EXACT_BOX_LOW_LAG_RESTORE=PASS youtube=$COMP2"
 
-          echo "EXACT360_CUTOVER=PASS master=$MASTER0 rumble=$RUMBLE0 youtube=$COMP2"
           SUCCESS=1
           trap - EXIT
           rm -rf "$BACKUP" /tmp/youtube-lovable-compositor.sh /tmp/youtube-question-mask.py /tmp/fgbears-youtube-lovable-compositor.service /tmp/fgbears-youtube-lovable-routing.service
