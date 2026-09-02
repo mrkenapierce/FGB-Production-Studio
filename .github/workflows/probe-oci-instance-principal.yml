@@ -38,10 +38,7 @@ jobs:
           echo '=== OCI METADATA ==='
           META=$(curl -fsS --max-time 5 -H 'Authorization: Bearer Oracle' http://169.254.169.254/opc/v2/instance/ 2>/dev/null || true)
           if [[ -n "$META" ]]; then
-            python3 - <<'PY' "$META"
-import json,sys
-x=json.loads(sys.argv[1]); print(json.dumps({k:x.get(k) for k in ['id','displayName','compartmentId','region','availabilityDomain','shape','shapeConfig']},indent=2))
-PY
+            python3 -c 'import json,sys; x=json.loads(sys.stdin.read()); print(json.dumps({k:x.get(k) for k in ["id","displayName","compartmentId","region","availabilityDomain","shape","shapeConfig"]},indent=2))' <<<"$META"
           else
             echo METADATA_UNAVAILABLE
           fi
