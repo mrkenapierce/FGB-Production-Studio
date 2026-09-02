@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# Thin YouTube-only media executor for the Lovable routing plane.
-# The shared master and Rumble remain untouched at 1280x720/30. YouTube
-# preserves that native 720p canvas and overlays the full protected middle band
-# during trivia questions. News above and crawl below remain continuously live.
+# Resource-protected YouTube-only media executor for the Lovable routing plane.
+# Rumble remains on the untouched 1280x720 shared master. This branch renders
+# YouTube at 640x360/30fps because that is the highest same-host tier with a
+# measured production CPU safety margin. The upper news and lower crawl remain
+# live because the moving master is continuously decoded/scaled; only Lovable's
+# question panel is overlaid when the routing consumer emits opaque RGBA.
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 [[ -r "$ENV_FILE" ]] || { echo "Missing environment file: $ENV_FILE" >&2; exit 78; }
@@ -15,16 +17,16 @@ source "$ENV_FILE"
 : "${YOUTUBE_LOCAL_UDP_URL:=udp://127.0.0.1:1939?pkt_size=1316}"
 : "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"
 : "${YOUTUBE_QUESTION_MASK_PORT:=8791}"
-: "${YOUTUBE_OUTPUT_WIDTH:=1280}"
-: "${YOUTUBE_OUTPUT_HEIGHT:=720}"
+: "${YOUTUBE_OUTPUT_WIDTH:=640}"
+: "${YOUTUBE_OUTPUT_HEIGHT:=360}"
 : "${YOUTUBE_OUTPUT_FPS:=30}"
-: "${YOUTUBE_VIDEO_BITRATE:=5000k}"
-: "${YOUTUBE_VIDEO_MAXRATE:=5500k}"
-: "${YOUTUBE_VIDEO_BUFSIZE:=10000k}"
+: "${YOUTUBE_VIDEO_BITRATE:=2200k}"
+: "${YOUTUBE_VIDEO_MAXRATE:=2500k}"
+: "${YOUTUBE_VIDEO_BUFSIZE:=4400k}"
 : "${YOUTUBE_MONITOR_DIR:=/run/fgbears-youtube-lovable-compositor}"
 
-[[ "$YOUTUBE_OUTPUT_WIDTH" == 1280 && "$YOUTUBE_OUTPUT_HEIGHT" == 720 && "$YOUTUBE_OUTPUT_FPS" == 30 ]] || {
-  echo "Production Lovable compositor is qualified for 1280x720 at 30 fps." >&2
+[[ "$YOUTUBE_OUTPUT_WIDTH" == 640 && "$YOUTUBE_OUTPUT_HEIGHT" == 360 && "$YOUTUBE_OUTPUT_FPS" == 30 ]] || {
+  echo "Same-host Lovable compositor is safety-qualified only for 640x360 at 30 fps." >&2
   exit 78
 }
 [[ -d "$YOUTUBE_MONITOR_DIR" && -w "$YOUTUBE_MONITOR_DIR" ]] || {
@@ -47,33 +49,32 @@ import json,sys
 p=json.load(sys.stdin)
 assert p.get("ok") is True
 assert p.get("sourceCanvas")==[1280,720]
-assert p.get("canvas")==[1280,720]
+assert p.get("canvas")==[640,360]
 assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470}
 assert p.get("creativeKey")=="yt_rumble_trivia_redirect"
 assert p.get("presentationMode")=="full_creative_scaled"
 assert p.get("routingAuthority")=="lovable_public_stream_routing"
-assert p.get("executionScaling")=="full_middle_protection"
 r=p["maskRegion"]
-assert r=={"x":0,"y":104,"width":1280,"height":470},r
-assert p.get("frameSize")==[1280,470],p
+assert r=={"x":231,"y":52,"width":399,"height":235},r
 print(r["x"],r["y"],r["width"],r["height"],p["creativeKey"],p["routingAuthority"])
 ')
 EOF
 
 [[ "$CREATIVE" == yt_rumble_trivia_redirect && "$AUTHORITY" == lovable_public_stream_routing ]]
 
-echo "Starting Lovable-controlled YouTube compositor: 1280x720/30, protected middle=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}." >&2
+echo "Starting Lovable-controlled YouTube compositor: 640x360/30, panel=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}." >&2
 
-# A single encode feeds YouTube and a bounded read-only monitor. The overlay is
-# transparent between questions and fully opaque across the middle band while a
-# question is active, so no trivia pixels can leak around the redirect creative.
+# A single encode feeds YouTube and a bounded read-only monitor. The monitor is
+# three rotating 2-second MPEG-TS segments in /run (tmpfs), so it is always
+# available for verification, does not need a pre-existing UDP listener, and can
+# never grow without bound. It costs no second encode.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
   -fflags +genpts+discardcorrupt -probesize 10000000 -analyzeduration 10000000 \
   -thread_queue_size 512 -i "$LOCAL_INPUT" \
   -thread_queue_size 512 -f rawvideo -pixel_format rgba -video_size "${MASK_WIDTH}x${MASK_HEIGHT}" -framerate "$YOUTUBE_OUTPUT_FPS" \
   -i "$OVERLAY_URL" \
-  -filter_complex "[0:v:0][1:v:0]overlay=${MASK_X}:${MASK_Y}:format=auto:shortest=1[v]" \
+  -filter_complex "[0:v:0]scale=${YOUTUBE_OUTPUT_WIDTH}:${YOUTUBE_OUTPUT_HEIGHT}:flags=fast_bilinear[base];[base][1:v:0]overlay=${MASK_X}:${MASK_Y}:format=auto:shortest=1[v]" \
   -map '[v]' -map 0:a:0 \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
   -pix_fmt yuv420p -r "$YOUTUBE_OUTPUT_FPS" -g 60 -keyint_min 60 -sc_threshold 0 \
