@@ -115,7 +115,7 @@ assert int(v.get("height",0))==720,v
 assert v.get("r_frame_rate") in {"30/1","60/2"},v
 assert int(a.get("sample_rate",0))==44100,a
 assert int(a.get("channels",0))==2,a
-print(f"YOUTUBE_AV=PASS video={v.get('width')}x{v.get('height')}@{v.get('r_frame_rate')} audio={a.get('sample_rate')}Hz/{a.get('channels')}ch")
+print("YOUTUBE_AV=PASS video={}x{}@{} audio={}Hz/{}ch".format(v.get("width"),v.get("height"),v.get("r_frame_rate"),a.get("sample_rate"),a.get("channels")))
 '
 
 # Shared paths are invariants: neither master nor Rumble may restart.
