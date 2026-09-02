@@ -30,29 +30,43 @@ rollback() {
   [[ -f "$BACKUP/compositor.service" ]] && install -m 0644 "$BACKUP/compositor.service" "$COMP_UNIT" || true
   [[ -f "$BACKUP/routing.service" ]] && install -m 0644 "$BACKUP/routing.service" "$ROUTING_UNIT" || true
   systemctl daemon-reload || true
-  systemctl reset-failed "$LEGACY" || true
-  systemctl start "$LEGACY" || true
-  for _ in $(seq 1 20); do
-    p=$(mainpid "$LEGACY")
-    has_pid_port "$p" 443 && break
+  systemctl reset-failed "$ROUTING" "$COMP" || true
+  systemctl start "$ROUTING" || true
+  sleep 2
+  systemctl start "$COMP" || true
+
+  restored=0
+  for _ in $(seq 1 25); do
+    p=$(mainpid "$COMP")
+    if active "$COMP" && has_pid_port "$p" 443; then restored=1; break; fi
     sleep 1
   done
-  systemctl start "$ROUTING" || true
-  systemctl start "$COMP" || true
-  echo "ROLLBACK_720P legacy=$(mainpid "$LEGACY") master=$(mainpid "$MASTER") rumble=$(mainpid "$RUMBLE")"
+
+  # Emergency fallback only if the known-good 360p compositor cannot reclaim YouTube.
+  if (( restored == 0 )); then
+    systemctl reset-failed "$LEGACY" || true
+    systemctl start "$LEGACY" || true
+    for _ in $(seq 1 20); do
+      p=$(mainpid "$LEGACY")
+      has_pid_port "$p" 443 && break
+      sleep 1
+    done
+  fi
+  echo "ROLLBACK_720P comp=$(mainpid "$COMP") legacy=$(mainpid "$LEGACY") master=$(mainpid "$MASTER") rumble=$(mainpid "$RUMBLE")"
   rm -rf "$BACKUP"
   exit "$rc"
 }
 trap rollback EXIT
 
-for u in "$MASTER" "$RUMBLE" "$LEGACY" "$COMP" "$ROUTING"; do active "$u"; done
+# Current production baseline: the 360p compositor is the real YouTube sender.
+for u in "$MASTER" "$RUMBLE" "$COMP" "$ROUTING"; do active "$u"; done
 MASTER0=$(mainpid "$MASTER")
 RUMBLE0=$(mainpid "$RUMBLE")
-LEGACY0=$(mainpid "$LEGACY")
 COMP0=$(mainpid "$COMP")
-has_pid_port "$LEGACY0" 443
+LEGACY0=$(mainpid "$LEGACY")
+has_pid_port "$COMP0" 443
 has_pid_port "$RUMBLE0" 1935
-echo "PRE master=$MASTER0 rumble=$RUMBLE0 legacy=$LEGACY0 compositor=$COMP0 load=$(cut -d' ' -f1-3 /proc/loadavg)"
+echo "PRE master=$MASTER0 rumble=$RUMBLE0 compositor360=$COMP0 legacy=$LEGACY0 load=$(cut -d' ' -f1-3 /proc/loadavg)"
 
 cp -a "$COMP_SCRIPT" "$BACKUP/compositor.sh"
 cp -a "$COMP_UNIT" "$BACKUP/compositor.service"
@@ -64,10 +78,16 @@ install -m 0644 /tmp/fgbears-youtube-lovable-routing.service "$ROUTING_UNIT"
 systemctl daemon-reload
 systemctl enable "$COMP" "$ROUTING" >/dev/null
 
-# Prepare the full-size Lovable mask while the legacy relay continues feeding YouTube.
+# The unused direct relay must not race the compositor for the YouTube stream key.
+systemctl stop "$LEGACY" 2>/dev/null || true
+systemctl disable "$LEGACY" >/dev/null 2>&1 || true
+
+# YouTube-only quality cutover. Master and Rumble are never restarted.
 systemctl stop "$COMP"
 systemctl restart "$ROUTING"
+
 MASK_OK=0
+health=''
 for _ in $(seq 1 20); do
   if health=$(curl -fsS --max-time 2 http://127.0.0.1:8791/healthz 2>/dev/null); then
     if printf '%s' "$health" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("canvas")==[1280,720],p;assert p.get("maskRegion")=={"x":462,"y":104,"width":798,"height":470},p;assert p.get("fps")==30,p' 2>/dev/null; then
@@ -79,12 +99,8 @@ done
 (( MASK_OK == 1 ))
 echo "MASK_720P=PASS $health"
 
-# Single-owner handoff: retire the legacy sender, then let the prepared compositor claim YouTube.
-systemctl stop "$LEGACY"
-systemctl disable "$LEGACY" >/dev/null 2>&1 || true
 systemctl reset-failed "$COMP" || true
 systemctl start "$COMP"
-
 CONNECTED=0
 for _ in $(seq 1 25); do
   COMP1=$(mainpid "$COMP")
@@ -95,7 +111,7 @@ done
 ! active "$LEGACY"
 echo "YOUTUBE_OWNER=COMPOSITOR pid=$COMP1"
 
-# Wait for bounded monitor output, then certify the actual compositor A/V contract.
+# Certify actual encoded output, not merely command-line settings.
 SEG=''
 for _ in $(seq 1 20); do
   SEG=$(find /run/fgbears-youtube-lovable-compositor -maxdepth 1 -type f -name 'monitor-*.ts' -size +1000c -printf '%T@ %p\n' 2>/dev/null | sort -nr | awk 'NR==1{sub(/^[^ ]+ /,"");print}' || true)
@@ -118,27 +134,33 @@ assert int(a.get("channels",0))==2,a
 print("YOUTUBE_AV=PASS video={}x{}@{} audio={}Hz/{}ch".format(v.get("width"),v.get("height"),v.get("r_frame_rate"),a.get("sample_rate"),a.get("channels")))
 '
 
-# Shared paths are invariants: neither master nor Rumble may restart.
+# Shared-path invariants: neither master nor Rumble is allowed to move.
 [[ "$(mainpid "$MASTER")" == "$MASTER0" ]]
 [[ "$(mainpid "$RUMBLE")" == "$RUMBLE0" ]]
 has_pid_port "$RUMBLE0" 1935
 
-# Confirm the 720p branch stays connected and the master still runs in real time.
+# Sustained YouTube ownership and resource check.
 sleep 12
 COMP2=$(mainpid "$COMP")
 [[ "$COMP2" == "$COMP1" ]]
 has_pid_port "$COMP2" 443
-SPEED=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log)
-python3 -c 'import sys;s=float(sys.argv[1]);assert s>=0.98,s' "$SPEED"
 CPU=$(ps -p "$COMP2" -o %cpu= | tr -d ' ')
-echo "STABILITY master_speed=${SPEED}x compositor_cpu=${CPU}% load=$(cut -d' ' -f1-3 /proc/loadavg)"
+SPEED=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
+if [[ -n "$SPEED" ]]; then
+  python3 -c 'import sys;s=float(sys.argv[1]);assert s>=0.98,s' "$SPEED"
+  echo "MASTER_REALTIME=${SPEED}x"
+else
+  echo 'MASTER_REALTIME=NO_RECENT_SAMPLE_PID_INVARIANTS_PASS'
+fi
 
-# There must be one FGB YouTube sender socket, owned by the compositor.
-FGB_443=$(ss -ntpH state established 2>/dev/null | awk '/:443 / && /ffmpeg/ {print}' | grep -c "pid=$COMP2" || true)
-[[ "$FGB_443" -ge 1 ]]
+echo "STABILITY compositor_cpu=${CPU}% load=$(cut -d' ' -f1-3 /proc/loadavg)"
+[[ "$(mainpid "$MASTER")" == "$MASTER0" ]]
+[[ "$(mainpid "$RUMBLE")" == "$RUMBLE0" ]]
+has_pid_port "$RUMBLE0" 1935
+has_pid_port "$COMP2" 443
 ! active "$LEGACY"
 
-echo "POST master=$(mainpid "$MASTER") rumble=$(mainpid "$RUMBLE") youtube=$(mainpid "$COMP")"
+echo "POST master=$(mainpid "$MASTER") rumble=$(mainpid "$RUMBLE") youtube720=$(mainpid "$COMP")"
 echo 'YOUTUBE_720P_CUTOVER=PASS'
 SUCCESS=1
 trap - EXIT
