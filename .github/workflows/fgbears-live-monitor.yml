@@ -2,7 +2,7 @@ name: Monitor FGBears Live
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
   push:
     branches: [main]
@@ -22,134 +22,101 @@ env:
 
 jobs:
   monitor:
-    name: Check Oracle stream, video and audio health
+    name: Read-only production topology and media health
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 4
     steps:
-      - name: Require Oracle access secrets
+      - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
-          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
-          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
-
-      - name: Configure SSH
-        env:
-          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
-        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Trust Oracle host key
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      - name: Measure stream, video pacing and exact YouTube-bound audio health
+      - name: Verify production without restarting anything
         id: health
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           set +e
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
-            'sudo /usr/local/bin/fgbears-stream-status --sample-seconds 20' \
-            > stream-status.env
-          stream_rc=$?
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > production-status.env <<'REMOTE'
+          set -Eeuo pipefail
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          ROUTING=fgbears-youtube-lovable-routing.service
+          COMP=fgbears-youtube-lovable-compositor.service
+          LEGACY=fgbears-youtube-relay.service
+          WATCHDOG_TIMER=fgbears-youtube-audio-watchdog.timer
+          HEALTH_TIMER=fgbears-live-health.timer
+          STATUS=/srv/fgbears-live/health/youtube-audio/status.env
+          MONDIR=/run/fgbears-youtube-lovable-compositor
 
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' > video-status.env <<'REMOTE'
-          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
-          d1=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
-          u1=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
-          f1=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
-          t1=$(date +%s%N)
-          sleep 10
-          d2=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
-          u2=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
-          f2=$(sudo sed -n 's/^frame=\([0-9]*\)$/\1/p' "$progress" | tail -n1)
-          t2=$(date +%s%N)
-          awk -v d1="${d1:-0}" -v d2="${d2:-0}" -v u1="${u1:-0}" -v u2="${u2:-0}" -v f1="${f1:-0}" -v f2="${f2:-0}" -v t1="$t1" -v t2="$t2" 'BEGIN{wall=(t2-t1)/1e9;if(wall<=0||f2<f1||d2<d1||u2<u1){print "OVERALL_STATUS=FAIL";print "REASON=VIDEO_PROGRESS_RESET_OR_INVALID";exit 1}fps=(f2-f1)/wall;dd=d2-d1;du=u2-u1;printf "VIDEO_WINDOW_SECONDS=%.3f\nVIDEO_FPS=%.2f\nVIDEO_DROP_DELTA=%d\nVIDEO_DUP_DELTA=%d\n",wall,fps,dd,du;if(fps<28.5||dd!=0||du>5){print "OVERALL_STATUS=FAIL";print "REASON=VIDEO_FRAME_PACING_DEGRADED";exit 1}print "OVERALL_STATUS=OK";print "REASON=VIDEO_FRAME_PACING_HEALTHY"}'
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          active(){ systemctl is-active --quiet "$1"; }
+          socket(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v port=":$port" 'index($0,q)&&index($0,port){ok=1} END{exit(ok?0:1)}'; }
+
+          active "$MASTER"
+          active "$RUMBLE"
+          active "$ROUTING"
+          active "$COMP"
+          active "$WATCHDOG_TIMER"
+          active "$HEALTH_TIMER"
+          ! active "$LEGACY"
+
+          MPID=$(pid "$MASTER"); RPID=$(pid "$RUMBLE"); CPID=$(pid "$COMP")
+          socket "$RPID" 1935
+          socket "$CPID" 443
+
+          speed=$(sudo awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
+          [[ -z "$speed" ]] || python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$speed"
+
+          mask=$(curl -fsS --max-time 3 http://127.0.0.1:8791/healthz)
+          printf '%s' "$mask" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("sourceCanvas")==[1280,720];assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470};assert p.get("creativeKey")=="yt_rumble_trivia_redirect";assert p.get("routingAuthority")=="lovable_public_stream_routing";assert int(p.get("fps",0))==30'
+
+          news=$(curl -fsS --max-time 3 http://127.0.0.1:8789/healthz)
+          crawl=$(curl -fsS --max-time 3 http://127.0.0.1:8788/healthz)
+          printf '%s' "$news" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert int(p.get("scrollPps",0))==76;assert p.get("payloadSwap")=="next-cycle-boundary"'
+          printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert p.get("payloadSwap")=="next-segment-boundary"'
+
+          sudo test -s "$STATUS"
+          now=$(date +%s)
+          checked=$(sudo sed -n 's/^checked_epoch=\([0-9][0-9]*\)$/\1/p' "$STATUS" | tail -n1)
+          state=$(sudo sed -n 's/^state=\([^[:space:]]*\)$/\1/p' "$STATUS" | tail -n1)
+          owner=$(sudo sed -n 's/^owner=\([^[:space:]]*\)$/\1/p' "$STATUS" | tail -n1)
+          [[ "$checked" =~ ^[0-9]+$ ]]
+          age=$((now-checked))
+          (( age >= 0 && age <= 180 ))
+          [[ "$state" == OK || "$state" == WARN ]]
+          [[ "$owner" == exact_box_compositor ]]
+
+          SEG=$(sudo find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
+          [[ -n "$SEG" && -s "$SEG" ]]
+          sudo ffprobe -v fatal -show_entries stream=codec_type,codec_name,sample_rate,channels,width,height,r_frame_rate -of json "$SEG" | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p.get("streams",[]);a=next(x for x in s if x.get("codec_type")=="audio");v=next(x for x in s if x.get("codec_type")=="video");assert a.get("codec_name")=="aac";assert int(a.get("sample_rate") or 0) in (44100,48000);assert int(a.get("channels") or 0)==2;assert int(v.get("width") or 0)>0 and int(v.get("height") or 0)>0;print("MEDIA video=%sx%s fps=%s audio=%sHz/%sch"%(v.get("width"),v.get("height"),v.get("r_frame_rate"),a.get("sample_rate"),a.get("channels")))'
+
+          echo "OVERALL_STATUS=OK"
+          echo "REASON=PRODUCTION_HEALTHY"
+          echo "TOPOLOGY master=$MPID rumble=$RPID youtube=$CPID legacy=off master_speed=${speed:-unknown}x watchdog=$state age=${age}s"
           REMOTE
-          video_rc=$?
-
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
-            'sudo /usr/local/bin/fgbears-audio-health --capture-seconds 20' \
-            > audio-status.env
-          audio_rc=$?
+          rc=$?
           set -e
-
-          if (( stream_rc != 0 )); then
-            cat > stream-status.env <<REPORT
-          OVERALL_STATUS=CRITICAL
-          REASON=SSH_OR_STATUS_COMMAND_FAILED
-          CHECKED_AT_EPOCH=$(date +%s)
-          SSH_EXIT_CODE=$stream_rc
-          REPORT
+          cat production-status.env || true
+          if (( rc != 0 )); then
+            printf 'OVERALL_STATUS=FAIL\nREASON=PRODUCTION_AUDIT_FAILED\n' >> production-status.env
           fi
-          if (( video_rc != 0 )) && ! grep -q '^OVERALL_STATUS=' video-status.env 2>/dev/null; then
-            cat > video-status.env <<REPORT
-          OVERALL_STATUS=FAIL
-          REASON=VIDEO_HEALTH_COMMAND_FAILED
-          CHECKED_AT_EPOCH=$(date +%s)
-          SSH_EXIT_CODE=$video_rc
-          REPORT
-          fi
-          if (( audio_rc != 0 )) && ! grep -q '^OVERALL_STATUS=' audio-status.env 2>/dev/null; then
-            cat > audio-status.env <<REPORT
-          OVERALL_STATUS=FAIL
-          REASON=AUDIO_HEALTH_COMMAND_FAILED
-          CHECKED_AT_EPOCH=$(date +%s)
-          SSH_EXIT_CODE=$audio_rc
-          REPORT
-          fi
-
-          status=$(sed -n 's/^OVERALL_STATUS=\(OK\|WARN\|CRITICAL\)$/\1/p' stream-status.env | tail -n 1)
-          reason=$(sed -n 's/^REASON=\([A-Z0-9_]*\)$/\1/p' stream-status.env | tail -n 1)
-          [[ -n "$status" ]] || status=CRITICAL
-          [[ -n "$reason" ]] || reason=INVALID_STATUS_REPORT
-
-          video_status=$(sed -n 's/^OVERALL_STATUS=\(OK\|FAIL\)$/\1/p' video-status.env | tail -n 1)
-          video_reason=$(sed -n 's/^REASON=\([A-Z0-9_]*\)$/\1/p' video-status.env | tail -n 1)
-          if [[ "$video_status" != "OK" ]]; then
-            status=CRITICAL
-            reason=${video_reason:-VIDEO_FRAME_PACING_DEGRADED}
-          fi
-
-          audio_status=$(sed -n 's/^OVERALL_STATUS=\(OK\|FAIL\)$/\1/p' audio-status.env | tail -n 1)
-          audio_warnings=$(sed -n 's/^AUDIO_WARNINGS=//p' audio-status.env | tail -n 1)
-          if [[ "$audio_status" != "OK" ]]; then
-            status=CRITICAL
-            reason=AUDIO_QUALITY_DEGRADED
-          fi
-
+          status=$(sed -n 's/^OVERALL_STATUS=\(OK\|FAIL\)$/\1/p' production-status.env | tail -n1)
+          reason=$(sed -n 's/^REASON=\([A-Z0-9_]*\)$/\1/p' production-status.env | tail -n1)
+          [[ -n "$status" ]] || status=FAIL
+          [[ -n "$reason" ]] || reason=INVALID_MONITOR_REPORT
           printf 'status=%s\nreason=%s\n' "$status" "$reason" >> "$GITHUB_OUTPUT"
-
-          {
-            printf '## FGBears Live: %s\n\n' "$status"
-            printf 'Reason: `%s`\n\n' "$reason"
-            printf '### Stream transport\n```text\n'
-            cat stream-status.env
-            printf '```\n\n### Video frame pacing\n```text\n'
-            cat video-status.env
-            printf '```\n\n### Exact YouTube-bound audio\n```text\n'
-            cat audio-status.env
-            printf '```\n'
-            if [[ -n "$audio_warnings" && "$audio_warnings" != "NONE" ]]; then
-              printf '\nAudio warnings: `%s`\n' "$audio_warnings"
-            fi
-          } >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Archive status reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: fgbears-live-status-${{ github.run_id }}
-          path: |
-            stream-status.env
-            video-status.env
-            audio-status.env
-          retention-days: 14
+          printf '## FGBears Live: %s\n\n```text\n' "$status" >> "$GITHUB_STEP_SUMMARY"
+          cat production-status.env >> "$GITHUB_STEP_SUMMARY"
+          printf '```\n' >> "$GITHUB_STEP_SUMMARY"
 
       - name: Manage stream incident
         if: always()
@@ -159,29 +126,17 @@ jobs:
           STREAM_STATUS: ${{ steps.health.outputs.status }}
           STREAM_REASON: ${{ steps.health.outputs.reason }}
         run: |
-          status=${STREAM_STATUS:-CRITICAL}
+          set -Eeuo pipefail
+          status=${STREAM_STATUS:-FAIL}
           reason=${STREAM_REASON:-MONITOR_STEP_FAILED}
-          gh label create stream-monitor --color B60205 \
-            --description 'Automated FGBears Live stream incident' --force
-          issue=$(gh issue list --state open --label stream-monitor \
-            --json number --jq '.[0].number // empty')
-
-          if [[ "$status" != "OK" ]]; then
+          gh label create stream-monitor --color B60205 --description 'Automated FGBears Live stream incident' --force
+          issue=$(gh issue list --state open --label stream-monitor --json number --jq '.[0].number // empty')
+          if [[ "$status" != OK ]]; then
             if [[ -z "$issue" ]]; then
-              {
-                printf 'The independent stream monitor detected `%s`.\n\n' "$reason"
-                printf '[Open the monitoring run](%s/%s/actions/runs/%s) for the full stream, video and audio reports.\n\n' \
-                  "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
-                printf 'The local restart circuit breaker remains authoritative; this monitor does not restart the stream.\n'
-              } > incident.md
-              gh issue create --title '[Stream Monitor] FGBears Live incident' \
-                --label stream-monitor --body-file incident.md
+              gh issue create --title '[Stream Monitor] FGBears Live incident' --label stream-monitor --body "Read-only production monitor detected \`$reason\`. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             fi
-            echo "Stream status is $status: $reason" >&2
             exit 1
           fi
-
           if [[ -n "$issue" ]]; then
-            gh issue close "$issue" --comment \
-              "Recovered automatically. Current monitoring run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            gh issue close "$issue" --comment "Recovered. Current monitoring run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
           fi
