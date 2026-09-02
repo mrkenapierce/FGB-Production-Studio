@@ -1,0 +1,65 @@
+name: Preflight YouTube Freeze Box
+
+on:
+  push:
+    paths:
+      - '.github/workflows/preflight-youtube-freeze-box.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read router and benchmark isolated one-frame card
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== SERVICES ==='
+          for s in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-router.service fgbears-youtube-relay.service; do
+            printf '%s active=%s enabled=%s pid=%s\n' "$s" "$(systemctl is-active "$s" 2>/dev/null || true)" "$(systemctl is-enabled "$s" 2>/dev/null || true)" "$(systemctl show -p MainPID --value "$s" 2>/dev/null || true)"
+          done
+          echo '=== ROUTER UNIT ==='
+          sudo systemctl cat fgbears-youtube-router.service 2>/dev/null || true
+          echo '=== CARD ==='
+          card=/opt/fgbears-live/assets/youtube-rumble-trivia.h264
+          ls -lh "$card" 2>/dev/null || true
+          ffprobe -v error -f h264 -show_entries stream=codec_name,profile,width,height,pix_fmt,r_frame_rate,level -of default=nw=1 "$card" 2>/dev/null || true
+          echo '=== HOST ==='
+          nproc
+          free -m
+          ffmpeg -version | head -2
+          echo '=== ISOLATED BENCHMARK ==='
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          input='udp://127.0.0.1:1939?fifo_size=1000000&overrun_nonfatal=1&reuse=1'
+          start=$(date +%s%3N)
+          timeout 12 ffmpeg -hide_banner -nostdin -loglevel error -probesize 3000000 -analyzeduration 3000000 -i "$input" -map 0:v:0 -frames:v 1 -f image2 "$tmp/frame.png"
+          capture_end=$(date +%s%3N)
+          test -s "$tmp/frame.png"
+          ffmpeg -hide_banner -nostdin -loglevel error -loop 1 -i "$tmp/frame.png" -vf "drawbox=x=480:y=200:w=640:h=360:color=0x07101F@1:t=fill,drawbox=x=480:y=200:w=640:h=360:color=0xC83803@1:t=5,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf:text='TRIVIA IS LIVE ON RUMBLE':fontcolor=white:fontsize=42:x=480+(640-text_w)/2:y=310,drawtext=fontfile=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf:text='Watch and play on Rumble':fontcolor=0xF2B134:fontsize=27:x=480+(640-text_w)/2:y=378" -t 1 -r 30 -c:v libx264 -preset ultrafast -tune stillimage -profile:v high -pix_fmt yuv420p -g 30 -keyint_min 30 -sc_threshold 0 -f h264 "$tmp/card.h264"
+          end=$(date +%s%3N)
+          test -s "$tmp/card.h264"
+          echo "capture_ms=$((capture_end-start))"
+          echo "encode_ms=$((end-capture_end))"
+          echo "total_ms=$((end-start))"
+          ffprobe -v error -f h264 -show_entries stream=codec_name,profile,width,height,pix_fmt,r_frame_rate,level -of default=nw=1 "$tmp/card.h264"
+          echo 'PRELIGHT_FREEZE_BOX=PASS'
+          REMOTE
