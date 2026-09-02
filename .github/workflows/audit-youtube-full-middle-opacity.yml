@@ -1,0 +1,52 @@
+name: Audit YouTube Full-Middle Opacity
+
+on:
+  push:
+    branches:
+      - lovable-routing-bridge-20260902
+    paths:
+      - '.github/workflows/audit-youtube-full-middle-opacity.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Verify installed active and inactive RGBA frames
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
+          ssh -i ~/.ssh/oracle_key "$target" "python3 - <<'PY'
+          import importlib.util
+          p='/opt/fgbears-live/bin/youtube-question-mask.py'
+          spec=importlib.util.spec_from_file_location('maskaudit',p)
+          m=importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(m)
+          assert m.CONTRACT.region()=={'x':0,'y':104,'width':1280,'height':470},m.CONTRACT.region()
+          assert len(m.ACTIVE)==1280*470*4,len(m.ACTIVE)
+          assert len(m.TRANSPARENT)==1280*470*4,len(m.TRANSPARENT)
+          active_alpha=m.ACTIVE[3::4]
+          clear_alpha=m.TRANSPARENT[3::4]
+          assert min(active_alpha)==255 and max(active_alpha)==255,(min(active_alpha),max(active_alpha))
+          assert min(clear_alpha)==0 and max(clear_alpha)==0,(min(clear_alpha),max(clear_alpha))
+          print('ACTIVE_FULL_MIDDLE_ALPHA=PASS min=255 max=255 pixels=%d' % len(active_alpha))
+          print('INACTIVE_FULL_MIDDLE_ALPHA=PASS min=0 max=0 pixels=%d' % len(clear_alpha))
+          PY"
