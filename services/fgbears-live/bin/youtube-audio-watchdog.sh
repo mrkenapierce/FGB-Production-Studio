@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# FGBears YouTube-only audio/transport watchdog.
+# FGBears YouTube-only fallback audio/transport watchdog.
 #
 # This watchdog never restarts the shared master encoder or the Rumble relay.
-# It verifies the exact YouTube-bound source, the canonical YouTube relay
+# It verifies the exact YouTube-bound source, the canonical fallback relay
 # process, the RTMPS socket, and recent timestamp errors. Recoverable
 # YouTube-only faults restart only fgbears-youtube-relay.service with a circuit
-# breaker.
+# breaker. The owner-aware watchdog is the normal entrypoint.
 set -Eeuo pipefail
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
@@ -17,9 +17,11 @@ STATE_DIR=${FGB_YOUTUBE_AUDIO_WATCHDOG_STATE_DIR:-/srv/fgbears-live/health/youtu
 STATUS_FILE=${FGB_YOUTUBE_AUDIO_WATCHDOG_STATUS_FILE:-$STATE_DIR/status.env}
 WARNING_FILE=${FGB_YOUTUBE_AUDIO_WATCHDOG_WARNING_FILE:-$STATE_DIR/warning.env}
 LAST_CHECK_FILE=${FGB_YOUTUBE_AUDIO_WATCHDOG_LAST_CHECK_FILE:-$STATE_DIR/last-check-epoch}
+LAST_DEEP_AUDIO_CHECK_FILE=${FGB_YOUTUBE_DEEP_AUDIO_EPOCH_FILE:-$STATE_DIR/deep-audio-epoch}
 RESTART_HISTORY_FILE=${FGB_YOUTUBE_AUDIO_WATCHDOG_RESTART_HISTORY_FILE:-$STATE_DIR/restart-history}
 SOCKET_FAILURE_FILE=${FGB_YOUTUBE_AUDIO_WATCHDOG_SOCKET_FAILURE_FILE:-$STATE_DIR/socket-failures}
 CAPTURE_SECONDS=${FGB_YOUTUBE_AUDIO_WATCHDOG_CAPTURE_SECONDS:-8}
+DEEP_AUDIO_INTERVAL_SECONDS=${FGB_YOUTUBE_DEEP_AUDIO_INTERVAL_SECONDS:-900}
 RESTART_BUDGET=${FGB_YOUTUBE_AUDIO_WATCHDOG_RESTART_BUDGET:-2}
 RESTART_WINDOW_SECONDS=${FGB_YOUTUBE_AUDIO_WATCHDOG_RESTART_WINDOW_SECONDS:-1800}
 SOCKET_FAILURES_BEFORE_RESTART=${FGB_YOUTUBE_AUDIO_WATCHDOG_SOCKET_FAILURES_BEFORE_RESTART:-2}
@@ -74,6 +76,7 @@ write_status() {
     printf 'checked_epoch=%s\n' "$now"
     printf 'state=%s\n' "$state"
     printf 'reason=%s\n' "$reason"
+    printf 'owner=legacy_relay\n'
     printf 'repaired=%s\n' "$repaired"
     printf 'youtube_pid=%s\n' "$(pid_of "$RELAY_SERVICE")"
     printf 'master_pid=%s\n' "$(pid_of "$MASTER_SERVICE")"
@@ -106,7 +109,7 @@ record_restart() {
 attempt_repair() {
   local reason=$1 master_before rumble_before relay_after
   if ! restart_budget_available; then
-    log "YouTube relay recovery suppressed by circuit breaker; reason=$reason"
+    log "YouTube fallback relay recovery suppressed by circuit breaker; reason=$reason"
     printf 'epoch=%s reason=%s circuit_breaker=open\n' "$(date +%s)" "$reason" > "$WARNING_FILE"
     write_status FAIL "${reason}_CIRCUIT_OPEN" no
     return 1
@@ -115,7 +118,7 @@ attempt_repair() {
   master_before=$(pid_of "$MASTER_SERVICE")
   rumble_before=$(pid_of "$RUMBLE_SERVICE")
   record_restart
-  log "Restarting isolated YouTube relay only; reason=$reason"
+  log "Restarting isolated YouTube fallback relay only; reason=$reason"
   systemctl reset-failed "$RELAY_SERVICE" || true
   systemctl restart "$RELAY_SERVICE"
 
@@ -139,7 +142,7 @@ attempt_repair() {
         fi
         rm -f "$SOCKET_FAILURE_FILE" "$WARNING_FILE"
         write_status OK "$reason" yes
-        log "YouTube relay recovered without restarting master or Rumble."
+        log "YouTube fallback relay recovered without restarting master or Rumble."
         return 0
       fi
     fi
@@ -148,7 +151,7 @@ attempt_repair() {
 
   printf 'epoch=%s reason=%s recovery=failed\n' "$(date +%s)" "$reason" > "$WARNING_FILE"
   write_status FAIL "${reason}_RECOVERY_FAILED" no
-  log "YouTube relay recovery did not pass process/socket verification."
+  log "YouTube fallback relay recovery did not pass process/socket verification."
   return 1
 }
 
@@ -169,9 +172,23 @@ recent_timestamp_errors() {
   printf '%s' "$count"
 }
 
+deep_audio_check_due() {
+  local now last=0
+  now=$(date +%s)
+  if [[ -s "$LAST_DEEP_AUDIO_CHECK_FILE" ]]; then
+    last=$(cat "$LAST_DEEP_AUDIO_CHECK_FILE" 2>/dev/null || printf '0')
+  fi
+  [[ "$last" =~ ^[0-9]+$ ]] || last=0
+  (( now - last >= DEEP_AUDIO_INTERVAL_SECONDS ))
+}
+
 run_source_audio_check() {
-  local output rc warnings
+  local output rc warnings now
   [[ -x "$AUDIO_HEALTH_BIN" ]] || return 0
+  deep_audio_check_due || return 0
+  now=$(date +%s)
+  printf '%s\n' "$now" > "${LAST_DEEP_AUDIO_CHECK_FILE}.partial"
+  mv -f "${LAST_DEEP_AUDIO_CHECK_FILE}.partial" "$LAST_DEEP_AUDIO_CHECK_FILE"
   set +e
   output=$("$AUDIO_HEALTH_BIN" --capture-seconds "$CAPTURE_SECONDS" 2>&1)
   rc=$?
@@ -183,7 +200,7 @@ run_source_audio_check() {
     return 0
   fi
   warnings=$(printf '%s\n' "$output" | grep -E '^(AUDIO_WARNINGS|REASON)=' | tr '\n' ' ' || true)
-  printf 'epoch=%s reason=SOURCE_AUDIO_WARNING detail=%q\n' "$(date +%s)" "$warnings" > "$WARNING_FILE"
+  printf 'epoch=%s reason=SOURCE_AUDIO_WARNING detail=%q\n' "$now" "$warnings" > "$WARNING_FILE"
   log "YouTube-bound source audio warning (no shared-stream restart): $warnings"
   return 0
 }
