@@ -1,0 +1,118 @@
+name: Benchmark YouTube Live Compositor V1
+
+on:
+  push:
+    paths:
+      - '.github/workflows/benchmark-youtube-live-compositor-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-compositor-benchmark
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Benchmark isolated live-video compositor
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          work=/tmp/fgb-youtube-compositor-benchmark
+          pylib=/opt/fgbears-live/exact-card-pylib
+          rm -rf "$work"; mkdir -p "$work"
+
+          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_before=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          router_before=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ && "$rumble_before" =~ ^[1-9][0-9]*$ && "$router_before" =~ ^[1-9][0-9]*$ ]]
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          systemctl is-active --quiet fgbears-youtube-router.service
+
+          # Capture 12 seconds with stream copy only. This does not decode/encode or publish.
+          nice -n 19 ionice -c3 timeout 20 ffmpeg -hide_banner -nostdin -loglevel error \
+            -fflags +genpts -probesize 5000000 -analyzeduration 5000000 \
+            -i 'udp://127.0.0.1:1939?reuse=1&fifo_size=1000000&overrun_nonfatal=1' \
+            -t 12 -map 0:v:0 -map 0:a:0? -c copy -f mpegts -y "$work/sample.ts"
+          test -s "$work/sample.ts"
+
+          # Generate the locked exact 1280x720 creative already used by v4.
+          PYTHONPATH="$pylib" /usr/bin/python3 /opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py "$work/source.png" >/dev/null
+          PYTHONPATH="$pylib" /usr/bin/python3 - "$work/source.png" "$work/overlay.png" <<'PY'
+          import sys
+          from PIL import Image
+          src=Image.open(sys.argv[1]).convert('RGBA')
+          # Exact whole-card proportional scale into the 798x470 production panel.
+          src.thumbnail((798,470), Image.Resampling.LANCZOS)
+          assert src.size == (798,449), src.size
+          panel=Image.new('RGBA',(798,470),(11,22,42,255))
+          panel.alpha_composite(src,(0,(470-449)//2))
+          panel.save(sys.argv[2])
+          PY
+
+          # Encode the captured sample as fast as possible at lowest OS priority.
+          # This measures actual spare CPU while the production services remain live.
+          start=$(date +%s%N)
+          nice -n 19 ionice -c3 ffmpeg -hide_banner -nostdin -loglevel info \
+            -i "$work/sample.ts" -loop 1 -framerate 30 -i "$work/overlay.png" \
+            -filter_complex '[0:v:0][1:v:0]overlay=462:104:format=auto:shortest=1[v]' \
+            -map '[v]' -map 0:a:0? \
+            -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
+            -pix_fmt yuv420p -r 30 -g 60 -keyint_min 60 -sc_threshold 0 \
+            -b:v 5000k -maxrate 5500k -bufsize 10000k -threads 1 \
+            -c:a aac -profile:a aac_low -b:a 128k -ar 44100 -ac 2 \
+            -af 'aresample=44100:async=1:first_pts=0' \
+            -f null - 2>"$work/encode.log"
+          end=$(date +%s%N)
+
+          elapsed_ms=$(( (end-start)/1000000 ))
+          duration_ms=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$work/sample.ts" | awk '{printf "%d", $1*1000}')
+          python3 - "$duration_ms" "$elapsed_ms" <<'PY'
+          import sys
+          duration=float(sys.argv[1]); elapsed=float(sys.argv[2])
+          ratio=duration/elapsed if elapsed else 0
+          print(f'CAPTURE_DURATION_MS={duration:.0f}')
+          print(f'ENCODE_WALL_MS={elapsed:.0f}')
+          print(f'ENCODE_REALTIME_MULTIPLIER={ratio:.3f}x')
+          if ratio < 1.20:
+              print('COMPOSITOR_CAPACITY=INSUFFICIENT')
+              raise SystemExit(20)
+          print('COMPOSITOR_CAPACITY=PASS')
+          PY
+
+          master_after=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_after=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          router_after=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
+          test "$master_after" = "$master_before"
+          test "$rumble_after" = "$rumble_before"
+          test "$router_after" = "$router_before"
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          systemctl is-active --quiet fgbears-youtube-router.service
+          echo "MASTER_PID_UNCHANGED=$master_after"
+          echo "RUMBLE_PID_UNCHANGED=$rumble_after"
+          echo "YOUTUBE_ROUTER_PID_UNCHANGED=$router_after"
+          echo 'BENCHMARK_DID_NOT_PUBLISH=yes'
+          rm -rf "$work"
+          REMOTE
