@@ -9,7 +9,9 @@ set -Eeuo pipefail
 
 ROUTING_URL="${FGB_STREAM_ROUTING_URL:-https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing}"
 BASE_INPUT_URL="${FGB_YOUTUBE_FREEZE_INPUT_URL:-${YOUTUBE_LOCAL_UDP_URL:-udp://127.0.0.1:1939?pkt_size=1316}}"
-PYTHON="${FGB_YOUTUBE_EXACT_CARD_PYTHON:-/opt/fgbears-live/venv-exact-card/bin/python}"
+PYTHON="${FGB_YOUTUBE_EXACT_CARD_PYTHON:-/usr/bin/python3}"
+PYLIB="${FGB_YOUTUBE_EXACT_CARD_PYLIB:-/opt/fgbears-live/exact-card-pylib}"
+export PYTHONPATH="${PYLIB}${PYTHONPATH:+:${PYTHONPATH}}"
 BUILDER="${FGB_YOUTUBE_EXACT_CARD_BUILDER:-/opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py}"
 COMPOSER="${FGB_YOUTUBE_EXACT_CARD_COMPOSER:-/opt/fgbears-live/tools/compose-exact-youtube-card.py}"
 OUT_DIR="${FGB_YOUTUBE_FREEZE_CARD_DIR:-/var/lib/fgbears-live}"
@@ -43,7 +45,8 @@ else
   INPUT_URL="$BASE_INPUT_URL"
 fi
 
-[[ -x "$PYTHON" ]] || { echo "Missing exact-card Python environment: $PYTHON" >&2; exit 66; }
+[[ -x "$PYTHON" ]] || { echo "Missing exact-card Python: $PYTHON" >&2; exit 66; }
+[[ -d "$PYLIB" ]] || { echo "Missing exact-card private library directory: $PYLIB" >&2; exit 66; }
 [[ -r "$BUILDER" ]] || { echo "Missing exact locked-card builder: $BUILDER" >&2; exit 66; }
 [[ -r "$COMPOSER" ]] || { echo "Missing exact whole-card composer: $COMPOSER" >&2; exit 66; }
 "$PYTHON" -c 'import PIL, qrcode' >/dev/null
@@ -124,8 +127,8 @@ nice -n 19 ionice -c3 timeout 12 ffmpeg -hide_banner -nostdin -loglevel warning 
   -i "$INPUT_URL" -map 0:v:0 -frames:v 1 -y "$frame"
 test -s "$frame"
 
-# This is the canonical locked-template builder already present in the project.
-# It contains the exact QR, copy, coordinates, colors, bars, border and fonts.
+# Canonical locked-template builder. The source card contains the exact QR,
+# copy, coordinates, colors, bars, border and fonts approved for production.
 "$PYTHON" "$BUILDER" "$source_card" >/dev/null
 test -s "$source_card"
 
@@ -135,8 +138,6 @@ grep -Fq '"width": 798' "$metadata"
 grep -Fq '"height": 449' "$metadata"
 test -s "$composite"
 
-# Static encode only; video selector continues packet-level switching and audio
-# remains on the existing continuous repaired YouTube path.
 nice -n 19 ionice -c3 ffmpeg -hide_banner -nostdin -loglevel warning \
   -loop 1 -i "$composite" -t 1 -r 30 \
   -c:v libx264 -preset ultrafast -tune stillimage -profile:v baseline -level:v 3.1 \
@@ -148,7 +149,6 @@ probe=$(ffprobe -v error -f h264 -select_streams v:0 \
   -show_entries stream=codec_name,width,height,pix_fmt -of csv=p=0 "$candidate")
 [[ "$probe" == "h264,1280,720,yuv420p" ]]
 
-# A question starting during generation invalidates the candidate.
 if ! routing_safe; then
   echo "Question became active during exact-card generation; discarding candidate" >&2
   printf 'result=discarded reason=question-became-active at=%s mode=exact-card-v4\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >"$STATUS_FILE.tmp"
