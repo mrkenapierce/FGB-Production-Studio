@@ -46,7 +46,7 @@ jobs:
             | sed -E 's#rtmps?://[^[:space:]]+#<redacted-url>#g'
           echo '--- SELECTOR TEST LOG ---'
           if [[ -f /tmp/fgb-youtube-dynamic-router-test.log ]]; then
-            sed -E 's#rtmps?://[^[:space:]]+#<redacted-url>#g' /tmp/fgb-youtube-dynamic-router-test.log | tail -n 120
+            sed -E 's#rtmps?://[^[:space:]]+#<redacted-url>#g' /tmp/fgb-youtube-dynamic-router-test.log | tail -n 160
           else
             echo 'selector_test_log_missing=yes'
           fi
