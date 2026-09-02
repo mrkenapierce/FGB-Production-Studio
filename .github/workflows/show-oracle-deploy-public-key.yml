@@ -1,0 +1,26 @@
+name: Show Oracle Deploy Public Key
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/show-oracle-deploy-public-key.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  show-key:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Derive public key from existing Oracle deployment key
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          echo 'PUBLIC_KEY_BEGIN'
+          ssh-keygen -y -f ~/.ssh/oracle_key
+          echo 'PUBLIC_KEY_END'
+          echo -n 'fingerprint=' && ssh-keygen -lf ~/.ssh/oracle_key | awk '{print $2}'
