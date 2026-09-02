@@ -2,9 +2,10 @@
 """FGB YouTube router with a live 720p protected-video selector input.
 
 This wrapper deliberately reuses the proven production router for master video,
-master audio, RTMPS transport, polling, and keyframe-safe switching. It replaces
-only the old static-card selector input with a local MPEG-TS/H.264 source whose
-RSS/news and trivia crawl remain animated during protected trivia windows.
+routing, keyframe-safe switching, and muxing. It replaces the old static-card
+selector input with a local MPEG-TS/H.264 source whose RSS/news and trivia crawl
+remain animated during protected trivia windows. The final FFmpeg transport
+keeps video packet-copy while preserving the established YouTube AAC repair.
 """
 from __future__ import annotations
 
@@ -13,7 +14,8 @@ import importlib.util
 import logging
 import os
 import signal
-from pathlib import Path
+import subprocess
+import threading
 from typing import Any
 
 import gi
@@ -127,6 +129,60 @@ class DynamicStreamRouter(base.StreamRouter):
         ):
             GLib.idle_add(self._activate_mode, "card")
         return Gst.PadProbeReturn.OK
+
+    def _start_ffmpeg_transport(self) -> None:
+        """Copy selected H.264 and retain the proven YouTube audio repair."""
+        if self.test_mode:
+            return
+        if not self.upstream_target:
+            raise ValueError("YouTube upstream target is required outside test mode")
+        local_input = (
+            f"udp://127.0.0.1:{self.output_port}"
+            "?fifo_size=1000000&overrun_nonfatal=1&reuse=1"
+        )
+        command = [
+            "ffmpeg",
+            "-hide_banner",
+            "-nostdin",
+            "-loglevel",
+            os.getenv("FFMPEG_LOGLEVEL", "warning"),
+            "-fflags",
+            "+genpts",
+            "-probesize",
+            "10000000",
+            "-analyzeduration",
+            "10000000",
+            "-i",
+            local_input,
+            "-map",
+            "0:v:0",
+            "-map",
+            "0:a:0",
+            "-c:v",
+            "copy",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "128k",
+            "-ar",
+            "44100",
+            "-ac",
+            "2",
+            "-af",
+            "aresample=44100:async=1:first_pts=0",
+            "-f",
+            "flv",
+            "-flvflags",
+            "no_duration_filesize",
+            self.upstream_target,
+        ]
+        LOG.info("starting repaired-audio FFmpeg RTMPS transport on loopback port %d", self.output_port)
+        self.ffmpeg = subprocess.Popen(command)
+        threading.Thread(
+            target=self._monitor_ffmpeg,
+            daemon=True,
+            name="ffmpeg-transport",
+        ).start()
 
 
 def main() -> int:
