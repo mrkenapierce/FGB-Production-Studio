@@ -1,4 +1,4 @@
-name: Retry Bounded-Latency Exact-Box YouTube Transport
+name: Audit Live Tickers And YouTube Audio
 
 on:
   push:
@@ -16,9 +16,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+    timeout-minutes: 5
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
@@ -27,18 +27,6 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: lovable-routing-bridge-20260902
-
-      - name: Preflight
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          bash -n services/fgbears-live/bin/youtube-lovable-compositor.sh
-          bash -n services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
-          grep -Fq 'YOUTUBE_VIDEO_BITRATE=2200k' services/fgbears-live/bin/youtube-lovable-compositor.sh
-          grep -Fq 'YOUTUBE_UDP_FIFO_SIZE=16384' services/fgbears-live/bin/youtube-lovable-compositor.sh
-          grep -Fq 'drop_pkts_on_overflow=1' services/fgbears-live/bin/youtube-lovable-compositor.sh
-          grep -Fq 'restart_with_keyframe=1' services/fgbears-live/bin/youtube-lovable-compositor.sh
-          echo 'PREFLIGHT=PASS'
 
       - name: Configure SSH
         shell: bash
@@ -49,18 +37,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Stage files
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
-          scp -i ~/.ssh/oracle_key \
-            services/fgbears-live/bin/youtube-lovable-compositor.sh \
-            services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh \
-            services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service \
-            "$target:/tmp/"
-
-      - name: YouTube-only guarded cutover
+      - name: Read-only production audit
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -73,150 +50,58 @@ jobs:
           ROUTING=fgbears-youtube-lovable-routing.service
           LEGACY=fgbears-youtube-relay.service
           ROUTER=fgbears-youtube-router.service
-          TIMER=fgbears-youtube-audio-watchdog.timer
-          WATCHDOG_SERVICE=fgbears-youtube-audio-watchdog.service
-          COMP_SCRIPT=/opt/fgbears-live/bin/youtube-lovable-compositor.sh
-          WATCHDOG=/usr/local/bin/fgbears-youtube-audio-watchdog
-          COMP_UNIT=/etc/systemd/system/fgbears-youtube-lovable-compositor.service
-          BACKUP=$(mktemp -d /tmp/fgb-lowlat-retry.XXXXXX)
-          SUCCESS=0
-
-          active(){ systemctl is-active --quiet "$1"; }
-          state(){ systemctl is-active "$1" 2>/dev/null || true; }
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
           restarts(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
           speed(){ awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true; }
-          has_port(){ local p="$1" q="$2"; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v p="pid=$p" -v q=":$q" 'index($0,p)&&index($0,q){ok=1} END{exit(ok?0:1)}'; }
-          control_ok(){
-            curl -fsS --max-time 3 http://127.0.0.1:8791/healthz | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("sourceCanvas")==[1280,720];assert p.get("canvas")==[640,360];assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470};assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235};assert p.get("frameSize")==[399,235];assert p.get("fps")==30;assert p.get("creativeKey")=="yt_rumble_trivia_redirect"' >/dev/null
-          }
-          cmd_ok(){
-            local p=$1 c
-            [[ "$p" =~ ^[1-9][0-9]*$ && -r /proc/$p/cmdline ]] || return 1
-            c=$(tr '\0' ' ' </proc/$p/cmdline)
-            [[ "$c" == *'udp://127.0.0.1:1939?fifo_size=16384&overrun_nonfatal=1&reuse=1'* ]]
-            [[ "$c" == *' -thread_queue_size 256 '* ]]
-            [[ "$c" == *' -thread_queue_size 32 -f rawvideo '* ]]
-            [[ "$c" == *'scale=640:360:flags=fast_bilinear'* ]]
-            [[ "$c" == *'overlay=231:52:format=auto:shortest=1'* ]]
-            [[ "$c" == *' -b:v 2200k '* ]]
-            [[ "$c" == *' -maxrate 2500k '* ]]
-            [[ "$c" == *' -bufsize 4400k '* ]]
-            [[ "$c" == *' -c:a aac '* ]]
-            [[ "$c" == *' -b:a 128k '* ]]
-            [[ "$c" == *' -ar 44100 '* ]]
-            [[ "$c" == *' -ac 2 '* ]]
-            [[ "$c" == *'aresample=44100:async=1:first_pts=0'* ]]
-            [[ "$c" == *'drop_pkts_on_overflow=1:restart_with_keyframe=1'* ]]
-          }
-          primary_ok(){ local p; active "$ROUTING" && active "$COMP" && control_ok && p=$(pid "$COMP") && cmd_ok "$p" && has_port "$p" 443; }
+          has443(){ local p=$1; ss -ntpH state established 2>/dev/null | awk -v p="pid=$p" 'index($0,p)&&index($0,":443"){ok=1} END{exit(ok?0:1)}'; }
 
-          restore_previous(){
-            systemctl stop "$COMP" 2>/dev/null || true
-            install -m 0755 "$BACKUP/compositor.sh" "$COMP_SCRIPT" || true
-            install -m 0755 "$BACKUP/watchdog.sh" "$WATCHDOG" || true
-            install -m 0644 "$BACKUP/compositor.service" "$COMP_UNIT" || true
-            systemctl daemon-reload || true
-            systemctl reset-failed "$COMP" >/dev/null 2>&1 || true
-            systemctl start "$COMP" 2>/dev/null || true
-            for _ in $(seq 1 25); do p=$(pid "$COMP"); active "$COMP" && has_port "$p" 443 && return 0; sleep 1; done
-            return 1
-          }
-          fallback_legacy(){
-            systemctl stop "$COMP" 2>/dev/null || true
-            systemctl unmask "$LEGACY" >/dev/null 2>&1 || true
-            systemctl enable "$LEGACY" >/dev/null 2>&1 || true
-            systemctl reset-failed "$LEGACY" >/dev/null 2>&1 || true
-            systemctl start "$LEGACY" 2>/dev/null || true
-            for _ in $(seq 1 25); do p=$(pid "$LEGACY"); active "$LEGACY" && has_port "$p" 443 && return 0; sleep 1; done
-            return 1
-          }
-          rollback(){
-            rc=$?
-            (( SUCCESS == 0 )) || return 0
-            echo "ROLLBACK=BEGIN rc=$rc"
-            systemctl stop "$TIMER" 2>/dev/null || true
-            if restore_previous; then echo "ROLLBACK=PREVIOUS_COMPOSITOR pid=$(pid "$COMP")"; elif fallback_legacy; then echo "ROLLBACK=LEGACY pid=$(pid "$LEGACY")"; else echo 'ROLLBACK=NO_YOUTUBE_SENDER' >&2; fi
-            systemctl start "$TIMER" 2>/dev/null || true
-            echo "ROLLBACK_SHARED master=$(pid "$MASTER") rumble=$(pid "$RUMBLE")"
-            rm -rf "$BACKUP" /tmp/youtube-lovable-compositor.sh /tmp/youtube-audio-watchdog-owner-aware.sh /tmp/fgbears-youtube-lovable-compositor.service
-            exit "$rc"
-          }
-          trap rollback EXIT
+          systemctl is-active --quiet "$MASTER"
+          systemctl is-active --quiet "$RUMBLE"
+          systemctl is-active --quiet "$COMP"
+          systemctl is-active --quiet "$ROUTING"
+          MPID=$(pid "$MASTER"); RPID=$(pid "$RUMBLE"); CPID=$(pid "$COMP")
+          has443 "$CPID"
+          ! systemctl is-active --quiet "$LEGACY"
+          ! systemctl is-active --quiet "$ROUTER"
+          echo "TOPOLOGY=PASS master=$MPID rumble=$RPID compositor=$CPID master_restarts=$(restarts "$MASTER") speed=$(speed)x"
 
-          active "$MASTER"; active "$RUMBLE"; active "$ROUTING"; control_ok
-          MASTER0=$(pid "$MASTER"); MASTER_R0=$(restarts "$MASTER")
-          RUMBLE0=$(pid "$RUMBLE")
-          echo "PRE master=$MASTER0 restarts=$MASTER_R0 rumble=$RUMBLE0 compositor=$(pid "$COMP") speed=$(speed)"
-          cp -a "$COMP_SCRIPT" "$BACKUP/compositor.sh"
-          cp -a "$WATCHDOG" "$BACKUP/watchdog.sh"
-          cp -a "$COMP_UNIT" "$BACKUP/compositor.service"
+          NEWS=$(curl -fsS --max-time 3 http://127.0.0.1:8789/healthz)
+          CRAWL=$(curl -fsS --max-time 3 http://127.0.0.1:8788/healthz)
+          printf '%s' "$NEWS" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert p.get("payloadSwap")=="next-cycle-boundary";assert int(p.get("scrollPps",0))==76;print("RSS_CONTRACT=PASS fps=30 pps=76 swap=next-cycle-boundary pendingChars=%s"%p.get("pendingChars"))'
+          printf '%s' "$CRAWL" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert p.get("payloadSwap")=="next-segment-boundary";print("CRAWL_CONTRACT=PASS fps=30 swap=next-segment-boundary count=%s pending=%s"%(p.get("messageCount"),p.get("pendingCount")))'
+          pgrep -af 'bears-news-feed-hq.py' >/dev/null
+          pgrep -af 'crawl-overlay-hq.py' >/dev/null
+          echo 'TICKER_PROCESSES=PASS hq_renderers_active'
 
-          systemctl stop "$TIMER"
-          systemctl stop "$WATCHDOG_SERVICE" 2>/dev/null || true
-          install -m 0755 /tmp/youtube-lovable-compositor.sh "$COMP_SCRIPT"
-          install -m 0755 /tmp/youtube-audio-watchdog-owner-aware.sh "$WATCHDOG"
-          install -m 0644 /tmp/fgbears-youtube-lovable-compositor.service "$COMP_UNIT"
-          systemctl daemon-reload
-          systemctl reset-failed "$COMP" >/dev/null 2>&1 || true
-          systemctl restart "$COMP"
+          if [[ -x /usr/local/bin/fgbears-audio-health ]]; then
+            set +e
+            SOURCE_AUDIO=$(/usr/local/bin/fgbears-audio-health --capture-seconds 8 2>&1)
+            SOURCE_RC=$?
+            set -e
+            printf '%s\n' "$SOURCE_AUDIO"
+            echo "SOURCE_AUDIO_RC=$SOURCE_RC"
+          else
+            echo 'SOURCE_AUDIO_HEALTH=UNAVAILABLE'
+            SOURCE_RC=99
+          fi
 
-          CONNECTED=0
-          for _ in $(seq 1 40); do
-            if primary_ok; then CONNECTED=1; break; fi
-            sleep 1
-          done
-          (( CONNECTED == 1 ))
-          COMP0=$(pid "$COMP")
-          echo "LOW_LATENCY_CONNECTED=PASS compositor=$COMP0"
+          MONDIR=/run/fgbears-youtube-lovable-compositor
+          SEG=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
+          [[ -n "$SEG" && -s "$SEG" ]]
+          echo "MONITOR_SEGMENT=$SEG"
+          ffprobe -v fatal -show_entries stream=index,codec_type,codec_name,sample_rate,channels,width,height,r_frame_rate -of json "$SEG" > /tmp/fgb-monitor-probe.json
+          cat /tmp/fgb-monitor-probe.json
+          python3 -c 'import json;p=json.load(open("/tmp/fgb-monitor-probe.json"));a=[s for s in p["streams"] if s.get("codec_type")=="audio"];v=[s for s in p["streams"] if s.get("codec_type")=="video"];assert a and v;print("OUTPUT_AUDIO_FORMAT codec=%s rate=%s channels=%s"%(a[0].get("codec_name"),a[0].get("sample_rate"),a[0].get("channels")));print("OUTPUT_VIDEO_FORMAT %sx%s fps=%s"%(v[0].get("width"),v[0].get("height"),v[0].get("r_frame_rate")))'
+          ffmpeg -hide_banner -nostdin -v info -i "$SEG" -map 0:a:0 -af volumedetect -f null - 2>&1 | grep -E 'mean_volume|max_volume' || true
+          ffmpeg -hide_banner -nostdin -v info -i "$SEG" -map 0:a:0 -af silencedetect=noise=-50dB:d=0.8 -f null - 2>&1 | grep -E 'silence_start|silence_end|silence_duration' || true
 
-          systemctl stop "$LEGACY" 2>/dev/null || true
-          systemctl disable "$LEGACY" >/dev/null 2>&1 || true
-          systemctl stop "$ROUTER" 2>/dev/null || true
-          systemctl disable "$ROUTER" >/dev/null 2>&1 || true
-          systemctl mask "$ROUTER" >/dev/null 2>&1 || true
-          systemctl start "$TIMER"
-          systemctl start "$WATCHDOG_SERVICE"
-          primary_ok
-          ! active "$LEGACY"
-          grep -q '^owner=exact_box_compositor$' /srv/fgbears-live/health/youtube-audio/status.env
-          echo 'OWNER_AWARE_WATCHDOG=PASS'
+          echo 'WATCHDOG_STATUS:'
+          cat /srv/fgbears-live/health/youtube-audio/status.env 2>/dev/null || true
+          echo 'WATCHDOG_WARNING:'
+          cat /srv/fgbears-live/health/youtube-audio/warning.env 2>/dev/null || true
+          echo 'COMPOSITOR_RECENT_WARNINGS:'
+          journalctl -u "$COMP" --since '15 minutes ago' --no-pager 2>/dev/null | grep -Ei 'audio|aac|timestamp|dts|pts|queue|drop|buffer|error|warning|broken|reset' | tail -80 || true
 
-          missing=0; consecutive=0; max_consecutive=0
-          COMP_R0=$(restarts "$COMP")
-          for _ in $(seq 1 30); do
-            sleep 2
-            p=$(pid "$COMP")
-            if [[ "$p" == "$COMP0" ]] && active "$COMP" && has_port "$p" 443; then
-              consecutive=0
-            else
-              missing=$((missing+1)); consecutive=$((consecutive+1)); (( consecutive > max_consecutive )) && max_consecutive=$consecutive
-            fi
-          done
-          [[ "$(pid "$COMP")" == "$COMP0" ]]
-          [[ "$(restarts "$COMP")" == "$COMP_R0" ]]
-          (( missing <= 1 )); (( max_consecutive <= 1 ))
-          primary_ok; ! active "$LEGACY"
-          [[ "$(pid "$MASTER")" == "$MASTER0" ]]
-          [[ "$(restarts "$MASTER")" == "$MASTER_R0" ]]
-          active "$RUMBLE"
-
-          CPU=$(ps -p "$COMP0" -o %cpu= | tr -d ' ')
-          RSS_KB=$(awk '/^VmRSS:/{print $2}' /proc/$COMP0/status)
-          SPEED=$(speed)
-          python3 -c 'import sys;assert float(sys.argv[1])<=40' "$CPU"
-          python3 -c 'import sys;assert int(sys.argv[1])<=350000' "$RSS_KB"
-          [[ -z "$SPEED" ]] || python3 -c 'import sys;assert float(sys.argv[1])>=0.985' "$SPEED"
-
-          echo "TRANSPORT_CONTINUITY=PASS missing=$missing max_consecutive=$max_consecutive"
-          echo 'LOW_LATENCY_CONTRACT=PASS bitrate=2200k maxrate=2500k bufsize=4400k udp_fifo=16384 queues=256/32'
-          echo 'EXACT_BOX=PASS source=462,104,798,470 output=231,52,399,235'
-          echo "SINGLE_YOUTUBE_SENDER=PASS compositor=$COMP0 legacy=$(state "$LEGACY") router=$(state "$ROUTER")"
-          echo "MASTER_UNCHANGED=PASS pid=$MASTER0 restarts=$MASTER_R0 speed=${SPEED:-unknown}x"
-          echo "RUMBLE_UNTOUCHED=PASS pid=$(pid "$RUMBLE") restarts=$(restarts "$RUMBLE")"
-          echo "RESOURCE=PASS compositor_cpu=${CPU}% compositor_rss_kb=$RSS_KB"
-          echo 'BOUNDED_LATENCY_RETRY=PASS'
-          SUCCESS=1
-          trap - EXIT
-          rm -rf "$BACKUP" /tmp/youtube-lovable-compositor.sh /tmp/youtube-audio-watchdog-owner-aware.sh /tmp/fgbears-youtube-lovable-compositor.service
+          echo "FINAL master=$(pid "$MASTER") rumble=$(pid "$RUMBLE") compositor=$(pid "$COMP") speed=$(speed)x"
+          echo 'LIVE_TICKER_AUDIO_AUDIT=COMPLETE'
           REMOTE
