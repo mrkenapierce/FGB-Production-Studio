@@ -1,0 +1,119 @@
+name: Benchmark YouTube Dynamic Bands 10fps V1
+
+on:
+  push:
+    branches:
+      - lovable-routing-bridge-20260902
+    paths:
+      - '.github/workflows/benchmark-youtube-dynamic-bands-10fps-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-dynamic-bands-10fps-benchmark
+  cancel-in-progress: false
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Benchmark 1280x720 exact card plus live bands at 10 fps
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          work=/tmp/fgb-dynamic-bands-10fps-benchmark
+          pylib=/opt/fgbears-live/exact-card-pylib
+          rm -rf "$work"; mkdir -p "$work"
+          trap 'rm -rf "$work"' EXIT
+
+          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_before=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          youtube_before=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ && "$rumble_before" =~ ^[1-9][0-9]*$ && "$youtube_before" =~ ^[1-9][0-9]*$ ]]
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          ! systemctl is-active --quiet fgbears-youtube-router.service
+
+          nice -n 19 ionice -c3 timeout 12 ffmpeg -hide_banner -nostdin -loglevel error \
+            -fflags +genpts -probesize 3000000 -analyzeduration 3000000 \
+            -i 'udp://127.0.0.1:1939?reuse=1&fifo_size=1000000&overrun_nonfatal=1' \
+            -map 0:v:0 -frames:v 1 -y "$work/frame.png"
+          test -s "$work/frame.png"
+
+          PYTHONPATH="$pylib" /usr/bin/python3 /opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py "$work/source.png" >/dev/null
+          PYTHONPATH="$pylib" /usr/bin/python3 /opt/fgbears-live/tools/compose-exact-youtube-card.py \
+            "$work/frame.png" "$work/source.png" "$work/base.png" >"$work/compose.json"
+          grep -Fq '"x": 462' "$work/compose.json"
+          grep -Fq '"y": 114' "$work/compose.json"
+          test -s "$work/base.png"
+
+          nice -n 19 ionice -c3 timeout 15 ffmpeg -hide_banner -nostdin -loglevel error \
+            -i http://127.0.0.1:8789/overlay.mjpg -t 8 -an -c:v copy -y "$work/news.mkv" & n=$!
+          nice -n 19 ionice -c3 timeout 15 ffmpeg -hide_banner -nostdin -loglevel error \
+            -i http://127.0.0.1:8788/overlay.mjpg -t 8 -an -c:v copy -y "$work/crawl.mkv" & c=$!
+          wait "$n"; wait "$c"
+          test -s "$work/news.mkv"; test -s "$work/crawl.mkv"
+
+          echo "NEWS_PROBE=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate -of csv=p=0 "$work/news.mkv")"
+          echo "CRAWL_PROBE=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate -of csv=p=0 "$work/crawl.mkv")"
+
+          start=$(date +%s%N)
+          nice -n 19 ionice -c3 ffmpeg -hide_banner -nostdin -loglevel warning \
+            -loop 1 -framerate 10 -i "$work/base.png" \
+            -i "$work/news.mkv" -i "$work/crawl.mkv" \
+            -filter_complex '[1:v:0]fps=10[news];[2:v:0]fps=10[crawl];[0:v:0][news]overlay=0:0:shortest=1[n];[n][crawl]overlay=0:574:shortest=1,format=yuv420p[v]' \
+            -map '[v]' -t 8 -an \
+            -c:v libx264 -preset ultrafast -tune zerolatency -profile:v baseline -level:v 3.1 \
+            -pix_fmt yuv420p -r 10 -g 20 -keyint_min 20 -sc_threshold 0 -threads 1 \
+            -b:v 5000k -maxrate 5500k -bufsize 10000k \
+            -f null - 2>"$work/encode.log"
+          end=$(date +%s%N)
+          elapsed_ms=$(( (end-start)/1000000 ))
+
+          python3 - "$elapsed_ms" <<'PY'
+          import sys
+          elapsed=float(sys.argv[1])
+          duration=8000.0
+          ratio=duration/elapsed if elapsed else 0.0
+          print(f'ENCODE_WALL_MS={elapsed:.0f}')
+          print(f'DYNAMIC_BANDS_10FPS_REALTIME_MULTIPLIER={ratio:.3f}x')
+          if ratio < 1.25:
+              print('DYNAMIC_BANDS_10FPS_CAPACITY=INSUFFICIENT')
+              raise SystemExit(20)
+          print('DYNAMIC_BANDS_10FPS_CAPACITY=PASS')
+          PY
+
+          master_after=$(systemctl show -p MainPID --value fgbears-live.service)
+          rumble_after=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          youtube_after=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          test "$master_after" = "$master_before"
+          test "$rumble_after" = "$rumble_before"
+          test "$youtube_after" = "$youtube_before"
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          systemctl is-active --quiet fgbears-youtube-relay.service
+          echo "MASTER_PID_UNCHANGED=$master_after"
+          echo "RUMBLE_PID_UNCHANGED=$rumble_after"
+          echo "YOUTUBE_PID_UNCHANGED=$youtube_after"
+          echo 'BENCHMARK_DID_NOT_PUBLISH=yes'
+          REMOTE
