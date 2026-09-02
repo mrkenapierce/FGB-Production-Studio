@@ -43,7 +43,7 @@ jobs:
           grep -Fq 'YOUTUBE_UDP_FIFO_SIZE=1000000' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'YOUTUBE_MASTER_THREAD_QUEUE=512' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'aresample=${YOUTUBE_AUDIO_SAMPLE_RATE}:async=1:first_pts=0' services/fgbears-live/bin/youtube-lovable-compositor.sh
-          grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE:=48000' services/fgbears-live/bin/youtube-relay.sh
+          grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE=48000' services/fgbears-live/bin/youtube-relay.sh
           grep -Fq 'recent_transport_faults=' services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
           grep -Fq 'https://rumble.com/v7eqrsu-chicago-bears-live-trivia-every-20-minutes-cash-prizes-fgb.html' services/fgbears-live/tools/build-youtube-rumble-trivia-card.py
           echo 'SOURCE_CONTRACT=PASS exact_box_360 native_audio_48k protected_udp_input canonical_rumble_url'
