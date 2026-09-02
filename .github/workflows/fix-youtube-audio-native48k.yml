@@ -35,7 +35,7 @@ jobs:
           grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE=48000' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'YOUTUBE_UDP_FIFO_SIZE=1000000' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'YOUTUBE_MASTER_THREAD_QUEUE=512' services/fgbears-live/bin/youtube-lovable-compositor.sh
-          grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE:=48000' services/fgbears-live/bin/youtube-relay.sh
+          grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE=48000' services/fgbears-live/bin/youtube-relay.sh
           grep -Fq 'recent_transport_faults=' services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
           echo 'DEPLOY_CONTRACT=PASS'
 
