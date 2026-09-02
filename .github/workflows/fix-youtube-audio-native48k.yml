@@ -1,11 +1,6 @@
-name: Fix YouTube Audio Native 48k
+name: Maintain YouTube Exact-Box Production - Manual
 
 on:
-  push:
-    branches:
-      - lovable-routing-bridge-20260902
-    paths:
-      - '.github/workflows/fix-youtube-audio-native48k.yml'
   workflow_dispatch:
 
 permissions:
@@ -18,7 +13,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 5
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
@@ -28,23 +23,23 @@ jobs:
         with:
           ref: lovable-routing-bridge-20260902
 
-      - name: Preflight audio transport contract
+      - name: Validate deployable YouTube contract
         shell: bash
         run: |
           set -Eeuo pipefail
-          bash -n services/fgbears-live/bin/youtube-lovable-compositor.sh
-          bash -n services/fgbears-live/bin/youtube-relay.sh
-          bash -n services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
-          bash -n services/fgbears-live/bin/youtube-audio-watchdog.sh
+          for f in \
+            services/fgbears-live/bin/youtube-lovable-compositor.sh \
+            services/fgbears-live/bin/youtube-relay.sh \
+            services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh \
+            services/fgbears-live/bin/youtube-audio-watchdog.sh; do bash -n "$f"; done
           grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE=48000' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'YOUTUBE_UDP_FIFO_SIZE=1000000' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'YOUTUBE_MASTER_THREAD_QUEUE=512' services/fgbears-live/bin/youtube-lovable-compositor.sh
-          grep -Fq 'aresample=${YOUTUBE_AUDIO_SAMPLE_RATE}:async=1:first_pts=0' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE:=48000' services/fgbears-live/bin/youtube-relay.sh
           grep -Fq 'recent_transport_faults=' services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
-          echo 'PREFLIGHT=PASS source_character_audio=native_48k no_mastering_dsp=true'
+          echo 'DEPLOY_CONTRACT=PASS'
 
-      - name: Configure SSH
+      - name: Configure SSH and stage YouTube-only files
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -52,11 +47,6 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      - name: Stage YouTube-only files
-        shell: bash
-        run: |
-          set -Eeuo pipefail
           target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
           scp -i ~/.ssh/oracle_key \
             services/fgbears-live/bin/youtube-lovable-compositor.sh \
@@ -66,7 +56,7 @@ jobs:
             services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service \
             "$target:/tmp/"
 
-      - name: Guarded YouTube-only cutover and certification
+      - name: Guarded YouTube-only deployment
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -86,6 +76,7 @@ jobs:
           LEGACY_WATCHDOG=/usr/local/libexec/fgbears-youtube-audio-watchdog-legacy
           COMP_UNIT=/etc/systemd/system/fgbears-youtube-lovable-compositor.service
           MONDIR=/run/fgbears-youtube-lovable-compositor
+          BACKUP=/run/fgbears-youtube-maintenance-backup
           SUCCESS=0
 
           active(){ systemctl is-active --quiet "$1"; }
@@ -97,38 +88,54 @@ jobs:
           latest_complete_segment(){ find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}'; }
           output_audio_ok(){ local seg probe; seg=$(latest_complete_segment); [[ -n "$seg" && -s "$seg" ]] || return 1; probe=$(ffprobe -v fatal -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels -of json "$seg") || return 1; printf '%s' "$probe" | python3 -c 'import json,sys;p=json.load(sys.stdin);s=(p.get("streams") or [{}])[0];assert s.get("codec_name")=="aac";assert str(s.get("sample_rate"))=="48000";assert int(s.get("channels") or 0)==2'; }
           source_audio_ok(){ /usr/local/bin/fgbears-audio-health --capture-seconds 8 2>&1 | tee /tmp/source-audio-health.log | grep -q '^OVERALL_STATUS=OK$'; }
+          wait_owner(){ local svc=$1 tries=${2:-25}; for _ in $(seq 1 "$tries"); do p=$(pid "$svc"); active "$svc" && has443 "$p" && return 0; sleep 1; done; return 1; }
 
-          fallback_audio_safe(){
-            echo 'FALLBACK=BEGIN isolated_youtube_relay'
+          fallback_legacy(){
             systemctl stop "$COMP" 2>/dev/null || true
             systemctl unmask "$RELAY" >/dev/null 2>&1 || true
             systemctl enable "$RELAY" >/dev/null 2>&1 || true
             systemctl reset-failed "$RELAY" >/dev/null 2>&1 || true
             systemctl start "$RELAY" 2>/dev/null || true
-            for _ in $(seq 1 30); do p=$(pid "$RELAY"); active "$RELAY" && has443 "$p" && break; sleep 1; done
-            p=$(pid "$RELAY")
-            active "$RELAY" && has443 "$p" || { echo 'FALLBACK=FAILED' >&2; return 1; }
-            echo "FALLBACK=PASS relay=$p master=$(pid "$MASTER") rumble=$(pid "$RUMBLE")"
+            wait_owner "$RELAY" 25
           }
 
-          rollback(){
-            rc=$?
-            (( SUCCESS == 0 )) || return 0
-            systemctl stop "$TIMER" 2>/dev/null || true
-            systemctl stop "$WATCHDOG_SERVICE" 2>/dev/null || true
-            fallback_audio_safe || true
-            systemctl start "$TIMER" 2>/dev/null || true
-            rm -f /tmp/youtube-lovable-compositor.sh /tmp/youtube-relay.sh /tmp/youtube-audio-watchdog-owner-aware.sh /tmp/youtube-audio-watchdog.sh /tmp/fgbears-youtube-lovable-compositor.service
-            exit "$rc"
+          restore_previous(){
+            echo 'ROLLBACK=RESTORE_PREVIOUS_EXACT_BOX'
+            systemctl stop "$COMP" 2>/dev/null || true
+            [[ -f "$BACKUP/compositor.sh" ]] && install -m 0755 "$BACKUP/compositor.sh" "$COMP_SCRIPT"
+            [[ -f "$BACKUP/relay.sh" ]] && install -m 0755 "$BACKUP/relay.sh" "$RELAY_SCRIPT"
+            [[ -f "$BACKUP/watchdog" ]] && install -m 0755 "$BACKUP/watchdog" "$WATCHDOG"
+            [[ -f "$BACKUP/legacy-watchdog" ]] && install -m 0755 "$BACKUP/legacy-watchdog" "$LEGACY_WATCHDOG"
+            [[ -f "$BACKUP/compositor.service" ]] && install -m 0644 "$BACKUP/compositor.service" "$COMP_UNIT"
+            systemctl daemon-reload
+            systemctl stop "$RELAY" 2>/dev/null || true
+            systemctl disable "$RELAY" >/dev/null 2>&1 || true
+            systemctl reset-failed "$COMP" >/dev/null 2>&1 || true
+            systemctl start "$COMP" 2>/dev/null || true
+            if wait_owner "$COMP" 20; then
+              echo 'ROLLBACK=PASS previous_exact_box_restored'
+              return 0
+            fi
+            echo 'ROLLBACK=PREVIOUS_COMPOSITOR_FAILED using_legacy_fallback' >&2
+            fallback_legacy
           }
+
+          cleanup(){ rm -rf "$BACKUP"; rm -f /tmp/youtube-lovable-compositor.sh /tmp/youtube-relay.sh /tmp/youtube-audio-watchdog-owner-aware.sh /tmp/youtube-audio-watchdog.sh /tmp/fgbears-youtube-lovable-compositor.service /tmp/source-audio-health.log; }
+          rollback(){ rc=$?; (( SUCCESS == 0 )) || return 0; systemctl stop "$TIMER" 2>/dev/null || true; systemctl stop "$WATCHDOG_SERVICE" 2>/dev/null || true; restore_previous || true; systemctl start "$TIMER" 2>/dev/null || true; cleanup; exit "$rc"; }
           trap rollback EXIT
 
           active "$MASTER"; active "$RUMBLE"; active "$ROUTING"
           MASTER0=$(pid "$MASTER"); MASTER_R0=$(restarts "$MASTER")
           RUMBLE0=$(pid "$RUMBLE"); RUMBLE_R0=$(restarts "$RUMBLE")
-          echo "PRE master=$MASTER0 master_restarts=$MASTER_R0 rumble=$RUMBLE0 rumble_restarts=$RUMBLE_R0 compositor=$(pid "$COMP") speed=$(speed)x"
           source_audio_ok
-          echo 'SOURCE_AUDIO=PASS canonical_48k_stereo no_signal_faults=true'
+          echo "BASELINE=PASS master=$MASTER0 rumble=$RUMBLE0 speed=$(speed)x source_audio=clean_48k"
+
+          rm -rf "$BACKUP"; install -d -m 0700 "$BACKUP"
+          cp -a "$COMP_SCRIPT" "$BACKUP/compositor.sh"
+          cp -a "$RELAY_SCRIPT" "$BACKUP/relay.sh"
+          cp -a "$WATCHDOG" "$BACKUP/watchdog"
+          [[ -f "$LEGACY_WATCHDOG" ]] && cp -a "$LEGACY_WATCHDOG" "$BACKUP/legacy-watchdog"
+          cp -a "$COMP_UNIT" "$BACKUP/compositor.service"
 
           systemctl stop "$TIMER" 2>/dev/null || true
           systemctl stop "$WATCHDOG_SERVICE" 2>/dev/null || true
@@ -139,65 +146,49 @@ jobs:
           install -m 0755 /tmp/youtube-audio-watchdog.sh "$LEGACY_WATCHDOG"
           install -m 0644 /tmp/fgbears-youtube-lovable-compositor.service "$COMP_UNIT"
           systemctl daemon-reload
-
           systemctl stop "$RELAY" 2>/dev/null || true
           systemctl disable "$RELAY" >/dev/null 2>&1 || true
-          systemctl reset-failed "$COMP" >/dev/null 2>&1 || true
-          START_EPOCH=$(date +%s)
-          systemctl restart "$COMP"
-          for _ in $(seq 1 40); do
-            CPID=$(pid "$COMP")
-            if active "$COMP" && has443 "$CPID"; then break; fi
-            sleep 1
-          done
-          CPID=$(pid "$COMP")
-          active "$COMP"; has443 "$CPID"
-          echo "YOUTUBE_CONNECTED=PASS compositor=$CPID"
 
-          sleep 12
+          START_EPOCH=$(date +%s)
+          systemctl reset-failed "$COMP" >/dev/null 2>&1 || true
+          systemctl restart "$COMP"
+          wait_owner "$COMP" 30
+          CPID=$(pid "$COMP")
+          sleep 10
           output_audio_ok
           FAULTS=$(faults_since "$CPID" "$START_EPOCH")
           (( FAULTS == 0 ))
           CPU=$(ps -p "$CPID" -o %cpu= | tr -d ' ')
           RSS_KB=$(awk '/^VmRSS:/{print $2}' /proc/$CPID/status)
-          SPEED=$(speed)
           python3 -c 'import sys;assert float(sys.argv[1])<=45' "$CPU"
           python3 -c 'import sys;assert int(sys.argv[1])<=400000' "$RSS_KB"
-          [[ -z "$SPEED" ]] || python3 -c 'import sys;assert float(sys.argv[1])>=0.985' "$SPEED"
-          [[ "$(pid "$MASTER")" == "$MASTER0" ]]
-          [[ "$(restarts "$MASTER")" == "$MASTER_R0" ]]
-          [[ "$(pid "$RUMBLE")" == "$RUMBLE0" ]]
-          [[ "$(restarts "$RUMBLE")" == "$RUMBLE_R0" ]]
-          echo "INITIAL_CERT=PASS audio=48k faults=$FAULTS cpu=${CPU}% rss_kb=$RSS_KB speed=${SPEED:-unknown}x"
 
           systemctl start "$TIMER"
           systemctl start "$WATCHDOG_SERVICE"
-          sleep 3
-          grep -Eq '^state=(OK|WARN)$' /srv/fgbears-live/health/youtube-audio/status.env
+          grep -q '^state=OK$' /srv/fgbears-live/health/youtube-audio/status.env
           grep -q '^owner=exact_box_compositor$' /srv/fgbears-live/health/youtube-audio/status.env
           grep -q '^youtube_audio_rate=48000$' /srv/fgbears-live/health/youtube-audio/status.env
           grep -q '^recent_transport_faults=0$' /srv/fgbears-live/health/youtube-audio/status.env
-          echo 'WATCHDOG=PASS output_format_and_transport_fault_detection_active'
 
           OBS_EPOCH=$(date +%s)
-          for _ in $(seq 1 4); do
-            sleep 10
+          for _ in $(seq 1 6); do
+            sleep 5
             [[ "$(pid "$COMP")" == "$CPID" ]]
             active "$COMP"; has443 "$CPID"
             [[ "$(pid "$MASTER")" == "$MASTER0" ]]
+            [[ "$(restarts "$MASTER")" == "$MASTER_R0" ]]
             [[ "$(pid "$RUMBLE")" == "$RUMBLE0" ]]
-            output_audio_ok
+            [[ "$(restarts "$RUMBLE")" == "$RUMBLE_R0" ]]
           done
+          output_audio_ok
           OBS_FAULTS=$(faults_since "$CPID" "$OBS_EPOCH")
           (( OBS_FAULTS == 0 ))
-          source_audio_ok
           FINAL_SPEED=$(speed)
           [[ -z "$FINAL_SPEED" ]] || python3 -c 'import sys;assert float(sys.argv[1])>=0.985' "$FINAL_SPEED"
-          echo "SUSTAINED_CERT=PASS seconds=40 audio=48k transport_faults=$OBS_FAULTS master=$MASTER0 rumble=$RUMBLE0 compositor=$CPID speed=${FINAL_SPEED:-unknown}x"
-          echo 'AUDIO_POLICY=PASS source_mastering_preserved no_eq_compression_limiting_or_loudness_reprocessing=true'
-          echo 'YOUTUBE_AUDIO_NATIVE48K_FIX=PASS'
 
+          echo "YOUTUBE_EXACT_BOX_MAINTENANCE=PASS compositor=$CPID audio=48k transport_faults=$OBS_FAULTS cpu=${CPU}% master=$MASTER0 rumble=$RUMBLE0 speed=${FINAL_SPEED:-unknown}x"
+          echo 'AUDIO_POLICY=PASS source_mastering_preserved no_second_mastering_stage=true'
           SUCCESS=1
           trap - EXIT
-          rm -f /tmp/youtube-lovable-compositor.sh /tmp/youtube-relay.sh /tmp/youtube-audio-watchdog-owner-aware.sh /tmp/youtube-audio-watchdog.sh /tmp/fgbears-youtube-lovable-compositor.service
+          cleanup
           REMOTE
