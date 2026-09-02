@@ -1,0 +1,63 @@
+name: Probe FGBears VAAPI H264 Encode
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-fgbears-vaapi-encode.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Run isolated VAAPI encode benchmark only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== render node ==='
+          ls -l /dev/dri/renderD128
+          id
+          echo '=== vainfo ==='
+          if command -v vainfo >/dev/null; then vainfo --display drm --device /dev/dri/renderD128 2>&1 | head -100 || true; else echo VAINFONOTINSTALLED; fi
+          echo '=== isolated 1280x720@30 H264 VAAPI benchmark ==='
+          START=$(date +%s%N)
+          set +e
+          OUT=$(timeout 15s ffmpeg -hide_banner -loglevel info -y \
+            -f lavfi -i color=c=black:s=1280x720:r=30:d=8 \
+            -vaapi_device /dev/dri/renderD128 \
+            -vf 'format=nv12,hwupload' \
+            -c:v h264_vaapi -profile:v high -b:v 5000k -maxrate 5500k -bufsize 10000k \
+            -g 60 -an -f null - 2>&1)
+          RC=$?
+          set -e
+          END=$(date +%s%N)
+          printf '%s\n' "$OUT" | tail -80
+          echo "vaapi_rc=$RC"
+          python3 - "$START" "$END" <<'PY'
+          import sys
+          a,b=map(int,sys.argv[1:]); print(f'elapsed_seconds={(b-a)/1e9:.3f}')
+          PY
+          if [[ "$RC" -ne 0 ]]; then exit "$RC"; fi
+          echo 'vaapi_h264_encode_ok=yes'
+          REMOTE
