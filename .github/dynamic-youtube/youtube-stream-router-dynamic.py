@@ -47,6 +47,30 @@ class DynamicStreamRouter(base.StreamRouter):
         # Do not spend work pumping the dormant static branch.
         return not self._stopping
 
+    @staticmethod
+    def _buffer_contains_idr(buffer: Gst.Buffer) -> bool:
+        """Detect an Annex-B IDR directly when Gst delta flags are unreliable.
+
+        The inactive live selector pad can retain DELTA_UNIT on parsed buffers in
+        mixed-framerate tests. Reading the AU itself keeps the return switch
+        keyframe-safe without forcing a mid-GOP cut.
+        """
+        ok, mapped = buffer.map(Gst.MapFlags.READ)
+        if not ok:
+            return False
+        try:
+            return bool(base.has_idr(bytes(mapped.data)))
+        finally:
+            buffer.unmap(mapped)
+
+    def _on_live_buffer(self, _pad: Gst.Pad, info: Gst.PadProbeInfo) -> Gst.PadProbeReturn:
+        buffer = info.get_buffer()
+        if buffer is not None and self.pending_mode == "live":
+            gst_keyframe = not (buffer.get_flags() & Gst.BufferFlags.DELTA_UNIT)
+            if gst_keyframe or self._buffer_contains_idr(buffer):
+                GLib.idle_add(self._activate_mode, "live")
+        return Gst.PadProbeReturn.OK
+
     def _build_pipeline(self) -> None:
         super()._build_pipeline()
 
