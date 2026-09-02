@@ -1,0 +1,85 @@
+name: One-shot Diagnose YouTube Audio Ingest
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-shot-diagnose-youtube-audio-ingest.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Inspect YouTube-only audio path without changes
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MASTER=fgbears-live.service
+          YOUTUBE=fgbears-youtube-relay.service
+          RUMBLE=fgbears-rumble-relay.service
+          STATUS=/srv/fgbears-live/health/youtube-audio/status.env
+          WARNING=/srv/fgbears-live/health/youtube-audio/warning.env
+
+          for svc in "$MASTER" "$YOUTUBE" "$RUMBLE"; do
+            echo "$svc=$(systemctl is-active "$svc") pid=$(systemctl show -p MainPID --value "$svc")"
+          done
+
+          ypid=$(systemctl show -p MainPID --value "$YOUTUBE")
+          rpid=$(systemctl show -p MainPID --value "$RUMBLE")
+          mpid=$(systemctl show -p MainPID --value "$MASTER")
+          [[ "$ypid" =~ ^[1-9][0-9]*$ && "$rpid" =~ ^[1-9][0-9]*$ && "$mpid" =~ ^[1-9][0-9]*$ ]]
+
+          yargs=$(tr '\0' ' ' < "/proc/$ypid/cmdline")
+          rargs=$(tr '\0' ' ' < "/proc/$rpid/cmdline")
+          mchild=$(pgrep -P "$mpid" -x ffmpeg | head -n1 || true)
+          [[ "$mchild" =~ ^[1-9][0-9]*$ ]]
+          margs=$(tr '\0' ' ' < "/proc/$mchild/cmdline")
+          printf 'youtube_args=%s\n' "$(sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g' <<<"$yargs")"
+          printf 'rumble_args=%s\n' "$(sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g' <<<"$rargs")"
+          printf 'master_audio_copy=%s\n' "$([[ "$margs" == *" -c:a copy "* ]] && echo yes || echo no)"
+
+          echo '--- watchdog status ---'
+          sudo cat "$STATUS" 2>/dev/null || true
+          echo '--- watchdog warning ---'
+          sudo cat "$WARNING" 2>/dev/null || true
+
+          echo '--- direct source audio health ---'
+          set +e
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 10
+          health_rc=$?
+          set -e
+          echo "audio_health_rc=$health_rc"
+
+          echo '--- YouTube relay journal last 20 minutes ---'
+          sudo journalctl -u "$YOUTUBE" --since '-20 minutes' --no-pager | tail -n 160 || true
+
+          echo '--- YouTube socket transport ---'
+          sudo ss -tinpH state established | grep -F "pid=$ypid" || true
+
+          echo '--- process CPU/memory ---'
+          ps -p "$mchild,$ypid,$rpid" -o pid,ni,pcpu,pmem,etime,args --no-headers | sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g'
+
+          echo 'diagnostic_only_no_restart=yes'
+          REMOTE
