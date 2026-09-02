@@ -14,7 +14,7 @@ permissions:
 jobs:
   diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
@@ -30,31 +30,98 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Inspect safe selector-test state
+      - name: Test 30 to 10 to 30 selector against real master GOP
         shell: bash
         run: |
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          echo "MASTER_STATE=$(systemctl is-active fgbears-live.service || true)"
-          echo "RUMBLE_STATE=$(systemctl is-active fgbears-rumble-relay.service || true)"
-          echo "YOUTUBE_DIRECT_STATE=$(systemctl is-active fgbears-youtube-relay.service || true)"
-          echo "YOUTUBE_ROUTER_STATE=$(systemctl is-active fgbears-youtube-router.service || true)"
-          echo "DYNAMIC_SOURCE_STATE=$(systemctl is-active fgbears-youtube-dynamic-card.service || true)"
-          echo '--- DYNAMIC SOURCE JOURNAL ---'
-          sudo journalctl -u fgbears-youtube-dynamic-card.service -n 35 --no-pager \
-            | sed -E 's#rtmps?://[^[:space:]]+#<redacted-url>#g'
-          echo '--- SELECTOR TEST LOG ---'
-          if [[ -f /tmp/fgb-youtube-dynamic-router-test.log ]]; then
-            sed -E 's#rtmps?://[^[:space:]]+#<redacted-url>#g' /tmp/fgb-youtube-dynamic-router-test.log | tail -n 160
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          DIRECT=fgbears-youtube-relay.service
+          ROUTER=fgbears-youtube-router.service
+          DYNAMIC=fgbears-youtube-dynamic-card.service
+          TEST_PORT=2950
+
+          pid() { systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          active() { systemctl is-active --quiet "$1"; }
+
+          active "$MASTER"
+          active "$RUMBLE"
+          active "$DIRECT"
+          ! active "$ROUTER"
+          master0=$(pid "$MASTER")
+          rumble0=$(pid "$RUMBLE")
+          direct0=$(pid "$DIRECT")
+          [[ "$master0" =~ ^[1-9][0-9]*$ ]]
+          [[ "$rumble0" =~ ^[1-9][0-9]*$ ]]
+          [[ "$direct0" =~ ^[1-9][0-9]*$ ]]
+
+          dynamic_was_active=0
+          if active "$DYNAMIC"; then
+            dynamic_was_active=1
           else
-            echo 'selector_test_log_missing=yes'
+            sudo systemctl start "$DYNAMIC"
           fi
-          echo '--- SYNTH LOG ---'
-          if [[ -f /tmp/fgb-youtube-selector-synth.log ]]; then
-            tail -n 80 /tmp/fgb-youtube-selector-synth.log
-          else
-            echo 'synth_log_missing=yes'
-          fi
-          echo 'DIAGNOSE_DYNAMIC_SELECTOR=PASS'
+
+          repub_pid=0
+          cleanup() {
+            rc=$?
+            if [[ "$repub_pid" =~ ^[1-9][0-9]*$ ]]; then
+              kill "$repub_pid" >/dev/null 2>&1 || true
+              wait "$repub_pid" >/dev/null 2>&1 || true
+            fi
+            if (( dynamic_was_active == 0 )); then
+              sudo systemctl stop "$DYNAMIC" >/dev/null 2>&1 || true
+            fi
+            exit "$rc"
+          }
+          trap cleanup EXIT
+
+          for _ in $(seq 1 20); do
+            active "$DYNAMIC" && break
+            sleep 1
+          done
+          active "$DYNAMIC"
+
+          probe=$(timeout 12 ffprobe -v error -select_streams v:0 \
+            -show_entries stream=codec_name,width,height,r_frame_rate -of csv=p=0 \
+            'udp://127.0.0.1:2942?fifo_size=1000000&overrun_nonfatal=1')
+          printf 'DYNAMIC_PROBE=%s\n' "$probe"
+          [[ "$probe" == h264,1280,720,10/1* ]]
+
+          repub_log=/tmp/fgb-real-master-selector-republish.log
+          testlog=/tmp/fgb-real-master-selector-router.log
+          rm -f "$repub_log" "$testlog"
+
+          # Read the real master mirror and packet-copy only its H.264 video to
+          # an isolated test port. No decode/re-encode and nothing is published.
+          nice -n 19 ionice -c3 ffmpeg -hide_banner -nostdin -loglevel warning \
+            -fflags +genpts -probesize 5000000 -analyzeduration 5000000 \
+            -i 'udp://127.0.0.1:1939?reuse=1&fifo_size=1000000&overrun_nonfatal=1' \
+            -map 0:v:0 -c:v copy -an -mpegts_flags +resend_headers \
+            -f mpegts "udp://127.0.0.1:${TEST_PORT}?pkt_size=1316" >"$repub_log" 2>&1 &
+          repub_pid=$!
+          sleep 3
+          kill -0 "$repub_pid"
+
+          timeout 20 env FGB_YOUTUBE_DYNAMIC_CARD_PORT=2942 \
+            /usr/bin/python3 /opt/fgbears-live/bin/youtube-stream-router-dynamic.py \
+            --input-port "$TEST_PORT" --test --test-cycle 3 --runtime 15 >"$testlog" 2>&1
+
+          cat "$testlog"
+          grep -Fq 'video route switched: live -> card' "$testlog"
+          grep -Fq 'video route switched: card -> live' "$testlog"
+          ! grep -Fq 'GStreamer error' "$testlog"
+
+          test "$(pid "$MASTER")" = "$master0"
+          test "$(pid "$RUMBLE")" = "$rumble0"
+          test "$(pid "$DIRECT")" = "$direct0"
+          active "$DIRECT"
+          ! active "$ROUTER"
+
+          echo 'REAL_MASTER_SELECTOR_30_TO_10_TO_30=PASS'
+          echo 'ON_AIR_YOUTUBE_DIRECT_UNCHANGED=yes'
+          echo 'MASTER_PID_UNCHANGED=yes'
+          echo 'RUMBLE_PID_UNCHANGED=yes'
           REMOTE
