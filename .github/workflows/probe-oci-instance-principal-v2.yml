@@ -1,0 +1,28 @@
+name: Probe OCI Instance Principal v2
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-oci-instance-principal-v2.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Probe read only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key ubuntu@$ORACLE_HOST "set -u; echo ===METADATA===; curl -fsS --max-time 5 -H 'Authorization: Bearer Oracle' http://169.254.169.254/opc/v2/instance/ | python3 -c 'import json,sys; x=json.load(sys.stdin); print(json.dumps({k:x.get(k) for k in [\"id\",\"displayName\",\"compartmentId\",\"region\",\"availabilityDomain\",\"shape\",\"shapeConfig\"]},indent=2))' || true; echo ===OCI_CLI===; command -v oci || true; if command -v oci >/dev/null; then oci --version; oci iam region list --auth instance_principal --output json 2>&1 | head -60 || true; fi; echo ===SERVICES===; systemctl is-active fgbears-live.service; systemctl is-active fgbears-youtube-relay.service; systemctl is-active fgbears-rumble-relay.service"
