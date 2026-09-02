@@ -1,0 +1,48 @@
+name: Authorized FGBears Live Deploy Launcher 20260902
+
+on:
+  push:
+    branches:
+      - lovable-routing-bridge-20260902
+    paths:
+      - '.github/workflows/authorized-deploy-fgbears-live-20260902.yml'
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require the authorized launcher commit
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test "$MESSAGE" = 'Authorize guarded FGBears live production deploy'
+          test "$GITHUB_REF_NAME" = 'lovable-routing-bridge-20260902'
+
+      - name: Dispatch canonical guarded production deploy
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          body='{"ref":"lovable-routing-bridge-20260902","inputs":{"confirm":"DEPLOY"}}'
+          code=$(curl --silent --show-error --output /tmp/dispatch-response \
+            --write-out '%{http_code}' \
+            --request POST \
+            --header "Authorization: Bearer $GH_TOKEN" \
+            --header 'Accept: application/vnd.github+json' \
+            --header 'X-GitHub-Api-Version: 2022-11-28' \
+            --data "$body" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/workflows/fgbears-live-deploy.yml/dispatches")
+          if [[ "$code" != 204 ]]; then
+            cat /tmp/dispatch-response >&2 || true
+            echo "Canonical deploy dispatch failed: HTTP $code" >&2
+            exit 1
+          fi
+          echo 'CANONICAL_DEPLOY_DISPATCHED=PASS'
