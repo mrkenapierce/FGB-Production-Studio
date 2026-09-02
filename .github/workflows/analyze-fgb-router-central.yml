@@ -1,0 +1,124 @@
+name: Analyze FGB Router Central Window
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/analyze-fgb-router-central.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  analyze-central-window:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Analyze switch-time center only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          cd /tmp/fgb-router-test
+          test -s router-output.ts
+          test -s router.log
+
+          echo '--- switch events from source test ---'
+          grep 'video route switched:' router.log
+          live_to_card=$(grep -c 'video route switched: live -> card' router.log || true)
+          card_to_live=$(grep -c 'video route switched: card -> live' router.log || true)
+          echo "live_to_card_switches=$live_to_card"
+          echo "card_to_live_switches=$card_to_live"
+          [[ "$live_to_card" -ge 2 && "$card_to_live" -ge 2 ]]
+
+          # The raw UDP capture necessarily begins and ends in the middle of a
+          # transport stream. Remove those boundary regions first, then judge
+          # only the center that contains actual selector transitions.
+          rm -f central.ts central.flv central-probe.err central-remux.err central-decode.err
+          ffmpeg -hide_banner -nostdin -loglevel error -y \
+            -ss 1.5 -t 7.0 -i router-output.ts \
+            -map 0:v:0 -map 0:a:0 -c copy \
+            -mpegts_flags +resend_headers \
+            -avoid_negative_ts make_zero central.ts
+          test -s central.ts
+
+          echo '--- central MPEG-TS probe ---'
+          ffprobe -v warning \
+            -show_entries stream=index,codec_name,codec_type,profile,level,start_time,duration \
+            -of compact central.ts >central-probe.out 2>central-probe.err
+          cat central-probe.out
+          cat central-probe.err
+          probe_errors=$(grep -Eic 'PES packet size mismatch|Packet corrupt|corrupt input packet|Invalid timestamps|Non-monotonous DTS|non monotonically increasing dts|luma_log2_weight_denom|illegal memory management' central-probe.err || true)
+          echo "central_probe_errors=$probe_errors"
+
+          ffprobe -v error -show_packets \
+            -show_entries packet=stream_index,pts_time,dts_time,duration_time \
+            -of csv=p=0 central.ts >central-packets.csv
+          python3 - central-packets.csv <<'PY'
+          import csv,sys
+          streams={}
+          for row in csv.reader(open(sys.argv[1])):
+              if len(row)<4: continue
+              try: idx=int(row[0]); pts=float(row[1]); dts=float(row[2])
+              except: continue
+              streams.setdefault(idx,[]).append((pts,dts))
+          if len(streams)<2: raise SystemExit(f'expected audio+video, got {list(streams)}')
+          bad=False
+          for idx,packets in sorted(streams.items()):
+              pr=sum(packets[i][0] < packets[i-1][0]-0.001 for i in range(1,len(packets)))
+              dr=sum(packets[i][1] < packets[i-1][1]-0.001 for i in range(1,len(packets)))
+              pd=sum(p[0] < p[1]-0.001 for p in packets)
+              print(f'central_stream={idx} packets={len(packets)} pts_regressions={pr} dts_regressions={dr} pts_lt_dts={pd}')
+              bad = bad or pr or dr or pd
+          if bad: raise SystemExit('central timestamps are not monotonic')
+          PY
+
+          echo '--- central exact YouTube copy-remux ---'
+          ffmpeg -hide_banner -nostdin -loglevel warning -y \
+            -fflags +genpts -probesize 10000000 -analyzeduration 10000000 \
+            -i central.ts -map 0:v:0 -map 0:a:0 -c copy \
+            -f flv -flvflags no_duration_filesize central.flv \
+            >central-remux.out 2>central-remux.err
+          cat central-remux.err
+          remux_errors=$(grep -Eic 'PES packet size mismatch|Packet corrupt|corrupt input packet|Invalid timestamps|Non-monotonous DTS|non monotonically increasing dts|luma_log2_weight_denom|illegal memory management' central-remux.err || true)
+          echo "central_remux_errors=$remux_errors"
+
+          echo '--- central AAC decode ---'
+          set +e
+          ffmpeg -hide_banner -nostdin -loglevel warning \
+            -i central.flv -map 0:a:0 -f null - \
+            >central-decode.out 2>central-decode.err
+          decode_rc=$?
+          set -e
+          cat central-decode.err
+          decode_errors=$(grep -Eic 'error|invalid|corrupt|exhausted' central-decode.err || true)
+          echo "central_audio_decode_rc=$decode_rc"
+          echo "central_audio_decode_errors=$decode_errors"
+
+          echo '--- production isolation ---'
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-relay.service
+          systemctl is-active fgbears-rumble-relay.service
+          echo 'production_changes=none'
+
+          [[ "$probe_errors" -eq 0 ]]
+          [[ "$remux_errors" -eq 0 ]]
+          [[ "$decode_rc" -eq 0 ]]
+          [[ "$decode_errors" -eq 0 ]]
+          REMOTE
