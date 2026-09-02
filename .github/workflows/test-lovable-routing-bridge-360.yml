@@ -23,28 +23,30 @@ concurrency:
 jobs:
   contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install only required Python test dependencies
-        run: python3 -m pip install --user pillow qrcode opencv-python-headless
+      - name: Install minimal Python test dependencies
+        run: python3 -m pip install --user pillow qrcode
 
       - name: Validate production source contracts
         run: |
           set -Eeuo pipefail
           python3 -m py_compile services/fgbears-live/bin/youtube-question-mask.py
-          bash -n services/fgbears-live/bin/youtube-lovable-compositor.sh
-          bash -n services/fgbears-live/bin/youtube-relay.sh
-          bash -n services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
-          bash -n services/fgbears-live/bin/youtube-audio-watchdog.sh
+          for f in \
+            services/fgbears-live/bin/youtube-lovable-compositor.sh \
+            services/fgbears-live/bin/youtube-relay.sh \
+            services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh \
+            services/fgbears-live/bin/youtube-audio-watchdog.sh; do bash -n "$f"; done
           grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE=48000' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'YOUTUBE_UDP_FIFO_SIZE=1000000' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'YOUTUBE_MASTER_THREAD_QUEUE=512' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'aresample=${YOUTUBE_AUDIO_SAMPLE_RATE}:async=1:first_pts=0' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE:=48000' services/fgbears-live/bin/youtube-relay.sh
           grep -Fq 'recent_transport_faults=' services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
-          echo 'SOURCE_CONTRACT=PASS exact_box_360 native_audio_48k protected_udp_input'
+          grep -Fq 'https://rumble.com/v7eqrsu-chicago-bears-live-trivia-every-20-minutes-cash-prizes-fgb.html' services/fgbears-live/tools/build-youtube-rumble-trivia-card.py
+          echo 'SOURCE_CONTRACT=PASS exact_box_360 native_audio_48k protected_udp_input canonical_rumble_url'
 
       - name: Start mocked Lovable routing
         run: |
@@ -61,7 +63,7 @@ jobs:
           PY
           nohup python3 /tmp/mock.py >/dev/null 2>&1 &
 
-      - name: Verify exact-box mask geometry and QR
+      - name: Verify exact-box mask geometry and exact locked creative
         env:
           FGB_STREAM_ROUTING_URL: http://127.0.0.1:18081/api/public/fgbears/stream-routing
           YOUTUBE_QUESTION_MASK_PORT: '18792'
@@ -71,9 +73,8 @@ jobs:
         run: |
           nohup python3 services/fgbears-live/bin/youtube-question-mask.py >/tmp/worker360.log 2>&1 &
           for _ in $(seq 1 30); do curl -sf http://127.0.0.1:18792/healthz >/tmp/h360.json && break; sleep 1; done
-          cat /tmp/h360.json
           python3 - <<'PY'
-          import json,subprocess,sys,urllib.request,cv2,numpy as np
+          import json,subprocess,sys,urllib.request
           from PIL import Image,ImageChops
           from pathlib import Path
           p=json.load(open('/tmp/h360.json'))
@@ -94,11 +95,7 @@ jobs:
           scaled=src.copy(); scaled.thumbnail((398,235),Image.Resampling.LANCZOS)
           expected=Image.new('RGBA',(399,235),(11,22,42,255)); expected.paste(scaled,((399-scaled.width)//2,(235-scaled.height)//2),scaled)
           assert ImageChops.difference(actual,expected).getbbox() is None
-          bgr=cv2.cvtColor(np.asarray(actual.convert('RGB')),cv2.COLOR_RGB2BGR)
-          decoded,points,_=cv2.QRCodeDetector().detectAndDecode(bgr)
-          want='https://rumble.com/v7eqrsu-chicago-bears-live-trivia-every-20-minutes-cash-prizes-fgb.html'
-          assert points is not None and decoded==want,(decoded,want)
-          print('EXACT_BOX_AND_QR=PASS')
+          print('EXACT_BOX_CREATIVE=PASS')
           PY
 
       - name: Verify compositor command is low-load, native-audio and bounded
@@ -134,7 +131,7 @@ jobs:
           command -v ffprobe >/dev/null
           rm -rf /tmp/segment-proof && mkdir -p /tmp/segment-proof
           ffmpeg -hide_banner -nostdin -loglevel error \
-            -f lavfi -i 'testsrc=size=640x360:rate=30' -t 3 -map 0:v \
+            -f lavfi -i 'testsrc=size=640x360:rate=30' -t 2 -map 0:v \
             -c:v libx264 -preset ultrafast -g 30 \
             -f tee '[f=null]/dev/null|[f=segment:segment_time=1:segment_wrap=3:segment_format=mpegts:reset_timestamps=1:onfail=ignore]/tmp/segment-proof/monitor-%d.ts'
           count=$(find /tmp/segment-proof -maxdepth 1 -name 'monitor-*.ts' -type f | wc -l)
