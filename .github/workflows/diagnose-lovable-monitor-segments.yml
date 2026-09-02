@@ -1,0 +1,54 @@
+name: Diagnose Lovable Monitor Segments
+
+on:
+  push:
+    paths:
+      - '.github/workflows/diagnose-lovable-monitor-segments.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Inspect monitor tee read-only
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          unit=fgbears-youtube-lovable-compositor.service
+          pid=$(systemctl show -p MainPID --value "$unit")
+          echo "unit_active=$(systemctl is-active "$unit") main_pid=$pid restarts=$(systemctl show -p NRestarts --value "$unit")"
+          echo '=== monitor directory ==='
+          sudo ls -lah --time-style=full-iso /run/fgbears-youtube-lovable-compositor 2>&1 || true
+          echo '=== monitor files ==='
+          sudo find /run/fgbears-youtube-lovable-compositor -maxdepth 1 -type f -printf '%T@ %s %p\n' 2>/dev/null | sort -nr || true
+          echo '=== ffmpeg open monitor fds ==='
+          for fd in /proc/"$pid"/fd/*; do
+            p=$(readlink "$fd" 2>/dev/null || true)
+            case "$p" in *monitor*|*.ts) echo "$fd -> $p" ;; esac
+          done
+          echo '=== sanitized command markers ==='
+          cmd=$(tr '\0' ' ' <"/proc/$pid/cmdline")
+          [[ "$cmd" == *'segment_time=2'* ]] && echo 'segment_time_2=yes' || echo 'segment_time_2=no'
+          [[ "$cmd" == *'segment_wrap=3'* ]] && echo 'segment_wrap_3=yes' || echo 'segment_wrap_3=no'
+          [[ "$cmd" == *'/run/fgbears-youtube-lovable-compositor/monitor-%d.ts'* ]] && echo 'monitor_path=yes' || echo 'monitor_path=no'
+          echo '=== recent non-sensitive compositor journal ==='
+          sudo journalctl -u "$unit" --since '-10 min' --no-pager 2>/dev/null | sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g' | tail -80 || true
+          REMOTE
