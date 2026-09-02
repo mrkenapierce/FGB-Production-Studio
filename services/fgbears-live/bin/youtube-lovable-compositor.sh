@@ -8,19 +8,22 @@ set -Eeuo pipefail
 # live because the moving master is continuously decoded/scaled; only Lovable's
 # question panel is overlaid when the routing consumer emits opaque RGBA.
 #
-# Latency policy: this branch must prefer dropping stale buffered packets over
-# replaying old video after a transient YouTube/network stall. The loopback UDP
-# and raw-overlay queues are intentionally bounded, and the tee FIFO discards
-# overflow while recovering from the current keyframe.
+# Audio policy: the source library is already mastered/normalized. Do not apply
+# any second-stage loudness, EQ, dynamics or enhancement processing here. The
+# only YouTube-specific audio operation is a transparent AAC-LC clock/package
+# rebuild at the source program's native 48 kHz stereo rate.
+#
+# Transport policy: drain the master UDP mirror reliably. A previous 16K FIFO
+# produced repeated circular-buffer overruns and large timestamp discontinuities
+# even though the shared/master audio itself was objectively clean. The larger
+# receive FIFO absorbs short compositor scheduling stalls; the RTMP tee remains
+# bounded and drops stale output only on an actual upstream/network stall.
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 [[ -r "$ENV_FILE" ]] || { echo "Missing environment file: $ENV_FILE" >&2; exit 78; }
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 
-# stream.env supplies secrets/endpoints only. Resource/latency controls below
-# are production invariants and intentionally override any stale values still
-# present in stream.env from earlier 5 Mbps experiments.
 : "${YOUTUBE_STREAM_KEY:?YOUTUBE_STREAM_KEY is required}"
 : "${YOUTUBE_LOCAL_UDP_URL:=udp://127.0.0.1:1939?pkt_size=1316}"
 : "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"
@@ -31,9 +34,12 @@ YOUTUBE_OUTPUT_FPS=30
 YOUTUBE_VIDEO_BITRATE=2200k
 YOUTUBE_VIDEO_MAXRATE=2500k
 YOUTUBE_VIDEO_BUFSIZE=4400k
+YOUTUBE_AUDIO_SAMPLE_RATE=48000
+YOUTUBE_AUDIO_BITRATE=128k
+YOUTUBE_AUDIO_CHANNELS=2
 YOUTUBE_MONITOR_DIR=${YOUTUBE_MONITOR_DIR:-/run/fgbears-youtube-lovable-compositor}
-YOUTUBE_UDP_FIFO_SIZE=16384
-YOUTUBE_MASTER_THREAD_QUEUE=256
+YOUTUBE_UDP_FIFO_SIZE=1000000
+YOUTUBE_MASTER_THREAD_QUEUE=512
 YOUTUBE_OVERLAY_THREAD_QUEUE=32
 
 [[ -d "$YOUTUBE_MONITOR_DIR" && -w "$YOUTUBE_MONITOR_DIR" ]] || {
@@ -70,13 +76,14 @@ EOF
 
 [[ "$CREATIVE" == yt_rumble_trivia_redirect && "$AUTHORITY" == lovable_public_stream_routing ]]
 
-echo "Starting Lovable-controlled YouTube compositor: 640x360/30, panel=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}, video=2200k, bounded-latency queues." >&2
+echo "Starting Lovable-controlled YouTube compositor: 640x360/30, panel=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}, video=2200k, source-character AAC-LC 48k stereo, protected input continuity." >&2
 
 # A single encode feeds YouTube and a bounded read-only monitor. The monitor is
 # three rotating 2-second MPEG-TS segments in /run (tmpfs), so it is always
 # available for verification, does not need a pre-existing UDP listener, and can
-# never grow without bound. It costs no second encode. The YouTube FIFO recovers
-# aggressively but drops stale queued packets so reconnects resume near-live.
+# never grow without bound. It costs no second encode. No audible mastering DSP
+# is applied to audio; aresample async exists only to keep the YouTube AAC clock
+# monotonic if transport timestamps need microscopic correction.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
   -fflags +genpts+discardcorrupt -probesize 10000000 -analyzeduration 10000000 \
@@ -89,7 +96,7 @@ exec ffmpeg \
   -pix_fmt yuv420p -r "$YOUTUBE_OUTPUT_FPS" -g 60 -keyint_min 60 -sc_threshold 0 \
   -b:v "$YOUTUBE_VIDEO_BITRATE" -maxrate "$YOUTUBE_VIDEO_MAXRATE" -bufsize "$YOUTUBE_VIDEO_BUFSIZE" \
   -threads 1 -x264-params 'repeat-headers=1:keyint=60:min-keyint=60:scenecut=0' \
-  -c:a aac -profile:a aac_low -b:a 128k -ar 44100 -ac 2 \
-  -af 'aresample=44100:async=1:first_pts=0' \
+  -c:a aac -profile:a aac_low -b:a "$YOUTUBE_AUDIO_BITRATE" -ar "$YOUTUBE_AUDIO_SAMPLE_RATE" -ac "$YOUTUBE_AUDIO_CHANNELS" \
+  -af "aresample=${YOUTUBE_AUDIO_SAMPLE_RATE}:async=1:first_pts=0" \
   -f tee -use_fifo 1 -fifo_options "$FIFO_OPTIONS" \
   "[f=flv:onfail=abort]${UPSTREAM_TARGET}|[f=segment:segment_time=2:segment_wrap=3:segment_format=mpegts:reset_timestamps=1:onfail=ignore]${MONITOR_PATTERN}"
