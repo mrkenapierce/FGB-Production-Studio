@@ -1,5 +1,4 @@
 name: FGBears Live Audio Quality Gate
-# Incident recheck: 2026-08-26. This comment intentionally triggers the current signal gate.
 
 on:
   workflow_dispatch:
@@ -21,7 +20,7 @@ jobs:
   audio-quality:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 8
     steps:
       - name: Configure Oracle SSH
         env:
@@ -35,20 +34,60 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Verify active audio configuration and YouTube-bound signal
+      - name: Verify canonical YouTube audio ingest and shared source
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          printf '%s\n' '--- effective audio configuration ---'
-          sudo grep -E '^PODCAST_AUDIO_FILTER=' /etc/fgbears-live/stream.env
-          sudo grep -q '^PODCAST_AUDIO_FILTER=volume=-2dB,aresample=48000:first_pts=0$' /etc/fgbears-live/stream.env
+          MASTER=fgbears-live.service
+          YOUTUBE=fgbears-youtube-relay.service
+
+          systemctl is-active --quiet "$MASTER"
+          systemctl is-active --quiet "$YOUTUBE"
+          master_pid=$(systemctl show -p MainPID --value "$MASTER")
+          youtube_pid=$(systemctl show -p MainPID --value "$YOUTUBE")
+          [[ "$master_pid" =~ ^[1-9][0-9]*$ && "$youtube_pid" =~ ^[1-9][0-9]*$ ]]
+
+          master_ffmpeg=$(pgrep -P "$master_pid" -x ffmpeg | head -n1 || true)
+          [[ "$master_ffmpeg" =~ ^[1-9][0-9]*$ ]]
+          master_args=$(tr '\0' ' ' < "/proc/$master_ffmpeg/cmdline")
+          youtube_args=$(tr '\0' ' ' < "/proc/$youtube_pid/cmdline")
+
+          [[ "$master_args" == *" -c:a copy "* ]]
+          [[ "$master_args" != *" -af "* ]]
+          [[ "$youtube_args" == *" -c:v copy "* ]]
+          [[ "$youtube_args" == *" -c:a aac "* ]]
+          [[ "$youtube_args" == *" -profile:a aac_low "* ]]
+          [[ "$youtube_args" == *" -b:a 128k "* ]]
+          [[ "$youtube_args" == *" -ar 44100 "* ]]
+          [[ "$youtube_args" == *" -ac 2 "* ]]
+          [[ "$youtube_args" == *"aresample=44100:async=1:first_pts=0"* ]]
+          [[ "$youtube_args" != *"youtube-stream-router"* && "$youtube_args" != *"gst-launch"* && "$youtube_args" != *"libx264"* ]]
+
+          sudo ss -ntpH state established > /tmp/fgb-youtube-audio-gate-sockets.txt || true
+          grep -F "pid=$youtube_pid" /tmp/fgb-youtube-audio-gate-sockets.txt | grep -Eq ':[4]43([[:space:]]|$)'
+          echo 'youtube_rtmps_socket=ESTABLISHED'
+
           test -x /usr/local/bin/fgbears-audio-health
-          printf '%s\n' '--- exact YouTube-bound audio quality ---'
-          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 20
-          printf '%s\n' '--- recurring monitor integration ---'
-          grep -q 'run_audio_check' /usr/local/bin/fgbears-healthcheck
-          systemctl is-enabled --quiet fgbears-live-health.timer
-          systemctl is-active --quiet fgbears-live-health.timer
+          clean=0
+          for n in 1 2 3; do
+            set +e
+            output=$(sudo /usr/local/bin/fgbears-audio-health --capture-seconds 8 2>&1)
+            rc=$?
+            set -e
+            printf '%s\n' "$output"
+            echo "audio_sample_${n}_rc=$rc"
+            if (( rc == 0 )); then clean=$((clean + 1)); fi
+            sleep 1
+          done
+          echo "clean_shared_source_samples=$clean/3"
+          (( clean >= 2 ))
+
+          recent_errors=$(sudo journalctl -u "$YOUTUBE" --since '-10 minutes' --no-pager 2>/dev/null \
+            | grep -Eic 'Non-monotonic DTS|non monotonically increasing dts|Invalid timestamps|Queue input is backward|Conversion failed|Error writing|Broken pipe' || true)
+          echo "youtube_recent_error_count=$recent_errors"
+          (( recent_errors == 0 ))
+
+          echo 'youtube_audio_quality_gate=PASS'
           REMOTE
