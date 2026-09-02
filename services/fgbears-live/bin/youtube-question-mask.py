@@ -10,7 +10,8 @@ The media execution canvas may be a proportional downstream rendition of the
 run at a lower resolution without changing Lovable's authoritative geometry or
 Rumble's 1280x720 master. The approved creative is never recreated here: the
 locked 1280x720 card builder is invoked and the complete card is uniformly
-scaled as one asset. Any routing/contract error fails transparent.
+scaled as one asset. Contract errors fail transparent; transient routing errors
+receive a finite grace period so an active question cover cannot flash off.
 """
 from __future__ import annotations
 
@@ -40,7 +41,7 @@ EXPECTED_CREATIVE = "yt_rumble_trivia_redirect"
 PORT = int(os.getenv("YOUTUBE_QUESTION_MASK_PORT", "8791"))
 FPS = max(1, min(30, int(os.getenv("YOUTUBE_QUESTION_MASK_FPS", "30"))))
 POLL_SECONDS = max(1, int(os.getenv("YOUTUBE_QUESTION_MASK_POLL_SECONDS", "1")))
-STALE_SECONDS = max(3, int(os.getenv("YOUTUBE_QUESTION_MASK_STALE_SECONDS", "8")))
+STALE_SECONDS = max(3, int(os.getenv("YOUTUBE_QUESTION_MASK_STALE_SECONDS", "30")))
 INITIAL_CONTRACT_RETRIES = max(1, int(os.getenv("YOUTUBE_QUESTION_MASK_CONTRACT_RETRIES", "30")))
 ROUTING_URL = os.getenv(
     "FGB_STREAM_ROUTING_URL",
@@ -264,7 +265,7 @@ class State:
         remote_stale = trivia.get("stale") is True
         ads_visible = trivia.get("adsVisible") is True
         ad_break = trivia.get("isAdBreak") is True or trivia.get("adBreakActive") is True
-        active = (
+        requested_active = (
             trivia.get("youtubeMaskActive") is True
             and phase == "question"
             and not remote_stale
@@ -272,14 +273,22 @@ class State:
             and not ad_break
         )
         with self.lock:
-            self.active = active
+            if ads_visible or ad_break or phase != "question":
+                self.active = False
+            elif requested_active:
+                self.active = True
+            elif self.active and phase == "question":
+                # Once the cover appears, keep it latched through transient
+                # routing-flag/staleness changes for the full question phase.
+                self.active = True
             self.phase = phase
             self.last_good = time.time()
             self.last_error = None
 
     def error(self, exc: Exception) -> None:
         with self.lock:
-            self.active = False
+            # Do not flash the cover off on a transient API/network error.
+            # snapshot() still applies the finite stale-age safety bound.
             self.last_error = str(exc)
 
     def snapshot(self) -> tuple[bool, str | None, float, str | None]:
