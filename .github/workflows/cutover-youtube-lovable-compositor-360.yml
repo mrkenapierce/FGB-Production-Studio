@@ -15,7 +15,7 @@ concurrency:
 
 env:
   ORACLE_USER: ubuntu
-  BRIDGE_REF: 28a33bc48153260f7de6f111b6ba0478bfaa8560
+  BRIDGE_REF: 916b8aede8aba3f9e459736643c20c3f218af35c
 
 jobs:
   cutover:
@@ -51,6 +51,7 @@ jobs:
           AUDIO_TIMER=fgbears-youtube-audio-watchdog.timer
           HEALTH_DROPIN=/etc/systemd/system/fgbears-live-health.service.d/95-lovable-compositor.conf
           PROGRESS=/srv/fgbears-live/logs/ffmpeg-progress.log
+          MONITOR_DIR=/run/fgbears-youtube-lovable-compositor
 
           master_before=$(systemctl show -p MainPID --value "$MASTER")
           rumble_before=$(systemctl show -p MainPID --value "$RUMBLE")
@@ -185,6 +186,9 @@ jobs:
           Environment=YOUTUBE_OUTPUT_WIDTH=640
           Environment=YOUTUBE_OUTPUT_HEIGHT=360
           Environment=YOUTUBE_OUTPUT_FPS=30
+          Environment=YOUTUBE_MONITOR_DIR=/run/fgbears-youtube-lovable-compositor
+          RuntimeDirectory=fgbears-youtube-lovable-compositor
+          RuntimeDirectoryMode=0750
           ExecStart=/opt/fgbears-live/bin/youtube-lovable-compositor.sh
           Restart=on-failure
           RestartSec=3
@@ -272,25 +276,32 @@ jobs:
           test "$connected" = 1
           echo 'COMPOSITOR_YOUTUBE_RTMPS=PASS'
 
-          # Verify the monitor emitted by the same encode is 640x360/30.
+          # Verify the bounded monitor emitted by the same encode is 640x360/30.
           monitor_ok=0
-          for _ in $(seq 1 15); do
-            if timeout 5 ffprobe -v error -select_streams v:0 \
-              -show_entries stream=width,height,r_frame_rate -of json \
-              'udp://127.0.0.1:1941?fifo_size=1000000&overrun_nonfatal=1&reuse=1' \
-              >/tmp/lovable-monitor.json 2>/dev/null; then
-              if python3 - <<'PY'
+          for _ in $(seq 1 20); do
+            count=$(sudo find "$MONITOR_DIR" -maxdepth 1 -name 'monitor-*.ts' -type f -size +0c 2>/dev/null | wc -l)
+            if (( count >= 1 && count <= 3 )); then
+              while IFS= read -r monitor_file; do
+                [[ -n "$monitor_file" ]] || continue
+                if sudo ffprobe -v error -select_streams v:0 \
+                  -show_entries stream=width,height,r_frame_rate -of json "$monitor_file" \
+                  >/tmp/lovable-monitor.json 2>/dev/null; then
+                  if python3 - <<'PY'
           import json
           p=json.load(open('/tmp/lovable-monitor.json'))
           s=p['streams'][0]
           assert s['width']==640 and s['height']==360, s
           assert s['r_frame_rate']=='30/1', s
           PY
-              then monitor_ok=1; break; fi
+                  then monitor_ok=1; break 2; fi
+                fi
+              done < <(sudo find "$MONITOR_DIR" -maxdepth 1 -name 'monitor-*.ts' -type f -size +0c -printf '%T@ %p\n' 2>/dev/null | sort -n | cut -d' ' -f2-)
             fi
             sleep 1
           done
           test "$monitor_ok" = 1
+          count=$(sudo find "$MONITOR_DIR" -maxdepth 1 -name 'monitor-*.ts' -type f 2>/dev/null | wc -l)
+          test "$count" -le 3
           echo 'COMPOSITOR_MONITOR_640X360=PASS'
 
           # Protect the shared source: master/Rumble must be the exact same processes.
