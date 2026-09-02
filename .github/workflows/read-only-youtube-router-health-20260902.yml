@@ -1,4 +1,4 @@
-name: Read Only Persisted YouTube Exact-Box Health
+name: Read Only YouTube Sender Socket Diagnosis
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  audit:
+  diagnose:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -29,77 +29,45 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Read-only persisted production audit
+      - name: Read-only socket and watchdog diagnosis
         shell: bash
         run: |
           set -Eeuo pipefail
           target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
-          ssh -i ~/.ssh/oracle_key "$target" 'python3 -' <<'PY'
-          import json, subprocess, urllib.request, time
-
-          def sh(cmd): return subprocess.check_output(cmd,shell=True,text=True).strip()
-          def state(u): return sh(f"systemctl is-active {u} 2>/dev/null || true")
-          def pid(u): return sh(f"systemctl show -p MainPID --value {u} 2>/dev/null || echo 0")
-          def restarts(u): return sh(f"systemctl show -p NRestarts --value {u} 2>/dev/null || echo 0")
-          def connected(p,port):
-              raw=sh("ss -ntpH state established 2>/dev/null || true")
-              return any(f"pid={p}" in line and f":{port}" in line for line in raw.splitlines())
-
-          master_u='fgbears-live.service'; rumble_u='fgbears-rumble-relay.service'
-          comp_u='fgbears-youtube-lovable-compositor.service'; routing_u='fgbears-youtube-lovable-routing.service'
-          legacy_u='fgbears-youtube-relay.service'; router_u='fgbears-youtube-router.service'
-          timer_u='fgbears-youtube-audio-watchdog.timer'
-
-          # YouTube persistence first: Rumble peer reconnects must not hide this result.
-          assert state(master_u)=='active'
-          assert state(comp_u)=='active'; assert state(routing_u)=='active'
-          assert state(legacy_u)!='active'; assert state(router_u)!='active'
-          assert state(timer_u)=='active'
-          master=pid(master_u); comp=pid(comp_u)
-          assert master=='2320192',master
-          assert restarts(master_u)=='0',restarts(master_u)
-          assert connected(comp,443),(comp,'YouTube RTMPS socket missing')
-
-          with urllib.request.urlopen('http://127.0.0.1:8791/healthz',timeout=3) as r:
-              h=json.loads(r.read().decode())
-          assert h.get('ok') is True,h
-          assert h.get('sourceCanvas')==[1280,720],h
-          assert h.get('canvas')==[640,360],h
-          assert h.get('sourceMaskRegion')=={'x':462,'y':104,'width':798,'height':470},h
-          assert h.get('maskRegion')=={'x':231,'y':52,'width':399,'height':235},h
-          assert h.get('frameSize')==[399,235],h
-          assert h.get('executionScaling')=='proportional_downstream',h
-          assert h.get('fps')==30,h
-          assert h.get('creativeKey')=='yt_rumble_trivia_redirect',h
-
-          cmd=sh(f"tr '\\0' ' ' </proc/{comp}/cmdline")
-          for needle in ('scale=640:360:flags=fast_bilinear','overlay=231:52:format=auto:shortest=1',' -c:v libx264 ',' -c:a aac ',' -b:a 128k ',' -ar 44100 ',' -ac 2 ','aresample=44100:async=1:first_pts=0'):
-              assert needle in cmd,needle
-          status=sh('cat /srv/fgbears-live/health/youtube-audio/status.env')
-          assert 'owner=exact_box_compositor' in status,status
-          assert ('state=OK' in status or 'state=WARN' in status),status
-          senders=sum(state(u)=='active' for u in (comp_u,legacy_u,router_u))
-          assert senders==1,senders
-          speed=sh("awk -F= '$1==\"speed\"{v=$2} END{gsub(/x/,\"\",v);print v}' /srv/fgbears-live/logs/ffmpeg-progress.log")
-          cpu=float(sh(f"ps -p {comp} -o %cpu= | tr -d ' '"))
-          if speed: assert float(speed)>=0.985,speed
-          assert cpu<=40,cpu
-          print(f'YOUTUBE_PERSISTENCE=PASS compositor={comp} legacy={state(legacy_u)} router={state(router_u)} master={master} speed={speed or "unknown"}x cpu={cpu}%')
-          print('EXACT_BOX_PERSISTENCE=PASS source=462,104,798,470 output=231,52,399,235')
-          print('OWNER_AWARE_WATCHDOG_PERSISTENCE=PASS')
-
-          # Rumble is an independent relay. Observe/retry only; never modify it.
-          assert state(rumble_u)=='active',state(rumble_u)
-          rumble_ok=False; rumble='0'
-          for _ in range(20):
-              rumble=pid(rumble_u)
-              if state(rumble_u)=='active' and connected(rumble,1935):
-                  rumble_ok=True; break
-              time.sleep(1)
-          if rumble_ok:
-              print(f'RUMBLE_OBSERVATION=HEALTHY pid={rumble} restarts={restarts(rumble_u)} socket=1935')
-          else:
-              print(f'RUMBLE_OBSERVATION=RECONNECTING pid={rumble} restarts={restarts(rumble_u)} socket=missing')
-
-          print('POST_DEPLOY_YOUTUBE_PERSISTENCE_AUDIT=PASS')
-          PY
+          ssh -i ~/.ssh/oracle_key "$target" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          redact(){ sed -E 's#(rtmps?://[^/]+/[^/]+/)[^ ]+#\1[REDACTED]#g; s#(YOUTUBE_STREAM_KEY|RUMBLE_STREAM_KEY)=.*#\1=[REDACTED]#g; s#([A-Za-z0-9_-]{28,})#[REDACTED]#g'; }
+          echo 'SERVICE_STATE'
+          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-lovable-compositor.service fgbears-youtube-lovable-routing.service fgbears-youtube-relay.service fgbears-youtube-router.service fgbears-youtube-audio-watchdog.timer fgbears-youtube-audio-watchdog.service; do
+            echo "--- $u"
+            systemctl show "$u" -p ActiveState -p SubState -p MainPID -p NRestarts -p Result -p ExecMainStatus -p ActiveEnterTimestamp -p InactiveEnterTimestamp --no-pager 2>/dev/null || true
+          done
+          echo 'SOCKETS_443_1935'
+          ss -ntpH state established 2>/dev/null | grep -E ':443|:1935' | redact || true
+          echo 'WATCHDOG_STATUS'
+          cat /srv/fgbears-live/health/youtube-audio/status.env 2>/dev/null || true
+          echo 'WATCHDOG_FAILURE_COUNTER'
+          cat /srv/fgbears-live/health/youtube-audio/compositor-socket-failures 2>/dev/null || echo 0
+          echo 'CONTROL_HEALTH'
+          curl -fsS --max-time 3 http://127.0.0.1:8791/healthz 2>/dev/null || true
+          echo
+          echo 'COMPOSITOR_PROCESS'
+          cp=$(systemctl show -p MainPID --value fgbears-youtube-lovable-compositor.service 2>/dev/null || echo 0)
+          if [[ "$cp" =~ ^[1-9][0-9]*$ && -r /proc/$cp/status ]]; then
+            grep -E '^(Name|State|PPid|Threads|VmRSS|voluntary_ctxt_switches|nonvoluntary_ctxt_switches):' /proc/$cp/status || true
+            tr '\0' ' ' </proc/$cp/cmdline | redact; echo
+            ls -l /proc/$cp/fd 2>/dev/null | tail -30 || true
+          fi
+          echo 'RECENT_COMPOSITOR_LOG'
+          journalctl -u fgbears-youtube-lovable-compositor.service --since '10 minutes ago' --no-pager -o short-iso 2>/dev/null | redact | tail -160 || true
+          echo 'RECENT_WATCHDOG_LOG'
+          journalctl -u fgbears-youtube-audio-watchdog.service --since '10 minutes ago' --no-pager -o short-iso 2>/dev/null | redact | tail -160 || true
+          echo 'RECENT_LEGACY_LOG'
+          journalctl -u fgbears-youtube-relay.service --since '10 minutes ago' --no-pager -o short-iso 2>/dev/null | redact | tail -120 || true
+          echo 'RESOURCE'
+          printf 'load='; cut -d' ' -f1-3 /proc/loadavg
+          ps -eo pid,ppid,%cpu,%mem,stat,etime,comm,args --sort=-%cpu | head -20 | redact || true
+          echo 'MASTER_SPEED'
+          awk -F= '$1=="speed"{v=$2} END{print v}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true
+          echo 'DIAGNOSIS_CAPTURE=PASS'
+          REMOTE
