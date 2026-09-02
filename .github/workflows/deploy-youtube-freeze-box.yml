@@ -32,6 +32,7 @@ jobs:
           set -Eeuo pipefail
           bash -n .github/freezebox/youtube-freeze-card-refresh.sh
           python3 -m py_compile .github/freezebox/youtube-stream-router-freezebox.py
+          grep -Fq 'router = getattr(emergency, "router", None)' .github/freezebox/youtube-stream-router-freezebox.py
           grep -Fq 'MASK_X=480' .github/freezebox/youtube-freeze-card-refresh.sh
           grep -Fq 'MASK_Y=200' .github/freezebox/youtube-freeze-card-refresh.sh
           grep -Fq 'MASK_W=640' .github/freezebox/youtube-freeze-card-refresh.sh
@@ -110,6 +111,14 @@ jobs:
           fi
           sudo -u fgbears /usr/bin/python3 /opt/fgbears-live/bin/youtube-stream-router-emergency.py --card "$dynamic" --validate-card >/tmp/freezebox-seed-validate.json
           grep -q '"ok": true' /tmp/freezebox-seed-validate.json
+
+          # Execute the exact candidate wrapper BEFORE changing the systemd unit.
+          # This validates the delegated production router API, emergency transport
+          # patch import, CLI path, and candidate card without touching YouTube.
+          sudo -u fgbears /usr/bin/python3 /opt/fgbears-live/bin/youtube-stream-router-freezebox.py --card "$dynamic" --validate-card >/tmp/freezebox-wrapper-validate.json
+          cat /tmp/freezebox-wrapper-validate.json
+          grep -q '"ok": true' /tmp/freezebox-wrapper-validate.json
+          echo 'FREEZE_BOX_WRAPPER_PREFLIGHT=PASS'
           sudo systemctl daemon-reload
 
           # Wait only until the real question is NOT exposed. Ads/reveals/transitions
