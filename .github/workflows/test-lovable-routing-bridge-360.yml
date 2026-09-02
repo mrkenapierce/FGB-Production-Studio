@@ -1,0 +1,105 @@
+name: Test Lovable Routing Bridge 360
+
+on:
+  push:
+    branches: [lovable-routing-bridge-20260902]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bridge360:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install test dependencies
+        run: python3 -m pip install --user pillow qrcode opencv-python-headless
+      - name: Validate syntax
+        run: |
+          python3 -m py_compile services/fgbears-live/bin/youtube-question-mask.py
+          bash -n services/fgbears-live/bin/youtube-lovable-compositor.sh
+      - name: Start mocked Lovable routing
+        run: |
+          cat >/tmp/routing.json <<'JSON'
+          {"trivia":{"stale":false,"phase":"question","adsVisible":false,"isAdBreak":false,"adBreakActive":false,"youtubeMaskActive":true,"youtubeCreativeKey":"yt_rumble_trivia_redirect","maskRegion":{"x":462,"y":104,"width":798,"height":470,"coordinateSpace":"pixels","referenceWidth":1280,"referenceHeight":720},"presentation":{"rumble":{"questionPhaseBehavior":"live_question","rendersRealQuestion":true,"maskedRegion":null,"creativeKey":null},"youtube":{"questionPhaseBehavior":"redirect_panel","rendersRealQuestion":false,"maskedRegion":{"x":462,"y":104,"width":798,"height":470},"creativeKey":"yt_rumble_trivia_redirect","sourceTemplateKey":"yt_rumble_trivia_redirect","presentationMode":"full_creative_scaled"}}}}
+          JSON
+          cat >/tmp/mock.py <<'PY'
+          from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
+          class H(BaseHTTPRequestHandler):
+              def log_message(self,*a): pass
+              def do_GET(self):
+                  b=open('/tmp/routing.json','rb').read(); self.send_response(200); self.send_header('Content-Length',str(len(b))); self.end_headers(); self.wfile.write(b)
+          ThreadingHTTPServer(('127.0.0.1',18081),H).serve_forever()
+          PY
+          nohup python3 /tmp/mock.py >/dev/null 2>&1 &
+      - name: Start 360p Lovable worker
+        env:
+          FGB_STREAM_ROUTING_URL: http://127.0.0.1:18081/api/public/fgbears/stream-routing
+          YOUTUBE_QUESTION_MASK_PORT: '18792'
+          YOUTUBE_OUTPUT_CANVAS_WIDTH: '640'
+          YOUTUBE_OUTPUT_CANVAS_HEIGHT: '360'
+          YOUTUBE_REDIRECT_CARD_BUILDER: ${{ github.workspace }}/services/fgbears-live/tools/build-youtube-rumble-trivia-card.py
+        run: |
+          nohup python3 services/fgbears-live/bin/youtube-question-mask.py >/tmp/worker360.log 2>&1 &
+          for _ in $(seq 1 30); do curl -sf http://127.0.0.1:18792/healthz >/tmp/h360.json && break; sleep 1; done
+          cat /tmp/h360.json
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/h360.json'))
+          assert p['sourceCanvas']==[1280,720]
+          assert p['canvas']==[640,360]
+          assert p['sourceMaskRegion']=={'x':462,'y':104,'width':798,'height':470}
+          assert p['maskRegion']=={'x':231,'y':52,'width':399,'height':235}
+          assert p['frameSize']==[399,235]
+          assert p['creativeKey']=='yt_rumble_trivia_redirect'
+          assert p['active'] is True
+          print('LOVABLE_360_GEOMETRY=PASS')
+          PY
+      - name: Verify exact card and QR at 360p
+        run: |
+          python3 - <<'PY'
+          import subprocess,sys,urllib.request,cv2,numpy as np
+          from PIL import Image,ImageChops
+          from pathlib import Path
+          n=399*235*4
+          with urllib.request.urlopen('http://127.0.0.1:18792/overlay.rgba',timeout=5) as r: raw=r.read(n)
+          assert len(raw)==n
+          actual=Image.frombytes('RGBA',(399,235),raw)
+          srcp=Path('/tmp/source.png')
+          subprocess.run([sys.executable,'services/fgbears-live/tools/build-youtube-rumble-trivia-card.py',str(srcp)],check=True,stdout=subprocess.DEVNULL)
+          src=Image.open(srcp).convert('RGBA')
+          scaled=src.copy(); scaled.thumbnail((398,235),Image.Resampling.LANCZOS)
+          assert scaled.size==(398,224),scaled.size
+          expected=Image.new('RGBA',(399,235),(11,22,42,255)); expected.paste(scaled,((399-scaled.width)//2,(235-scaled.height)//2),scaled)
+          assert ImageChops.difference(actual,expected).getbbox() is None
+          bgr=cv2.cvtColor(np.asarray(actual.convert('RGB')),cv2.COLOR_RGB2BGR)
+          decoded,points,_=cv2.QRCodeDetector().detectAndDecode(bgr)
+          want='https://rumble.com/v7eqrsu-chicago-bears-live-trivia-every-20-minutes-cash-prizes-fgb.html'
+          assert points is not None, 'QR not detected'
+          assert decoded==want,(decoded,want)
+          print('EXACT_CARD_360=PASS')
+          print('QR_360_DECODE=PASS')
+          PY
+      - name: Verify compositor uses worker-derived 360p geometry
+        env:
+          YOUTUBE_QUESTION_MASK_PORT: '18792'
+        run: |
+          cat >/tmp/stream.env <<'ENV'
+          YOUTUBE_STREAM_KEY=test-not-real
+          YOUTUBE_LOCAL_UDP_URL=udp://127.0.0.1:1939?pkt_size=1316
+          YOUTUBE_UPSTREAM_RTMP_BASE=rtmps://example.invalid/live2
+          ENV
+          mkdir -p /tmp/fakebin
+          cat >/tmp/fakebin/ffmpeg <<'SH'
+          #!/usr/bin/env bash
+          printf '%s\n' "$@" >/tmp/args360.txt
+          SH
+          chmod +x /tmp/fakebin/ffmpeg
+          ENV_FILE=/tmp/stream.env PATH="/tmp/fakebin:$PATH" bash services/fgbears-live/bin/youtube-lovable-compositor.sh
+          grep -Fxq '399x235' /tmp/args360.txt
+          grep -Fq 'scale=640:360:flags=fast_bilinear' /tmp/args360.txt
+          grep -Fq 'overlay=231:52:format=auto:shortest=1[v]' /tmp/args360.txt
+          grep -Fxq 'ultrafast' /tmp/args360.txt
+          echo 'COMPOSITOR_360_CONTRACT=PASS'
