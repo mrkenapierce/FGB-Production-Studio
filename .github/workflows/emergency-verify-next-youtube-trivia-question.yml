@@ -1,0 +1,146 @@
+name: Verify Emergency YouTube Router On Next Question
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/emergency-verify-next-youtube-trivia-question.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  verify-next-question:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Observe next authoritative question and packet switch
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          ROUTER=fgbears-youtube-router.service
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          DIRECT=fgbears-youtube-relay.service
+          WATCHDOG=fgbears-youtube-audio-watchdog.timer
+          URL=https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing
+          start_epoch=$(date +%s)
+
+          systemctl is-active --quiet "$ROUTER"
+          ! systemctl is-active --quiet "$DIRECT"
+          ! systemctl is-active --quiet "$WATCHDOG"
+          master_pid=$(systemctl show -p MainPID --value "$MASTER")
+          rumble_pid=$(systemctl show -p MainPID --value "$RUMBLE")
+          router_pid=$(systemctl show -p MainPID --value "$ROUTER")
+          echo "baseline master=$master_pid rumble=$rumble_pid router=$router_pid"
+
+          state() {
+            python3 - "$URL" <<'PY'
+          import json,sys,urllib.request
+          req=urllib.request.Request(sys.argv[1],headers={
+              'Accept':'application/json',
+              'Cache-Control':'no-cache',
+              'Pragma':'no-cache',
+              'User-Agent':'FGBears-Emergency-Question-Verify/1.0',
+          })
+          try:
+              with urllib.request.urlopen(req,timeout=2) as r:
+                  p=json.loads(r.read().decode())
+              t=p.get('trivia') or {}
+              q=(not bool(t.get('stale')) and t.get('phase')=='question' and t.get('youtubeMaskActive') is True)
+              print('Q' if q else f"N:{t.get('phase')}:{t.get('youtubeMaskActive')}:{t.get('stale')}")
+          except Exception as e:
+              print('E:'+type(e).__name__)
+          PY
+          }
+
+          echo '=== wait up to 8 minutes for authoritative question-safe state ==='
+          question_seen=0
+          for i in $(seq 1 240); do
+            systemctl is-active --quiet "$ROUTER" || { echo ROUTER_INACTIVE; exit 1; }
+            [[ "$(systemctl show -p MainPID --value "$MASTER")" == "$master_pid" ]] || { echo MASTER_PID_CHANGED; exit 1; }
+            [[ "$(systemctl show -p MainPID --value "$RUMBLE")" == "$rumble_pid" ]] || { echo RUMBLE_PID_CHANGED; exit 1; }
+            s=$(state)
+            if [[ "$s" == Q ]]; then
+              question_seen=1
+              question_epoch=$(date +%s)
+              echo "QUESTION_SAFE_STATE_SEEN iteration=$i epoch=$question_epoch"
+              break
+            fi
+            if (( i % 15 == 0 )); then echo "waiting iteration=$i state=$s"; fi
+            sleep 2
+          done
+          (( question_seen == 1 )) || { echo 'NO_QUESTION_WITHIN_8_MINUTES'; exit 1; }
+
+          echo '=== verify live -> card at keyframe ==='
+          card_seen=0
+          for _ in {1..15}; do
+            if sudo journalctl -u "$ROUTER" --since "@$start_epoch" --no-pager 2>/dev/null | grep -Fq 'video route switched: live -> card'; then
+              card_seen=1
+              echo 'LIVE_TO_CARD=CONFIRMED'
+              break
+            fi
+            sleep 1
+          done
+          (( card_seen == 1 )) || { echo 'ERROR_LIVE_TO_CARD_NOT_SEEN'; exit 1; }
+          systemctl is-active --quiet "$ROUTER"
+          child=$(pgrep -P "$(systemctl show -p MainPID --value "$ROUTER")" ffmpeg | head -n1 || true)
+          [[ "$child" =~ ^[1-9][0-9]*$ ]]
+          sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -Eq ':[4]43([[:space:]]|$)'
+          echo 'RTMPS_DURING_CARD=ESTABLISHED'
+
+          echo '=== wait for authoritative question-safe state to clear ==='
+          cleared=0
+          for _ in {1..90}; do
+            s=$(state)
+            if [[ "$s" != Q && "$s" != E:* ]]; then
+              cleared=1
+              echo "QUESTION_SAFE_STATE_CLEARED state=$s"
+              break
+            fi
+            sleep 1
+          done
+          (( cleared == 1 )) || { echo 'QUESTION_STATE_DID_NOT_CLEAR'; exit 1; }
+
+          echo '=== verify card -> live ==='
+          live_seen=0
+          for _ in {1..15}; do
+            if sudo journalctl -u "$ROUTER" --since "@$question_epoch" --no-pager 2>/dev/null | grep -Fq 'video route switched: card -> live'; then
+              live_seen=1
+              echo 'CARD_TO_LIVE=CONFIRMED'
+              break
+            fi
+            sleep 1
+          done
+          (( live_seen == 1 )) || { echo 'ERROR_CARD_TO_LIVE_NOT_SEEN'; exit 1; }
+
+          systemctl is-active --quiet "$ROUTER"
+          ! systemctl is-active --quiet "$DIRECT"
+          [[ "$(systemctl show -p MainPID --value "$MASTER")" == "$master_pid" ]]
+          [[ "$(systemctl show -p MainPID --value "$RUMBLE")" == "$rumble_pid" ]]
+          child=$(pgrep -P "$(systemctl show -p MainPID --value "$ROUTER")" ffmpeg | head -n1 || true)
+          [[ "$child" =~ ^[1-9][0-9]*$ ]]
+          sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -Eq ':[4]43([[:space:]]|$)'
+          echo 'NEXT_QUESTION_EMERGENCY_SWITCH=PASS'
+          echo 'MASTER_RESTARTED=no'
+          echo 'RUMBLE_RESTARTED=no'
+          echo 'YOUTUBE_ROUTER_ACTIVE=yes'
+          echo 'YOUTUBE_DIRECT_RELAY_ACTIVE=no'
+          REMOTE
