@@ -1,0 +1,130 @@
+name: One-shot Lock Canonical YouTube Audio Path
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-shot-lock-canonical-youtube-audio.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Remove retired router from future installs
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          install = Path('services/fgbears-live/bin/install.sh')
+          text = install.read_text()
+
+          # GStreamer was required only by the retired YouTube packet router.
+          text = '\n'.join(
+              line for line in text.splitlines()
+              if not any(token in line for token in (
+                  'gstreamer1.0-', 'python3-gst-1.0', 'gir1.2-gstreamer-1.0', 'python3-gi python3-gst'
+              ))
+          ) + '\n'
+
+          # Remove the pre-encoded trivia-card and packet-router runtime setup.
+          start = text.find('# Rebuild the pre-encoded YouTube trivia cover on every full install.')
+          end = text.find('install -d -o fgbears -g fgbears -m 0755', start)
+          if start != -1 and end != -1:
+              text = text[:start] + text[end:]
+
+          # Install the permanent local YouTube audio watchdog on every full build.
+          needle = 'install -m 0755 /opt/fgbears-live/bin/audio-health.py /usr/local/bin/fgbears-audio-health\n'
+          addition = needle + 'install -m 0755 /opt/fgbears-live/bin/youtube-audio-watchdog.sh /usr/local/bin/fgbears-youtube-audio-watchdog\n'
+          if 'fgbears-youtube-audio-watchdog' not in text:
+              if needle not in text:
+                  raise SystemExit('audio-health install anchor missing')
+              text = text.replace(needle, addition)
+
+          needle = 'install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.timer /etc/systemd/system/fgbears-live-health.timer\n'
+          addition = needle + 'install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-audio-watchdog.service /etc/systemd/system/fgbears-youtube-audio-watchdog.service\ninstall -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-audio-watchdog.timer /etc/systemd/system/fgbears-youtube-audio-watchdog.timer\n'
+          if 'systemd/fgbears-youtube-audio-watchdog.timer' not in text:
+              if needle not in text:
+                  raise SystemExit('health timer install anchor missing')
+              text = text.replace(needle, addition)
+
+          text = text.replace('"FGB_YOUTUBE_PACKET_ROUTER_ENABLE": "1",', '"FGB_YOUTUBE_PACKET_ROUTER_ENABLE": "0",')
+          text = '\n'.join(
+              line for line in text.splitlines()
+              if not any(key in line for key in (
+                  '"FGB_YOUTUBE_TRIVIA_CARD_H264":',
+                  '"YOUTUBE_TRIVIA_OVERLAY_SCRIPT":',
+                  '"YOUTUBE_TRIVIA_OVERLAY_PORT":',
+                  '"YOUTUBE_TRIVIA_OVERLAY_FPS":',
+                  '"YOUTUBE_TRIVIA_POLL_SECONDS":',
+                  '"YOUTUBE_TRIVIA_STALE_SECONDS":',
+              ))
+          ) + '\n'
+          text = text.replace(
+              'retired_prefixes = ("X_", "INSTAGRAM_", "FACEBOOK_")',
+              'retired_prefixes = ("X_", "INSTAGRAM_", "FACEBOOK_", "YOUTUBE_TRIVIA_")'
+          )
+          text = text.replace(
+              'if key.startswith(retired_prefixes):\n            continue',
+              'if key.startswith(retired_prefixes) or key == "FGB_YOUTUBE_TRIVIA_CARD_H264":\n            continue'
+          )
+
+          needle = 'systemctl enable --now fgbears-live-health.timer\n'
+          addition = needle + 'systemctl enable --now fgbears-youtube-audio-watchdog.timer\n'
+          if 'systemctl enable --now fgbears-youtube-audio-watchdog.timer' not in text:
+              if needle not in text:
+                  raise SystemExit('health timer enable anchor missing')
+              text = text.replace(needle, addition)
+
+          install.write_text(text)
+
+          env = Path('services/fgbears-live/config/stream.env.example')
+          lines = env.read_text().splitlines()
+          out = []
+          inserted = False
+          for line in lines:
+              if line.startswith('YOUTUBE_TRIVIA_'):
+                  continue
+              out.append(line)
+              if line.startswith('YOUTUBE_UPSTREAM_RTMP_BASE='):
+                  out.append('FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0')
+                  inserted = True
+          if not inserted:
+              raise SystemExit('YouTube upstream env anchor missing')
+          env.write_text('\n'.join(out) + '\n')
+
+          tests = Path('services/fgbears-live/tests/test-scripts.sh')
+          t = tests.read_text()
+          marker = "grep -Fq -- '-c:a copy' \"$ROOT/bin/start-stream.sh\"\n"
+          block = marker + '''grep -Fq -- '-c copy' "$ROOT/bin/youtube-relay.sh"\nif grep -Eq 'youtube-stream-router|gst-launch|libx264|aacparse|mpegtsmux' "$ROOT/bin/youtube-relay.sh"; then\n  echo 'The canonical YouTube relay must remain a direct FFmpeg copy-remux path.' >&2\n  exit 1\nfi\ngrep -Fq 'FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0' "$ROOT/config/stream.env.example"\ngrep -Fq '\"FGB_YOUTUBE_PACKET_ROUTER_ENABLE\": \"0\"' "$ROOT/bin/install.sh"\ngrep -Fq 'fgbears-youtube-audio-watchdog.timer' "$ROOT/bin/install.sh"\n'''
+          if 'The canonical YouTube relay must remain a direct FFmpeg copy-remux path.' not in t:
+              if marker not in t:
+                  raise SystemExit('test insertion anchor missing')
+              t = t.replace(marker, block)
+          tests.write_text(t)
+          PY
+
+          bash -n services/fgbears-live/bin/install.sh
+          bash -n services/fgbears-live/bin/youtube-relay.sh
+          bash -n services/fgbears-live/bin/youtube-audio-watchdog.sh
+          grep -Fq -- '-c copy' services/fgbears-live/bin/youtube-relay.sh
+          ! grep -Eq 'youtube-stream-router|gst-launch|libx264|aacparse|mpegtsmux' services/fgbears-live/bin/youtube-relay.sh
+          grep -Fq 'FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0' services/fgbears-live/config/stream.env.example
+          grep -Fq '"FGB_YOUTUBE_PACKET_ROUTER_ENABLE": "0"' services/fgbears-live/bin/install.sh
+          grep -Fq 'fgbears-youtube-audio-watchdog.timer' services/fgbears-live/bin/install.sh
+
+      - name: Commit installer lock
+        run: |
+          git config user.name 'FGBears Stability Bot'
+          git config user.email 'actions@github.com'
+          git add services/fgbears-live/bin/install.sh services/fgbears-live/config/stream.env.example services/fgbears-live/tests/test-scripts.sh
+          git commit -m '[skip ci] Lock future installs to canonical YouTube audio path'
+          git push origin HEAD:main
