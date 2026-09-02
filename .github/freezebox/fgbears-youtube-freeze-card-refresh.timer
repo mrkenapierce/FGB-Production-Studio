@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh FGBears YouTube freeze-frame trivia card before each 20-minute game
+
+[Timer]
+# Trivia anchors at :00, :20, :40. Refresh two minutes before each anchor.
+OnCalendar=*-*-* *:18,38,58:00
+AccuracySec=1s
+Persistent=true
+Unit=fgbears-youtube-freeze-card-refresh.service
+
+[Install]
+WantedBy=timers.target
