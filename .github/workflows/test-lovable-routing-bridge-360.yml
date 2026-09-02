@@ -46,7 +46,8 @@ jobs:
           grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE=48000' services/fgbears-live/bin/youtube-relay.sh
           grep -Fq 'recent_transport_faults=' services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
           grep -Fq 'https://rumble.com/v7eqrsu-chicago-bears-live-trivia-every-20-minutes-cash-prizes-fgb.html' services/fgbears-live/tools/build-youtube-rumble-trivia-card.py
-          echo 'SOURCE_CONTRACT=PASS exact_box_360 native_audio_48k protected_udp_input canonical_rumble_url'
+          grep -Fq 'YOUTUBE_QUESTION_MASK_PORT=8791' services/fgbears-live/bin/youtube-lovable-compositor.sh
+          echo 'SOURCE_CONTRACT=PASS exact_box_360 native_audio_48k protected_udp_input canonical_rumble_url mask_port_8791'
 
       - name: Start mocked Lovable routing
         run: |
@@ -66,13 +67,13 @@ jobs:
       - name: Verify exact-box mask geometry and exact locked creative
         env:
           FGB_STREAM_ROUTING_URL: http://127.0.0.1:18081/api/public/fgbears/stream-routing
-          YOUTUBE_QUESTION_MASK_PORT: '18792'
+          YOUTUBE_QUESTION_MASK_PORT: '8791'
           YOUTUBE_OUTPUT_CANVAS_WIDTH: '640'
           YOUTUBE_OUTPUT_CANVAS_HEIGHT: '360'
           YOUTUBE_REDIRECT_CARD_BUILDER: ${{ github.workspace }}/services/fgbears-live/tools/build-youtube-rumble-trivia-card.py
         run: |
           nohup python3 services/fgbears-live/bin/youtube-question-mask.py >/tmp/worker360.log 2>&1 &
-          for _ in $(seq 1 30); do curl -sf http://127.0.0.1:18792/healthz >/tmp/h360.json && break; sleep 1; done
+          for _ in $(seq 1 30); do curl -sf http://127.0.0.1:8791/healthz >/tmp/h360.json && break; sleep 1; done
           python3 - <<'PY'
           import json,subprocess,sys,urllib.request
           from PIL import Image,ImageChops
@@ -86,7 +87,7 @@ jobs:
           assert p['creativeKey']=='yt_rumble_trivia_redirect'
           assert p['active'] is True
           n=399*235*4
-          with urllib.request.urlopen('http://127.0.0.1:18792/overlay.rgba',timeout=5) as r: raw=r.read(n)
+          with urllib.request.urlopen('http://127.0.0.1:8791/overlay.rgba',timeout=5) as r: raw=r.read(n)
           assert len(raw)==n
           actual=Image.frombytes('RGBA',(399,235),raw)
           srcp=Path('/tmp/source.png')
@@ -99,8 +100,6 @@ jobs:
           PY
 
       - name: Verify compositor command is low-load, native-audio and bounded
-        env:
-          YOUTUBE_QUESTION_MASK_PORT: '18792'
         run: |
           cat >/tmp/stream.env <<'ENV'
           YOUTUBE_STREAM_KEY=test-not-real
