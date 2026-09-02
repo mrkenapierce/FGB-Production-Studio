@@ -1,0 +1,59 @@
+name: One-shot Check FGB Audio Mastering v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/one-shot-check-audio-mastering-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read production mastering progress
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MEDIA_DIR=/srv/fgbears-live/media
+          total=$(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4' | wc -l)
+          mastered=0
+          for marker in "$MEDIA_DIR"/*.mp4.audio-profile.json; do
+            [[ -f "$marker" ]] || continue
+            if jq -e '.profile == "fgb-podcast-v2-mastered" and .mastered == true' "$marker" >/dev/null 2>&1; then
+              mastered=$((mastered + 1))
+            fi
+          done
+          echo "production_files=$total"
+          echo "v2_mastered_files=$mastered"
+          echo "remaining=$((total-mastered))"
+          for service in fgbears-live.service fgbears-youtube-relay.service fgbears-rumble-relay.service; do
+            echo "$service=$(systemctl is-active "$service") pid=$(systemctl show -p MainPID --value "$service")"
+          done
+          ypid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          yargs=$(tr '\0' ' ' < "/proc/$ypid/cmdline")
+          [[ "$yargs" == *" -c copy "* ]]
+          [[ "$yargs" != *"youtube-stream-router"* ]]
+          echo 'youtube_copy_relay=yes'
+          if pgrep -af 'fgbears-normalize|normalize-library.sh' || true; then :; fi
+          REMOTE
