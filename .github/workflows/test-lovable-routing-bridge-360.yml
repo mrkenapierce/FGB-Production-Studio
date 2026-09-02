@@ -82,7 +82,7 @@ jobs:
           print('EXACT_CARD_360=PASS')
           print('QR_360_DECODE=PASS')
           PY
-      - name: Verify compositor uses worker-derived 360p geometry
+      - name: Verify compositor uses worker-derived 360p geometry and bounded monitor
         env:
           YOUTUBE_QUESTION_MASK_PORT: '18792'
         run: |
@@ -91,15 +91,36 @@ jobs:
           YOUTUBE_LOCAL_UDP_URL=udp://127.0.0.1:1939?pkt_size=1316
           YOUTUBE_UPSTREAM_RTMP_BASE=rtmps://example.invalid/live2
           ENV
-          mkdir -p /tmp/fakebin
+          mkdir -p /tmp/fakebin /tmp/monitor360
           cat >/tmp/fakebin/ffmpeg <<'SH'
           #!/usr/bin/env bash
           printf '%s\n' "$@" >/tmp/args360.txt
           SH
           chmod +x /tmp/fakebin/ffmpeg
-          ENV_FILE=/tmp/stream.env PATH="/tmp/fakebin:$PATH" bash services/fgbears-live/bin/youtube-lovable-compositor.sh
+          ENV_FILE=/tmp/stream.env YOUTUBE_MONITOR_DIR=/tmp/monitor360 PATH="/tmp/fakebin:$PATH" bash services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fxq '399x235' /tmp/args360.txt
           grep -Fq 'scale=640:360:flags=fast_bilinear' /tmp/args360.txt
           grep -Fq 'overlay=231:52:format=auto:shortest=1[v]' /tmp/args360.txt
           grep -Fxq 'ultrafast' /tmp/args360.txt
+          grep -Fxq '512' /tmp/args360.txt
+          grep -Fq 'f=segment:segment_time=2:segment_wrap=3:segment_format=mpegts:reset_timestamps=1:onfail=ignore' /tmp/args360.txt
           echo 'COMPOSITOR_360_CONTRACT=PASS'
+      - name: Prove rotating MPEG-TS monitor syntax produces bounded readable segments
+        run: |
+          rm -rf /tmp/segment-proof && mkdir -p /tmp/segment-proof
+          ffmpeg -hide_banner -nostdin -loglevel error \
+            -f lavfi -i 'testsrc=size=640x360:rate=30' -t 4 -map 0:v \
+            -c:v libx264 -preset ultrafast -g 30 \
+            -f tee '[f=null]/dev/null|[f=segment:segment_time=1:segment_wrap=3:segment_format=mpegts:reset_timestamps=1:onfail=ignore]/tmp/segment-proof/monitor-%d.ts'
+          count=$(find /tmp/segment-proof -maxdepth 1 -name 'monitor-*.ts' -type f | wc -l)
+          test "$count" -le 3
+          test "$count" -ge 1
+          latest=$(find /tmp/segment-proof -maxdepth 1 -name 'monitor-*.ts' -type f -printf '%T@ %p\n' | sort -nr | head -n1 | cut -d' ' -f2-)
+          ffprobe -v error -select_streams v:0 -show_entries stream=width,height,r_frame_rate -of json "$latest" >/tmp/segment-proof.json
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/segment-proof.json'))
+          s=p['streams'][0]
+          assert s['width']==640 and s['height']==360 and s['r_frame_rate']=='30/1',s
+          print('BOUNDED_MONITOR_SEGMENTS=PASS')
+          PY
