@@ -1,5 +1,5 @@
 [Unit]
-Description=FGBears YouTube Lovable-Controlled 720p Compositor
+Description=FGBears YouTube Lovable-Controlled Resource-Protected 360p Compositor
 After=network-online.target fgbears-live.service fgbears-youtube-lovable-routing.service
 Wants=network-online.target
 Requires=fgbears-youtube-lovable-routing.service
@@ -10,8 +10,8 @@ User=fgbears
 Group=fgbears
 EnvironmentFile=/etc/fgbears-live/stream.env
 Environment=YOUTUBE_QUESTION_MASK_PORT=8791
-Environment=YOUTUBE_OUTPUT_WIDTH=1280
-Environment=YOUTUBE_OUTPUT_HEIGHT=720
+Environment=YOUTUBE_OUTPUT_WIDTH=640
+Environment=YOUTUBE_OUTPUT_HEIGHT=360
 Environment=YOUTUBE_OUTPUT_FPS=30
 Environment=YOUTUBE_MONITOR_DIR=/run/fgbears-youtube-lovable-compositor
 RuntimeDirectory=fgbears-youtube-lovable-compositor
