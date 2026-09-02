@@ -29,7 +29,7 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Read production mastering progress
+      - name: Read production mastering progress and capacity
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -47,6 +47,11 @@ jobs:
           echo "production_files=$total"
           echo "v2_mastered_files=$mastered"
           echo "remaining=$((total-mastered))"
+          echo "logical_cpus=$(nproc)"
+          echo "load_average=$(cut -d' ' -f1-3 /proc/loadavg)"
+          echo "memory=$(free -m | awk 'NR==2 {print $2"MB_total "$3"MB_used "$7"MB_available"}')"
+          echo "media_bytes=$(du -sb "$MEDIA_DIR" | awk '{print $1}')"
+          echo "filesystem=$(df -h "$MEDIA_DIR" | awk 'NR==2 {print $2"_total "$3"_used "$4"_available "$5"_pct"}')"
           for service in fgbears-live.service fgbears-youtube-relay.service fgbears-rumble-relay.service; do
             echo "$service=$(systemctl is-active "$service") pid=$(systemctl show -p MainPID --value "$service")"
           done
@@ -55,5 +60,6 @@ jobs:
           [[ "$yargs" == *" -c copy "* ]]
           [[ "$yargs" != *"youtube-stream-router"* ]]
           echo 'youtube_copy_relay=yes'
+          ps -eo pid,ni,pcpu,pmem,etime,args --sort=-pcpu | head -n 12
           if pgrep -af 'fgbears-normalize|normalize-library.sh' || true; then :; fi
           REMOTE
