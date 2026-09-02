@@ -1,0 +1,86 @@
+name: Deploy FGBears Tickers
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type TICKERS to deploy only RSS/crawl renderer changes'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-production-deploy
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Require explicit ticker deployment confirmation
+        env:
+          CONFIRM: ${{ inputs.confirm }}
+        run: test "$CONFIRM" = 'TICKERS'
+
+      - name: Check out selected revision
+        uses: actions/checkout@v4
+
+      - name: Validate ticker source contracts
+        run: |
+          set -Eeuo pipefail
+          bash -n .github/scripts/deploy-stable-tickers.sh
+          bash -n services/fgbears-live/bin/start-stream.sh
+          python3 -m py_compile \
+            services/fgbears-live/bin/bears-news-feed.py \
+            services/fgbears-live/bin/bears-news-feed-hq.py \
+            services/fgbears-live/bin/crawl-overlay.py \
+            services/fgbears-live/bin/crawl-overlay-hq.py
+          grep -Fq 'BEARS_NEWS_OVERLAY_FPS=30' services/fgbears-live/config/stream.env.example
+          grep -Fq 'BEARS_NEWS_SCROLL_PPS=76' services/fgbears-live/config/stream.env.example
+          grep -Fq 'CRAWL_OVERLAY_FPS=30' services/fgbears-live/config/stream.env.example
+          grep -Fq 'payloadSwap' services/fgbears-live/bin/bears-news-feed-hq.py
+          grep -Fq 'BoundarySequence' services/fgbears-live/bin/crawl-overlay-hq.py
+          if grep -Eq 'systemctl (restart|start).*fgbears-(rumble-relay|youtube-lovable-compositor|youtube-relay)' .github/scripts/deploy-stable-tickers.sh; then
+            echo 'Ticker deployment must not restart destination services.' >&2
+            exit 1
+          fi
+          echo 'TICKER_SOURCE_CONTRACT=PASS 30fps boundary-swapped destination-isolated'
+
+      - name: Configure SSH and stage ticker files
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/bears-news-feed-hq.py \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/bears-news-feed-hq.py"
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/crawl-overlay-hq.py \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/crawl-overlay-hq.py"
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/start-stream.sh \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/start-stream.sh"
+          scp -i ~/.ssh/oracle_key \
+            .github/scripts/deploy-stable-tickers.sh \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/deploy-stable-tickers.sh"
+
+      - name: Run guarded ticker-only deployment
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
+            'sudo bash /tmp/deploy-stable-tickers.sh'
