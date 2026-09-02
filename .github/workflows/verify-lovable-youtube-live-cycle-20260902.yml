@@ -1,48 +1,21 @@
-name: Verify YouTube 720p Current State
+name: Legacy YouTube 720p Verifier - Manual Only
 
 on:
-  push:
-    branches:
-      - lovable-routing-bridge-20260902
-    paths:
-      - '.github/workflows/verify-lovable-youtube-live-cycle-20260902.yml'
-      - '.github/scripts/verify-youtube-720p-current.sh'
-      - 'services/fgbears-live/bin/youtube-question-mask.py'
-      - 'services/fgbears-live/bin/youtube-lovable-compositor.sh'
-      - 'services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service'
-      - 'services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+# Historical verifier retained only for reference. The current production
+# YouTube branch is intentionally 640x360/30 to preserve Oracle CPU headroom,
+# with only the exact trivia question rectangle protected.
+
 jobs:
-  verify:
+  legacy_notice:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
-    env:
-      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-      ORACLE_USER: ${{ secrets.ORACLE_USER }}
-      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: lovable-routing-bridge-20260902
-
-      - name: Configure SSH
+      - name: Explain obsolete verifier
         shell: bash
         run: |
-          set -Eeuo pipefail
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
-          chmod 600 ~/.ssh/oracle_key
-          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      # Read-only: this verifier never restarts or modifies production services.
-      - name: Run read-only production audit
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
-          scp -i ~/.ssh/oracle_key .github/scripts/verify-youtube-720p-current.sh "$target:/tmp/verify-youtube-720p-current.sh"
-          ssh -i ~/.ssh/oracle_key "$target" 'chmod 700 /tmp/verify-youtube-720p-current.sh && /tmp/verify-youtube-720p-current.sh; rc=$?; rm -f /tmp/verify-youtube-720p-current.sh; exit $rc'
+          echo 'The former 720p same-host compositor is no longer the production design.'
+          echo 'Current production: 640x360/30 exact-question-box compositor.'
