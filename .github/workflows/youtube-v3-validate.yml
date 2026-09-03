@@ -53,12 +53,17 @@ jobs:
           grep -Fq 'threading.Thread(target=control_loop' "$overlay"
           grep -Fq 'fifo_size=2000000&overrun_nonfatal=1&reuse=1' "$runner"
           grep -Fq -- '-probesize 10000000 -analyzeduration 10000000' "$runner"
+          grep -Fq 'fps=24:start_time=0' "$runner"
+          grep -Fq 'N/(24*TB)' "$runner"
           grep -Fq -- '-framerate 10' "$runner"
           grep -Fq 'N/(10*TB)' "$runner"
+          grep -Fq -- '-r 24 -fps_mode cfr -g 48 -keyint_min 48 -sc_threshold 0' "$runner"
           grep -Fq -- '-progress pipe:3' "$runner"
           grep -Fq 'aresample=44100:async=1000:first_pts=0' "$runner"
           grep -Fq -- '-threads 1' "$runner"
-          grep -Fq "repeat-headers=1:keyint=60:min-keyint=60:scenecut=0" "$runner"
+          grep -Fq "repeat-headers=1:keyint=48:min-keyint=48:scenecut=0" "$runner"
+          ! grep -Fq 'fps=30:start_time=0' "$runner"
+          ! grep -Fq -- '-r 30 -fps_mode cfr' "$runner"
           ! grep -Fq 'ingest_normalizer' "$runner"
           ! grep -Fq 'youtube-v3-ingest.ts' "$runner"
           grep -Fq 'measure_rate' "$verify"
@@ -82,7 +87,7 @@ jobs:
           grep -Fq 'youtube-generation' "$monitor"
           grep -Fq 'measure_rate' "$monitor"
           grep -Fq '== 10.0' "$monitor"
-          echo 'V3_STATIC_ARCHITECTURE=PASS cadence=10fps path=direct-udp-single-process'
+          echo 'V3_STATIC_ARCHITECTURE=PASS video=1280x720@24 overlay=10fps path=direct-udp-single-process'
 
       - name: Prove two-phase cutover ordering
         run: |
