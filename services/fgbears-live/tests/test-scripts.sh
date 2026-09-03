@@ -183,7 +183,9 @@ done
 jq -e '.ok == true and .active == true and .messageCount == 3' "$TMP/crawl-health.json" >/dev/null
 kill "$CRAWL_PID"; wait "$CRAWL_PID" 2>/dev/null || true; CRAWL_PID=""
 
-# Media normalization remains unchanged.
+# Media normalization remains unchanged. Production installs validate-media.sh
+# as an executable /usr/local/bin/fgbears-validate, so emulate that install mode
+# rather than weakening rebuild-playlist.sh's admission check in source checkout.
 mkdir -p "$TMP/media"
 ffmpeg -hide_banner -loglevel error \
   -f lavfi -i color=c=black:s=640x360:r=24:d=0.5 \
@@ -191,7 +193,9 @@ ffmpeg -hide_banner -loglevel error \
   -c:v libx264 -preset ultrafast -c:a aac -shortest "$TMP/source.mp4"
 MEDIA_DIR="$TMP/media" bash "$ROOT/bin/normalize-library.sh" "$TMP/source.mp4" "$TMP/media/episode-01.mp4"
 bash "$ROOT/bin/validate-media.sh" "$TMP/media"
-MEDIA_DIR="$TMP/media" PLAYLIST_FILE="$TMP/playlist.ffconcat" bash "$ROOT/bin/rebuild-playlist.sh"
+install -m 0755 "$ROOT/bin/validate-media.sh" "$TMP/fgbears-validate"
+VALIDATOR="$TMP/fgbears-validate" MEDIA_DIR="$TMP/media" PLAYLIST_FILE="$TMP/playlist.ffconcat" \
+  bash "$ROOT/bin/rebuild-playlist.sh"
 grep -q 'episode-01.mp4' "$TMP/playlist.ffconcat"
 
 echo 'FGBears Live integration tests passed: minimal v2 architecture.'
