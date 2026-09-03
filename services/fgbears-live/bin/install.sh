@@ -7,204 +7,128 @@ SOURCE_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
 EXACT_CARD_PYLIB=/opt/fgbears-live/exact-card-pylib
 
 export DEBIAN_FRONTEND=noninteractive
-required_packages=(
-  ffmpeg ca-certificates curl git jq rsync python3 python3-pil fonts-dejavu-core
-)
-missing_packages=()
-for package in "${required_packages[@]}"; do
-  if ! dpkg-query -W -f='${Status}\n' "$package" 2>/dev/null | grep -Fqx 'install ok installed'; then
-    missing_packages+=("$package")
-  fi
+required=(ffmpeg ca-certificates curl git jq rsync python3 python3-pil fonts-dejavu-core)
+missing=()
+for p in "${required[@]}"; do
+  dpkg-query -W -f='${Status}\n' "$p" 2>/dev/null | grep -Fqx 'install ok installed' || missing+=("$p")
 done
-# Production intentionally carries the QR dependency in an isolated Python path
-# used by fgbears-youtube-lovable-routing.service. Validate the same runtime the
-# service uses. On a fresh host without that private runtime, fall back to the
-# distro package so first installation remains self-contained.
 if ! PYTHONPATH="$EXACT_CARD_PYLIB" python3 -c 'import qrcode' >/dev/null 2>&1; then
-  missing_packages+=(python3-qrcode)
+  missing+=(python3-qrcode)
+fi
+if ((${#missing[@]})); then
+  apt-get -o Acquire::Retries=3 update
+  apt-get -o Acquire::Retries=3 install -y --no-install-recommends "${missing[@]}"
 fi
 
-if ((${#missing_packages[@]})); then
-  echo "Installing missing packages: ${missing_packages[*]}"
-  apt-get \
-    -o Acquire::Retries=3 \
-    -o Acquire::http::Timeout=30 \
-    -o Acquire::https::Timeout=30 \
-    update
-  apt-get \
-    -o Acquire::Retries=3 \
-    -o Acquire::http::Timeout=30 \
-    -o Acquire::https::Timeout=30 \
-    install -y --no-install-recommends "${missing_packages[@]}"
-else
-  echo "All required FGBears Live packages/modules are already installed; skipping apt."
-fi
-
-if ! id fgbears >/dev/null 2>&1; then
-  useradd --system --home-dir /srv/fgbears-live --shell /usr/sbin/nologin fgbears
-fi
-
-install -d -m 0755 /opt/fgbears-live
-# exact-card-pylib is a production runtime dependency provisioned independently
-# of repository files. Never erase it during a code sync; the routing service's
-# systemd unit explicitly places this directory on PYTHONPATH.
+id fgbears >/dev/null 2>&1 || useradd --system --home-dir /srv/fgbears-live --shell /usr/sbin/nologin fgbears
+install -d -m0755 /opt/fgbears-live
 rsync -a --delete --exclude 'exact-card-pylib/' "$SOURCE_DIR/" /opt/fgbears-live/
 
+# Preserve the existing shared-program renderers/assets.
 mv /opt/fgbears-live/bin/ad-overlay.py /opt/fgbears-live/bin/ad-overlay-base.py
-install -m 0755 /opt/fgbears-live/bin/ad-overlay-smart.py /opt/fgbears-live/bin/ad-overlay.py
-
-install -d -m 0755 /opt/fgbears-live/assets
+install -m0755 /opt/fgbears-live/bin/ad-overlay-smart.py /opt/fgbears-live/bin/ad-overlay.py
+install -d -m0755 /opt/fgbears-live/assets
 base64 --decode "$SOURCE_DIR/../../renderer/assets/epic-logo-for-qr.base64.txt" > /opt/fgbears-live/assets/epic-logo.png
 chmod 0644 /opt/fgbears-live/assets/epic-logo.png
+install -m0644 "$SOURCE_DIR/assets/fgb-epic-default-interstitial.jpg" /opt/fgbears-live/assets/fgb-epic-default-interstitial.jpg
 
-install -m 0644 \
-  "$SOURCE_DIR/assets/fgb-epic-default-interstitial.jpg" \
-  /opt/fgbears-live/assets/fgb-epic-default-interstitial.jpg
-python3 -c 'from PIL import Image; p="/opt/fgbears-live/assets/fgb-epic-default-interstitial.jpg"; im=Image.open(p); im.load(); assert im.format == "JPEG"; assert im.size == (798, 470)'
+install -d -o fgbears -g fgbears -m0755 /srv/fgbears-live /srv/fgbears-live/media /srv/fgbears-live/incoming /srv/fgbears-live/logs /srv/fgbears-live/runtime
+install -d -o root -g root -m0755 /srv/fgbears-live/health
+install -d -o root -g fgbears -m0750 /etc/fgbears-live
 
-install -d -o fgbears -g fgbears -m 0755 /srv/fgbears-live /srv/fgbears-live/media /srv/fgbears-live/incoming /srv/fgbears-live/logs /srv/fgbears-live/runtime
-install -d -o root -g root -m 0755 /srv/fgbears-live/health
-install -d -o root -g fgbears -m 0750 /etc/fgbears-live
-install -d -o root -g root -m 0755 /usr/local/libexec
+# Exactly three stream services exist in the supported topology:
+#   fgbears-live.service             shared program -> two local UDP sockets
+#   fgbears-rumble-relay.service     copy/remux master -> Rumble
+#   fgbears-youtube-output.service   inline concealment + one video encode -> YouTube
+install -m0755 /opt/fgbears-live/bin/start-stream.sh /usr/local/bin/fgbears-start-stream
+install -m0755 /opt/fgbears-live/bin/rumble-relay.sh /usr/local/bin/fgbears-rumble-relay
+install -m0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
+install -m0644 /opt/fgbears-live/systemd/fgbears-rumble-relay.service /etc/systemd/system/fgbears-rumble-relay.service
+install -m0644 /opt/fgbears-live/systemd/fgbears-youtube-output.service /etc/systemd/system/fgbears-youtube-output.service
 
-# Shared-master and destination transports.
-install -m 0755 /opt/fgbears-live/bin/start-stream.sh /usr/local/bin/fgbears-start-stream
-install -m 0755 /opt/fgbears-live/bin/youtube-relay.sh /usr/local/bin/fgbears-youtube-relay
-install -m 0755 /opt/fgbears-live/bin/rumble-relay.sh /usr/local/bin/fgbears-rumble-relay
-install -m 0755 /opt/fgbears-live/bin/configure-rumble.sh /usr/local/bin/fgbears-configure-rumble
+# Keep only master-level health supervision. YouTube relies on one systemd unit
+# with Restart=always; there is no second router/watchdog/fallback owner.
+install -m0755 /opt/fgbears-live/bin/healthcheck.sh /usr/local/bin/fgbears-healthcheck
+install -m0644 /opt/fgbears-live/systemd/fgbears-live-health.service /etc/systemd/system/fgbears-live-health.service
+install -m0644 /opt/fgbears-live/systemd/fgbears-live-health.timer /etc/systemd/system/fgbears-live-health.timer
 
-# The owner-aware compositor watchdog is the only installed YouTube recovery
-# implementation. It may restart the compositor after persistent faults but it
-# never changes the shared master/Rumble lifecycle and never falls back to the
-# direct relay.
-install -m 0755 /opt/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh /usr/local/bin/fgbears-youtube-audio-watchdog
-rm -f /usr/local/libexec/fgbears-youtube-audio-watchdog-legacy
-
-# Library/media administration.
-install -m 0755 /opt/fgbears-live/bin/normalize-library.sh /usr/local/bin/fgbears-normalize
-install -m 0755 /opt/fgbears-live/bin/validate-media.sh /usr/local/bin/fgbears-validate
-install -m 0755 /opt/fgbears-live/bin/rebuild-playlist.sh /usr/local/bin/fgbears-rebuild-playlist
-install -m 0755 /opt/fgbears-live/bin/add-episode.sh /usr/local/bin/fgbears-add-episode
-install -m 0755 /opt/fgbears-live/bin/healthcheck.sh /usr/local/bin/fgbears-healthcheck
-install -m 0755 /opt/fgbears-live/bin/audio-health.py /usr/local/bin/fgbears-audio-health
-install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-stream-status
-
-# Systemd units. The master has no destination-specific Wants/Requires. Rumble
-# is independent copy/remux. YouTube normal ownership is routing + exact-box
-# compositor. The direct relay unit is deliberately masked below so a stale
-# recovery path cannot bypass trivia concealment.
-install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
-install -m 0644 /opt/fgbears-live/systemd/fgbears-rumble-relay.service /etc/systemd/system/fgbears-rumble-relay.service
-install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-lovable-routing.service /etc/systemd/system/fgbears-youtube-lovable-routing.service
-install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service /etc/systemd/system/fgbears-youtube-lovable-compositor.service
-install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.service /etc/systemd/system/fgbears-live-health.service
-install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.timer /etc/systemd/system/fgbears-live-health.timer
-install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-audio-watchdog.service /etc/systemd/system/fgbears-youtube-audio-watchdog.service
-install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-audio-watchdog.timer /etc/systemd/system/fgbears-youtube-audio-watchdog.timer
+# Media/library utilities retained because they are not part of the live output
+# topology and do not supervise or modify destination ownership.
+for spec in \
+  'normalize-library.sh:fgbears-normalize' \
+  'validate-media.sh:fgbears-validate' \
+  'rebuild-playlist.sh:fgbears-rebuild-playlist' \
+  'add-episode.sh:fgbears-add-episode' \
+  'audio-health.py:fgbears-audio-health' \
+  'stream-status.sh:fgbears-stream-status' \
+  'configure-rumble.sh:fgbears-configure-rumble'; do
+  src=${spec%%:*}; dst=${spec##*:}
+  install -m0755 "/opt/fgbears-live/bin/$src" "/usr/local/bin/$dst"
+done
 
 ENV_PATH=/etc/fgbears-live/stream.env
-if [[ ! -e "$ENV_PATH" ]]; then
-  install -o root -g fgbears -m 0640 /opt/fgbears-live/config/stream.env.example "$ENV_PATH"
-fi
-
-# Preserve credentials/endpoints while normalizing only true shared/runtime
-# settings. YouTube audio/video quality constants are owned by the destination
-# scripts, not stream.env, so stale environment files cannot change production
-# behavior during recovery.
+[[ -e "$ENV_PATH" ]] || install -o root -g fgbears -m0640 /opt/fgbears-live/config/stream.env.example "$ENV_PATH"
 python3 - "$ENV_PATH" <<'PY'
 from pathlib import Path
 import sys
-
-path = Path(sys.argv[1])
-lines = path.read_text(encoding="utf-8").splitlines()
-values = {}
+p=Path(sys.argv[1])
+lines=p.read_text(encoding='utf-8').splitlines()
+vals={}
 for line in lines:
-    if "=" in line and not line.lstrip().startswith("#"):
-        key, value = line.split("=", 1)
-        values[key] = value
-
-current_base = values.get("YOUTUBE_RTMP_BASE", "")
-upstream = values.get("YOUTUBE_UPSTREAM_RTMP_BASE", "")
-if not upstream:
-    if current_base and not current_base.startswith("rtmp://127.0.0.1:"):
-        upstream = current_base
-    else:
-        upstream = "rtmps://a.rtmps.youtube.com/live2"
-
-updates = {
-    "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",
-    "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
-    "YOUTUBE_AUDIO_BITRATE": "128k",
-    "YOUTUBE_AUDIO_SAMPLE_RATE": "48000",
-    "YOUTUBE_AUDIO_CHANNELS": "2",
-    "FGB_YOUTUBE_PACKET_ROUTER_ENABLE": "0",
-    "RUMBLE_TRIVIA_URL": "https://rumble.com/v7eqrsu-chicago-bears-live-trivia-every-20-minutes-cash-prizes-fgb.html",
-    "RUMBLE_TRIVIA_DISPLAY_URL": "rumble.com/v7eqrsu",
-    "RUMBLE_LOCAL_UDP_URL": "udp://127.0.0.1:1940?pkt_size=1316",
-    "RUMBLE_UPSTREAM_RTMP_BASE": "rtmp://rtmp.rumble.com/live",
-    "OUTPUT_FPS": "30",
-    "AD_OVERLAY_FPS": "15",
-    "CRAWL_OVERLAY_FPS": "30",
-    "CRAWL_OVERLAY_SCRIPT": "/opt/fgbears-live/bin/crawl-overlay-hq.py",
-    "CRAWL_TEXT_RENDER_SCALE": "2",
-    "BEARS_NEWS_SCRIPT": "/opt/fgbears-live/bin/bears-news-feed-hq.py",
-    "BEARS_NEWS_OVERLAY_PORT": "8789",
-    "BEARS_NEWS_OVERLAY_FPS": "30",
-    "BEARS_NEWS_SCROLL_PPS": "76",
+    if '=' in line and not line.lstrip().startswith('#'):
+        k,v=line.split('=',1); vals[k]=v
+upstream=vals.get('YOUTUBE_UPSTREAM_RTMP_BASE') or vals.get('YOUTUBE_RTMP_BASE') or 'rtmps://a.rtmps.youtube.com/live2'
+if upstream.startswith('rtmp://127.0.0.1:'):
+    upstream='rtmps://a.rtmps.youtube.com/live2'
+updates={
+ 'YOUTUBE_LOCAL_UDP_URL':'udp://127.0.0.1:1939?pkt_size=1316',
+ 'YOUTUBE_UPSTREAM_RTMP_BASE':upstream,
+ 'RUMBLE_LOCAL_UDP_URL':'udp://127.0.0.1:1940?pkt_size=1316',
+ 'RUMBLE_UPSTREAM_RTMP_BASE':'rtmp://rtmp.rumble.com/live',
+ 'OUTPUT_FPS':'30','AD_OVERLAY_FPS':'15','CRAWL_OVERLAY_FPS':'30',
+ 'CRAWL_OVERLAY_SCRIPT':'/opt/fgbears-live/bin/crawl-overlay-hq.py',
+ 'BEARS_NEWS_SCRIPT':'/opt/fgbears-live/bin/bears-news-feed-hq.py',
+ 'BEARS_NEWS_OVERLAY_PORT':'8789','BEARS_NEWS_OVERLAY_FPS':'30','BEARS_NEWS_SCROLL_PPS':'76',
 }
-retired_prefixes = ("X_", "INSTAGRAM_", "FACEBOOK_", "YOUTUBE_TRIVIA_")
-retired_exact = {
-    "FGB_YOUTUBE_TRIVIA_CARD_H264",
-    "PODCAST_AUDIO_FILTER",
-    "YOUTUBE_RTMP_BASE",
-    "YOUTUBE_VIDEO_BITRATE",
-    "YOUTUBE_VIDEO_MAXRATE",
-    "YOUTUBE_VIDEO_BUFSIZE",
+retired={
+ 'YOUTUBE_RTMP_BASE','YOUTUBE_AUDIO_BITRATE','YOUTUBE_AUDIO_SAMPLE_RATE','YOUTUBE_AUDIO_CHANNELS',
+ 'YOUTUBE_VIDEO_BITRATE','YOUTUBE_VIDEO_MAXRATE','YOUTUBE_VIDEO_BUFSIZE','FGB_YOUTUBE_PACKET_ROUTER_ENABLE',
 }
-seen = set()
-out = []
+out=[]; seen=set()
 for line in lines:
-    if "=" in line and not line.lstrip().startswith("#"):
-        key = line.split("=", 1)[0]
-        if key.startswith(retired_prefixes) or key in retired_exact:
+    if '=' in line and not line.lstrip().startswith('#'):
+        k=line.split('=',1)[0]
+        if k in retired or k.startswith(('YOUTUBE_TRIVIA_','FGB_YOUTUBE_TRIVIA_')):
             continue
-        if key in updates:
-            if key not in seen:
-                out.append(f"{key}={updates[key]}")
-                seen.add(key)
+        if k in updates:
+            if k not in seen: out.append(f'{k}={updates[k]}'); seen.add(k)
             continue
     out.append(line)
-for key, value in updates.items():
-    if key not in seen:
-        out.append(f"{key}={value}")
-if not any(line.startswith("RUMBLE_STREAM_KEY=") for line in out):
-    out.append("RUMBLE_STREAM_KEY=REPLACE_WITH_RUMBLE_STREAM_KEY")
-path.write_text("\n".join(out) + "\n", encoding="utf-8")
+for k,v in updates.items():
+    if k not in seen: out.append(f'{k}={v}')
+p.write_text('\n'.join(out)+'\n',encoding='utf-8')
 PY
-chown root:fgbears "$ENV_PATH"
-chmod 0640 "$ENV_PATH"
+chown root:fgbears "$ENV_PATH"; chmod 0640 "$ENV_PATH"
 
-# Establish exact-box YouTube as the only permitted owner. Remove any old unit
-# file and replace it with a hard mask so service-manager recovery cannot start a
-# bypass path later. This intentionally favors a visible YouTube outage over
-# exposing a live trivia question.
-systemctl stop fgbears-youtube-relay.service >/dev/null 2>&1 || true
-systemctl disable fgbears-youtube-relay.service >/dev/null 2>&1 || true
-rm -f /etc/systemd/system/fgbears-youtube-relay.service
-ln -s /dev/null /etc/systemd/system/fgbears-youtube-relay.service
+# Remove every retired YouTube owner/supervisor from systemd and local helper
+# paths. They are not fallbacks; they are unsupported architecture now.
+old_units=(
+  fgbears-youtube-relay.service
+  fgbears-youtube-router.service
+  fgbears-youtube-lovable-routing.service
+  fgbears-youtube-lovable-compositor.service
+  fgbears-youtube-audio-watchdog.service
+  fgbears-youtube-audio-watchdog.timer
+)
+for u in "${old_units[@]}"; do
+  systemctl stop "$u" >/dev/null 2>&1 || true
+  systemctl disable "$u" >/dev/null 2>&1 || true
+  rm -f "/etc/systemd/system/$u"
+done
+rm -f /usr/local/bin/fgbears-youtube-relay /usr/local/bin/fgbears-youtube-audio-watchdog /usr/local/libexec/fgbears-youtube-audio-watchdog-legacy
+
 systemctl daemon-reload
-systemctl enable fgbears-youtube-lovable-routing.service
-systemctl enable fgbears-youtube-lovable-compositor.service
-
-# Do not touch the shared master or Rumble lifecycle. If this is an upgrade on a
-# running host, refresh only the YouTube routing/compositor chain.
-if systemctl is-active --quiet fgbears-live.service; then
-  systemctl restart fgbears-youtube-lovable-routing.service
-  systemctl reset-failed fgbears-youtube-lovable-compositor.service || true
-  systemctl restart fgbears-youtube-lovable-compositor.service
-fi
-
+systemctl enable fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-output.service
 systemctl enable --now fgbears-live-health.timer
-systemctl enable --now fgbears-youtube-audio-watchdog.timer
 
-echo "Installed FGBears Live: destination-independent master, unchanged Rumble copy/remux, exact-box YouTube owner, fail-closed recovery, native 48 kHz audio watchdog."
+echo 'Installed minimal FGBears topology: shared master + Rumble relay + one YouTube overlay/output service.'
