@@ -39,7 +39,7 @@ media_us(){ sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$PROGRESS" | tail -n1; }
 measure_rate(){
   local m0 m1 t0 t1
   m0=$(media_us); [[ "$m0" =~ ^[0-9]+$ ]] || return 1
-  t0=$(date +%s%N); sleep 5
+  t0=$(date +%s%N); sleep 10
   m1=$(media_us); [[ "$m1" =~ ^[0-9]+$ ]] || return 1
   t1=$(date +%s%N)
   python3 - "$m0" "$m1" "$t0" "$t1" <<'PY'
@@ -66,8 +66,9 @@ connected "$Y" 443 || fail youtube_socket_missing
 grep -Fq 'HOLD_SECONDS = float' "$ACTIVE_DIR/youtube-v3-overlay.py" || fail concealment_hold_missing
 grep -Fq '"15"' "$ACTIVE_DIR/youtube-v3-overlay.py" || fail concealment_hold_not_15_seconds
 grep -Fq 'OUTPUT_REGION' "$ACTIVE_DIR/youtube-v3-overlay.py" || fail scaled_overlay_region_missing
-grep -Fq -- '-video_size 533x314' "$ACTIVE_DIR/run-youtube-v3.sh" || fail scaled_overlay_pipe_missing
-grep -Fq 'overlay=308:69:' "$ACTIVE_DIR/run-youtube-v3.sh" || fail scaled_overlay_coordinates_missing
+grep -Fq -- '-video_size 399x235' "$ACTIVE_DIR/run-youtube-v3.sh" || fail scaled_overlay_pipe_missing
+grep -Fq 'overlay=231:52:' "$ACTIVE_DIR/run-youtube-v3.sh" || fail scaled_overlay_coordinates_missing
+grep -Fq 'scale=640:360:flags=fast_bilinear' "$ACTIVE_DIR/run-youtube-v3.sh" || fail youtube_output_not_360p
 grep -Fq -- '-threads 1' "$ACTIVE_DIR/run-youtube-v3.sh" || fail youtube_encoder_not_single_threaded
 grep -Fq '/api/public/fgbears/stream-routing' "$ACTIVE_DIR/lovable-state-cache.py" || fail cache_not_using_authoritative_contract
 
@@ -120,5 +121,5 @@ if [[ "$MODE" == final ]]; then
 fi
 
 pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"="); print a[2]}}' /proc/pressure/cpu 2>/dev/null || true)
-printf 'YOUTUBE_V3_VERIFY=PASS mode=%s master=%s rumble=%s cache=%s youtube=%s youtube_restarts=%s steady_rate=%sx fps=%s drop=%s dup=%s cpu_pressure_avg10=%s hold=15s output=854x480 overlay=533x314@308,69\n' \
+printf 'YOUTUBE_V3_VERIFY=PASS mode=%s master=%s rumble=%s cache=%s youtube=%s youtube_restarts=%s sustained_rate=%sx fps=%s drop=%s dup=%s cpu_pressure_avg10=%s hold=15s output=640x360 overlay=399x235@231,52\n' \
   "$MODE" "$M" "$R" "$C" "$Y" "$(restarts "$Y")" "$rate" "${fps:-NA}" "${drop:-NA}" "${dup:-NA}" "${pressure:-NA}"
