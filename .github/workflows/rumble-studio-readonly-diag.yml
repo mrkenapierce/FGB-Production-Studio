@@ -43,15 +43,16 @@ jobs:
           echo "studio_enable=$(sudo sed -n 's/^RUMBLE_STUDIO_ENABLE=//p' "$env_file"|tail -n1)"
           echo "studio_mode=$(sudo sed -n 's/^RUMBLE_STUDIO_MODE=//p' "$env_file"|tail -n1)"
           echo "studio_base=$(sudo sed -n 's/^RUMBLE_STUDIO_RTMP_BASE=//p' "$env_file"|tail -n1)"
-          echo "studio_key_present=$(sudo sed -n 's/^RUMBLE_STUDIO_STREAM_KEY=//p' "$env_file"|tail -n1|awk '{print length($0)>0?"yes":"no"}')"
+          if sudo grep -q '^RUMBLE_STUDIO_STREAM_KEY=.' "$env_file"; then echo 'studio_key_present=yes'; else echo 'studio_key_present=no'; fi
           echo 'CURRENT_RTMP_SOCKETS_BEGIN'
           sudo ss -ntpH state established | awk -v q="pid=$relay_pid" 'index($0,q){gsub(/[0-9A-Za-z_-]{20,}/,"[redacted]"); print}' || true
           echo 'CURRENT_RTMP_SOCKETS_END'
-          echo 'RECENT_RELAY_JOURNAL_BEGIN'
-          sudo journalctl -u fgbears-rumble-relay.service --since '10 minutes ago' --no-pager -o cat \
+          echo 'TARGETED_RELAY_ERRORS_BEGIN'
+          sudo journalctl -u fgbears-rumble-relay.service --since '2026-09-03 23:29:45 UTC' --no-pager -o cat \
+            | grep -Ei 'error|invalid|unknown|incompatible|failed|unable|option|tag|muxer|header|argument|start request|timed out' \
             | sed -E 's#(rtmps?://[^ /]+/live)/[^ ]+#\1/[redacted]#g; s#(rtmps?://[^ /]+)/[^ ]+#\1/[redacted]#g' \
-            | tail -n 120
-          echo 'RECENT_RELAY_JOURNAL_END'
+            | tail -n 100 || true
+          echo 'TARGETED_RELAY_ERRORS_END'
           getent ahostsv4 studio-rtmp.rumble.com | head -n 5 || true
           python3 - <<'PY'
           import socket
