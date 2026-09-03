@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
-"""Lovable-driven YouTube-only trivia presentation renderer.
+"""YouTube-only trivia concealment renderer controlled by Lovable routing.
 
-Lovable's public stream-routing endpoint is the control plane. This worker does
-not own platform routing decisions or source geometry: it consumes
-`trivia.maskRegion`, `trivia.youtubeCreativeKey`, and `trivia.presentation`.
-
-The Lovable mask region is validated as the authoritative question location and
-the YouTube execution cover uses that exact question rectangle. News, crawl,
-and unrelated middle-panel pixels remain live and untouched. When inactive,
-the same question-box frame is fully transparent.
+The renderer validates Lovable's exact 1280x720 question rectangle and emits a
+static RGBA replacement only for that rectangle. News, crawl, and all other
+program pixels remain untouched. Concealment is deliberately fail-closed once
+a question signal is present.
 """
 from __future__ import annotations
 
@@ -30,15 +26,14 @@ from PIL import Image
 
 SOURCE_CANVAS_WIDTH = 1280
 SOURCE_CANVAS_HEIGHT = 720
-SOURCE_NEWS_BOTTOM = 104   # news occupies y=0..103
-SOURCE_CRAWL_TOP = 574     # crawl begins at y=574
+SOURCE_NEWS_BOTTOM = 104
+SOURCE_CRAWL_TOP = 574
 OUTPUT_CANVAS_WIDTH = int(os.getenv("YOUTUBE_OUTPUT_CANVAS_WIDTH", str(SOURCE_CANVAS_WIDTH)))
 OUTPUT_CANVAS_HEIGHT = int(os.getenv("YOUTUBE_OUTPUT_CANVAS_HEIGHT", str(SOURCE_CANVAS_HEIGHT)))
 EXPECTED_CREATIVE = "yt_rumble_trivia_redirect"
 PORT = int(os.getenv("YOUTUBE_QUESTION_MASK_PORT", "8791"))
-FPS = max(1, min(30, int(os.getenv("YOUTUBE_QUESTION_MASK_FPS", "30"))))
-POLL_SECONDS = max(1, int(os.getenv("YOUTUBE_QUESTION_MASK_POLL_SECONDS", "1")))
-STALE_SECONDS = max(3, int(os.getenv("YOUTUBE_QUESTION_MASK_STALE_SECONDS", "30")))
+FPS = max(1, min(30, int(os.getenv("YOUTUBE_QUESTION_MASK_FPS", "15"))))
+POLL_SECONDS = max(0.10, min(1.0, float(os.getenv("YOUTUBE_QUESTION_MASK_POLL_SECONDS", "0.20"))))
 INITIAL_CONTRACT_RETRIES = max(1, int(os.getenv("YOUTUBE_QUESTION_MASK_CONTRACT_RETRIES", "30")))
 ROUTING_URL = os.getenv(
     "FGB_STREAM_ROUTING_URL",
@@ -54,7 +49,7 @@ CARD_BUILDER = Path(
 if OUTPUT_CANVAS_WIDTH <= 0 or OUTPUT_CANVAS_HEIGHT <= 0:
     raise ValueError("YouTube execution canvas dimensions must be positive")
 if OUTPUT_CANVAS_WIDTH * SOURCE_CANVAS_HEIGHT != OUTPUT_CANVAS_HEIGHT * SOURCE_CANVAS_WIDTH:
-    raise ValueError("YouTube execution canvas must preserve the 16:9 Lovable reference aspect ratio")
+    raise ValueError("YouTube execution canvas must preserve 16:9")
 
 
 def scaled(value: int, source: int, output: int) -> int:
@@ -98,10 +93,10 @@ def load_routing() -> dict[str, Any]:
             "Accept": "application/json",
             "Cache-Control": "no-cache",
             "Pragma": "no-cache",
-            "User-Agent": "FGBears-Lovable-Routing-Bridge/5.2",
+            "User-Agent": "FGBears-Lovable-Routing-Bridge/5.3",
         },
     )
-    with urllib.request.urlopen(req, timeout=6) as response:
+    with urllib.request.urlopen(req, timeout=2.0) as response:
         payload = json.loads(response.read().decode("utf-8"))
     if not isinstance(payload, dict):
         raise ValueError("routing response is not an object")
@@ -127,14 +122,14 @@ def parse_contract(payload: dict[str, Any]) -> Contract:
         source_width = int(region["width"])
         source_height = int(region["height"])
     except (KeyError, TypeError, ValueError) as exc:
-        raise ValueError("maskRegion has invalid numeric geometry") from exc
+        raise ValueError("maskRegion has invalid geometry") from exc
 
     if source_width <= 0 or source_height <= 0 or source_x < 0 or source_y < 0:
-        raise ValueError("maskRegion must be positive and inside the canvas")
+        raise ValueError("maskRegion must be positive")
     if source_x + source_width > SOURCE_CANVAS_WIDTH or source_y + source_height > SOURCE_CANVAS_HEIGHT:
-        raise ValueError("maskRegion exceeds the 1280x720 canvas")
+        raise ValueError("maskRegion exceeds source canvas")
     if source_y < SOURCE_NEWS_BOTTOM or source_y + source_height > SOURCE_CRAWL_TOP:
-        raise ValueError("maskRegion would overlap the always-live news or crawl bands")
+        raise ValueError("maskRegion overlaps news or crawl")
 
     creative = trivia.get("youtubeCreativeKey")
     presentation = trivia.get("presentation")
@@ -144,38 +139,30 @@ def parse_contract(payload: dict[str, Any]) -> Contract:
     rumble = presentation.get("rumble")
     if not isinstance(youtube, dict) or not isinstance(rumble, dict):
         raise ValueError("missing platform presentation contract")
-
     if creative != EXPECTED_CREATIVE:
-        raise ValueError(f"unsupported YouTube creative key: {creative!r}")
+        raise ValueError(f"unsupported creative key: {creative!r}")
     if youtube.get("creativeKey") != creative or youtube.get("sourceTemplateKey") != creative:
-        raise ValueError("YouTube presentation creative does not match youtubeCreativeKey")
+        raise ValueError("YouTube creative contract mismatch")
     if youtube.get("presentationMode") != "full_creative_scaled":
-        raise ValueError("YouTube presentationMode must be full_creative_scaled")
-    if youtube.get("rendersRealQuestion") is not False:
-        raise ValueError("YouTube presentation must not render the real question")
-    if rumble.get("rendersRealQuestion") is not True:
-        raise ValueError("Rumble presentation must retain the real question")
+        raise ValueError("unexpected YouTube presentation mode")
+    if youtube.get("rendersRealQuestion") is not False or rumble.get("rendersRealQuestion") is not True:
+        raise ValueError("platform question-rendering contract mismatch")
 
     masked = youtube.get("maskedRegion")
-    expected_source = {
-        "x": source_x,
-        "y": source_y,
-        "width": source_width,
-        "height": source_height,
-    }
+    expected_source = {"x": source_x, "y": source_y, "width": source_width, "height": source_height}
     if not isinstance(masked, dict) or any(masked.get(k) != v for k, v in expected_source.items()):
-        raise ValueError("YouTube presentation maskedRegion differs from trivia.maskRegion")
+        raise ValueError("YouTube maskedRegion differs from trivia.maskRegion")
 
     x = scaled(source_x, SOURCE_CANVAS_WIDTH, OUTPUT_CANVAS_WIDTH)
     y = scaled(source_y, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
     width = scaled(source_width, SOURCE_CANVAS_WIDTH, OUTPUT_CANVAS_WIDTH)
     height = scaled(source_height, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
-    output_news_bottom = scaled(SOURCE_NEWS_BOTTOM, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
-    output_crawl_top = scaled(SOURCE_CRAWL_TOP, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
-    if width <= 0 or height <= 0 or x < 0 or y < output_news_bottom or y + height > output_crawl_top:
-        raise ValueError("scaled maskRegion would overlap the always-live news or crawl bands")
+    news_bottom = scaled(SOURCE_NEWS_BOTTOM, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
+    crawl_top = scaled(SOURCE_CRAWL_TOP, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
+    if width <= 0 or height <= 0 or x < 0 or y < news_bottom or y + height > crawl_top:
+        raise ValueError("scaled mask overlaps protected bands")
     if x + width > OUTPUT_CANVAS_WIDTH or y + height > OUTPUT_CANVAS_HEIGHT:
-        raise ValueError("scaled maskRegion exceeds the YouTube execution canvas")
+        raise ValueError("scaled mask exceeds output canvas")
 
     return Contract(
         source_x=source_x,
@@ -198,18 +185,15 @@ def load_initial_contract() -> tuple[Contract, dict[str, Any]]:
             return parse_contract(payload), payload
         except Exception as exc:
             last_error = exc
-            print(f"Lovable routing contract unavailable ({attempt}/{INITIAL_CONTRACT_RETRIES}): {exc}", file=sys.stderr)
+            print(f"Lovable routing unavailable ({attempt}/{INITIAL_CONTRACT_RETRIES}): {exc}", file=sys.stderr)
             if attempt < INITIAL_CONTRACT_RETRIES:
                 time.sleep(1)
-    raise RuntimeError(f"unable to obtain valid Lovable routing contract: {last_error}")
+    raise RuntimeError(f"unable to obtain valid routing contract: {last_error}")
 
 
 def build_locked_creative(contract: Contract) -> bytes:
-    if contract.creative_key != EXPECTED_CREATIVE:
-        raise ValueError("unsupported creative")
     if not CARD_BUILDER.is_file():
         raise FileNotFoundError(f"locked creative builder not found: {CARD_BUILDER}")
-
     with tempfile.TemporaryDirectory(prefix="fgb-youtube-card-") as tmp:
         source_path = Path(tmp) / "locked-card.png"
         subprocess.run(
@@ -224,13 +208,10 @@ def build_locked_creative(contract: Contract) -> bytes:
                 raise ValueError(f"locked creative must be 1280x720, got {raw.size}")
             source = raw.convert("RGBA")
 
-    scaled_card = source.copy()
-    scaled_card.thumbnail((contract.width, contract.height), Image.Resampling.LANCZOS)
-
+    card = source.copy()
+    card.thumbnail((contract.width, contract.height), Image.Resampling.LANCZOS)
     result = Image.new("RGBA", (contract.width, contract.height), (11, 22, 42, 255))
-    px = (contract.width - scaled_card.width) // 2
-    py = (contract.height - scaled_card.height) // 2
-    result.paste(scaled_card, (px, py), scaled_card)
+    result.paste(card, ((contract.width - card.width) // 2, (contract.height - card.height) // 2), card)
     return result.tobytes()
 
 
@@ -244,37 +225,57 @@ class State:
         self.lock = threading.Lock()
         self.active = False
         self.phase: str | None = None
+        self.question_active = False
+        self.mask_active = False
+        self.prearmed = False
         self.last_good = 0.0
         self.last_error: str | None = None
 
     def update(self, payload: dict[str, Any]) -> None:
         current = parse_contract(payload)
         if current != CONTRACT:
-            raise ValueError(
-                f"Lovable presentation contract changed from {CONTRACT} to {current}; renderer restart required"
-            )
+            raise ValueError(f"presentation contract changed from {CONTRACT} to {current}; restart required")
+
         trivia = payload.get("trivia") if isinstance(payload.get("trivia"), dict) else {}
         phase = str(trivia.get("phase") or "") or None
+        question_active = trivia.get("questionActive") is True
+        mask_active = trivia.get("youtubeMaskActive") is True
+        ads_visible = trivia.get("adsVisible") is True
+        ad_break = trivia.get("isAdBreak") is True or trivia.get("adBreakActive") is True
+        session_active = trivia.get("active") is True
+
+        # Direct question signals win. During the clean transition after an ad
+        # break, pre-arm the cover before the next question pixels are painted.
+        prearmed = bool(session_active and phase == "transition" and not ads_visible and not ad_break)
+        should_cover = bool(phase == "question" or question_active or mask_active or prearmed)
+
         with self.lock:
-            # The actual trivia phase is the sole concealment authority. A
-            # question can never be exposed because of a secondary ad/mask flag
-            # changing late or briefly disagreeing with the phase state.
-            self.active = phase == "question"
+            self.active = should_cover
             self.phase = phase
+            self.question_active = question_active
+            self.mask_active = mask_active
+            self.prearmed = prearmed
             self.last_good = time.time()
             self.last_error = None
 
     def error(self, exc: Exception) -> None:
         with self.lock:
-            # Fail closed during a live question: a routing/API timeout must not
-            # expose question pixels. The last valid phase remains authoritative
-            # until a subsequent valid payload explicitly ends the question.
+            # Preserve the last valid state. If the cover is up, a control-plane
+            # timeout can never expose a live question.
             self.last_error = str(exc)
 
-    def snapshot(self) -> tuple[bool, str | None, float, str | None]:
+    def snapshot(self) -> tuple[bool, str | None, float, str | None, bool, bool, bool]:
         with self.lock:
             age = time.time() - self.last_good if self.last_good else float("inf")
-            return self.active, self.phase, age, self.last_error
+            return (
+                self.active,
+                self.phase,
+                age,
+                self.last_error,
+                self.question_active,
+                self.mask_active,
+                self.prearmed,
+            )
 
 
 STATE = State()
@@ -283,45 +284,54 @@ STATE.update(INITIAL_PAYLOAD)
 
 def poll() -> None:
     while True:
+        started = time.monotonic()
         try:
             STATE.update(load_routing())
         except Exception as exc:
             STATE.error(exc)
-        time.sleep(POLL_SECONDS)
+        delay = POLL_SECONDS - (time.monotonic() - started)
+        if delay > 0:
+            time.sleep(delay)
 
 
 def frame() -> bytes:
-    active, _phase, _age, _error = STATE.snapshot()
+    active, *_ = STATE.snapshot()
     return ACTIVE if active else TRANSPARENT
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "FGBearsLovableRoutingBridge/5.2"
+    server_version = "FGBearsLovableRoutingBridge/5.3"
 
     def log_message(self, *_args: Any) -> None:
         return
 
     def do_GET(self) -> None:  # noqa: N802
         if self.path.startswith("/healthz"):
-            active, phase, age, error = STATE.snapshot()
-            body = json.dumps({
-                "ok": True,
-                "active": active,
-                "phase": phase,
-                "lastGoodAgeSeconds": None if age == float("inf") else round(age, 3),
-                "lastError": error,
-                "sourceCanvas": [SOURCE_CANVAS_WIDTH, SOURCE_CANVAS_HEIGHT],
-                "canvas": [OUTPUT_CANVAS_WIDTH, OUTPUT_CANVAS_HEIGHT],
-                "sourceMaskRegion": CONTRACT.source_region(),
-                "maskRegion": CONTRACT.region(),
-                "frameSize": [CONTRACT.width, CONTRACT.height],
-                "creativeKey": CONTRACT.creative_key,
-                "presentationMode": "full_creative_scaled",
-                "routingAuthority": "lovable_public_stream_routing",
-                "executionScaling": "proportional_downstream",
-                "failClosedDuringQuestion": True,
-                "fps": FPS,
-            }).encode()
+            active, phase, age, error, question_active, mask_active, prearmed = STATE.snapshot()
+            body = json.dumps(
+                {
+                    "ok": True,
+                    "active": active,
+                    "phase": phase,
+                    "questionActiveSignal": question_active,
+                    "youtubeMaskActiveSignal": mask_active,
+                    "prearmed": prearmed,
+                    "lastGoodAgeSeconds": None if age == float("inf") else round(age, 3),
+                    "lastError": error,
+                    "sourceCanvas": [SOURCE_CANVAS_WIDTH, SOURCE_CANVAS_HEIGHT],
+                    "canvas": [OUTPUT_CANVAS_WIDTH, OUTPUT_CANVAS_HEIGHT],
+                    "sourceMaskRegion": CONTRACT.source_region(),
+                    "maskRegion": CONTRACT.region(),
+                    "frameSize": [CONTRACT.width, CONTRACT.height],
+                    "creativeKey": CONTRACT.creative_key,
+                    "presentationMode": "full_creative_scaled",
+                    "routingAuthority": "lovable_public_stream_routing",
+                    "executionScaling": "proportional_downstream",
+                    "failClosedDuringQuestion": True,
+                    "pollSeconds": POLL_SECONDS,
+                    "fps": FPS,
+                }
+            ).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Cache-Control", "no-store")
@@ -329,9 +339,11 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+
         if not self.path.startswith("/overlay.rgba"):
             self.send_error(404)
             return
+
         self.send_response(200)
         self.send_header("Content-Type", "application/octet-stream")
         self.send_header("Cache-Control", "no-store")
