@@ -57,6 +57,8 @@ jobs:
           grep -Fq 'N/(24*TB)' "$runner"
           grep -Fq -- '-framerate 5' "$runner"
           grep -Fq 'N/(5*TB)' "$runner"
+          grep -Fq 'overlay=462:104:format=auto:shortest=0:repeatlast=1:eof_action=repeat[composited]' "$runner"
+          grep -Fq 'scale=1152:648:flags=fast_bilinear[v]' "$runner"
           grep -Fq -- '-r 24 -fps_mode cfr -g 48 -keyint_min 48 -sc_threshold 0' "$runner"
           grep -Fq -- '-progress pipe:3' "$runner"
           grep -Fq 'aresample=44100:async=1000:first_pts=0' "$runner"
@@ -87,7 +89,7 @@ jobs:
           grep -Fq 'youtube-generation' "$monitor"
           grep -Fq 'measure_rate' "$monitor"
           grep -Fq '== 5.0' "$monitor"
-          echo 'V3_STATIC_ARCHITECTURE=PASS video=1280x720@24 overlay=5fps path=direct-udp-single-process'
+          echo 'V3_STATIC_ARCHITECTURE=PASS video=1152x648@24 overlay=5fps routing_reference=1280x720 path=direct-udp-single-process'
 
       - name: Prove two-phase cutover ordering
         run: |
