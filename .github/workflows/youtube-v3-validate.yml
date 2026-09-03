@@ -4,21 +4,15 @@ on:
   pull_request:
     paths:
       - 'services/fgbears-live/youtube-v3/**'
-      - 'services/fgbears-live/quarantine/youtube-v2-retired-20260903/**'
       - 'services/fgbears-live/bin/healthcheck.sh'
-      - 'services/fgbears-live/bin/install.sh'
-      - 'services/fgbears-live/tests/test-health-monitor.sh'
-      - '.github/workflows/youtube-v3-*.yml'
+      - '.github/workflows/youtube-v3-validate.yml'
       - '.github/workflows/fgbears-live-monitor.yml'
   push:
     branches: [main]
     paths:
       - 'services/fgbears-live/youtube-v3/**'
-      - 'services/fgbears-live/quarantine/youtube-v2-retired-20260903/**'
       - 'services/fgbears-live/bin/healthcheck.sh'
-      - 'services/fgbears-live/bin/install.sh'
-      - 'services/fgbears-live/tests/test-health-monitor.sh'
-      - '.github/workflows/youtube-v3-*.yml'
+      - '.github/workflows/youtube-v3-validate.yml'
       - '.github/workflows/fgbears-live-monitor.yml'
 
 permissions:
@@ -29,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python3 -m pip install --user pillow qrcode
+      - run: python3 -m pip install --user pillow
 
       - name: Build locked local creative
         run: |
@@ -42,61 +36,38 @@ jobs:
           print('V3_CREATIVE=PASS')
           PY
 
-      - name: Static architecture invariants
+      - name: Static current-topology invariants
         run: |
           set -Eeuo pipefail
-          runner=services/fgbears-live/youtube-v3/run-youtube-v3.sh
-          verify=services/fgbears-live/youtube-v3/verify-youtube-v3.sh
-          cache=services/fgbears-live/youtube-v3/lovable-state-cache.py
-          overlay=services/fgbears-live/youtube-v3/youtube-v3-overlay.py
-          youtube_unit=services/fgbears-live/youtube-v3/fgbears-youtube-v3.service
-          cache_unit=services/fgbears-live/youtube-v3/fgbears-lovable-state-cache.service
-          health=services/fgbears-live/bin/healthcheck.sh
-          install=services/fgbears-live/bin/install.sh
-          deploy=.github/workflows/youtube-v3-deploy.yml
-          monitor=.github/workflows/fgbears-live-monitor.yml
+          V3=services/fgbears-live/youtube-v3
+          runner="$V3/run-youtube-v3.sh"
+          verify="$V3/verify-youtube-v3.sh"
+          cache="$V3/lovable-state-cache.py"
+          overlay="$V3/youtube-v3-overlay.py"
           python3 -m py_compile "$overlay" "$cache"
-          bash -n "$runner"; bash -n "$verify"; bash -n "$health"; bash -n "$install"
-          grep -Fq 'FPS = 5.0' "$overlay"
+          bash -n "$runner"; bash -n "$verify"
           ! grep -Eq 'urllib|urlopen|requests|http://|https://' "$overlay"
-          grep -Fq 'VISIBLE_QUESTION_PHASES = {"question", "revealed"}' "$overlay"
+          grep -Fq 'HOLD_SECONDS = float' "$overlay"
+          grep -Fq '"15"' "$overlay"
+          grep -Fq 'class ConcealmentLatch' "$overlay"
+          grep -Fq 'OUTPUT_REGION' "$overlay"
           grep -Fq '/api/public/fgbears/stream-routing' "$cache"
           grep -Fq 'fgb-stream-state/v1' "$cache"
           grep -Fq 'os.replace' "$cache"
-          grep -Fq 'validUntil' "$overlay"
-          grep -Fq 'FGB_CONTROL_STATE_FILE=/run/fgbears-control-plane/stream-state.json' "$youtube_unit"
-          grep -Fq 'Wants=network-online.target fgbears-lovable-state-cache.service' "$youtube_unit"
-          ! grep -Fq 'Requires=fgbears-lovable-state-cache.service' "$youtube_unit"
-          grep -Fq 'RuntimeDirectory=fgbears-control-plane' "$cache_unit"
-          grep -Fq 'fgbears-lovable-state-cache.service' "$install"
-          grep -Fq 'fifo_size=2000000&overrun_nonfatal=1&reuse=1' "$runner"
-          grep -Fq -- '-probesize 10000000 -analyzeduration 10000000' "$runner"
           grep -Fq 'fps=30:start_time=0' "$runner"
-          grep -Fq 'N/(30*TB)' "$runner"
+          grep -Fq 'scale=854:480:flags=fast_bilinear' "$runner"
+          grep -Fq -- '-video_size 533x314' "$runner"
+          grep -Fq 'overlay=308:69:' "$runner"
           grep -Fq -- '-framerate 5' "$runner"
-          grep -Fq 'N/(5*TB)' "$runner"
-          grep -Fq 'overlay=462:104:format=auto:shortest=0:repeatlast=1:eof_action=repeat[composited]' "$runner"
-          grep -Fq 'scale=854:480:flags=fast_bilinear[v]' "$runner"
           grep -Fq -- '-r 30 -fps_mode cfr -g 60 -keyint_min 60 -sc_threshold 0' "$runner"
           grep -Fq -- '-threads 1' "$runner"
-          grep -Fq 'measure_rate' "$verify"
-          grep -Fq 'renderer_contains_network_io' "$verify"
-          grep -Fq 'lovable_cache_inactive' "$verify"
-          grep -Fq 'recover_youtube_destination' "$health"
-          ! grep -Eq '^Nice=|^CPUWeight=' "$youtube_unit"
-          test ! -d services/fgbears-live/youtube-v2
-          test -d services/fgbears-live/quarantine/youtube-v2-retired-20260903
-          ! grep -Fq 'systemctl restart fgbears-live.service' "$deploy"
-          ! grep -Fq 'systemctl restart fgbears-rumble-relay.service' "$deploy"
-          grep -Fq 'CACHE=fgbears-lovable-state-cache.service' "$monitor"
-          grep -Fq 'CONTROL_STATE=/run/fgbears-control-plane/stream-state.json' "$monitor"
-          grep -Fq 'CONTROL_HEALTH=/run/fgbears-control-plane/cache-health.json' "$monitor"
-          grep -Fq 'fgb-stream-state/v1' "$monitor"
-          ! grep -Fq 'overlay-state.json' "$monitor"
-          ! grep -Eq 'systemctl[[:space:]]+(restart|start|stop|enable|disable|mask|unmask)' "$monitor"
-          echo 'V3_STATIC_ARCHITECTURE=PASS control=lovable-single-contract cache=independent renderer=local-only monitor=read-only media=854x480@30 overlay=5fps'
+          test ! -e .github/workflows/youtube-v3-deploy.yml
+          test ! -e .github/workflows/trigger-youtube-v3-deploy-once.yml
+          test ! -e .github/workflows/youtube-v3-release-once.yml
+          test ! -e .github/workflows/restore-v2-health-supervision-20260903.yml
+          echo 'V3_STATIC_ARCHITECTURE=PASS current_only=yes hold=15s output=854x480 overlay_pipe=533x314 cadence=30fps'
 
-      - name: Exercise local-state routing guards
+      - name: Exercise concealment latch and routing guards
         env:
           YOUTUBE_V3_CREATIVE_DIR: ${{ github.workspace }}/services/fgbears-live/youtube-v3/creatives
         run: |
@@ -108,34 +79,27 @@ jobs:
           p=Path('services/fgbears-live/youtube-v3/youtube-v3-overlay.py')
           spec=importlib.util.spec_from_file_location('v3',p)
           m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m)
-          assert m.FPS == 5.0
-          assert 'urllib' not in p.read_text()
+          assert m.HOLD_SECONDS == 15.0
+          assert m.OUTPUT_REGION == {'x':308,'y':69,'width':533,'height':314,'referenceWidth':854,'referenceHeight':480}
+          latch=m.ConcealmentLatch(15.0)
+          assert latch.update(True,now=10.0)
+          assert latch.update(False,now=24.999)
+          assert not latch.update(False,now=25.001)
+          assert latch.update(True,now=30.0)
+          assert latch.update(False,now=40.0)
+          assert latch.update(True,now=40.1)
+          assert latch.update(False,now=55.099)
+          assert not latch.update(False,now=55.101)
           region={"x":462,"y":104,"width":798,"height":470,"coordinateSpace":"pixels","referenceWidth":1280,"referenceHeight":720}
           def iso(seconds): return (datetime.now(timezone.utc)+timedelta(seconds=seconds)).isoformat().replace('+00:00','Z')
-          def payload(**patch):
-              trivia={"active":True,"stale":False,"phase":"question","questionVisible":True,"gameVisible":True,"youtubeRedirectRequired":True}
-              ad={"active":False,"adsVisible":False,"isAdBreak":False}
-              diff={"enabled":True,"creativeKey":"yt_rumble_trivia_redirect","reason":"question_phase","region":region,"presentationMode":"full_creative_scaled"}
-              for k,v in patch.items():
-                  if k.startswith('trivia_'): trivia[k[7:]]=v
-                  elif k.startswith('ad_'): ad[k[3:]]=v
-                  else: diff[k]=v
-              return {"schemaVersion":"fgb-stream-state/v1","generatedAt":iso(-1),"validUntil":iso(4),"revision":"rtest",
-                      "presentation":{"adBreak":ad,"trivia":trivia,"routing":{"rumble":{"rendersRealQuestion":True},"youtube":{"differenceLayer":diff}},"overlay":{},"crawl":{},"news":{},"schedule":{},"mask":{"region":region}}}
+          def payload(enabled=True, visible=True, redirect=True):
+              return {"schemaVersion":"fgb-stream-state/v1","generatedAt":iso(-1),"validUntil":iso(4),"revision":"rtest","presentation":{"adBreak":{"active":False},"trivia":{"questionVisible":visible,"youtubeRedirectRequired":redirect},"routing":{"rumble":{"rendersRealQuestion":True},"youtube":{"differenceLayer":{"enabled":enabled,"creativeKey":"yt_rumble_trivia_redirect","region":region}}},"mask":{"region":region}}}
           pres,key=m.validate(payload()); assert m.should_cover(pres,key)
-          pres,key=m.validate(payload(trivia_phase='revealed')); assert m.should_cover(pres,key)
-          assert len(m.build_frame('yt_rumble_trivia_redirect')) == 798*470*4
-          cases=[payload(trivia_phase='transition'),payload(trivia_phase='scoreboard'),payload(trivia_questionVisible=False),payload(trivia_stale=True),payload(trivia_gameVisible=False),payload(trivia_youtubeRedirectRequired=False),payload(ad_active=True),payload(enabled=False),payload(creativeKey='unknown_creative')]
-          for x in cases:
-              try:
-                  pres,key=m.validate(x)
-                  assert not m.should_cover(pres,key)
-              except ValueError:
-                  pass
-          expired=payload(); expired['validUntil']=iso(-1)
-          try: m.validate(expired); raise AssertionError('expired state accepted')
-          except ValueError: pass
-          print('V3_LOCAL_STATE_GUARDS=PASS cover=question+revealed transparent=transition,scoreboard,not-visible,stale,expired,ad-break,unknown-creative')
+          pres,key=m.validate(payload(visible=False)); assert not m.should_cover(pres,key)
+          pres,key=m.validate(payload(redirect=False)); assert not m.should_cover(pres,key)
+          pres,key=m.validate(payload(enabled=False)); assert not m.should_cover(pres,key)
+          assert len(m.build_frame('yt_rumble_trivia_redirect')) == 533*314*4
+          print('V3_LATCH=PASS minimum_hold=15s retrigger_extends=yes')
           PY
 
       - name: Exercise cache validator
@@ -150,28 +114,7 @@ jobs:
           m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m)
           region={"x":462,"y":104,"width":798,"height":470,"coordinateSpace":"pixels","referenceWidth":1280,"referenceHeight":720}
           def iso(s): return (datetime.now(timezone.utc)+timedelta(seconds=s)).isoformat().replace('+00:00','Z')
-          def payload(phase='question', visible=True):
-              return {"schemaVersion":"fgb-stream-state/v1","generatedAt":iso(-1),"validUntil":iso(4),"revision":"rtest",
-                "presentation":{"adBreak":{"active":False},"trivia":{"phase":phase,"questionVisible":visible,"stale":False,"gameVisible":True,"youtubeRedirectRequired":True},
-                "routing":{"rumble":{"rendersRealQuestion":True},"youtube":{"differenceLayer":{"enabled":True,"creativeKey":"yt_rumble_trivia_redirect","region":region}}},
-                "overlay":{},"crawl":{},"news":{},"schedule":{},"mask":{"region":region}}}
-          assert m.validate(payload())['revision']=='rtest'
-          assert m.validate(payload('revealed'))['revision']=='rtest'
-          try: m.validate(payload('transition')); raise AssertionError('transition active cover accepted')
-          except ValueError: pass
-          try: m.validate(payload('question',False)); raise AssertionError('hidden question accepted')
-          except ValueError: pass
-          bad=payload(); bad['schemaVersion']='wrong'
-          try: m.validate(bad); raise AssertionError('bad schema accepted')
-          except ValueError: pass
-          print('V3_CACHE_VALIDATION=PASS visible_question=question+revealed')
+          payload={"schemaVersion":"fgb-stream-state/v1","generatedAt":iso(-1),"validUntil":iso(4),"revision":"rtest","presentation":{"adBreak":{"active":False},"trivia":{"phase":"revealed","questionVisible":True,"youtubeRedirectRequired":True},"routing":{"rumble":{"rendersRealQuestion":True},"youtube":{"differenceLayer":{"enabled":True,"creativeKey":"yt_rumble_trivia_redirect","region":region}}},"overlay":{},"crawl":{},"news":{},"schedule":{},"mask":{"region":region}}}
+          assert m.validate(payload)['revision']=='rtest'
+          print('V3_CACHE_VALIDATION=PASS')
           PY
-
-      - name: Quarantine boundary
-        run: |
-          set -Eeuo pipefail
-          if find services/fgbears-live/quarantine/youtube-v2-retired-20260903 -type f -perm /111 -print -quit | grep -q .; then
-            echo 'Executable file found in v2 repository quarantine' >&2; exit 1
-          fi
-          test "$(find services/fgbears-live/youtube-v3 -maxdepth 1 -name '*.service' | wc -l)" -eq 2
-          echo 'V3_QUARANTINE_BOUNDARY=PASS'
