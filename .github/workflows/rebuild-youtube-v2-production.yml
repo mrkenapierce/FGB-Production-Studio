@@ -1,0 +1,201 @@
+name: Rebuild Production YouTube v2
+
+on:
+  push:
+    branches:
+      - lovable-routing-bridge-20260902
+    paths:
+      - '.github/workflows/rebuild-youtube-v2-production.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-v2-production
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: lovable-routing-bridge-20260902
+
+      - name: Static preflight
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/youtube-v2/run-youtube-v2.sh
+          bash -n services/fgbears-live/youtube-v2/verify-youtube-v2.sh
+          python3 -m py_compile services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          grep -Fq 'overlay=462:104' services/fgbears-live/youtube-v2/run-youtube-v2.sh
+          grep -Fq 'aresample=44100' services/fgbears-live/youtube-v2/run-youtube-v2.sh
+          grep -Fq 'asetpts=N/SR/TB' services/fgbears-live/youtube-v2/run-youtube-v2.sh
+          grep -Fq 'setpts=N/(30*TB)' services/fgbears-live/youtube-v2/run-youtube-v2.sh
+          grep -Fq 'width": WIDTH' services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          echo 'STATIC_PREFLIGHT=PASS'
+
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stage rebuilt subsystem
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/youtube-v2/youtube-v2-overlay.py \
+            services/fgbears-live/youtube-v2/run-youtube-v2.sh \
+            services/fgbears-live/youtube-v2/verify-youtube-v2.sh \
+            services/fgbears-live/youtube-v2/fgbears-youtube-v2.service \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          install -d -o root -g root -m755 /opt/fgbears-live/youtube-v2
+          install -o root -g root -m755 /tmp/youtube-v2-overlay.py /opt/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          install -o root -g root -m755 /tmp/run-youtube-v2.sh /opt/fgbears-live/youtube-v2/run-youtube-v2.sh
+          install -o root -g root -m755 /tmp/verify-youtube-v2.sh /opt/fgbears-live/youtube-v2/verify-youtube-v2.sh
+          install -o root -g root -m644 /tmp/fgbears-youtube-v2.service /etc/systemd/system/fgbears-youtube-v2.service
+          systemctl daemon-reload
+
+          # Renderer/API contract test only. It does not open the UDP media input
+          # and therefore cannot interfere with the currently active sender.
+          PYTHONPATH=/opt/fgbears-live/exact-card-pylib \
+            YOUTUBE_V2_STATE_FILE=/tmp/youtube-v2-preflight-state.json \
+            /opt/fgbears-live/youtube-v2/youtube-v2-overlay.py --self-test \
+            | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p["ok"] is True;assert p["maskRegion"]["x"]==462;assert p["maskRegion"]["y"]==104;assert p["maskRegion"]["width"]==798;assert p["maskRegion"]["height"]==470;assert p["frameSize"]==[798,470]'
+          echo 'HOST_PREFLIGHT=PASS'
+          REMOTE
+
+      - name: Controlled YouTube-only cutover
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          OLD=fgbears-youtube-output.service
+          NEW=fgbears-youtube-v2.service
+          RETIRED=(
+            fgbears-youtube-relay.service
+            fgbears-youtube-router.service
+            fgbears-youtube-lovable-routing.service
+            fgbears-youtube-lovable-compositor.service
+            fgbears-youtube-audio-watchdog.service
+            fgbears-youtube-audio-watchdog.timer
+          )
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          nr(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
+          conn(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+          fail(){ echo "CUTOVER_FAIL=$1" >&2; exit 1; }
+
+          systemctl is-active --quiet "$MASTER" || fail master_inactive
+          systemctl is-active --quiet "$RUMBLE" || fail rumble_inactive
+          M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE"); MN0=$(nr "$MASTER"); RN0=$(nr "$RUMBLE")
+          [[ "$M0" =~ ^[1-9][0-9]*$ && "$R0" =~ ^[1-9][0-9]*$ ]] || fail invalid_shared_pid
+          conn "$R0" 1935 || fail rumble_socket_missing
+
+          # Every historical YouTube pathway must already be quarantined before
+          # the rebuilt sender is allowed to take ownership.
+          for u in "${RETIRED[@]}"; do
+            ! systemctl is-active --quiet "$u" || fail "legacy_active:$u"
+            s=$(systemctl is-enabled "$u" 2>/dev/null || true)
+            [[ "$s" == masked* ]] || fail "legacy_not_masked:$u:$s"
+          done
+
+          stamp=$(date -u +%Y%m%dT%H%M%SZ)
+          q=/opt/fgbears-live/quarantine/youtube-v2-cutover-$stamp
+          mkdir -p "$q"
+
+          rollback(){
+            echo 'YOUTUBE_V2_ROLLBACK=BEGIN' >&2
+            systemctl stop "$NEW" 2>/dev/null || true
+            systemctl disable "$NEW" 2>/dev/null || true
+            if [[ -L /etc/systemd/system/$OLD && "$(readlink /etc/systemd/system/$OLD 2>/dev/null || true)" == /dev/null ]]; then
+              rm -f "/etc/systemd/system/$OLD"
+            fi
+            if [[ -f "$q/$OLD" ]]; then
+              cp -f "$q/$OLD" "/etc/systemd/system/$OLD"
+            fi
+            systemctl daemon-reload
+            systemctl enable "$OLD" 2>/dev/null || true
+            systemctl restart "$OLD" 2>/dev/null || true
+            echo 'YOUTUBE_V2_ROLLBACK=END' >&2
+          }
+          trap 'rc=$?; if ((rc!=0)); then rollback; fi; exit $rc' EXIT
+
+          # Stop only the superseded YouTube owner. Do not touch master/Rumble.
+          systemctl stop "$OLD" 2>/dev/null || true
+          systemctl disable "$OLD" 2>/dev/null || true
+          if [[ -e "/etc/systemd/system/$OLD" && ! -L "/etc/systemd/system/$OLD" ]]; then
+            cp -a "/etc/systemd/system/$OLD" "$q/$OLD"
+            rm -f "/etc/systemd/system/$OLD"
+          elif [[ -L "/etc/systemd/system/$OLD" ]]; then
+            cp -a "/etc/systemd/system/$OLD" "$q/$OLD.link" || true
+            rm -f "/etc/systemd/system/$OLD"
+          fi
+          ln -s /dev/null "/etc/systemd/system/$OLD"
+          systemctl daemon-reload
+
+          systemctl enable "$NEW"
+          systemctl restart "$NEW"
+
+          connected=0
+          for _ in $(seq 1 30); do
+            if systemctl is-active --quiet "$NEW"; then
+              p=$(pid "$NEW")
+              if conn "$p" 443; then connected=1; break; fi
+            fi
+            sleep 2
+          done
+          ((connected==1)) || fail youtube_v2_ingest_not_established
+
+          Y0=$(pid "$NEW"); YN0=$(nr "$NEW")
+          [[ "$Y0" =~ ^[1-9][0-9]*$ ]] || fail invalid_youtube_v2_pid
+          echo "YOUTUBE_V2_CONNECTED=PASS pid=$Y0 restarts=$YN0"
+
+          # Stability window: same process, same YouTube connection, no legacy
+          # owner, and no shared-master/Rumble movement.
+          sleep 45
+          systemctl is-active --quiet "$NEW" || fail youtube_v2_inactive_after_window
+          [[ "$(pid "$NEW")" == "$Y0" ]] || fail youtube_v2_pid_changed
+          [[ "$(nr "$NEW")" == "$YN0" ]] || fail youtube_v2_restarted
+          conn "$Y0" 443 || fail youtube_v2_socket_lost
+          [[ "$(pid "$MASTER")" == "$M0" && "$(nr "$MASTER")" == "$MN0" ]] || fail master_changed
+          [[ "$(pid "$RUMBLE")" == "$R0" && "$(nr "$RUMBLE")" == "$RN0" ]] || fail rumble_changed
+          conn "$R0" 1935 || fail rumble_socket_lost
+          ! systemctl is-active --quiet "$OLD" || fail superseded_sender_active
+          for u in "${RETIRED[@]}"; do ! systemctl is-active --quiet "$u" || fail "legacy_reactivated:$u"; done
+
+          /opt/fgbears-live/youtube-v2/verify-youtube-v2.sh
+
+          # The running command line contains the stream key. Never print it.
+          cpu=$(ps -p "$Y0" -o %cpu= | awk '{print $1}')
+          rss=$(ps -p "$Y0" -o rss= | awk '{print $1}')
+          echo "YOUTUBE_V2_RESOURCE cpu=${cpu:-unknown}% rss_kb=${rss:-unknown} load=$(cut -d' ' -f1-3 /proc/loadavg)"
+
+          faults=$(journalctl -u "$NEW" --since '-60 seconds' --no-pager 2>/dev/null | grep -Eic 'Broken pipe|Connection reset by peer|Error writing trailer|av_interleaved_write_frame|Immediate exit requested' || true)
+          [[ "$faults" == 0 ]] || fail "youtube_v2_transport_faults:$faults"
+
+          trap - EXIT
+          echo "YOUTUBE_V2_REBUILD=PASS master=$M0 rumble=$R0 youtube=$Y0 old_sender=masked legacy_paths=masked transport_faults=0"
+          REMOTE
