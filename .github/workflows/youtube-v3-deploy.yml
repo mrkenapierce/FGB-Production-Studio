@@ -32,8 +32,12 @@ jobs:
           YOUTUBE_V3_CREATIVE_DIR="$PWD/services/fgbears-live/youtube-v3/creatives" \
             python3 services/fgbears-live/youtube-v3/youtube-v3-overlay.py --self-test --offline
           grep -Fq 'FPS = 10.0' services/fgbears-live/youtube-v3/youtube-v3-overlay.py
+          grep -Fq 'fps=24:start_time=0' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq 'N/(24*TB)' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq -- '-r 24 -fps_mode cfr -g 48 -keyint_min 48 -sc_threshold 0' services/fgbears-live/youtube-v3/run-youtube-v3.sh
           grep -Fq -- '-framerate 10' services/fgbears-live/youtube-v3/run-youtube-v3.sh
           grep -Fq 'N/(10*TB)' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq "repeat-headers=1:keyint=48:min-keyint=48:scenecut=0" services/fgbears-live/youtube-v3/run-youtube-v3.sh
           grep -Fq 'measure_rate' services/fgbears-live/youtube-v3/verify-youtube-v3.sh
           grep -Fq 'out_time_us=' services/fgbears-live/youtube-v3/verify-youtube-v3.sh
           grep -Fq "== 10.0" services/fgbears-live/youtube-v3/verify-youtube-v3.sh
@@ -43,7 +47,7 @@ jobs:
           ! grep -Eq '^Nice=|^CPUWeight=' services/fgbears-live/youtube-v3/fgbears-youtube-v3.service
           tar -C services/fgbears-live -czf /tmp/fgb-youtube-v3-runtime.tgz youtube-v3
           cp services/fgbears-live/bin/healthcheck.sh /tmp/fgbears-healthcheck-v3
-          echo 'V3_LOCAL_PREFLIGHT=PASS cadence=10fps throughput=steady-state-delta'
+          echo 'V3_LOCAL_PREFLIGHT=PASS video=1280x720@24 overlay=10fps throughput=steady-state-delta'
 
       - name: Configure Oracle SSH
         env:
@@ -142,5 +146,5 @@ jobs:
 
           sudo rm -f "$CUTOVER_MARKER"; CUTOVER=0; trap - ERR
           sudo rm -f "$HEALTH_BACKUP" /tmp/fgb-youtube-v3-runtime.tgz /tmp/fgbears-healthcheck-v3
-          echo "YOUTUBE_V3_DEPLOY=PASS master=$final1_m rumble=$final1_r v2_before=$v2_before youtube_v3=$final1_y v2=quarantined cadence=10fps throughput=steady-state-delta"
+          echo "YOUTUBE_V3_DEPLOY=PASS master=$final1_m rumble=$final1_r v2_before=$v2_before youtube_v3=$final1_y v2=quarantined video=1280x720@24 overlay=10fps throughput=steady-state-delta"
           REMOTE
