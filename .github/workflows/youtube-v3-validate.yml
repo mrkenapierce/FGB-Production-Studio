@@ -48,16 +48,21 @@ jobs:
           verify="$V3/verify-youtube-v3.sh"
           cache="$V3/lovable-state-cache.py"
           overlay="$V3/youtube-v3-overlay.py"
-          python3 -m py_compile "$overlay" "$cache"
+          delay="$V3/youtube-v3-delay-relay.py"
+          python3 -m py_compile "$overlay" "$cache" "$delay"
           bash -n "$runner"; bash -n "$verify"
           ! grep -Eq 'urllib|urlopen|requests|http://|https://' "$overlay"
           grep -Fq 'HOLD_SECONDS = float' "$overlay"
-          grep -Fq '"15"' "$overlay"
+          grep -Fq 'BUFFER_SECONDS = float' "$overlay"
+          grep -Fq 'class DelayedBoolean' "$overlay"
           grep -Fq 'class ConcealmentLatch' "$overlay"
           grep -Fq 'OUTPUT_REGION' "$overlay"
           grep -Fq '/api/public/fgbears/stream-routing' "$cache"
           grep -Fq 'fgb-stream-state/v1' "$cache"
           grep -Fq 'os.replace' "$cache"
+          grep -Fq 'YOUTUBE_V3_BUFFER_SECONDS:=4' "$runner"
+          grep -Fq 'YOUTUBE_V3_BUFFERED_UDP_URL:=udp://127.0.0.1:1941' "$runner"
+          grep -Fq 'youtube-v3-delay-relay.py' "$runner"
           grep -Fq 'fps=30:start_time=0' "$runner"
           grep -Fq 'scale=640:360:flags=fast_bilinear' "$runner"
           grep -Fq -- '-video_size 399x235' "$runner"
@@ -65,17 +70,21 @@ jobs:
           grep -Fq -- '-framerate 5' "$runner"
           grep -Fq -- '-r 30 -fps_mode cfr -g 60 -keyint_min 60 -sc_threshold 0' "$runner"
           grep -Fq -- '-threads 1' "$runner"
+          grep -Fq 'MAX_QUEUE_BYTES' "$delay"
+          grep -Fq 'delay-health.json' "$delay"
           test ! -e .github/workflows/youtube-v3-deploy.yml
           test ! -e .github/workflows/trigger-youtube-v3-deploy-once.yml
           test ! -e .github/workflows/youtube-v3-release-once.yml
           test ! -e .github/workflows/restore-v2-health-supervision-20260903.yml
-          echo 'V3_STATIC_ARCHITECTURE=PASS current_only=yes hold=15s output=640x360 overlay_pipe=399x235 cadence=30fps'
+          echo 'V3_STATIC_ARCHITECTURE=PASS current_only=yes buffer=4s hold=15s output=640x360 overlay_pipe=399x235 cadence=30fps'
 
-      - name: Exercise concealment latch and routing guards
+      - name: Exercise buffer and concealment timing
         env:
           YOUTUBE_V3_CREATIVE_DIR: ${{ github.workspace }}/services/fgbears-live/youtube-v3/creatives
         run: |
           set -Eeuo pipefail
+          V3=services/fgbears-live/youtube-v3
+          YOUTUBE_V3_BUFFER_SECONDS=4 YOUTUBE_LOCAL_UDP_URL='udp://127.0.0.1:1939?pkt_size=1316' YOUTUBE_V3_BUFFERED_UDP_URL='udp://127.0.0.1:1941?pkt_size=1316' python3 "$V3/youtube-v3-delay-relay.py" --self-test
           python3 - <<'PY'
           import importlib.util, sys
           from datetime import datetime, timezone, timedelta
@@ -83,17 +92,20 @@ jobs:
           p=Path('services/fgbears-live/youtube-v3/youtube-v3-overlay.py')
           spec=importlib.util.spec_from_file_location('v3',p)
           m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m)
+          assert m.BUFFER_SECONDS == 4.0
           assert m.HOLD_SECONDS == 15.0
           assert m.OUTPUT_REGION == {'x':231,'y':52,'width':399,'height':235,'referenceWidth':640,'referenceHeight':360}
+          delayed=m.DelayedBoolean(4.0)
+          assert not delayed.update(True,now=10.0)
+          assert not delayed.update(True,now=13.999)
+          assert delayed.update(True,now=14.001)
+          assert delayed.update(False,now=15.0)
+          assert delayed.update(False,now=18.999)
+          assert not delayed.update(False,now=19.001)
           latch=m.ConcealmentLatch(15.0)
-          assert latch.update(True,now=10.0)
-          assert latch.update(False,now=24.999)
-          assert not latch.update(False,now=25.001)
-          assert latch.update(True,now=30.0)
-          assert latch.update(False,now=40.0)
-          assert latch.update(True,now=40.1)
-          assert latch.update(False,now=55.099)
-          assert not latch.update(False,now=55.101)
+          assert latch.update(True,now=14.001)
+          assert latch.update(False,now=28.999)
+          assert not latch.update(False,now=29.002)
           region={"x":462,"y":104,"width":798,"height":470,"coordinateSpace":"pixels","referenceWidth":1280,"referenceHeight":720}
           def iso(seconds): return (datetime.now(timezone.utc)+timedelta(seconds=seconds)).isoformat().replace('+00:00','Z')
           def payload(enabled=True, visible=True, redirect=True):
@@ -103,7 +115,7 @@ jobs:
           pres,key=m.validate(payload(redirect=False)); assert not m.should_cover(pres,key)
           pres,key=m.validate(payload(enabled=False)); assert not m.should_cover(pres,key)
           assert len(m.build_frame('yt_rumble_trivia_redirect')) == 399*235*4
-          print('V3_LATCH=PASS minimum_hold=15s output=640x360')
+          print('V3_BUFFER_LATCH=PASS media_delay=4s control_delay=4s minimum_hold=15s output=640x360')
           PY
 
       - name: Exercise cache validator
