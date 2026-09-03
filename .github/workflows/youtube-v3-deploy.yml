@@ -38,16 +38,17 @@ jobs:
           bash -n services/fgbears-live/bin/healthcheck.sh
           YOUTUBE_V3_CREATIVE_DIR="$PWD/services/fgbears-live/youtube-v3/creatives" \
             python3 services/fgbears-live/youtube-v3/youtube-v3-overlay.py --self-test --offline
-          grep -Fq 'ingest_normalizer' services/fgbears-live/youtube-v3/run-youtube-v3.sh
-          grep -Fq 'dump_extra=freq=keyframe' services/fgbears-live/youtube-v3/run-youtube-v3.sh
-          grep -Fq 'resend_headers+pat_pmt_at_frames' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq 'proven v2 media path' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq 'fifo_size=2000000&overrun_nonfatal=1&reuse=1' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq -- '-probesize 10000000 -analyzeduration 10000000' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          ! grep -Fq 'ingest_normalizer' services/fgbears-live/youtube-v3/run-youtube-v3.sh
           grep -Fq -- '--transport-only' services/fgbears-live/youtube-v3/verify-youtube-v3.sh
           grep -Fq 'recover_youtube_destination' services/fgbears-live/bin/healthcheck.sh
           grep -Fq 'YOUTUBE_CUTOVER_MARKER=' services/fgbears-live/bin/healthcheck.sh
           ! grep -Eq '^Nice=|^CPUWeight=' services/fgbears-live/youtube-v3/fgbears-youtube-v3.service
           tar -C services/fgbears-live -czf /tmp/fgb-youtube-v3-runtime.tgz youtube-v3
           cp services/fgbears-live/bin/healthcheck.sh /tmp/fgbears-healthcheck-v3
-          echo 'V3_LOCAL_PREFLIGHT=PASS'
+          echo 'V3_LOCAL_PREFLIGHT=PASS path=single-process-proven-v2-media'
 
       - name: Configure Oracle SSH
         env:
@@ -135,7 +136,6 @@ jobs:
           sudo chmod 0600 "$HEALTH_BACKUP"
           printf 'v2\n' | sudo tee "$GENERATION" >/dev/null
 
-          # Stage the exact checked-out candidate; Oracle never clones a moving ref.
           sudo rm -rf "$V3DIR"
           sudo tar -C /opt/fgbears-live -xzf /tmp/fgb-youtube-v3-runtime.tgz
           sudo chmod 0755 "$V3DIR/youtube-v3-overlay.py" "$V3DIR/run-youtube-v3.sh" "$V3DIR/verify-youtube-v3.sh" "$V3DIR/build-creatives.py"
@@ -145,9 +145,6 @@ jobs:
             "$V3DIR/youtube-v3-overlay.py" --self-test
           sudo rm -f /tmp/fgb-youtube-v3-preflight-state.json
 
-          # Install generation-aware supervision while v2 is still active. It
-          # continues all master/news/audio checks; the cutover marker suppresses
-          # only destination restart attempts during candidate evaluation.
           sudo install -m 0755 /tmp/fgbears-healthcheck-v3 "$HEALTH"
           grep -Fq 'recover_youtube_destination' "$HEALTH"
           grep -Fq 'YOUTUBE_CUTOVER_MARKER=' "$HEALTH"
@@ -167,7 +164,22 @@ jobs:
           done
           [[ "$connected" == yes ]] || fail v3_did_not_connect
 
-          sleep 8
+          # Do not certify a startup catch-up transient. Require three fresh
+          # progress samples at >= realtime before the formal two-pass gate.
+          warm=0
+          for _ in $(seq 1 30); do
+            p=/run/fgbears-youtube-v3/ffmpeg-progress.log
+            speed=$(sudo sed -n 's/^speed=\([0-9.]*\)x$/\1/p' "$p" 2>/dev/null | tail -n1)
+            if [[ -n "$speed" ]] && python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$speed" 2>/dev/null; then
+              warm=$((warm+1))
+              (( warm >= 3 )) && break
+            else
+              warm=0
+            fi
+            sleep 1
+          done
+          (( warm >= 3 )) || fail v3_never_reached_realtime
+
           v3_pass1=$(pid "$V3")
           sudo "$V3DIR/verify-youtube-v3.sh" --transport-only
           sleep 5
@@ -204,7 +216,6 @@ jobs:
           test "$rumble_candidate" = "$rumble_before" || fail rumble_pid_changed
           test "$v3_candidate" = "$v3_pass1" || fail v3_pid_changed_during_observation
 
-          # Commit only after v3 has passed transport twice plus live observation.
           sudo systemctl disable "$V2" >/dev/null 2>&1 || true
           sudo rm -rf "$V2QUAR"
           sudo install -d -m 0755 "$(dirname "$V2QUAR")"
@@ -232,5 +243,5 @@ jobs:
           CUTOVER=0
           trap - ERR
           sudo rm -f "$HEALTH_BACKUP" /tmp/fgb-youtube-v3-runtime.tgz /tmp/fgbears-healthcheck-v3
-          echo "YOUTUBE_V3_DEPLOY=PASS master=$final2_m rumble=$final2_r v2_before=$v2_before youtube_v3=$final2_y v2=quarantined ingest=normalized"
+          echo "YOUTUBE_V3_DEPLOY=PASS master=$final2_m rumble=$final2_r v2_before=$v2_before youtube_v3=$final2_y v2=quarantined path=single-process-proven-v2-media"
           REMOTE
