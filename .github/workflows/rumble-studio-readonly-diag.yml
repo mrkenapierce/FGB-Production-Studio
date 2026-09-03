@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - .github/workflows/rumble-studio-readonly-diag.yml
+      - '.github/workflows/rumble-studio-readonly-diag.yml'
 
 permissions:
   contents: read
