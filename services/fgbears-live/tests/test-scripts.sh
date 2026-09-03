@@ -16,7 +16,7 @@ python3 -m py_compile "$ROOT/bin/ad-overlay.py" "$ROOT/bin/ad-overlay-smart.py" 
 python3 "$ROOT/tests/test-game-overlay.py"
 python3 "$ROOT/youtube-v3/build-creatives.py"
 
-python3 - "$ROOT/youtube-v3/youtube-v3-overlay.py" <<'PY'
+YOUTUBE_V3_CREATIVE_DIR="$ROOT/youtube-v3/creatives" python3 - "$ROOT/youtube-v3/youtube-v3-overlay.py" <<'PY'
 import importlib.util, inspect, sys
 from pathlib import Path
 path=Path(sys.argv[1]); spec=importlib.util.spec_from_file_location('v3overlay',path)
@@ -57,7 +57,8 @@ grep -Fq 'aresample=44100:async=1000:first_pts=0' "$ROOT/youtube-v3/run-youtube-
 grep -Fq 'FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0' "$ROOT/config/stream.env.example"
 grep -Eq '^systemctl enable .*fgbears-youtube-v3\.service' "$ROOT/bin/install.sh"
 ! grep -Fq 'systemctl enable fgbears-youtube-v2.service' "$ROOT/bin/install.sh"
-grep -Fq 'YOUTUBE_SERVICE=${YOUTUBE_SERVICE:-fgbears-youtube-v3.service}' "$ROOT/bin/healthcheck.sh"
+grep -Fq 'YOUTUBE_SERVICE=fgbears-youtube-v3.service' "$ROOT/bin/healthcheck.sh"
+! grep -Fq 'YOUTUBE_SERVICE=${YOUTUBE_SERVICE:-' "$ROOT/bin/healthcheck.sh"
 grep -Fq 'recover_youtube_v3' "$ROOT/bin/healthcheck.sh"
 grep -Fq 'check_youtube_v3_pacing' "$ROOT/bin/healthcheck.sh"
 
