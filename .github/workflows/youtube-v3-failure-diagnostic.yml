@@ -1,0 +1,65 @@
+name: Diagnose YouTube v3 Connection Failure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/youtube-v3-failure-diagnostic.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Read retained v3 failure evidence only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== LIVE MEDIA PIDS ==='
+          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-v2.service; do
+            printf '%s active=' "$u"; systemctl is-active "$u" 2>/dev/null || true
+            printf '%s pid=' "$u"; systemctl show -p MainPID --value "$u" 2>/dev/null || true
+          done
+
+          echo '=== V3 RETAINED JOURNAL ==='
+          sudo journalctl -u fgbears-youtube-v3.service --since '2026-09-03 18:03:30 UTC' --until '2026-09-03 18:06:30 UTC' --no-pager -o short-iso 2>/dev/null || true
+
+          echo '=== CACHE RETAINED JOURNAL ==='
+          sudo journalctl -u fgbears-lovable-state-cache.service --since '2026-09-03 18:03:30 UTC' --until '2026-09-03 18:06:30 UTC' --no-pager -o short-iso 2>/dev/null | tail -n 80 || true
+
+          echo '=== V3 PROGRESS / RUNTIME LEFTOVERS ==='
+          for p in /run/fgbears-youtube-v3/ffmpeg-progress.log /run/fgbears-youtube-v3/overlay.err /run/fgbears-youtube-v3; do
+            if sudo test -e "$p"; then echo "PRESENT $p"; sudo ls -la "$p" 2>/dev/null || true; else echo "ABSENT $p"; fi
+          done
+          if sudo test -s /run/fgbears-youtube-v3/ffmpeg-progress.log; then sudo tail -n 60 /run/fgbears-youtube-v3/ffmpeg-progress.log; fi
+
+          echo '=== SAFE CONFIG NAMES ==='
+          if [[ -r /etc/fgbears-live/stream.env ]]; then
+            grep -E '^(YOUTUBE_SERVICE|YOUTUBE_LOCAL_UDP_URL|YOUTUBE_UPSTREAM_RTMP_BASE|YOUTUBE_PROGRESS_FILE|FGB_YOUTUBE_PACKET_ROUTER_ENABLE|FGB_STREAM_ROUTING_URL)=' /etc/fgbears-live/stream.env || true
+            sudo bash -c 'set -a; source /etc/fgbears-live/stream.env; printf "YOUTUBE_STREAM_KEY_PRESENT=%s\n" "$([[ -n "${YOUTUBE_STREAM_KEY:-}" ]] && echo yes || echo no)"'
+          fi
+
+          echo '=== LOOPBACK LISTEN/UDP ==='
+          sudo ss -lunp 2>/dev/null | grep -E ':(1939|1940)\b' || true
+          echo 'DIAGNOSTIC_COMPLETE=yes'
+          REMOTE
