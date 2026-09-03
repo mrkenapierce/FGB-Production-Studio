@@ -48,17 +48,61 @@ jobs:
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          echo 'SYSTEM'; date -u; uptime; free -m; df -h / /srv/fgbears-live
+
+          echo 'SYSTEM'
+          date -u
+          uptime
+          free -m
+          df -h / /srv/fgbears-live
+
           echo 'SERVICES'
           for service in fgbears-live.service fgbears-youtube-relay.service fgbears-rumble-relay.service; do
-            systemctl show "$service" -p ActiveState -p SubState -p MainPID -p NRestarts -p ExecMainStartTimestamp -p ExecMainStatus --no-pager
+            systemctl show "$service" \
+              -p ActiveState -p SubState -p MainPID -p NRestarts \
+              -p ExecMainStartTimestamp -p ExecMainStatus --no-pager
           done
+
           master_pid=$(systemctl show -p MainPID --value fgbears-live.service)
           youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
           rumble_pid=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+
           echo 'PROCESS SNAPSHOT'
           ps -o pid,ppid,pcpu,pmem,rss,nlwp,stat,etime,comm -p "$master_pid,$youtube_pid,$rumble_pid" || true
-          echo 'RECENT MASTER WARNINGS'; sudo journalctl -u fgbears-live.service --since '-20 minutes' --no-pager | tail -n 250
-          echo 'RECENT YOUTUBE RELAY WARNINGS'; sudo journalctl -u fgbears-youtube-relay.service --since '-20 minutes' --no-pager | tail -n 250 | sed -E 's#(rtmps?://[^/]+/live2/)[^[:space:]]+#\1[redacted]#g'
-          echo 'RECENT RUMBLE RELAY WARNINGS'; sudo journalctl -u fgbears-rumble-relay.service --since '-20 minutes' --no-pager | tail -n 250 | sed -E 's#(rtmps?://[^/]+/live/)[^[:space:]]+#\1[redacted]#g'
+          ps -eo pid,ppid,pcpu,pmem,rss,nlwp,stat,etime,comm --sort=-pcpu | head -n 20
+
+          echo 'CPU AND RUN QUEUE SAMPLE'
+          vmstat 1 12
+
+          echo 'MASTER PROGRESS SAMPLE'
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          for _ in $(seq 1 20); do
+            snapshot=$(sudo tail -n 20 "$progress" 2>/dev/null || true)
+            frame=$(printf '%s\n' "$snapshot" | sed -n 's/^frame=//p' | tail -n 1)
+            out_time=$(printf '%s\n' "$snapshot" | sed -n 's/^out_time=//p' | tail -n 1)
+            drop=$(printf '%s\n' "$snapshot" | sed -n 's/^drop_frames=//p' | tail -n 1)
+            speed=$(printf '%s\n' "$snapshot" | sed -n 's/^speed=//p' | tail -n 1)
+            printf '%s frame=%s out_time=%s drop=%s speed=%s\n' "$(date -u +%H:%M:%S)" "$frame" "$out_time" "$drop" "$speed"
+            sleep 1
+          done
+
+          echo 'LOCAL UDP SOCKETS'
+          sudo ss -uapnm | grep -E ':(1939|1940)[[:space:]]' || true
+
+          echo 'RENDERER HEALTH'
+          for port in 8787 8788 8789 8790; do
+            printf 'port %s: ' "$port"
+            curl --silent --show-error --fail --max-time 3 "http://127.0.0.1:${port}/healthz" || true
+            echo
+          done
+
+          echo 'RECENT MASTER WARNINGS'
+          sudo journalctl -u fgbears-live.service --since '-20 minutes' --no-pager | tail -n 250
+
+          echo 'RECENT YOUTUBE RELAY WARNINGS'
+          sudo journalctl -u fgbears-youtube-relay.service --since '-20 minutes' --no-pager | tail -n 250 \
+            | sed -E 's#(rtmps?://[^/]+/live2/)[^[:space:]]+#\1[redacted]#g'
+
+          echo 'RECENT RUMBLE RELAY WARNINGS'
+          sudo journalctl -u fgbears-rumble-relay.service --since '-20 minutes' --no-pager | tail -n 250 \
+            | sed -E 's#(rtmps?://[^/]+/live/)[^[:space:]]+#\1[redacted]#g'
           REMOTE
