@@ -26,8 +26,8 @@ SOURCE_X = 462
 SOURCE_Y = 104
 SOURCE_WIDTH = 798
 SOURCE_HEIGHT = 470
-OUTPUT_WIDTH = 854
-OUTPUT_HEIGHT = 480
+OUTPUT_WIDTH = 640
+OUTPUT_HEIGHT = 360
 OUTPUT_X = math.floor(SOURCE_X * OUTPUT_WIDTH / REFERENCE_WIDTH)
 OUTPUT_Y = math.floor(SOURCE_Y * OUTPUT_HEIGHT / REFERENCE_HEIGHT)
 OUTPUT_RIGHT = math.ceil((SOURCE_X + SOURCE_WIDTH) * OUTPUT_WIDTH / REFERENCE_WIDTH)
@@ -248,9 +248,6 @@ def stream() -> int:
     latch = ConcealmentLatch()
 
     while True:
-        # The local state remains authoritative for starting concealment. Once a
-        # validated positive trigger occurs, the latch protects that question
-        # for a minimum of 15 seconds even if Lovable transitions immediately.
         try:
             mtime_ns = STATE_FILE.stat().st_mtime_ns
             if mtime_ns != last_mtime_ns or raw_active:
