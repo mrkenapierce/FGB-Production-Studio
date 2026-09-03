@@ -12,26 +12,41 @@ cleanup(){
 trap cleanup EXIT
 
 for script in "$ROOT"/bin/*.sh "$ROOT"/youtube-v3/*.sh; do bash -n "$script"; done
-python3 -m py_compile "$ROOT/bin/ad-overlay.py" "$ROOT/bin/ad-overlay-smart.py" "$ROOT/bin/game_overlay.py" "$ROOT/bin/crawl-overlay.py" "$ROOT/bin/bears-news-feed.py" "$ROOT/youtube-v3/youtube-v3-overlay.py" "$ROOT/youtube-v3/build-creatives.py"
+python3 -m py_compile "$ROOT/bin/ad-overlay.py" "$ROOT/bin/ad-overlay-smart.py" "$ROOT/bin/game_overlay.py" "$ROOT/bin/crawl-overlay.py" "$ROOT/bin/bears-news-feed.py" "$ROOT/youtube-v3/youtube-v3-overlay.py" "$ROOT/youtube-v3/lovable-state-cache.py" "$ROOT/youtube-v3/build-creatives.py"
 python3 "$ROOT/tests/test-game-overlay.py"
 python3 "$ROOT/youtube-v3/build-creatives.py"
 
 YOUTUBE_V3_CREATIVE_DIR="$ROOT/youtube-v3/creatives" python3 - "$ROOT/youtube-v3/youtube-v3-overlay.py" <<'PY'
-import importlib.util, inspect, sys
+import importlib.util, sys
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 path=Path(sys.argv[1]); spec=importlib.util.spec_from_file_location('v3overlay',path)
 m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m)
-assert 'fetch(' not in inspect.getsource(m.stream)
+assert 'urllib' not in path.read_text(), 'renderer must contain no HTTP client'
 region={"x":462,"y":104,"width":798,"height":470,"coordinateSpace":"pixels","referenceWidth":1280,"referenceHeight":720}
+def iso(seconds): return (datetime.now(timezone.utc)+timedelta(seconds=seconds)).isoformat().replace('+00:00','Z')
 def payload(key='yt_rumble_trivia_redirect', **change):
-    trivia={"stale":False,"phase":"question","adsVisible":False,"isAdBreak":False,"adBreakActive":False,"youtubeMaskActive":True,"youtubeCreativeKey":key,"maskRegion":region,"presentation":{"rumble":{"rendersRealQuestion":True},"youtube":{"rendersRealQuestion":False,"maskedRegion":{"x":462,"y":104,"width":798,"height":470},"creativeKey":key,"sourceTemplateKey":key,"presentationMode":"full_creative_scaled"}}}
-    trivia.update(change); return {"trivia":trivia}
-t=m.validate(payload()); assert m.should_cover(t); assert len(m.build_frame(t['_validatedCreativeKey'])) == 798*470*4
-for change in ({"stale":True},{"phase":"revealed"},{"adsVisible":True},{"isAdBreak":True},{"adBreakActive":True},{"youtubeMaskActive":False}): assert not m.should_cover(m.validate(payload(**change)))
+    trivia={"active":True,"stale":False,"phase":"question","gameVisible":True,"youtubeRedirectRequired":True}
+    ad={"active":False,"adsVisible":False,"isAdBreak":False}
+    diff={"enabled":True,"creativeKey":key,"reason":"question_phase","region":region,"presentationMode":"full_creative_scaled"}
+    for k,v in change.items():
+        if k.startswith('trivia_'): trivia[k[7:]]=v
+        elif k.startswith('ad_'): ad[k[3:]]=v
+        else: diff[k]=v
+    return {"schemaVersion":"fgb-stream-state/v1","generatedAt":iso(-1),"validUntil":iso(4),"revision":"rtest",
+            "presentation":{"adBreak":ad,"trivia":trivia,"routing":{"rumble":{"rendersRealQuestion":True},"youtube":{"differenceLayer":diff}},
+                            "overlay":{},"crawl":{},"news":{},"schedule":{},"mask":{"region":region}}}
+pres,key=m.validate(payload()); assert m.should_cover(pres,key); assert len(m.build_frame(key)) == 798*470*4
+for changed in (payload(trivia_stale=True),payload(trivia_phase='revealed'),payload(trivia_gameVisible=False),payload(trivia_youtubeRedirectRequired=False),payload(ad_active=True),payload(enabled=False)):
+    pres,key=m.validate(changed); assert not m.should_cover(pres,key)
+expired=payload(); expired['validUntil']=iso(-1)
+try: m.validate(expired)
+except ValueError: pass
+else: raise AssertionError('expired state must fail transparent')
 try: m.build_frame('not_installed')
-except FileNotFoundError: pass
+except (ValueError, FileNotFoundError): pass
 else: raise AssertionError('unapproved creative must fail closed')
-print('YOUTUBE_V3_RENDERER_TEST=PASS')
+print('YOUTUBE_V3_RENDERER_TEST=PASS contract=fgb-stream-state/v1 local_state_only=yes')
 PY
 
 # Shared program is still encoded once and mirrored to YouTube/Rumble loopback.
@@ -54,12 +69,17 @@ grep -Fq -- '-c:a aac' "$ROOT/youtube-v3/run-youtube-v3.sh"
 grep -Fq 'aresample=44100:async=1000:first_pts=0' "$ROOT/youtube-v3/run-youtube-v3.sh"
 ! grep -Eq '^Nice=|^CPUWeight=' "$ROOT/youtube-v3/fgbears-youtube-v3.service"
 
+# General installation must include the independent Lovable cache as well as v3.
 grep -Fq 'FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0' "$ROOT/config/stream.env.example"
-grep -Eq '^systemctl enable .*fgbears-youtube-v3\.service' "$ROOT/bin/install.sh"
+grep -Fq 'lovable-state-cache.py' "$ROOT/bin/install.sh"
+grep -Fq 'fgbears-lovable-state-cache.service' "$ROOT/bin/install.sh"
+grep -Eq '^systemctl enable .*fgbears-lovable-state-cache\.service .*fgbears-youtube-v3\.service' "$ROOT/bin/install.sh"
 ! grep -Fq 'systemctl enable fgbears-youtube-v2.service' "$ROOT/bin/install.sh"
-grep -Fq 'YOUTUBE_SERVICE=fgbears-youtube-v3.service' "$ROOT/bin/healthcheck.sh"
+
+# Health supervision is generation-aware and recovers only the desired destination.
+grep -Fq 'YOUTUBE_V3_SERVICE=fgbears-youtube-v3.service' "$ROOT/bin/healthcheck.sh"
 ! grep -Fq 'YOUTUBE_SERVICE=${YOUTUBE_SERVICE:-' "$ROOT/bin/healthcheck.sh"
-grep -Fq 'recover_youtube_v3' "$ROOT/bin/healthcheck.sh"
+grep -Fq 'recover_youtube_destination' "$ROOT/bin/healthcheck.sh"
 grep -Fq 'check_youtube_v3_pacing' "$ROOT/bin/healthcheck.sh"
 
 test ! -d "$ROOT/youtube-v2"
@@ -102,4 +122,4 @@ install -m 0755 "$ROOT/bin/validate-media.sh" "$TMP/fgbears-validate"
 VALIDATOR="$TMP/fgbears-validate" MEDIA_DIR="$TMP/media" PLAYLIST_FILE="$TMP/playlist.ffconcat" bash "$ROOT/bin/rebuild-playlist.sh"
 grep -q 'episode-01.mp4' "$TMP/playlist.ffconcat"
 
-echo 'FGBears Live integration tests passed: rebuilt YouTube v3 architecture.'
+echo 'FGBears Live integration tests passed: Lovable control plane + YouTube v3 architecture.'

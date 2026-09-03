@@ -62,9 +62,12 @@ install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.service /etc/syste
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.timer /etc/systemd/system/fgbears-live-health.timer
 
 # YouTube v3 is the only authorized destination-specific media implementation.
+# Lovable is the control plane; the independent local cache is the only network
+# client in the YouTube presentation path.
 python3 /opt/fgbears-live/youtube-v3/build-creatives.py
 chmod 0644 /opt/fgbears-live/youtube-v3/creatives/*.png
-chmod 0755 /opt/fgbears-live/youtube-v3/youtube-v3-overlay.py /opt/fgbears-live/youtube-v3/run-youtube-v3.sh /opt/fgbears-live/youtube-v3/verify-youtube-v3.sh /opt/fgbears-live/youtube-v3/build-creatives.py
+chmod 0755 /opt/fgbears-live/youtube-v3/youtube-v3-overlay.py /opt/fgbears-live/youtube-v3/lovable-state-cache.py /opt/fgbears-live/youtube-v3/run-youtube-v3.sh /opt/fgbears-live/youtube-v3/verify-youtube-v3.sh /opt/fgbears-live/youtube-v3/build-creatives.py
+install -m 0644 /opt/fgbears-live/youtube-v3/fgbears-lovable-state-cache.service /etc/systemd/system/fgbears-lovable-state-cache.service
 install -m 0644 /opt/fgbears-live/youtube-v3/fgbears-youtube-v3.service /etc/systemd/system/fgbears-youtube-v3.service
 
 ENV_PATH=/etc/fgbears-live/stream.env
@@ -93,6 +96,7 @@ updates={
     'RUMBLE_TRIVIA_DISPLAY_URL':'rumble.com/v7eqrsu',
     'RUMBLE_LOCAL_UDP_URL':'udp://127.0.0.1:1940?pkt_size=1316',
     'RUMBLE_UPSTREAM_RTMP_BASE':'rtmp://rtmp.rumble.com/live',
+    'FGB_STREAM_ROUTING_URL':'https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing',
     'FGB_YOUTUBE_PACKET_ROUTER_ENABLE':'0',
     'OUTPUT_FPS':'30','AD_OVERLAY_FPS':'15','CRAWL_OVERLAY_FPS':'30',
     'CRAWL_OVERLAY_SCRIPT':'/opt/fgbears-live/bin/crawl-overlay-hq.py','CRAWL_TEXT_RENDER_SCALE':'2',
@@ -133,7 +137,7 @@ done
 systemctl daemon-reload
 for unit in "${retired_units[@]}"; do systemctl mask "$unit" >/dev/null 2>&1 || true; done
 
-systemctl enable fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-v3.service >/dev/null
+systemctl enable fgbears-live.service fgbears-rumble-relay.service fgbears-lovable-state-cache.service fgbears-youtube-v3.service >/dev/null
 systemctl enable --now fgbears-live-health.timer
 
-echo "Installed FGBears shared program with Rumble canonical output and sole YouTube-v3 destination. Live transport was not restarted by installer."
+echo "Installed FGBears shared program with Rumble canonical output, Lovable control cache, and sole YouTube-v3 destination. Live transport was not restarted by installer."

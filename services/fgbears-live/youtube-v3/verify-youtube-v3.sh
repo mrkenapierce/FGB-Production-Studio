@@ -7,8 +7,10 @@ if [[ "${1:-}" == "--transport-only" ]]; then MODE=transport; shift; fi
 
 MASTER=fgbears-live.service
 RUMBLE=fgbears-rumble-relay.service
+CACHE=fgbears-lovable-state-cache.service
 YOUTUBE=fgbears-youtube-v3.service
-STATE=/run/fgbears-youtube-v3/overlay-state.json
+CONTROL_STATE=/run/fgbears-control-plane/stream-state.json
+CONTROL_HEALTH=/run/fgbears-control-plane/cache-health.json
 PROGRESS=/run/fgbears-youtube-v3/ffmpeg-progress.log
 ACTIVE_DIR=/opt/fgbears-live/youtube-v3
 V2_QUAR=/opt/fgbears-live/quarantine/youtube-v2-retired-20260903
@@ -53,11 +55,13 @@ PY
 
 systemctl is-active --quiet "$MASTER" || fail master_inactive
 systemctl is-active --quiet "$RUMBLE" || fail rumble_inactive
+systemctl is-active --quiet "$CACHE" || fail lovable_cache_inactive
 systemctl is-active --quiet "$YOUTUBE" || fail youtube_v3_inactive
 
-M=$(pid "$MASTER"); R=$(pid "$RUMBLE"); Y=$(pid "$YOUTUBE")
+M=$(pid "$MASTER"); R=$(pid "$RUMBLE"); C=$(pid "$CACHE"); Y=$(pid "$YOUTUBE")
 [[ "$M" =~ ^[1-9][0-9]*$ ]] || fail invalid_master_pid
 [[ "$R" =~ ^[1-9][0-9]*$ ]] || fail invalid_rumble_pid
+[[ "$C" =~ ^[1-9][0-9]*$ ]] || fail invalid_cache_pid
 [[ "$Y" =~ ^[1-9][0-9]*$ ]] || fail invalid_youtube_pid
 connected "$R" 1935 || fail rumble_socket_missing
 connected "$Y" 443 || fail youtube_socket_missing
@@ -65,28 +69,47 @@ connected "$Y" 443 || fail youtube_socket_missing
 nice=$(systemctl show -p Nice --value "$YOUTUBE" 2>/dev/null || echo 0)
 [[ "$nice" == "0" ]] || fail "youtube_priority_penalty_present:$nice"
 [[ -x "$ACTIVE_DIR/youtube-v3-overlay.py" ]] || fail active_overlay_missing
+[[ -x "$ACTIVE_DIR/lovable-state-cache.py" ]] || fail control_cache_worker_missing
 [[ -x "$ACTIVE_DIR/run-youtube-v3.sh" ]] || fail active_runner_missing
 
-[[ -s "$STATE" ]] || fail overlay_state_missing
-python3 - "$STATE" <<'PY' || fail overlay_state_invalid
+# Hard architecture gate: the media-clock renderer may not contain an HTTP client.
+if grep -Eq 'urllib|urlopen|requests|http://|https://' "$ACTIVE_DIR/youtube-v3-overlay.py"; then
+  fail renderer_contains_network_io
+fi
+grep -Fq '/api/public/fgbears/stream-routing' "$ACTIVE_DIR/lovable-state-cache.py" || fail cache_not_using_authoritative_contract
+
+[[ -s "$CONTROL_STATE" ]] || fail control_state_missing
+[[ -s "$CONTROL_HEALTH" ]] || fail control_health_missing
+python3 - "$CONTROL_STATE" "$CONTROL_HEALTH" <<'PY' || fail control_state_invalid
+from datetime import datetime
 import json, sys, time
-p=json.load(open(sys.argv[1], encoding='utf-8'))
-assert p.get('workerVersion') == 'youtube-v3', p.get('workerVersion')
-assert p.get('maskRegion') == {'x':462,'y':104,'width':798,'height':470,'coordinateSpace':'pixels','referenceWidth':1280,'referenceHeight':720}
-assert p.get('frameSize') == [798,470]
-assert p.get('presentationMode') == 'full_creative_scaled'
-assert p.get('routingAuthority') == 'lovable_public_stream_routing'
-assert float(p.get('fps') or 0) == 5.0
-keys=p.get('availableCreativeKeys')
-assert isinstance(keys,list) and 'yt_rumble_trivia_redirect' in keys
-last=float(p.get('lastGoodEpoch') or 0)
-assert last > 0 and time.time()-last < 10
-if p.get('ok') is True:
-    requested=p.get('creativeKey')
-    assert isinstance(requested,str) and requested in keys
-    if p.get('active') is True: assert p.get('renderedCreativeKey') == requested
-    else: assert p.get('renderedCreativeKey') is None
-print('OVERLAY_STATE=PASS phase=%s active=%s latency_ms=%s clock_misses=%s' % (p.get('phase'),str(bool(p.get('active'))).lower(),p.get('routingLatencyMs'),p.get('frameClockMisses')))
+state=json.load(open(sys.argv[1], encoding='utf-8'))
+health=json.load(open(sys.argv[2], encoding='utf-8'))
+assert state.get('schemaVersion') == 'fgb-stream-state/v1', state.get('schemaVersion')
+assert isinstance(state.get('revision'),str) and state['revision'], state.get('revision')
+expiry=datetime.fromisoformat(str(state.get('validUntil')).replace('Z','+00:00')).timestamp()
+assert expiry > time.time(), (state.get('validUntil'), expiry-time.time())
+p=state.get('presentation') or {}
+for key in ('adBreak','trivia','routing','overlay','crawl','news','schedule'):
+    assert isinstance(p.get(key),dict), key
+routing=p['routing']; rumble=routing.get('rumble') or {}; youtube=routing.get('youtube') or {}; diff=youtube.get('differenceLayer') or {}
+assert rumble.get('rendersRealQuestion') is True, rumble
+region=diff.get('region') or (p.get('mask') or {}).get('region')
+assert region == {'x':462,'y':104,'width':798,'height':470,'coordinateSpace':'pixels','referenceWidth':1280,'referenceHeight':720}, region
+if diff.get('enabled') is True:
+    assert diff.get('creativeKey') == 'yt_rumble_trivia_redirect', diff
+    assert (p.get('adBreak') or {}).get('active') is False, p.get('adBreak')
+    trivia=p.get('trivia') or {}
+    assert str(trivia.get('phase') or '').lower() == 'question', trivia
+    assert trivia.get('stale') is not True, trivia
+    assert trivia.get('gameVisible') is True, trivia
+    assert trivia.get('youtubeRedirectRequired') is True, trivia
+assert health.get('workerVersion') == 'lovable-control-cache-v1', health
+assert health.get('authority') == '/api/public/fgbears/stream-routing', health
+assert health.get('ok') is True, health
+last=float(health.get('lastGoodEpoch') or 0)
+assert last > 0 and time.time()-last < 10, (last, time.time()-last if last else None)
+print('CONTROL_STATE=PASS revision=%s difference=%s cache_age=%.2fs latency_ms=%s' % (state['revision'],str(bool(diff.get('enabled'))).lower(),time.time()-last,health.get('routingLatencyMs')))
 PY
 
 [[ -s "$PROGRESS" ]] || fail youtube_progress_missing
@@ -123,5 +146,5 @@ if [[ "$MODE" == final ]]; then
 fi
 
 pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"="); print a[2]}}' /proc/pressure/cpu 2>/dev/null || true)
-printf 'YOUTUBE_V3_VERIFY=PASS mode=%s master=%s rumble=%s youtube=%s youtube_restarts=%s steady_rate=%sx fps=%s drop=%s dup=%s cpu_pressure_avg10=%s rumble_1935=yes youtube_443=yes v2=%s\n' \
-  "$MODE" "$M" "$R" "$Y" "$(restarts "$Y")" "$rate" "${fps:-NA}" "${drop:-NA}" "${dup:-NA}" "${pressure:-NA}" "$([[ "$MODE" == final ]] && echo quarantined || echo rollback_ready)"
+printf 'YOUTUBE_V3_VERIFY=PASS mode=%s master=%s rumble=%s cache=%s youtube=%s youtube_restarts=%s steady_rate=%sx fps=%s drop=%s dup=%s cpu_pressure_avg10=%s rumble_1935=yes youtube_443=yes renderer_network=no v2=%s\n' \
+  "$MODE" "$M" "$R" "$C" "$Y" "$(restarts "$Y")" "$rate" "${fps:-NA}" "${drop:-NA}" "${dup:-NA}" "${pressure:-NA}" "$([[ "$MODE" == final ]] && echo quarantined || echo rollback_ready)"
