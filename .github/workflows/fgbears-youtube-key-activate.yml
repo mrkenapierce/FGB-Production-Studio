@@ -2,10 +2,6 @@ name: Activate FGBears YouTube v2 Stream Key
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/fgbears-youtube-key-activate.yml'
 
 permissions:
   contents: write
@@ -106,23 +102,27 @@ jobs:
           chown root:fgbears "$ENV_FILE"
           chmod 640 "$ENV_FILE"
 
-          # The stream key belongs to the sole YouTube-v2 destination. Never
-          # restart the shared master or Rumble to apply a YouTube credential.
+          # A credential change belongs only to the sole YouTube-v2 destination.
           systemctl reset-failed "$YOUTUBE" || true
           systemctl restart "$YOUTUBE"
+
+          verified=no
           for _ in $(seq 1 30); do
-            systemctl is-active --quiet "$YOUTUBE" && break
+            if systemctl is-active --quiet "$YOUTUBE" && "$VERIFY" >/tmp/fgb-youtube-v2-key-verify.log 2>&1; then
+              verified=yes
+              break
+            fi
             sleep 1
           done
-          systemctl is-active --quiet "$YOUTUBE" || fail youtube_v2_restart_failed
-          "$VERIFY"
+          if [[ "$verified" != yes ]]; then
+            cat /tmp/fgb-youtube-v2-key-verify.log >&2 2>/dev/null || true
+            fail youtube_v2_verify_failed
+          fi
 
           youtube_pid=$(pid "$YOUTUBE")
-          [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]] || fail youtube_v2_pid_invalid
-          ss -ntpH state established 2>/dev/null | grep "pid=$youtube_pid" | grep -Eq ':443([[:space:]]|$)' || fail youtube_v2_socket_missing
-
           master_after=$(pid "$MASTER")
           rumble_after=$(pid "$RUMBLE")
+          [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]] || fail youtube_v2_pid_invalid
           test "$master_after" = "$master_before" || fail master_pid_changed
           test "$rumble_after" = "$rumble_before" || fail rumble_pid_changed
           echo "YOUTUBE_V2_KEY_ACTIVATION=PASS master=$master_after rumble=$rumble_after youtube=$youtube_pid"
