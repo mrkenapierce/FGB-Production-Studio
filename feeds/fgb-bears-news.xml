@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 03 Sep 2026 22:00:09 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 03 Sep 2026 23:51:45 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears&apos; Rome Odunze, D&apos;Andre Swift hurt at practice. Injury updates, what to know</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears&apos; Rome Odunze, D&apos;Andre Swift hurt at practice. Injury updates, what to know</description>
+      <link>https://sports.yahoo.com/articles/bears-rome-odunze-dandre-swift-220508743.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-94c29a7077fa777b4538</guid>
+      <pubDate>Thu, 03 Sep 2026 22:05:08 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Rome Odunze, D&apos;Andre Swift left Bears practice early</title>
@@ -40,6 +50,16 @@
     </item>
 
     <item>
+      <title>Bears&apos; Rome Odunze: Seemingly avoids serious setback</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Rome Odunze: Seemingly avoids serious setback</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-rome-odunze-seemingly-avoids-serious-setback/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6d8c8c3266da56b61279</guid>
+      <pubDate>Thu, 03 Sep 2026 15:57:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
       <title>Chicago Bears Open Applications for 2026 Community All-Pros $107,000 Grant</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears Open Applications for 2026 Community All-Pros $107,000 Grant</description>
       <link>https://www.chicagobears.com/news/chicago-bears-open-applications-for-2026-community-all-pros-107-000-grant</link>
@@ -60,16 +80,6 @@
     </item>
 
     <item>
-      <title>The Chicago Bears are getting healthier on the defensive line</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Chicago Bears are getting healthier on the defensive line</description>
-      <link>https://sports.yahoo.com/videos/chicago-bears-getting-healthier-defensive-204416836.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ea5da8025e77164c68c6</guid>
-      <pubDate>Thu, 03 Sep 2026 13:44:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Press Taylor Provides Update on State of Chicago Bears&apos; Left Tackle Competition</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Press Taylor Provides Update on State of Chicago Bears&apos; Left Tackle Competition</description>
       <link>https://www.si.com/nfl/bears/onsi/press-taylor-provides-update-on-state-of-chicago-bears-left-tackle-competition</link>
@@ -77,16 +87,6 @@
       <pubDate>Thu, 03 Sep 2026 13:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Rome Odunze, D’Andre Swift left Bears practice early</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Rome Odunze, D’Andre Swift left Bears practice early</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/rome-odunze-dandre-swift-left-bears-practice-early</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-23e783abfdbd18f95daa</guid>
-      <pubDate>Thu, 03 Sep 2026 10:27:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
