@@ -13,12 +13,12 @@ permissions:
 
 concurrency:
   group: fgbears-youtube-concealment
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 7
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure SSH and stage question renderer
+      - name: Configure SSH and stage YouTube branch files
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -37,8 +37,11 @@ jobs:
           scp -i ~/.ssh/oracle_key \
             services/fgbears-live/bin/youtube-question-mask.py \
             "${ORACLE_USER:-ubuntu}@$ORACLE_HOST:/tmp/youtube-question-mask.py.deploy"
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/youtube-lovable-compositor.sh \
+            "${ORACLE_USER:-ubuntu}@$ORACLE_HOST:/tmp/youtube-lovable-compositor.sh.deploy"
 
-      - name: Deploy renderer without touching shared stream
+      - name: Deploy renderer and geometry without touching shared stream
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -50,14 +53,15 @@ jobs:
           COMP=fgbears-youtube-lovable-compositor.service
           LEGACY=fgbears-youtube-relay.service
           MASK=/opt/fgbears-live/bin/youtube-question-mask.py
-          BACKUP=$(mktemp /tmp/youtube-question-mask.backup.XXXXXX)
+          COMPOSITOR=/opt/fgbears-live/bin/youtube-lovable-compositor.sh
+          BACKUP=$(mktemp -d /tmp/youtube-branch.backup.XXXXXX)
           SUCCESS=0
 
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
           restarts(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
           active(){ systemctl is-active --quiet "$1"; }
           has_port(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
-          fail(){ echo "CONCEALMENT_DEPLOY_FAIL=$1" >&2; exit 1; }
+          fail(){ echo "YOUTUBE_BRANCH_DEPLOY_FAIL=$1" >&2; exit 1; }
           shared_ok(){
             [[ "$(pid "$MASTER")" == "$M0" ]] || fail MASTER_PID_CHANGED
             [[ "$(pid "$RUMBLE")" == "$R0" ]] || fail RUMBLE_PID_CHANGED
@@ -70,12 +74,13 @@ jobs:
           rollback(){
             rc=$?
             (( SUCCESS == 0 )) || return 0
-            echo "CONCEALMENT_ROLLBACK=BEGIN rc=$rc" >&2
-            install -m 0755 "$BACKUP" "$MASK" 2>/dev/null || true
+            echo "YOUTUBE_BRANCH_ROLLBACK=BEGIN rc=$rc" >&2
+            [[ -f "$BACKUP/mask.py" ]] && install -m 0755 "$BACKUP/mask.py" "$MASK" || true
+            [[ -f "$BACKUP/compositor.sh" ]] && install -m 0755 "$BACKUP/compositor.sh" "$COMPOSITOR" || true
             systemctl reset-failed "$ROUTING" "$COMP" >/dev/null 2>&1 || true
             systemctl restart "$ROUTING" 2>/dev/null || true
-            rm -f "$BACKUP" /tmp/youtube-question-mask.py.deploy
-            echo "CONCEALMENT_ROLLBACK=RESTORED_PREVIOUS_RENDERER" >&2
+            rm -rf "$BACKUP" /tmp/youtube-question-mask.py.deploy /tmp/youtube-lovable-compositor.sh.deploy
+            echo "YOUTUBE_BRANCH_ROLLBACK=RESTORED_PREVIOUS_FILES" >&2
             exit "$rc"
           }
           trap rollback EXIT
@@ -93,18 +98,26 @@ jobs:
           has_port "$C0" 443 || fail YOUTUBE_SOCKET_MISSING_PRE
 
           python3 -m py_compile /tmp/youtube-question-mask.py.deploy
+          bash -n /tmp/youtube-lovable-compositor.sh.deploy
           grep -Fq 'self.active = phase == "question"' /tmp/youtube-question-mask.py.deploy || fail QUESTION_PHASE_NOT_SOLE_AUTHORITY
           grep -Fq '"failClosedDuringQuestion": True' /tmp/youtube-question-mask.py.deploy || fail FAIL_CLOSED_MARKER_MISSING
-          cp -a "$MASK" "$BACKUP"
+          grep -Fq 'scale=${YOUTUBE_OUTPUT_WIDTH}:${YOUTUBE_OUTPUT_HEIGHT}:flags=fast_bilinear,setsar=1' /tmp/youtube-lovable-compositor.sh.deploy || fail SQUARE_PIXEL_FILTER_MISSING
+          grep -Fq 'YOUTUBE_OUTPUT_WIDTH=640' /tmp/youtube-lovable-compositor.sh.deploy || fail OUTPUT_WIDTH_CHANGED
+          grep -Fq 'YOUTUBE_OUTPUT_HEIGHT=360' /tmp/youtube-lovable-compositor.sh.deploy || fail OUTPUT_HEIGHT_CHANGED
+          grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE=48000' /tmp/youtube-lovable-compositor.sh.deploy || fail AUDIO_RATE_CHANGED
+
+          cp -a "$MASK" "$BACKUP/mask.py"
+          cp -a "$COMPOSITOR" "$BACKUP/compositor.sh"
           install -m 0755 /tmp/youtube-question-mask.py.deploy "$MASK"
+          install -m 0755 /tmp/youtube-lovable-compositor.sh.deploy "$COMPOSITOR"
           systemctl reset-failed "$ROUTING" "$COMP" >/dev/null 2>&1 || true
           systemctl restart "$ROUTING"
           shared_ok
 
-          # The compositor consumes the renderer's RGBA socket, so one
-          # downstream reconnect is expected. The shared master/Rumble path is not.
+          # The compositor consumes the routing renderer's RGBA socket, so one
+          # YouTube-only reconnect is expected. Master and Rumble must not move.
           C1=0
-          for _ in $(seq 1 40); do
+          for _ in $(seq 1 45); do
             shared_ok
             active "$LEGACY" && fail LEGACY_RELAY_STARTED
             cp=$(pid "$COMP")
@@ -122,7 +135,8 @@ jobs:
           cover=$(printf '%s' "$health" | python3 -c 'import json,sys; print(str(json.load(sys.stdin).get("active")).lower())')
           if [[ "$phase" == question && "$cover" != true ]]; then fail QUESTION_EXPOSED_AFTER_DEPLOY; fi
 
-          for i in $(seq 1 12); do
+          # Require stable single ownership after the controlled reconnect.
+          for i in $(seq 1 15); do
             shared_ok
             [[ "$(pid "$COMP")" == "$C1" ]] || fail COMPOSITOR_RESTARTED_AGAIN
             has_port "$C1" 443 || fail YOUTUBE_SOCKET_LOST
@@ -130,12 +144,19 @@ jobs:
             sleep 2
           done
 
+          # Verify the actual encoded output metadata, including square pixels.
+          MONDIR=/run/fgbears-youtube-lovable-compositor
+          SEG=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
+          [[ -n "$SEG" && -s "$SEG" ]] || fail MONITOR_SEGMENT_MISSING
+          ffprobe -v fatal -select_streams v:0 -show_entries stream=width,height,sample_aspect_ratio,display_aspect_ratio,r_frame_rate -of json "$SEG" \
+            | python3 -c 'import json,sys;p=json.load(sys.stdin)["streams"][0];assert (int(p["width"]),int(p["height"]))==(640,360);assert p.get("sample_aspect_ratio") in {"1:1","N/A"};assert p.get("display_aspect_ratio") in {"16:9","N/A"};assert p.get("r_frame_rate") in {"30/1","60/2"};print("VIDEO_GEOMETRY=PASS 640x360 SAR=",p.get("sample_aspect_ratio"),"DAR=",p.get("display_aspect_ratio"))'
+
           speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
           if [[ -n "$speed" ]]; then python3 -c 'import sys; assert float(sys.argv[1]) >= 0.985' "$speed" || fail MASTER_BELOW_REALTIME; fi
 
           shared_ok
-          echo "CONCEALMENT_DEPLOY=PASS master=$M0 rumble=$R0 old_compositor=$C0 compositor=$C1 phase=$phase active=$cover speed=${speed:-unknown}x"
+          echo "YOUTUBE_BRANCH_DEPLOY=PASS master=$M0 rumble=$R0 old_compositor=$C0 compositor=$C1 phase=$phase active=$cover geometry=640x360-square-pixel speed=${speed:-unknown}x"
           SUCCESS=1
           trap - EXIT
-          rm -f "$BACKUP" /tmp/youtube-question-mask.py.deploy
+          rm -rf "$BACKUP" /tmp/youtube-question-mask.py.deploy /tmp/youtube-lovable-compositor.sh.deploy
           REMOTE
