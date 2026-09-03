@@ -1,0 +1,74 @@
+name: YouTube Public Live Probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/youtube-public-live-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Probe canonical YouTube broadcast read-only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'python3 - <<'"'"'PY'"'"'
+          import json, re, urllib.request
+          video_id='QxmLpaargj0'
+          url=f'https://www.youtube.com/watch?v={video_id}&hl=en'
+          req=urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
+          try:
+              with urllib.request.urlopen(req, timeout=12) as r:
+                  body=r.read().decode('utf-8','replace')
+                  code=r.status
+          except Exception as e:
+              print(f'YOUTUBE_PUBLIC_PROBE=FAIL fetch={type(e).__name__}')
+              raise SystemExit(1)
+          print(f'watch_http={code}')
+          print(f'watch_bytes={len(body)}')
+          print(f'video_id_present={str(video_id in body).lower()}')
+          live_now='"isLiveNow":true' in body or '"isLive":true' in body
+          offline='"isLiveNow":false' in body and 'LIVE_STREAM_OFFLINE' in body
+          print(f'live_marker={str(live_now).lower()}')
+          print(f'offline_marker={str(offline).lower()}')
+          m=re.search(r'"hlsManifestUrl":"([^"]+)"', body)
+          hls_ok=False
+          if m:
+              manifest=m.group(1).replace('\\u0026','&').replace('\\/','/')
+              try:
+                  hreq=urllib.request.Request(manifest, headers={'User-Agent':'Mozilla/5.0'})
+                  with urllib.request.urlopen(hreq, timeout=12) as hr:
+                      sample=hr.read(512)
+                      hls_ok=hr.status==200 and b'#EXTM3U' in sample
+              except Exception:
+                  hls_ok=False
+          print(f'hls_manifest_present={str(bool(m)).lower()}')
+          print(f'hls_fetch_ok={str(hls_ok).lower()}')
+          if code==200 and video_id in body and (live_now or hls_ok):
+              print('YOUTUBE_PUBLIC_PROBE=PASS')
+          else:
+              print('YOUTUBE_PUBLIC_PROBE=INCONCLUSIVE')
+              raise SystemExit(2)
+          PY
