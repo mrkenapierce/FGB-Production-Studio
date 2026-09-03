@@ -23,7 +23,11 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - run: python3 -m pip install --user pillow
+      - name: Install build-only dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq qrencode
+          python3 -m pip install --user pillow
 
       - name: Build and validate current v3 candidate
         run: |
@@ -120,11 +124,9 @@ jobs:
           sudo install -m 0644 "$ACTIVE/fgbears-lovable-state-cache.service" /etc/systemd/system/fgbears-lovable-state-cache.service
           sudo systemctl daemon-reload
 
-          # Improve trigger responsiveness live without restarting the cache or deleting its LKG state.
           sudo renice -n 0 -p "$C0" >/dev/null
           sudo systemctl set-property --runtime "$CACHE" CPUWeight=100 >/dev/null
 
-          # Only YouTube v3 is intentionally restarted. Master, Rumble, and cache stay live.
           sudo systemctl restart "$YOUTUBE"
           ready=no
           for _ in $(seq 1 35); do
@@ -138,7 +140,6 @@ jobs:
           test "$(pid "$CACHE")" = "$C0" || fail cache_pid_changed
           connected "$R0" 1935 || fail rumble_socket_lost
 
-          # Let the destination settle past the initial keyframe acquisition, then prove realtime pacing.
           sleep 12
           sudo "$ACTIVE/verify-youtube-v3.sh" --transport-only
           sleep 5
