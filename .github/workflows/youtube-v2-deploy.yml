@@ -1,0 +1,176 @@
+name: Deploy YouTube v2 Difference Layer
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'services/fgbears-live/youtube-v2/**'
+      - 'services/fgbears-live/tools/build-youtube-rumble-trivia-card.py'
+      - 'services/fgbears-live/bin/healthcheck.sh'
+      - 'services/fgbears-live/systemd/fgbears-live.service'
+      - 'services/fgbears-live/quarantine/youtube-legacy/**'
+      - '.github/workflows/youtube-v2-deploy.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-v2-production
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pip install --user pillow qrcode
+
+      - name: Preflight rebuilt minimal topology
+        env:
+          YOUTUBE_REDIRECT_CARD_BUILDER: ${{ github.workspace }}/services/fgbears-live/tools/build-youtube-rumble-trivia-card.py
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          bash -n services/fgbears-live/youtube-v2/run-youtube-v2.sh
+          bash -n services/fgbears-live/youtube-v2/verify-youtube-v2.sh
+          bash -n services/fgbears-live/bin/healthcheck.sh
+          ! grep -Eq 'youtube-relay|youtube-router|lovable-compositor' services/fgbears-live/systemd/fgbears-live.service
+          ! grep -Eq 'YOUTUBE_RELAY_SERVICE|recover_youtube_relay|fgbears-youtube-relay.service' services/fgbears-live/bin/healthcheck.sh
+          python3 - <<'PY'
+          import importlib.util, sys
+          from pathlib import Path
+          p=Path('services/fgbears-live/youtube-v2/youtube-v2-overlay.py')
+          s=importlib.util.spec_from_file_location('v2',p)
+          m=importlib.util.module_from_spec(s); sys.modules[s.name]=m; s.loader.exec_module(m)
+          assert 'yt_rumble_trivia_redirect' in m.available_creative_keys()
+          assert len(m.build_frame('yt_rumble_trivia_redirect')) == 798*470*4
+          print('LOCAL_PREFLIGHT=PASS')
+          PY
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy sole v2 path and quarantine legacy runtime
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          fail(){ echo "YOUTUBE_V2_DEPLOY=FAIL reason=$1" >&2; exit 1; }
+
+          master_before=$(pid fgbears-live.service)
+          rumble_before=$(pid fgbears-rumble-relay.service)
+          youtube_before=$(pid fgbears-youtube-v2.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]] || fail master_not_active
+          [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]] || fail rumble_not_active
+          [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]] || fail youtube_v2_not_active
+
+          rm -rf /tmp/fgb-youtube-v2-deploy
+          git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgb-youtube-v2-deploy
+          src=/tmp/fgb-youtube-v2-deploy/services/fgbears-live
+
+          YOUTUBE_REDIRECT_CARD_BUILDER="$src/tools/build-youtube-rumble-trivia-card.py" \
+          YOUTUBE_V2_CREATIVE_DIR="$src/youtube-v2/creatives" \
+            python3 "$src/youtube-v2/youtube-v2-overlay.py" --self-test
+
+          # Install the sole YouTube-v2 destination and rebuilt supervision.
+          # Updating the master unit/healthcheck in place does not restart master
+          # or Rumble; the unit metadata applies on the next natural lifecycle.
+          sudo install -d -m 0755 /opt/fgbears-live/tools /opt/fgbears-live/youtube-v2
+          sudo install -m 0644 "$src/tools/build-youtube-rumble-trivia-card.py" \
+            /opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py
+          sudo rsync -a --delete "$src/youtube-v2/" /opt/fgbears-live/youtube-v2/
+          sudo install -d -m 0755 /opt/fgbears-live/youtube-v2/creatives
+          sudo chmod 0755 \
+            /opt/fgbears-live/youtube-v2/youtube-v2-overlay.py \
+            /opt/fgbears-live/youtube-v2/run-youtube-v2.sh \
+            /opt/fgbears-live/youtube-v2/verify-youtube-v2.sh
+          sudo install -m 0644 \
+            /opt/fgbears-live/youtube-v2/fgbears-youtube-v2.service \
+            /etc/systemd/system/fgbears-youtube-v2.service
+          sudo install -m 0755 "$src/bin/healthcheck.sh" /usr/local/bin/fgbears-healthcheck
+          sudo install -m 0644 "$src/systemd/fgbears-live.service" /etc/systemd/system/fgbears-live.service
+
+          sudo rm -rf /opt/fgbears-live/quarantine/youtube-legacy
+          sudo install -d -m 0755 /opt/fgbears-live/quarantine/youtube-legacy
+          if [[ -d "$src/quarantine/youtube-legacy" ]]; then
+            sudo rsync -a "$src/quarantine/youtube-legacy/" \
+              /opt/fgbears-live/quarantine/youtube-legacy/
+          fi
+          sudo find /opt/fgbears-live/quarantine/youtube-legacy -type f -exec chmod 0644 {} +
+
+          sudo rm -f \
+            /usr/local/bin/fgbears-youtube-relay \
+            /usr/local/bin/fgbears-youtube-audio-watchdog \
+            /opt/fgbears-live/bin/youtube-relay.sh \
+            /opt/fgbears-live/bin/youtube-relay-legacy.sh \
+            /opt/fgbears-live/bin/youtube-stream-router.py \
+            /opt/fgbears-live/bin/youtube-stream-router-v5.py \
+            /opt/fgbears-live/bin/youtube-trivia-overlay.py \
+            /opt/fgbears-live/bin/youtube-question-mask.py \
+            /opt/fgbears-live/bin/youtube-offhost-compositor.sh \
+            /opt/fgbears-live/bin/youtube-compositor-source-relay.sh \
+            /opt/fgbears-live/bin/youtube-audio-watchdog.sh
+
+          retired=(
+            fgbears-youtube-output.service
+            fgbears-youtube-relay.service
+            fgbears-youtube-router.service
+            fgbears-youtube-lovable-routing.service
+            fgbears-youtube-lovable-compositor.service
+            fgbears-youtube-audio-watchdog.service
+            fgbears-youtube-audio-watchdog.timer
+          )
+          for unit in "${retired[@]}"; do
+            sudo systemctl disable --now "$unit" 2>/dev/null || true
+            sudo rm -f "/etc/systemd/system/$unit" "/lib/systemd/system/$unit" "/usr/lib/systemd/system/$unit"
+          done
+          sudo systemctl daemon-reload
+          for unit in "${retired[@]}"; do
+            sudo systemctl mask "$unit" >/dev/null
+          done
+
+          systemctl cat fgbears-live.service | grep -Eq 'youtube-relay|youtube-router|lovable-compositor' && fail master_unit_still_legacy
+          grep -Eq 'YOUTUBE_RELAY_SERVICE|recover_youtube_relay|fgbears-youtube-relay.service' /usr/local/bin/fgbears-healthcheck && fail healthcheck_still_legacy
+
+          sudo -u root /opt/fgbears-live/youtube-v2/youtube-v2-overlay.py --self-test
+          sudo systemctl enable fgbears-youtube-v2.service
+          sudo systemctl reset-failed fgbears-youtube-v2.service
+          sudo systemctl restart fgbears-youtube-v2.service
+
+          for _ in $(seq 1 30); do
+            systemctl is-active --quiet fgbears-youtube-v2.service && break
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-youtube-v2.service || fail youtube_v2_restart_failed
+
+          sleep 3
+          sudo /opt/fgbears-live/youtube-v2/verify-youtube-v2.sh
+          sleep 5
+          sudo /opt/fgbears-live/youtube-v2/verify-youtube-v2.sh
+
+          master_after=$(pid fgbears-live.service)
+          rumble_after=$(pid fgbears-rumble-relay.service)
+          youtube_after=$(pid fgbears-youtube-v2.service)
+          test "$master_after" = "$master_before" || fail master_pid_changed
+          test "$rumble_after" = "$rumble_before" || fail rumble_pid_changed
+          [[ "$youtube_after" =~ ^[1-9][0-9]*$ ]] || fail youtube_pid_invalid
+
+          echo "YOUTUBE_V2_DEPLOY=PASS master=$master_after rumble=$rumble_after youtube_before=$youtube_before youtube_after=$youtube_after legacy=quarantined supervision=v2"
+          REMOTE

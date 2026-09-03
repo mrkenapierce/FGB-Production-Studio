@@ -1,5 +1,4 @@
-name: Deploy FGBears Live
-# Production deploy and end-to-end verification for the isolated live transport.
+name: Deploy FGBears Shared Program
 
 on:
   workflow_dispatch:
@@ -8,410 +7,105 @@ on:
     paths:
       - 'services/fgbears-live/**'
       - '!services/fgbears-live/youtube-v2/**'
+      - '!services/fgbears-live/quarantine/**'
+      - '!services/fgbears-live/bin/install.sh'
+      - '!services/fgbears-live/bin/youtube-*'
+      - '!services/fgbears-live/bin/finalize-youtube-only.py'
+      - '!services/fgbears-live/systemd/fgbears-youtube-*'
+      - '!services/fgbears-live/tests/test-youtube-*'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: fgbears-live-production-deploy
+  group: fgbears-shared-production-deploy
   cancel-in-progress: false
 
 env:
   ORACLE_USER: ubuntu
 
 jobs:
-  deploy:
+  deploy-shared:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Require Oracle deployment secrets
+      - name: Validate shared deployment boundary
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/install.sh
+          bash -n services/fgbears-live/bin/start-stream.sh
+          bash -n services/fgbears-live/bin/rumble-relay.sh
+          ! grep -Eq 'install .*youtube-relay|enable .*youtube-relay|restart .*youtube-relay' services/fgbears-live/bin/install.sh
+          ! grep -Eq 'install .*youtube-audio-watchdog|enable .*youtube-audio-watchdog|restart .*youtube-audio-watchdog' services/fgbears-live/bin/install.sh
+          grep -Fq 'systemctl enable fgbears-youtube-v2.service' services/fgbears-live/bin/install.sh
+          echo 'SHARED_DEPLOY_BOUNDARY=PASS'
+
+      - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
-          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
-          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
-
-      - name: Configure SSH
-        env:
-          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
-        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Trust Oracle host key
+      - name: Install shared program without touching YouTube v2
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      - id: install
-        name: Install production update and restart stream
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-          DEPLOY_MODE: ${{ contains(github.event.head_commit.message, '[youtube-stability-only]') && 'youtube-stability-only' || (contains(github.event.head_commit.message, '[youtube-overlay-only]') && 'youtube-overlay-only' || 'full') }}
         run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "DEPLOY_MODE='$DEPLOY_MODE' bash -s" <<'REMOTE'
-            set -Eeuo pipefail
-            rm -rf /tmp/fgbears-live-deploy
-            git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-live-deploy
-            if [[ "$DEPLOY_MODE" == "youtube-overlay-only" || "$DEPLOY_MODE" == "youtube-stability-only" ]]; then
-              rumble_pid_before=$(systemctl show -p MainPID --value fgbears-rumble-relay.service 2>/dev/null || echo 0)
-              if [[ "$DEPLOY_MODE" == "youtube-overlay-only" ]]; then
-                sudo install -m 0755 /tmp/fgbears-live-deploy/services/fgbears-live/bin/youtube-trivia-overlay.py /opt/fgbears-live/bin/youtube-trivia-overlay.py
-              fi
-              sudo install -m 0755 /tmp/fgbears-live-deploy/services/fgbears-live/bin/youtube-relay.sh /opt/fgbears-live/bin/youtube-relay.sh
-              sudo install -m 0755 /tmp/fgbears-live-deploy/services/fgbears-live/bin/youtube-relay.sh /usr/local/bin/fgbears-youtube-relay
-              sudo install -m 0644 /tmp/fgbears-live-deploy/services/fgbears-live/systemd/fgbears-youtube-relay.service /etc/systemd/system/fgbears-youtube-relay.service
-              sudo systemctl daemon-reload
-              sudo systemctl reset-failed fgbears-youtube-relay.service
-              sudo systemctl restart fgbears-youtube-relay.service
-              if [[ "$DEPLOY_MODE" == "youtube-stability-only" ]]; then
-                sudo pkill -f '^python3 /opt/fgbears-live/bin/youtube-trivia-overlay.py$' || true
-              fi
-              if [[ "$rumble_pid_before" =~ ^[1-9][0-9]*$ ]]; then
-                systemctl is-active --quiet fgbears-rumble-relay.service
-                rumble_pid_after=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
-                test "$rumble_pid_after" = "$rumble_pid_before"
-              fi
-              echo 'Targeted deployment restarted YouTube only; the master and Rumble relay were not restarted.'
-            else
-              sudo bash /tmp/fgbears-live-deploy/services/fgbears-live/bin/install.sh
-              sudo systemctl enable --now fgbears-live.service
-              sudo systemctl reset-failed fgbears-youtube-relay.service fgbears-live.service
-              sudo systemctl restart fgbears-youtube-relay.service
-              sudo systemctl restart fgbears-live.service
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+
+          youtube_before=$(pid fgbears-youtube-v2.service)
+          [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]] || { echo "YouTube v2 is not active"; exit 1; }
+
+          rm -rf /tmp/fgbears-shared-deploy
+          git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-shared-deploy
+
+          sudo bash /tmp/fgbears-shared-deploy/services/fgbears-live/bin/install.sh
+
+          sudo systemctl reset-failed fgbears-live.service fgbears-rumble-relay.service
+          sudo systemctl restart fgbears-live.service
+          sudo systemctl restart fgbears-rumble-relay.service
+
+          for _ in $(seq 1 30); do
+            if systemctl is-active --quiet fgbears-live.service &&
+               systemctl is-active --quiet fgbears-rumble-relay.service &&
+               systemctl is-active --quiet fgbears-youtube-v2.service; then
+              break
             fi
-            for i in $(seq 1 60); do
-              trivia_health_ready=true
-              if [[ "$DEPLOY_MODE" == "youtube-overlay-only" ]] && ! curl --silent --fail --max-time 1 http://127.0.0.1:8790/healthz >/tmp/fgbears-youtube-trivia-health.json; then
-                trivia_health_ready=false
-              fi
-              if systemctl is-active --quiet fgbears-youtube-relay.service && systemctl is-active --quiet fgbears-live.service && curl --silent --fail --max-time 1 http://127.0.0.1:8787/healthz >/tmp/fgbears-overlay-health.json && curl --silent --fail --max-time 1 http://127.0.0.1:8788/healthz >/tmp/fgbears-crawl-health.json && curl --silent --fail --max-time 1 http://127.0.0.1:8789/healthz >/tmp/fgbears-news-health.json && [[ "$trivia_health_ready" == true ]]; then
-                cat /tmp/fgbears-overlay-health.json
-                cat /tmp/fgbears-crawl-health.json
-                cat /tmp/fgbears-news-health.json
-                if [[ -s /tmp/fgbears-youtube-trivia-health.json ]]; then
-                  cat /tmp/fgbears-youtube-trivia-health.json
-                fi
-                exit 0
-              fi
-              sleep 1
-            done
-            sudo systemctl status fgbears-youtube-relay.service --no-pager || true
-            sudo systemctl status fgbears-live.service --no-pager || true
-            sudo journalctl -u fgbears-youtube-relay.service -n 80 --no-pager || true
-            sudo journalctl -u fgbears-live.service -n 120 --no-pager || true
+            sleep 1
+          done
+
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          systemctl is-active --quiet fgbears-youtube-v2.service
+
+          youtube_after=$(pid fgbears-youtube-v2.service)
+          test "$youtube_after" = "$youtube_before" || {
+            echo "Shared deployment changed YouTube v2 PID: $youtube_before -> $youtube_after" >&2
             exit 1
-          REMOTE
+          }
 
-      - id: crawl_health
-        name: Verify emoji renderer health on Oracle
-        if: always() && steps.install.outcome == 'success'
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
-            set -Eeuo pipefail
-            test "$(systemctl is-active fgbears-live.service)" = "active"
-            crawl_health=$(curl --silent --fail --max-time 3 http://127.0.0.1:8788/healthz)
-            printf "%s\n" "$crawl_health"
-            printf "%s" "$crawl_health" | jq -e ".ok == true and .emojiRenderer == \"twemoji-png\"" >/dev/null
-          '
-
-      - id: emoji_assets
-        name: Render six emoji assets on Oracle
-        if: always() && steps.install.outcome == 'success'
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
-            set -Eeuo pipefail
-            sudo -u fgbears python3 -c "import importlib.util; p=\"/opt/fgbears-live/bin/crawl-overlay.py\"; s=importlib.util.spec_from_file_location(\"fgb_crawl\",p); m=importlib.util.module_from_spec(s); s.loader.exec_module(m); icons=[\"🐻\",\"🏈\",\"🔥\",\"⬇️\",\"💙\",\"🧡\"]; missing=[e for e in icons if m.emoji_image(e,35) is None]; print(\"emoji self-test:\", \" \".join(icons), \"missing=\", missing); assert not missing, missing"
-          '
-
-      - id: news_frame
-        name: Verify image-rendered Bears news and frame-rate profile on Oracle
-        if: always() && steps.install.outcome == 'success'
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
-            set -Eeuo pipefail
-            sudo grep -Fxq "OUTPUT_FPS=30" /etc/fgbears-live/stream.env
-            sudo grep -Fxq "AD_OVERLAY_FPS=15" /etc/fgbears-live/stream.env
-            sudo grep -Fxq "CRAWL_OVERLAY_FPS=30" /etc/fgbears-live/stream.env
-            sudo grep -Fxq "BEARS_NEWS_OVERLAY_FPS=15" /etc/fgbears-live/stream.env
-            health=$(curl --silent --fail --max-time 3 http://127.0.0.1:8789/healthz)
-            printf "%s\n" "$health"
-            printf "%s" "$health" | jq -e ".ok == true and .active == true and .renderer == \"pillow-mjpeg\" and .fps == 15 and .messageChars > 0" >/dev/null
-            curl --silent --fail --max-time 3 http://127.0.0.1:8789/frame.jpg -o /tmp/fgbears-news-frame.jpg
-            test -s /tmp/fgbears-news-frame.jpg
-            python3 -c "from PIL import Image; im=Image.open(\"/tmp/fgbears-news-frame.jpg\"); im.load(); assert im.size == (1280,104), im.size; print(\"news frame:\", im.size, im.format)"
-          '
-
-      - id: ffmpeg_transport
-        name: Verify isolated platform outputs without exposing stream keys
-        if: always() && steps.install.outcome == 'success'
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
-            set -Eeuo pipefail
-            service_pid=$(systemctl show -p MainPID --value fgbears-live.service)
-            relay_pid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
-            test "$service_pid" -gt 0
-            test "$relay_pid" -gt 0
-            ffmpeg_pid=$(pgrep -P "$service_pid" -x ffmpeg | head -n 1)
-            test -n "$ffmpeg_pid"
-            encoder_args=$(mktemp)
-            relay_args=$(mktemp)
-            trap "rm -f $encoder_args $relay_args" EXIT
-            sudo tr "\0" "\n" < "/proc/$ffmpeg_pid/cmdline" > "$encoder_args"
-            sudo tr "\0" "\n" < "/proc/$relay_pid/cmdline" > "$relay_args"
-            grep -Fq "http://127.0.0.1:8788/overlay.mjpg" "$encoder_args"
-            grep -Fq "http://127.0.0.1:8789/overlay.mjpg" "$encoder_args"
-            grep -Fxq "tee" "$encoder_args"
-            grep -Fxq "copy" "$encoder_args"
-            grep -Fq "udp://127.0.0.1:1939?pkt_size=1316" "$encoder_args"
-            if grep -Fq "rtmp://127.0.0.1:1935" "$encoder_args"; then
-              echo "Primary encoder still depends on retired local RTMP transport." >&2
-              exit 1
-            fi
-            grep -Fq "udp://127.0.0.1:1939?fifo_size=1000000" "$relay_args"
-            grep -Fxq "copy" "$relay_args"
-            grep -Fq "rtmps://a.rtmps.youtube.com/live2/" "$relay_args"
-            if grep -Fq "8790" "$relay_args" || grep -Fxq "libx264" "$relay_args"; then
-              echo "CPU-heavy YouTube overlay encoder is still active." >&2
-              exit 1
-            fi
-
-            if systemctl is-active --quiet fgbears-rumble-relay.service; then
-              rumble_pid=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
-              test "$rumble_pid" -gt 0
-              rumble_args=$(mktemp)
-              trap "rm -f $encoder_args $relay_args $rumble_args" EXIT
-              sudo tr "\0" "\n" < "/proc/$rumble_pid/cmdline" > "$rumble_args"
-              grep -Fq "udp://127.0.0.1:1940?fifo_size=1000000" "$rumble_args"
-              grep -Fxq "copy" "$rumble_args"
-              if grep -Fq "8790" "$rumble_args"; then
-                echo "YouTube trivia overlay leaked into the Rumble relay." >&2
-                exit 1
-              fi
-            fi
-            echo "Transport verified: one shared master with isolated YouTube and Rumble copy-remux relays; no second live encoder."
-          '
-
-      - id: youtube_relay_socket
-        name: Verify YouTube RTMPS socket belongs to copy-remux relay
-        if: always() && steps.ffmpeg_transport.outcome == 'success'
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          for _ in $(seq 1 60); do
-            relay_pid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
-            if [[ "$relay_pid" =~ ^[1-9][0-9]*$ ]]; then
-              sudo ss -ntpH state established | grep "pid=$relay_pid" > /tmp/fgbears-relay-sockets.txt || true
-              getent ahostsv4 a.rtmps.youtube.com | awk '{print $1}' | sort -u > /tmp/fgbears-youtube-ips.txt
-              while IFS= read -r ip; do
-                [[ -n "$ip" ]] || continue
-                if grep -Fq "$ip:443" /tmp/fgbears-relay-sockets.txt; then
-                  rm -f /tmp/fgbears-relay-sockets.txt /tmp/fgbears-youtube-ips.txt
-                  echo 'YouTube RTMPS socket established through the copy-remux relay.'
-                  exit 0
-                fi
-              done < /tmp/fgbears-youtube-ips.txt
-            fi
-            sleep 2
+          for unit in \
+            fgbears-youtube-output.service \
+            fgbears-youtube-relay.service \
+            fgbears-youtube-router.service \
+            fgbears-youtube-lovable-routing.service \
+            fgbears-youtube-lovable-compositor.service \
+            fgbears-youtube-audio-watchdog.service \
+            fgbears-youtube-audio-watchdog.timer
+          do
+            state=$(systemctl is-enabled "$unit" 2>/dev/null || true)
+            [[ "$state" == masked* ]] || { echo "Legacy unit not masked: $unit ($state)" >&2; exit 1; }
           done
-          rm -f /tmp/fgbears-relay-sockets.txt /tmp/fgbears-youtube-ips.txt
-          echo 'YouTube remux relay did not establish RTMPS within the verification window.' >&2
-          exit 1
+
+          echo "SHARED_DEPLOY=PASS youtube_v2_pid_unchanged=$youtube_after"
           REMOTE
-
-      - id: program_clock
-        name: Verify live program sustains real time with zero dropped frames
-        if: always() && steps.youtube_relay_socket.outcome == 'success'
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
-          target_fps=$(sudo sed -n 's/^OUTPUT_FPS=\([0-9][0-9]*\)$/\1/p' /etc/fgbears-live/stream.env | tail -n 1)
-          [[ "$target_fps" =~ ^[1-9][0-9]*$ ]] || target_fps=30
-
-          # Align the first sample to a fresh FFmpeg progress update. Sampling an
-          # arbitrary point in the file's update cycle can undercount a short
-          # wall-clock interval even while FFmpeg is running at 1.0x.
-          previous_time=
-          for _ in $(seq 1 100); do
-            snapshot=$(sudo tail -n 20 "$progress" 2>/dev/null || true)
-            first_time=$(printf '%s\n' "$snapshot" | sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' | tail -n 1)
-            first_frame=$(printf '%s\n' "$snapshot" | sed -n 's/^frame=\([0-9][0-9]*\)$/\1/p' | tail -n 1)
-            first_drop=$(printf '%s\n' "$snapshot" | sed -n 's/^drop_frames=\([0-9][0-9]*\)$/\1/p' | tail -n 1)
-            if [[ "$first_time" =~ ^[0-9]+$ && "$first_frame" =~ ^[0-9]+$ && "$first_drop" =~ ^[0-9]+$ && "$previous_time" =~ ^[0-9]+$ && "$first_time" -gt "$previous_time" ]]; then
-              break
-            fi
-            previous_time=$first_time
-            sleep 0.2
-          done
-          [[ "$first_time" =~ ^[0-9]+$ ]]
-          [[ "$first_frame" =~ ^[0-9]+$ ]]
-          [[ "$first_drop" =~ ^[0-9]+$ ]]
-          [[ "$previous_time" =~ ^[0-9]+$ ]]
-          [[ "$first_time" -gt "$previous_time" ]]
-
-          wall_start_ns=$(date +%s%N)
-          for _ in $(seq 1 150); do
-            sleep 0.2
-            snapshot=$(sudo tail -n 20 "$progress")
-            second_time=$(printf '%s\n' "$snapshot" | sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' | tail -n 1)
-            second_frame=$(printf '%s\n' "$snapshot" | sed -n 's/^frame=\([0-9][0-9]*\)$/\1/p' | tail -n 1)
-            second_drop=$(printf '%s\n' "$snapshot" | sed -n 's/^drop_frames=\([0-9][0-9]*\)$/\1/p' | tail -n 1)
-            latest_speed=$(printf '%s\n' "$snapshot" | sed -n 's/^speed=\(.*\)$/\1/p' | tail -n 1)
-            if [[ "$second_time" =~ ^[0-9]+$ && $((second_time - first_time)) -ge 10000000 ]]; then
-              break
-            fi
-          done
-          wall_end_ns=$(date +%s%N)
-
-          [[ "$second_time" =~ ^[0-9]+$ ]]
-          [[ "$second_frame" =~ ^[0-9]+$ ]]
-          [[ "$second_drop" =~ ^[0-9]+$ ]]
-
-          program_delta=$((second_time - first_time))
-          frame_delta=$((second_frame - first_frame))
-          wall_us=$(((wall_end_ns - wall_start_ns) / 1000))
-
-          python3 - "$program_delta" "$wall_us" "$frame_delta" "$target_fps" "$second_drop" "$latest_speed" <<'PY'
-          import sys
-
-          program_us = int(sys.argv[1])
-          wall_us = int(sys.argv[2])
-          frame_delta = int(sys.argv[3])
-          target_fps = int(sys.argv[4])
-          dropped = int(sys.argv[5])
-          reported_speed = sys.argv[6]
-
-          if wall_us <= 0:
-              raise SystemExit("Invalid wall-clock sample interval")
-
-          ratio = program_us / wall_us
-          measured_fps = frame_delta / (wall_us / 1_000_000)
-          min_ratio = 0.95
-          min_fps = target_fps * min_ratio
-          try:
-              ffmpeg_ratio = float(reported_speed.removesuffix("x"))
-          except ValueError:
-              ffmpeg_ratio = 0.0
-
-          print(
-              f"Real-time health: program={program_us / 1_000_000:.3f}s "
-              f"wall={wall_us / 1_000_000:.3f}s ratio={ratio:.3f}x "
-              f"measured_fps={measured_fps:.2f}/{target_fps} "
-              f"dropped_frames={dropped} ffmpeg_reported_speed={reported_speed}"
-          )
-
-          if program_us <= 0 or frame_delta <= 0:
-              raise SystemExit(
-                  "Live program failed progress gate: FFmpeg counters did not advance"
-              )
-          # The progress file is flushed in coarse bursts, so a short wall-clock
-          # sample can straddle updates and undercount cadence. FFmpeg's speed
-          # counter is cumulative and is the authoritative real-time signal.
-          if ffmpeg_ratio < min_ratio:
-              raise SystemExit(
-                  f"Live program failed FFmpeg speed gate: {ffmpeg_ratio:.3f}x < {min_ratio:.2f}x"
-              )
-          if dropped != 0:
-              raise SystemExit(
-                  f"Live program failed dropped-frame gate: cumulative dropped_frames={dropped}"
-              )
-          if ratio < min_ratio or measured_fps < min_fps:
-              print(
-                  "Progress-file cadence sample crossed a sparse flush boundary; "
-                  "accepted the cumulative FFmpeg speed counter."
-              )
-          PY
-          REMOTE
-
-      - id: crawl_frame
-        name: Decode live rendered crawl frame on Oracle
-        if: always() && steps.install.outcome == 'success'
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
-            set -Eeuo pipefail
-            curl --silent --fail --max-time 3 http://127.0.0.1:8788/frame.jpg -o /tmp/fgbears-crawl-frame.jpg
-            test -s /tmp/fgbears-crawl-frame.jpg
-            python3 -c "from PIL import Image; im=Image.open(\"/tmp/fgbears-crawl-frame.jpg\"); im.load(); assert im.size == (1280,139), im.size; print(\"crawl frame:\", im.size, im.format)"
-          '
-
-      - id: ads_verify
-        name: Confirm deployed overlay is receiving advertising
-        if: always() && steps.install.outcome == 'success'
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" '
-            set -Eeuo pipefail
-            health=$(curl --silent --fail --max-time 2 http://127.0.0.1:8787/healthz)
-            printf "%s\n" "$health"
-            printf "%s" "$health" | jq -e ".ok == true" >/dev/null
-          '
-
-      - name: Record production deployment result
-        if: always()
-        env:
-          INSTALL_OUTCOME: ${{ steps.install.outcome }}
-          CRAWL_HEALTH_OUTCOME: ${{ steps.crawl_health.outcome }}
-          EMOJI_ASSETS_OUTCOME: ${{ steps.emoji_assets.outcome }}
-          NEWS_FRAME_OUTCOME: ${{ steps.news_frame.outcome }}
-          FFMPEG_TRANSPORT_OUTCOME: ${{ steps.ffmpeg_transport.outcome }}
-          YOUTUBE_RELAY_OUTCOME: ${{ steps.youtube_relay_socket.outcome }}
-          PROGRAM_CLOCK_OUTCOME: ${{ steps.program_clock.outcome }}
-          CRAWL_FRAME_OUTCOME: ${{ steps.crawl_frame.outcome }}
-          ADS_OUTCOME: ${{ steps.ads_verify.outcome }}
-          JOB_STATUS: ${{ job.status }}
-        run: |
-          git fetch origin main
-          git checkout -B main origin/main
-          mkdir -p .github/deployment-status
-          ok=false
-          if [[ "$INSTALL_OUTCOME" == "success" && "$CRAWL_HEALTH_OUTCOME" == "success" && "$EMOJI_ASSETS_OUTCOME" == "success" && "$NEWS_FRAME_OUTCOME" == "success" && "$FFMPEG_TRANSPORT_OUTCOME" == "success" && "$YOUTUBE_RELAY_OUTCOME" == "success" && "$PROGRAM_CLOCK_OUTCOME" == "success" && "$CRAWL_FRAME_OUTCOME" == "success" && "$ADS_OUTCOME" == "success" ]]; then
-            ok=true
-          fi
-          jq -n \
-            --argjson ok "$ok" \
-            --arg deployedSha "$GITHUB_SHA" \
-            --arg runId "$GITHUB_RUN_ID" \
-            --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --arg jobStatus "$JOB_STATUS" \
-            --arg installOutcome "$INSTALL_OUTCOME" \
-            --arg crawlHealthOutcome "$CRAWL_HEALTH_OUTCOME" \
-            --arg emojiAssetsOutcome "$EMOJI_ASSETS_OUTCOME" \
-            --arg newsFrameOutcome "$NEWS_FRAME_OUTCOME" \
-            --arg ffmpegTransportOutcome "$FFMPEG_TRANSPORT_OUTCOME" \
-            --arg youtubeRelayOutcome "$YOUTUBE_RELAY_OUTCOME" \
-            --arg programClockOutcome "$PROGRAM_CLOCK_OUTCOME" \
-            --arg crawlFrameOutcome "$CRAWL_FRAME_OUTCOME" \
-            --arg adsOutcome "$ADS_OUTCOME" \
-            '{ok:$ok,deployedSha:$deployedSha,runId:$runId,checkedAt:$checkedAt,jobStatus:$jobStatus,installOutcome:$installOutcome,crawlHealthOutcome:$crawlHealthOutcome,emojiAssetsOutcome:$emojiAssetsOutcome,newsFrameOutcome:$newsFrameOutcome,ffmpegTransportOutcome:$ffmpegTransportOutcome,youtubeRelayOutcome:$youtubeRelayOutcome,programClockOutcome:$programClockOutcome,crawlFrameOutcome:$crawlFrameOutcome,adsOutcome:$adsOutcome,service:"fgbears-live.service",youtubeRelayService:"fgbears-youtube-relay.service",expectedServiceState:"active",programClockMinRealtimeRatio:0.95,programClockSource:"ffmpeg-cumulative-speed",programClockZeroDroppedFramesRequired:true,outputFps:30,adOverlayFps:15,crawlOverlayFps:30,newsOverlayFps:15,youtubeTriviaOverlaySuspendedForCapacity:true,emojiRenderer:"twemoji-png",newsRenderer:"pillow-mjpeg",newsFrameSize:"1280x104",emojiSelfTest:["🐻","🏈","🔥","⬇️","💙","🧡"],ffmpegCrawlInput:"http://127.0.0.1:8788/overlay.mjpg",ffmpegNewsInput:"http://127.0.0.1:8789/overlay.mjpg",transport:"ffmpeg-tee-local-mpegts-udp+youtube-copy-remux+rumble-copy-remux",youtubeVideoMode:"copy-remux",rumbleVideoMode:"copy-remux",audioMode:"copy",xSimulcastCapable:true,xAccountHandle:"@epic501c3"}' \
-            > .github/deployment-status/fgbears-live.json
-          git config user.name "FGBears Deploy Bot"
-          git config user.email "actions@github.com"
-          git add .github/deployment-status/fgbears-live.json
-          if git diff --cached --quiet; then
-            exit 0
-          fi
-          git commit -m "Record FGBears Oracle deployment result [skip ci]"
-          git push origin main

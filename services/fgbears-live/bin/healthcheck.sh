@@ -19,7 +19,7 @@ NEWS_REFRESH_BIN=${BEARS_NEWS_REFRESH_BIN:-/opt/fgbears-live/bin/refresh-bears-n
 NEWS_REFRESH_INTERVAL_SECONDS=${BEARS_NEWS_REFRESH_INTERVAL_SECONDS:-900}
 NEWS_LOCAL_FEED=${BEARS_NEWS_LOCAL_FEED_FILE:-/srv/fgbears-live/runtime/fgb-bears-news.xml}
 NEWS_REFRESH_STATUS=${BEARS_NEWS_REFRESH_STATUS_FILE:-/srv/fgbears-live/runtime/bears-news-refresh-status.env}
-YOUTUBE_RELAY_SERVICE=${YOUTUBE_RELAY_SERVICE:-fgbears-youtube-relay.service}
+YOUTUBE_SERVICE=${YOUTUBE_SERVICE:-fgbears-youtube-v2.service}
 AUDIO_HEALTH_BIN=${FGB_AUDIO_HEALTH_BIN:-/usr/local/bin/fgbears-audio-health}
 AUDIO_HEALTH_INTERVAL_SECONDS=${FGB_AUDIO_HEALTH_INTERVAL_SECONDS:-300}
 AUDIO_HEALTH_SAMPLE_SECONDS=${FGB_AUDIO_HEALTH_SAMPLE_SECONDS:-20}
@@ -57,30 +57,32 @@ guarded_restart() {
     return 1
   fi
   printf '%s\n' "$now" >> "$RESTART_HISTORY_FILE"
-  logger -t fgbears-live-health "Restarting stalled stream; reason=${reason}; budget=$((count + 1))/${RESTART_BUDGET}."
+  logger -t fgbears-live-health "Restarting stalled shared program; reason=${reason}; budget=$((count + 1))/${RESTART_BUDGET}."
   systemctl restart fgbears-live.service
 }
 
-# YouTube consumes a connectionless local MPEG-TS mirror. A relay failure must
-# never restart or interrupt the primary encoder; reset only the relay and let it
-# rejoin the continuously transmitted program at the next keyframe.
-recover_youtube_relay() {
-  if systemctl is-active --quiet "$YOUTUBE_RELAY_SERVICE"; then
+# YouTube v2 is the sole authorized destination-specific process. Its systemd
+# unit already restarts on failure; this timer provides a secondary recovery if
+# the unit becomes inactive. Lovable/routing failures are deliberately NOT a
+# restart condition because the v2 worker fails transparent by design.
+recover_youtube_v2() {
+  if systemctl is-active --quiet "$YOUTUBE_SERVICE"; then
     return 0
   fi
 
-  logger -t fgbears-live-health "YouTube relay is inactive; resetting and restarting the isolated UDP relay without touching the primary encoder."
-  systemctl reset-failed "$YOUTUBE_RELAY_SERVICE" || true
-  systemctl restart "$YOUTUBE_RELAY_SERVICE" || true
+  logger -t fgbears-live-health "YouTube v2 is inactive; restarting only the destination process."
+  systemctl reset-failed "$YOUTUBE_SERVICE" || true
+  systemctl restart "$YOUTUBE_SERVICE" || true
 
   for _ in {1..20}; do
-    if systemctl is-active --quiet "$YOUTUBE_RELAY_SERVICE"; then
+    if systemctl is-active --quiet "$YOUTUBE_SERVICE"; then
+      logger -t fgbears-live-health "YOUTUBE_V2_RECOVERY=RECOVERED service=$YOUTUBE_SERVICE"
       return 0
     fi
     sleep 0.25
   done
 
-  logger -t fgbears-live-health "YouTube relay did not become active after isolated recovery."
+  logger -t fgbears-live-health "YOUTUBE_V2_RECOVERY=FAILED service=$YOUTUBE_SERVICE"
   return 1
 }
 
@@ -139,8 +141,9 @@ run_audio_check() {
   rm -f "$AUDIO_HEALTH_WARNING_FILE"
 }
 
-# News scanning is independent of encoder health. The five-minute host timer calls
-# this script; the refresher itself runs only once per 15-minute epoch bucket.
+# News refresh remains independent from transport recovery. The host timer calls
+# this script every five minutes; the news refresher enforces its own 15-minute
+# refresh bucket.
 run_news_refresh
 
 [[ -r "$ENV_FILE" && -s "$PLAYLIST_FILE" ]] || exit 0
@@ -148,19 +151,17 @@ if grep -q '^YOUTUBE_STREAM_KEY=REPLACE_WITH_YOUTUBE_STREAM_KEY$' "$ENV_FILE"; t
   exit 0
 fi
 
-# A failed YouTube relay is isolated from the primary program clock. Recover it
-# independently and continue checking encoder health in the same cycle.
-recover_youtube_relay || true
+# Destination recovery is isolated. It never restarts the shared program or
+# Rumble and never reacts to a Lovable/routing outage.
+recover_youtube_v2 || true
 
 if ! systemctl is-active --quiet fgbears-live.service; then
   guarded_restart "SERVICE_NOT_ACTIVE"
   exit 0
 fi
 
-# A process can remain "active" after output has stalled. Restart only when
-# FFmpeg stops reporting progress. A speed below real time indicates resource
-# pressure; the scheduled lag sampler records that condition but deliberately
-# does not restart the encoder, which would create a viewer-visible restart loop.
+# Restart the shared program only if its own FFmpeg progress stops advancing.
+# Slow-but-advancing encoding is logged and left running to avoid restart loops.
 if [[ ! -s "$PROGRESS_FILE" ]]; then
   guarded_restart "PROGRESS_MISSING"
   exit 0

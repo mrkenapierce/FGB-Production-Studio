@@ -7,6 +7,9 @@ on:
       - '.github/workflows/fgbears-live-validate.yml'
       - '.github/workflows/fgbears-live-monitor.yml'
       - '.github/workflows/fgbears-stream-health-audit.yml'
+      - '.github/workflows/fgbears-youtube-key-activate.yml'
+      - '.github/workflows/youtube-v2-validate.yml'
+      - '.github/quarantine/youtube-legacy-workflows/**'
   push:
     branches: [main]
     paths:
@@ -14,6 +17,9 @@ on:
       - '.github/workflows/fgbears-live-validate.yml'
       - '.github/workflows/fgbears-live-monitor.yml'
       - '.github/workflows/fgbears-stream-health-audit.yml'
+      - '.github/workflows/fgbears-youtube-key-activate.yml'
+      - '.github/workflows/youtube-v2-validate.yml'
+      - '.github/quarantine/youtube-legacy-workflows/**'
 
 permissions:
   contents: read
@@ -25,7 +31,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install validation tools
-        run: sudo apt-get update && sudo apt-get install -y shellcheck ffmpeg jq python3-pil qrencode
+        run: sudo apt-get update && sudo apt-get install -y shellcheck ffmpeg jq python3-pil python3-qrcode qrencode
       - name: ShellCheck
         run: shellcheck --severity=error services/fgbears-live/bin/*.sh services/fgbears-live/tests/*.sh
       - name: Production invariants

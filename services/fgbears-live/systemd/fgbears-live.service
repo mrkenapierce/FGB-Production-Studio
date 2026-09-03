@@ -1,8 +1,8 @@
 [Unit]
-Description=FGBears TV 24/7 YouTube replay stream
-After=network-online.target fgbears-youtube-relay.service
-Wants=network-online.target fgbears-youtube-relay.service
-StartLimitIntervalSec=30min
+Description=Football's Greatest Bears shared 24/7 program
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=1800
 StartLimitBurst=3
 
 [Service]
@@ -13,19 +13,15 @@ EnvironmentFile=/etc/fgbears-live/stream.env
 ExecStart=/usr/local/bin/fgbears-start-stream
 Restart=on-failure
 RestartSec=15
-SuccessExitStatus=130 143
 TimeoutStopSec=20
-KillSignal=SIGINT
-UMask=0077
 NoNewPrivileges=true
 PrivateTmp=true
+ProtectSystem=full
 ProtectHome=true
-ProtectSystem=strict
-ReadOnlyPaths=/opt/fgbears-live /etc/fgbears-live
 ReadWritePaths=/srv/fgbears-live
-RestrictSUIDSGID=true
-LockPersonality=true
-LimitNOFILE=65536
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=fgbears-live
 
 [Install]
 WantedBy=multi-user.target

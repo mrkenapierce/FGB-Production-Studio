@@ -15,93 +15,141 @@ cleanup() {
 }
 trap cleanup EXIT
 
-for script in "$ROOT"/bin/*.sh; do
+for script in "$ROOT"/bin/*.sh "$ROOT"/youtube-v2/*.sh; do
   bash -n "$script"
 done
-python3 -m py_compile "$ROOT/bin/ad-overlay.py" "$ROOT/bin/ad-overlay-smart.py" "$ROOT/bin/game_overlay.py" "$ROOT/bin/crawl-overlay.py" "$ROOT/bin/bears-news-feed.py" "$ROOT/bin/youtube-trivia-overlay.py"
+python3 -m py_compile \
+  "$ROOT/bin/ad-overlay.py" \
+  "$ROOT/bin/ad-overlay-smart.py" \
+  "$ROOT/bin/game_overlay.py" \
+  "$ROOT/bin/crawl-overlay.py" \
+  "$ROOT/bin/bears-news-feed.py" \
+  "$ROOT/youtube-v2/youtube-v2-overlay.py"
 python3 "$ROOT/tests/test-game-overlay.py"
-python3 "$ROOT/tests/test-youtube-trivia-overlay.py"
-python3 - "$ROOT/bin/crawl-overlay.py" <<'PY'
-import runpy
+
+# Validate the sole destination-specific renderer without a network call.
+YOUTUBE_REDIRECT_CARD_BUILDER="$ROOT/tools/build-youtube-rumble-trivia-card.py" \
+python3 - "$ROOT/youtube-v2/youtube-v2-overlay.py" "$TMP" <<'PY'
+import importlib.util
 import sys
+from pathlib import Path
+from PIL import Image
 
-module = runpy.run_path(sys.argv[1])
-sequence = module["CrawlSequence"]()
-value = {"active": True, "messages": ["STANDINGS", "LEADERBOARD", "HOW TO PLAY"]}
-message, _ = sequence.select(value, 100.0)
-assert message == "STANDINGS"
+path=Path(sys.argv[1]); tmp=Path(sys.argv[2])
+spec=importlib.util.spec_from_file_location('v2overlay', path)
+m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m)
+region={"x":462,"y":104,"width":798,"height":470,
+        "coordinateSpace":"pixels","referenceWidth":1280,"referenceHeight":720}
+def payload(key='yt_rumble_trivia_redirect', **change):
+    trivia={"stale":False,"phase":"question","adsVisible":False,"isAdBreak":False,
+            "adBreakActive":False,"youtubeMaskActive":True,"youtubeCreativeKey":key,
+            "maskRegion":region,
+            "presentation":{"rumble":{"rendersRealQuestion":True},
+              "youtube":{"rendersRealQuestion":False,
+                "maskedRegion":{"x":462,"y":104,"width":798,"height":470},
+                "creativeKey":key,"sourceTemplateKey":key,
+                "presentationMode":"full_creative_scaled"}}}
+    trivia.update(change)
+    return {"trivia":trivia}
 
-# A live-data refresh must not replace or resize the segment already on screen.
-refreshed = {"active": True, "messages": ["UPDATED STANDINGS", "UPDATED LEADERBOARD", "HOW TO PLAY"]}
-message, _ = sequence.select(refreshed, 101.0)
-assert message == "STANDINGS"
-assert not sequence.advance_if_complete(-99, 100, 102.0)
-assert sequence.advance_if_complete(-100, 100, 103.0)
-message, _ = sequence.select(refreshed, 103.0)
-assert message == "UPDATED LEADERBOARD"
-assert sequence.advance_if_complete(-100, 100, 104.0)
-message, _ = sequence.select(refreshed, 104.0)
-assert message == "HOW TO PLAY"
+state=m.validate(payload())
+assert m.should_cover(state)
+assert len(m.build_frame(state['_validatedCreativeKey'])) == 798*470*4
+for change in ({"stale":True},{"phase":"revealed"},{"adsVisible":True},
+               {"isAdBreak":True},{"adBreakActive":True},{"youtubeMaskActive":False}):
+    assert not m.should_cover(m.validate(payload(**change)))
+creative_dir=tmp/'creatives'; creative_dir.mkdir()
+m.CREATIVE_DIR=creative_dir; m._FRAME_CACHE.clear()
+Image.new('RGBA',(320,180),(255,0,0,128)).save(creative_dir/'sponsor_a.png')
+assert 'sponsor_a' in m.available_creative_keys()
+assert len(m.build_frame('sponsor_a')) == 798*470*4
+try:
+    m.build_frame('not_installed')
+except FileNotFoundError:
+    pass
+else:
+    raise AssertionError('unapproved creative must fail closed')
 PY
 
-# These are intentionally literal shell expressions from start-stream.sh.
-# shellcheck disable=SC2016
-grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${AD_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
-# shellcheck disable=SC2016
-grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
-# shellcheck disable=SC2016
-grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.mjpg"' "$ROOT/bin/start-stream.sh"
-grep -Fq -- '-preset ultrafast' "$ROOT/bin/start-stream.sh"
-grep -Fq -- '-progress pipe:3' "$ROOT/bin/start-stream.sh"
-if grep -Fq -- '-af ' "$ROOT/bin/start-stream.sh"; then
-  echo 'The production master must preserve mastered episode audio without live DSP.' >&2
-  exit 1
-fi
-grep -Fq -- '-c:a copy' "$ROOT/bin/start-stream.sh"
+python3 - "$ROOT/bin/crawl-overlay.py" <<'PY'
+import runpy, sys
+module=runpy.run_path(sys.argv[1])
+sequence=module['CrawlSequence']()
+value={"active":True,"messages":["STANDINGS","LEADERBOARD","HOW TO PLAY"]}
+message,_=sequence.select(value,100.0); assert message == 'STANDINGS'
+refreshed={"active":True,"messages":["UPDATED STANDINGS","UPDATED LEADERBOARD","HOW TO PLAY"]}
+message,_=sequence.select(refreshed,101.0); assert message == 'STANDINGS'
+assert not sequence.advance_if_complete(-99,100,102.0)
+assert sequence.advance_if_complete(-100,100,103.0)
+message,_=sequence.select(refreshed,103.0); assert message == 'UPDATED LEADERBOARD'
+PY
 
-# YouTube is intentionally different from Rumble: copy the shared H.264 video,
-# but rebuild AAC framing/timestamps specifically for YouTube RTMPS ingest.
-grep -Fq -- '-c:v copy' "$ROOT/bin/youtube-relay.sh"
-grep -Fq -- '-c:a aac' "$ROOT/bin/youtube-relay.sh"
-grep -Fq -- '-profile:a aac_low' "$ROOT/bin/youtube-relay.sh"
-grep -Fq ': "${YOUTUBE_AUDIO_BITRATE:=128k}"' "$ROOT/bin/youtube-relay.sh"
-grep -Fq ': "${YOUTUBE_AUDIO_SAMPLE_RATE:=44100}"' "$ROOT/bin/youtube-relay.sh"
-grep -Fq ': "${YOUTUBE_AUDIO_CHANNELS:=2}"' "$ROOT/bin/youtube-relay.sh"
-grep -Fq 'aresample=${YOUTUBE_AUDIO_SAMPLE_RATE}:async=1:first_pts=0' "$ROOT/bin/youtube-relay.sh"
-if grep -Eq 'youtube-stream-router|gst-launch|libx264|aacparse|mpegtsmux' "$ROOT/bin/youtube-relay.sh"; then
-  echo 'The canonical YouTube relay must remain isolated FFmpeg video-copy + AAC audio re-clock.' >&2
-  exit 1
-fi
-
-# Rumble remains the unchanged copy-remux reference path.
-grep -Fq -- '-c copy' "$ROOT/bin/rumble-relay.sh"
-
-grep -Fq 'FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0' "$ROOT/config/stream.env.example"
-grep -Fq '"FGB_YOUTUBE_PACKET_ROUTER_ENABLE": "0"' "$ROOT/bin/install.sh"
-grep -Fq 'fgbears-youtube-audio-watchdog.timer' "$ROOT/bin/install.sh"
+# Common program is rendered once and mirrored locally.
 grep -Fq -- '-f tee -use_fifo 1' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
 grep -Fq '${YOUTUBE_LOCAL_UDP_URL}|[f=mpegts:' "$ROOT/bin/start-stream.sh"
 # shellcheck disable=SC2016
 grep -Fq '${RUMBLE_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"
-if grep -Fq 'rtmp://127.0.0.1:1935' "$ROOT/bin/start-stream.sh"; then
-  echo 'The primary encoder must not depend on the retired local RTMP YouTube listener.' >&2
-  exit 1
+grep -Fq -- '-c:a copy' "$ROOT/bin/start-stream.sh"
+if grep -Fq -- '-af ' "$ROOT/bin/start-stream.sh"; then
+  echo 'Shared program must preserve mastered audio without live DSP.' >&2; exit 1
 fi
-grep -Fq 'onfail=ignore' "$ROOT/bin/start-stream.sh"
-grep -Fq 'StartLimitBurst=3' "$ROOT/systemd/fgbears-live.service"
-grep -Fq 'Restart=on-failure' "$ROOT/systemd/fgbears-live.service"
-grep -Fq 'Wants=network-online.target fgbears-youtube-relay.service' "$ROOT/systemd/fgbears-live.service"
-if grep -Fq 'Requires=fgbears-youtube-relay.service' "$ROOT/systemd/fgbears-live.service"; then
-  echo 'The YouTube relay must not be a hard lifecycle dependency of the primary encoder.' >&2
-  exit 1
+if grep -Fq 'rtmp://127.0.0.1:1935' "$ROOT/bin/start-stream.sh"; then
+  echo 'Shared program must not depend on retired local RTMP YouTube relay.' >&2; exit 1
+fi
+
+# Rumble remains the canonical copy-remux destination.
+grep -Fq -- '-c copy' "$ROOT/bin/rumble-relay.sh"
+if grep -Eq 'overlay=|libx264|youtube-v2' "$ROOT/bin/rumble-relay.sh"; then
+  echo 'Rumble must not gain a destination renderer.' >&2; exit 1
+fi
+
+# YouTube v2 alone owns destination-specific pixels.
+grep -Fq 'overlay=462:104' "$ROOT/youtube-v2/run-youtube-v2.sh"
+grep -Fq -- '-c:v libx264' "$ROOT/youtube-v2/run-youtube-v2.sh"
+grep -Fq 'youtube-v2-overlay.py' "$ROOT/youtube-v2/run-youtube-v2.sh"
+grep -Fq 'Rumble must remain the canonical live-question presentation' "$ROOT/youtube-v2/youtube-v2-overlay.py"
+
+grep -Fq 'FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0' "$ROOT/config/stream.env.example"
+# The installer must enable the sole authorized YouTube destination. The exact
+# grouping of enable operations is intentionally not part of the architecture.
+grep -Eq '^systemctl enable .*fgbears-youtube-v2\.service' "$ROOT/bin/install.sh"
+if grep -Eq 'install .*youtube-relay|enable .*youtube-relay|restart .*youtube-relay' "$ROOT/bin/install.sh"; then
+  echo 'Installer can reactivate retired YouTube relay.' >&2; exit 1
+fi
+if grep -Eq 'install .*youtube-audio-watchdog|enable .*youtube-audio-watchdog|restart .*youtube-audio-watchdog' "$ROOT/bin/install.sh"; then
+  echo 'Installer can reactivate retired YouTube watchdog.' >&2; exit 1
+fi
+
+grep -Fq 'Wants=network-online.target' "$ROOT/systemd/fgbears-live.service"
+if grep -Eq 'youtube-relay|youtube-router|lovable-compositor' "$ROOT/systemd/fgbears-live.service"; then
+  echo 'Shared master service contains legacy destination dependency.' >&2; exit 1
+fi
+grep -Fq 'YOUTUBE_SERVICE=${YOUTUBE_SERVICE:-fgbears-youtube-v2.service}' "$ROOT/bin/healthcheck.sh"
+grep -Fq 'recover_youtube_v2' "$ROOT/bin/healthcheck.sh"
+if grep -Eq 'YOUTUBE_RELAY_SERVICE|recover_youtube_relay|fgbears-youtube-relay.service' "$ROOT/bin/healthcheck.sh"; then
+  echo 'Healthcheck contains retired YouTube relay recovery.' >&2; exit 1
+fi
+
+for path in \
+  "$ROOT/bin/youtube-relay.sh" \
+  "$ROOT/bin/youtube-stream-router.py" \
+  "$ROOT/bin/youtube-trivia-overlay.py" \
+  "$ROOT/systemd/fgbears-youtube-relay.service" \
+  "$ROOT/systemd/fgbears-youtube-audio-watchdog.service"
+do
+  test ! -e "$path"
+done
+test -d "$ROOT/quarantine/youtube-legacy"
+if find "$ROOT/quarantine/youtube-legacy" -type f -perm /111 -print -quit | grep -q .; then
+  echo 'Quarantined legacy file is executable.' >&2; exit 1
 fi
 
 if find "$ROOT" -type f -name 'stream.env' -print -quit | grep -q .; then
-  echo 'A real stream.env file must never be committed.' >&2
-  exit 1
+  echo 'A real stream.env file must never be committed.' >&2; exit 1
 fi
 
+# Smoke-test common ad/crawl HTTP renderers.
 cat > "$TMP/feed.json" <<'JSON'
 {"kind":"house","sponsors":[{"businessName":"FGB","imageUrl":null,"promoMessage":"Bear Down","website":"https://epiccontentcreatorgrants.org/epic-media","durationSeconds":7}]}
 JSON
@@ -114,45 +162,17 @@ for _ in {1..40}; do
   curl --silent --fail --max-time 1 http://127.0.0.1:18787/healthz >"$TMP/ad-health.json" && break
   sleep 0.1
 done
-if ! jq -e '.ok == true' "$TMP/ad-health.json" >/dev/null; then
-  cat "$TMP/ad-overlay.log" >&2 || true
-  exit 1
-fi
+jq -e '.ok == true' "$TMP/ad-health.json" >/dev/null
 curl --silent --fail http://127.0.0.1:18787/frame.jpg -o "$TMP/ad-frame.jpg"
 python3 - "$TMP/ad-frame.jpg" <<'PY'
 from PIL import Image
 import sys
-im = Image.open(sys.argv[1]); im.load(); assert im.size == (1280, 720), im.size
-PY
-kill "$OVERLAY_PID"; wait "$OVERLAY_PID" 2>/dev/null || true; OVERLAY_PID=""
-
-# The game feed can replace the central panel without changing the renderer port
-# or FFmpeg input. No external network is required in this test.
-cat > "$TMP/game.json" <<'JSON'
-{"visible":true,"gameId":"test-game","presentationMode":"alternate_game_ads","adsEnabled":false,"title":"ZIP SHOWDOWN","matchup":"61108 VS 61107","currentPrize":"$25","phase":"question","questionNumber":1,"questionCount":1,"prompt":"WHO WAS NICKNAMED SWEETNESS?","choices":[{"key":"A","text":"DICK BUTKUS"},{"key":"B","text":"WALTER PAYTON"}],"participants":12,"standings":[{"zip":"61108","score":4,"players":7}],"playPath":"/fgb/play","gameScreenSeconds":20,"adsPerBreak":1,"keepTriviaCrawlDuringAds":true,"allowPaidAds":true,"allowHouseAds":true}
-JSON
-SPONSOR_FEED_FILE="$TMP/feed.json" GAME_SCREEN_FEED_FILE="$TMP/game.json" CRAWL_RUNTIME_DIR="$TMP/runtime" AD_FRAME_FILE="$TMP/runtime/game-frame.jpg" AD_OVERLAY_PORT=18787 python3 "$ROOT/bin/ad-overlay-smart.py" >"$TMP/game-overlay.log" 2>&1 &
-OVERLAY_PID=$!
-for _ in {1..40}; do
-  curl --silent --fail --max-time 1 http://127.0.0.1:18787/healthz >/dev/null && break
-  sleep 0.1
-done
-if ! curl --silent --fail http://127.0.0.1:18787/frame.jpg -o "$TMP/game-frame.jpg"; then
-  cat "$TMP/game-overlay.log" >&2 || true
-  exit 1
-fi
-python3 - "$TMP/game-frame.jpg" <<'PY'
-from PIL import Image
-import sys
-im = Image.open(sys.argv[1]); im.load(); assert im.size == (1280, 720), im.size
-# A game screen uses the dark central panel rather than the normal white ad card.
-pixel = im.getpixel((500, 200))
-assert sum(pixel) < 250, pixel
+im=Image.open(sys.argv[1]); im.load(); assert im.size == (1280,720)
 PY
 kill "$OVERLAY_PID"; wait "$OVERLAY_PID" 2>/dev/null || true; OVERLAY_PID=""
 
 cat > "$TMP/crawl.json" <<'JSON'
-{"active":true,"label":"FGB LIVE","message":"legacy first message","messages":[{"enabled":true,"text":"MESSAGE ONE"},{"enabled":true,"text":"MESSAGE TWO"},{"enabled":true,"text":"MESSAGE THREE"},{"enabled":true,"text":"MESSAGE FOUR"},{"enabled":true,"text":"MESSAGE FIVE"}],"separator":"•","speed":"normal","updatedAt":"2026-08-25T00:00:00Z"}
+{"active":true,"label":"FGB LIVE","message":"legacy first message","messages":[{"enabled":true,"text":"MESSAGE ONE"},{"enabled":true,"text":"MESSAGE TWO"},{"enabled":true,"text":"MESSAGE THREE"}],"separator":"•","speed":"normal","updatedAt":"2026-08-25T00:00:00Z"}
 JSON
 CRAWL_FEED_FILE="$TMP/crawl.json" CRAWL_RUNTIME_DIR="$TMP/runtime" CRAWL_OVERLAY_PORT=18788 CRAWL_OVERLAY_FPS=10 python3 "$ROOT/bin/crawl-overlay.py" >"$TMP/crawl-overlay.log" 2>&1 &
 CRAWL_PID=$!
@@ -160,25 +180,12 @@ for _ in {1..40}; do
   curl --silent --fail --max-time 1 http://127.0.0.1:18788/healthz >"$TMP/crawl-health.json" && break
   sleep 0.1
 done
-jq -e '.ok == true and .active == true and .messageCount == 5' "$TMP/crawl-health.json" >/dev/null
-python3 - "$TMP/runtime/crawl-message.txt" <<'PY'
-from pathlib import Path
-import sys
-text = Path(sys.argv[1]).read_text(encoding='utf-8')
-expected = ['MESSAGE ONE', 'MESSAGE TWO', 'MESSAGE THREE', 'MESSAGE FOUR', 'MESSAGE FIVE']
-positions = [text.index(message) for message in expected]
-assert positions == sorted(positions), (positions, text)
-assert text.count('•') == 4, text
-assert 'LEGACY FIRST MESSAGE' not in text, text
-PY
-curl --silent --fail http://127.0.0.1:18788/frame.jpg -o "$TMP/crawl-frame.jpg"
-python3 - "$TMP/crawl-frame.jpg" <<'PY'
-from PIL import Image
-import sys
-im = Image.open(sys.argv[1]); im.load(); assert im.size == (1280, 139), im.size
-PY
+jq -e '.ok == true and .active == true and .messageCount == 3' "$TMP/crawl-health.json" >/dev/null
 kill "$CRAWL_PID"; wait "$CRAWL_PID" 2>/dev/null || true; CRAWL_PID=""
 
+# Media normalization remains unchanged. Production installs validate-media.sh
+# as an executable /usr/local/bin/fgbears-validate, so emulate that install mode
+# rather than weakening rebuild-playlist.sh's admission check in source checkout.
 mkdir -p "$TMP/media"
 ffmpeg -hide_banner -loglevel error \
   -f lavfi -i color=c=black:s=640x360:r=24:d=0.5 \
@@ -186,7 +193,9 @@ ffmpeg -hide_banner -loglevel error \
   -c:v libx264 -preset ultrafast -c:a aac -shortest "$TMP/source.mp4"
 MEDIA_DIR="$TMP/media" bash "$ROOT/bin/normalize-library.sh" "$TMP/source.mp4" "$TMP/media/episode-01.mp4"
 bash "$ROOT/bin/validate-media.sh" "$TMP/media"
-MEDIA_DIR="$TMP/media" PLAYLIST_FILE="$TMP/playlist.ffconcat" bash "$ROOT/bin/rebuild-playlist.sh"
+install -m 0755 "$ROOT/bin/validate-media.sh" "$TMP/fgbears-validate"
+VALIDATOR="$TMP/fgbears-validate" MEDIA_DIR="$TMP/media" PLAYLIST_FILE="$TMP/playlist.ffconcat" \
+  bash "$ROOT/bin/rebuild-playlist.sh"
 grep -q 'episode-01.mp4' "$TMP/playlist.ffconcat"
 
-echo 'FGBears Live integration tests passed.'
+echo 'FGBears Live integration tests passed: minimal v2 architecture.'

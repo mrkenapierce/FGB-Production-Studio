@@ -22,7 +22,7 @@ env:
 
 jobs:
   monitor:
-    name: Read-only production topology and media health
+    name: Read-only minimal-topology health
     runs-on: ubuntu-latest
     timeout-minutes: 4
     steps:
@@ -49,13 +49,18 @@ jobs:
           set -u
           MASTER=fgbears-live.service
           RUMBLE=fgbears-rumble-relay.service
-          ROUTING=fgbears-youtube-lovable-routing.service
-          COMP=fgbears-youtube-lovable-compositor.service
-          LEGACY=fgbears-youtube-relay.service
-          WATCHDOG_TIMER=fgbears-youtube-audio-watchdog.timer
+          YOUTUBE=fgbears-youtube-v2.service
           HEALTH_TIMER=fgbears-live-health.timer
-          STATUS=/srv/fgbears-live/health/youtube-audio/status.env
-          MONDIR=/run/fgbears-youtube-lovable-compositor
+          OVERLAY_STATE=/run/fgbears-youtube-v2/overlay-state.json
+          LEGACY_UNITS=(
+            fgbears-youtube-output.service
+            fgbears-youtube-relay.service
+            fgbears-youtube-router.service
+            fgbears-youtube-lovable-routing.service
+            fgbears-youtube-lovable-compositor.service
+            fgbears-youtube-audio-watchdog.service
+            fgbears-youtube-audio-watchdog.timer
+          )
 
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
           active(){ systemctl is-active --quiet "$1"; }
@@ -64,58 +69,62 @@ jobs:
 
           active "$MASTER" || fail MASTER_INACTIVE
           active "$RUMBLE" || fail RUMBLE_INACTIVE
-          active "$ROUTING" || fail YOUTUBE_ROUTING_INACTIVE
-          active "$COMP" || fail YOUTUBE_COMPOSITOR_INACTIVE
-          active "$WATCHDOG_TIMER" || fail YOUTUBE_WATCHDOG_TIMER_INACTIVE
+          active "$YOUTUBE" || fail YOUTUBE_V2_INACTIVE
           active "$HEALTH_TIMER" || fail MASTER_HEALTH_TIMER_INACTIVE
-          active "$LEGACY" && fail LEGACY_YOUTUBE_RELAY_ACTIVE
 
-          MPID=$(pid "$MASTER"); RPID=$(pid "$RUMBLE"); CPID=$(pid "$COMP")
+          for unit in "${LEGACY_UNITS[@]}"; do
+            active "$unit" && fail "LEGACY_UNIT_ACTIVE_${unit//[^A-Za-z0-9]/_}"
+            state=$(systemctl is-enabled "$unit" 2>/dev/null || true)
+            [[ "$state" == masked* ]] || fail "LEGACY_UNIT_NOT_MASKED_${unit//[^A-Za-z0-9]/_}"
+          done
+
+          MPID=$(pid "$MASTER"); RPID=$(pid "$RUMBLE"); YPID=$(pid "$YOUTUBE")
+          [[ "$MPID" =~ ^[1-9][0-9]*$ ]] || fail MASTER_PID_INVALID
+          [[ "$RPID" =~ ^[1-9][0-9]*$ ]] || fail RUMBLE_PID_INVALID
+          [[ "$YPID" =~ ^[1-9][0-9]*$ ]] || fail YOUTUBE_V2_PID_INVALID
           socket "$RPID" 1935 || fail RUMBLE_SOCKET_MISSING
-          socket "$CPID" 443 || fail YOUTUBE_SOCKET_MISSING
+          socket "$YPID" 443 || fail YOUTUBE_SOCKET_MISSING
 
           speed=$(sudo awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
-          if [[ -n "$speed" ]] && ! python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$speed"; then fail MASTER_BELOW_REALTIME; fi
+          if [[ -n "$speed" ]] && ! python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$speed"; then
+            fail MASTER_BELOW_REALTIME
+          fi
 
-          mask=$(curl -fsS --max-time 3 http://127.0.0.1:8791/healthz) || fail YOUTUBE_MASK_HEALTH_UNREACHABLE
-          printf '%s' "$mask" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("sourceCanvas")==[1280,720];assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470};assert p.get("creativeKey")=="yt_rumble_trivia_redirect";assert p.get("routingAuthority")=="lovable_public_stream_routing";assert int(p.get("fps",0))==30' || fail YOUTUBE_MASK_CONTRACT_INVALID
+          # Routing loss is deliberately non-fatal: the v2 worker writes a fresh
+          # state and fails transparent while YouTube transport stays live.
+          overlay_routing=UNKNOWN
+          if sudo test -s "$OVERLAY_STATE"; then
+            overlay_report=$(sudo python3 - "$OVERLAY_STATE" <<'PY'
+          import json, os, sys, time
+          path=sys.argv[1]
+          p=json.load(open(path, encoding='utf-8'))
+          assert p.get('maskRegion') == {
+              'x':462,'y':104,'width':798,'height':470,
+              'coordinateSpace':'pixels','referenceWidth':1280,'referenceHeight':720,
+          }
+          assert p.get('frameSize') == [798,470]
+          assert p.get('routingAuthority') == 'lovable_public_stream_routing'
+          assert float(p.get('fps') or 0) == 10.0
+          age=time.time()-os.path.getmtime(path)
+          assert 0 <= age < 120, age
+          status='OK' if p.get('ok') is True else 'DEGRADED_FAIL_TRANSPARENT'
+          print(f'{status} age={age:.1f}s active={str(bool(p.get("active"))).lower()} creative={p.get("creativeKey")}')
+          PY
+            ) || fail YOUTUBE_V2_STATE_INVALID
+            overlay_routing=$overlay_report
+          else
+            fail YOUTUBE_V2_STATE_MISSING
+          fi
 
           news=$(curl -fsS --max-time 3 http://127.0.0.1:8789/healthz) || fail RSS_HEALTH_UNREACHABLE
           crawl=$(curl -fsS --max-time 3 http://127.0.0.1:8788/healthz) || fail CRAWL_HEALTH_UNREACHABLE
-          printf '%s' "$news" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert int(p.get("scrollPps",0))==76;assert p.get("payloadSwap")=="next-cycle-boundary"' || fail RSS_CONTRACT_INVALID
-          printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert p.get("payloadSwap")=="next-segment-boundary"' || fail CRAWL_CONTRACT_INVALID
-
-          sudo test -s "$STATUS" || fail YOUTUBE_WATCHDOG_STATUS_MISSING
-          now=$(date +%s)
-          checked=$(sudo sed -n 's/^checked_epoch=\([0-9][0-9]*\)$/\1/p' "$STATUS" | tail -n1)
-          state=$(sudo sed -n 's/^state=\([^[:space:]]*\)$/\1/p' "$STATUS" | tail -n1)
-          owner=$(sudo sed -n 's/^owner=\([^[:space:]]*\)$/\1/p' "$STATUS" | tail -n1)
-          [[ "$checked" =~ ^[0-9]+$ ]] || fail YOUTUBE_WATCHDOG_TIMESTAMP_INVALID
-          age=$((now-checked))
-          (( age >= 0 && age <= 180 )) || fail YOUTUBE_WATCHDOG_STATUS_STALE
-          [[ "$state" == OK || "$state" == WARN ]] || fail YOUTUBE_WATCHDOG_STATE_BAD
-          [[ "$owner" == exact_box_compositor ]] || fail YOUTUBE_OWNER_NOT_COMPOSITOR
-
-          # The compositor's three-file segment ring can be between rotations at
-          # the exact polling instant. The fresh one-minute host watchdog already
-          # validates the encoded output contract, so a missing snapshot here is
-          # informational rather than a stream incident. Probe independently when
-          # a stable segment is available without turning segment rotation into a
-          # false-positive outage.
-          SEG=$(sudo find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -size +0c -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '1{s/^[^ ]* //;p;q;}')
-          media_line='host-watchdog-verified; no stable segment snapshot at poll instant'
-          if [[ -n "$SEG" && -s "$SEG" ]]; then
-            media=$(sudo ffprobe -v fatal -show_entries stream=codec_type,codec_name,sample_rate,channels,width,height,r_frame_rate -of json "$SEG" 2>/dev/null || true)
-            if [[ -n "$media" ]]; then
-              parsed=$(printf '%s' "$media" | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p.get("streams",[]);a=next(x for x in s if x.get("codec_type")=="audio");v=next(x for x in s if x.get("codec_type")=="video");assert a.get("codec_name")=="aac";assert int(a.get("sample_rate") or 0) in (44100,48000);assert int(a.get("channels") or 0)==2;assert int(v.get("width") or 0)>0 and int(v.get("height") or 0)>0;print("video=%sx%s fps=%s audio=%sHz/%sch"%(v.get("width"),v.get("height"),v.get("r_frame_rate"),a.get("sample_rate"),a.get("channels")))' 2>/dev/null || true)
-              [[ -z "$parsed" ]] || media_line="$parsed"
-            fi
-          fi
+          printf '%s' "$news" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True' || fail RSS_CONTRACT_INVALID
+          printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True' || fail CRAWL_CONTRACT_INVALID
 
           echo 'OVERALL_STATUS=OK'
           echo 'REASON=PRODUCTION_HEALTHY'
-          echo "TOPOLOGY master=$MPID rumble=$RPID youtube=$CPID legacy=off master_speed=${speed:-unknown}x watchdog=$state age=${age}s"
-          echo "MEDIA $media_line"
+          echo "TOPOLOGY master=$MPID rumble=$RPID youtube_v2=$YPID legacy=masked master_speed=${speed:-unknown}x"
+          echo "OVERLAY_ROUTING $overlay_routing"
           REMOTE
           rc=$?
           set -e

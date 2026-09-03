@@ -1,17 +1,17 @@
-name: Activate FGBears YouTube Stream Key
+name: Activate FGBears YouTube v2 Stream Key
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
     paths:
       - '.github/workflows/fgbears-youtube-key-activate.yml'
-  workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: fgbears-youtube-key-activation
+  group: fgbears-youtube-v2-key-activation
   cancel-in-progress: false
 
 env:
@@ -33,32 +33,29 @@ jobs:
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
           FGB_YOUTUBE_STREAM_KEY: ${{ secrets.FGB_YOUTUBE_STREAM_KEY }}
         run: |
-          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
-          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
-          test -n "$FGB_YOUTUBE_STREAM_KEY" || { echo 'Missing FGB_YOUTUBE_STREAM_KEY secret'; exit 1; }
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          test -n "$FGB_YOUTUBE_STREAM_KEY"
 
       - name: Configure Oracle SSH
-        if: steps.require.outcome == 'success'
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
+          set -Eeuo pipefail
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
       - id: activate_key
-        name: Install protected YouTube key on Oracle and restart encoder
-        if: steps.require.outcome == 'success'
+        name: Install protected key and restart YouTube v2 only
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           FGB_YOUTUBE_STREAM_KEY: ${{ secrets.FGB_YOUTUBE_STREAM_KEY }}
         run: |
           set -Eeuo pipefail
-
-          # Transfer the secret only over SSH stdin into a root-owned temporary file.
-          # The key is never printed and is removed after installation.
           printf '%s\n' "$FGB_YOUTUBE_STREAM_KEY" | \
             ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" \
               'sudo tee /run/fgbears-youtube-key >/dev/null && sudo chmod 600 /run/fgbears-youtube-key'
@@ -67,64 +64,68 @@ jobs:
           set -Eeuo pipefail
           key_file=/run/fgbears-youtube-key
           trap 'rm -f "$key_file"' EXIT
-          [[ -s "$key_file" ]] || { echo 'Protected YouTube key transfer was empty.' >&2; exit 64; }
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          fail(){ echo "YOUTUBE_V2_KEY_ACTIVATION=FAIL reason=$1" >&2; exit 1; }
+
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          YOUTUBE=fgbears-youtube-v2.service
+          VERIFY=/opt/fgbears-live/youtube-v2/verify-youtube-v2.sh
+          ENV_FILE=/etc/fgbears-live/stream.env
+
+          master_before=$(pid "$MASTER")
+          rumble_before=$(pid "$RUMBLE")
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]] || fail master_not_active
+          [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]] || fail rumble_not_active
+          [[ -s "$key_file" ]] || fail key_transfer_empty
+          [[ -f "$ENV_FILE" ]] || fail stream_env_missing
+          [[ -x "$VERIFY" ]] || fail v2_verifier_missing
+
           key=$(cat "$key_file")
-          [[ -n "$key" ]] || { echo 'Protected YouTube key was empty.' >&2; exit 64; }
-          [[ "$key" != *'|'* ]] || { echo 'Unsupported character in YouTube key.' >&2; exit 64; }
-          env_file=/etc/fgbears-live/stream.env
-          [[ -f "$env_file" ]] || { echo 'Missing stream.env' >&2; exit 66; }
-          KEY_VALUE="$key" python3 - "$env_file" <<'PY'
+          [[ -n "$key" ]] || fail key_empty
+          [[ "$key" != *'|'* ]] || fail key_unsupported_character
+          KEY_VALUE="$key" python3 - "$ENV_FILE" <<'PY'
           from pathlib import Path
           import os, sys
-          path = Path(sys.argv[1])
-          text = path.read_text(encoding='utf-8')
-          value = os.environ['KEY_VALUE']
+          path=Path(sys.argv[1])
+          value=os.environ['KEY_VALUE']
+          lines=path.read_text(encoding='utf-8').splitlines()
           out=[]; seen=False
-          for line in text.splitlines():
+          for line in lines:
               if line.startswith('YOUTUBE_STREAM_KEY='):
-                  out.append('YOUTUBE_STREAM_KEY=' + value); seen=True
+                  out.append('YOUTUBE_STREAM_KEY='+value); seen=True
               else:
                   out.append(line)
           if not seen:
-              out.append('YOUTUBE_STREAM_KEY=' + value)
-          path.write_text('\n'.join(out) + '\n', encoding='utf-8')
+              out.append('YOUTUBE_STREAM_KEY='+value)
+          tmp=path.with_suffix(path.suffix+'.partial')
+          tmp.write_text('\n'.join(out)+'\n',encoding='utf-8')
+          tmp.replace(path)
           PY
           unset key KEY_VALUE
-          chown root:fgbears "$env_file"
-          chmod 640 "$env_file"
-          systemctl reset-failed fgbears-live.service || true
-          systemctl restart fgbears-live.service
-          REMOTE
+          chown root:fgbears "$ENV_FILE"
+          chmod 640 "$ENV_FILE"
 
-      - id: verify
-        name: Verify YouTube RTMPS socket without exposing credentials
-        if: steps.activate_key.outcome == 'success'
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          for _ in $(seq 1 60); do
-            if systemctl is-active --quiet fgbears-live.service; then
-              ffmpeg_pid=$(pgrep -o -x ffmpeg || true)
-              if [[ -n "$ffmpeg_pid" ]]; then
-                sudo ss -ntpH state established | grep "pid=$ffmpeg_pid" > /tmp/fgbears-yt-key-sockets.txt || true
-                getent ahostsv4 a.rtmps.youtube.com | awk '{print $1}' | sort -u > /tmp/fgbears-yt-key-ips.txt
-                while IFS= read -r ip; do
-                  [[ -n "$ip" ]] || continue
-                  if grep -Fq "$ip:443" /tmp/fgbears-yt-key-sockets.txt; then
-                    rm -f /tmp/fgbears-yt-key-sockets.txt /tmp/fgbears-yt-key-ips.txt
-                    echo 'YouTube RTMPS socket established.'
-                    exit 0
-                  fi
-                done < /tmp/fgbears-yt-key-ips.txt
-              fi
-            fi
-            sleep 2
+          # The stream key belongs to the sole YouTube-v2 destination. Never
+          # restart the shared master or Rumble to apply a YouTube credential.
+          systemctl reset-failed "$YOUTUBE" || true
+          systemctl restart "$YOUTUBE"
+          for _ in $(seq 1 30); do
+            systemctl is-active --quiet "$YOUTUBE" && break
+            sleep 1
           done
-          echo 'YouTube RTMPS socket was not established after the protected key update.' >&2
-          exit 1
+          systemctl is-active --quiet "$YOUTUBE" || fail youtube_v2_restart_failed
+          "$VERIFY"
+
+          youtube_pid=$(pid "$YOUTUBE")
+          [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]] || fail youtube_v2_pid_invalid
+          ss -ntpH state established 2>/dev/null | grep "pid=$youtube_pid" | grep -Eq ':443([[:space:]]|$)' || fail youtube_v2_socket_missing
+
+          master_after=$(pid "$MASTER")
+          rumble_after=$(pid "$RUMBLE")
+          test "$master_after" = "$master_before" || fail master_pid_changed
+          test "$rumble_after" = "$rumble_before" || fail rumble_pid_changed
+          echo "YOUTUBE_V2_KEY_ACTIVATION=PASS master=$master_after rumble=$rumble_after youtube=$youtube_pid"
           REMOTE
 
       - name: Record safe activation result
@@ -132,32 +133,28 @@ jobs:
         env:
           REQUIRE_OUTCOME: ${{ steps.require.outcome }}
           ACTIVATE_OUTCOME: ${{ steps.activate_key.outcome }}
-          VERIFY_OUTCOME: ${{ steps.verify.outcome }}
           JOB_STATUS: ${{ job.status }}
         run: |
+          set -Eeuo pipefail
           git fetch origin main
           git checkout -B main origin/main
           mkdir -p .github/deployment-status
           secret_present=false
           activated=false
-          socket_established=false
-          [[ "$REQUIRE_OUTCOME" == 'success' ]] && secret_present=true
-          [[ "$ACTIVATE_OUTCOME" == 'success' ]] && activated=true
-          [[ "$VERIFY_OUTCOME" == 'success' ]] && socket_established=true
+          [[ "$REQUIRE_OUTCOME" == success ]] && secret_present=true
+          [[ "$ACTIVATE_OUTCOME" == success ]] && activated=true
           jq -n \
             --argjson secretPresent "$secret_present" \
             --argjson activated "$activated" \
-            --argjson youtubeSocketEstablished "$socket_established" \
             --arg requireOutcome "$REQUIRE_OUTCOME" \
             --arg activateOutcome "$ACTIVATE_OUTCOME" \
-            --arg verifyOutcome "$VERIFY_OUTCOME" \
             --arg jobStatus "$JOB_STATUS" \
             --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            '{secretPresent:$secretPresent,activated:$activated,youtubeSocketEstablished:$youtubeSocketEstablished,requireOutcome:$requireOutcome,activateOutcome:$activateOutcome,verifyOutcome:$verifyOutcome,jobStatus:$jobStatus,checkedAt:$checkedAt,service:"fgbears-live.service"}' \
+            '{secretPresent:$secretPresent,activated:$activated,requireOutcome:$requireOutcome,activateOutcome:$activateOutcome,jobStatus:$jobStatus,checkedAt:$checkedAt,service:"fgbears-youtube-v2.service",masterRestarted:false,rumbleRestarted:false}' \
             > .github/deployment-status/fgbears-youtube-key.json
           git config user.name 'FGBears Deploy Bot'
           git config user.email 'actions@github.com'
           git add .github/deployment-status/fgbears-youtube-key.json
-          if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'Record YouTube stream-key activation result [skip ci]'
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record YouTube v2 stream-key activation result [skip ci]'
           git push origin main

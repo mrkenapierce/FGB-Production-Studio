@@ -18,16 +18,8 @@ done
 
 if ((${#missing_packages[@]})); then
   echo "Installing missing packages: ${missing_packages[*]}"
-  apt-get \
-    -o Acquire::Retries=3 \
-    -o Acquire::http::Timeout=30 \
-    -o Acquire::https::Timeout=30 \
-    update
-  apt-get \
-    -o Acquire::Retries=3 \
-    -o Acquire::http::Timeout=30 \
-    -o Acquire::https::Timeout=30 \
-    install -y --no-install-recommends "${missing_packages[@]}"
+  apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
+  apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends "${missing_packages[@]}"
 else
   echo "All required FGBears Live packages are already installed; skipping apt."
 fi
@@ -39,24 +31,28 @@ fi
 install -d -m 0755 /opt/fgbears-live
 rsync -a --delete "$SOURCE_DIR/" /opt/fgbears-live/
 
+# Historical YouTube implementations are retained only as inert source. They
+# may be inspected for provenance but can never be executed from quarantine.
+if [[ -d /opt/fgbears-live/quarantine ]]; then
+  find /opt/fgbears-live/quarantine -type d -exec chmod 0755 {} +
+  find /opt/fgbears-live/quarantine -type f -exec chmod 0644 {} +
+fi
+
 mv /opt/fgbears-live/bin/ad-overlay.py /opt/fgbears-live/bin/ad-overlay-base.py
 install -m 0755 /opt/fgbears-live/bin/ad-overlay-smart.py /opt/fgbears-live/bin/ad-overlay.py
 
 install -d -m 0755 /opt/fgbears-live/assets
 base64 --decode "$SOURCE_DIR/../../renderer/assets/epic-logo-for-qr.base64.txt" > /opt/fgbears-live/assets/epic-logo.png
 chmod 0644 /opt/fgbears-live/assets/epic-logo.png
-
-install -m 0644 \
-  "$SOURCE_DIR/assets/fgb-epic-default-interstitial.jpg" \
-  /opt/fgbears-live/assets/fgb-epic-default-interstitial.jpg
+install -m 0644 "$SOURCE_DIR/assets/fgb-epic-default-interstitial.jpg" /opt/fgbears-live/assets/fgb-epic-default-interstitial.jpg
 python3 -c 'from PIL import Image; p="/opt/fgbears-live/assets/fgb-epic-default-interstitial.jpg"; im=Image.open(p); im.load(); assert im.format == "JPEG"; assert im.size == (798, 470)'
 
 install -d -o fgbears -g fgbears -m 0755 /srv/fgbears-live /srv/fgbears-live/media /srv/fgbears-live/incoming /srv/fgbears-live/logs /srv/fgbears-live/runtime
 install -d -o root -g root -m 0755 /srv/fgbears-live/health
 install -d -o root -g fgbears -m 0750 /etc/fgbears-live
 
+# Shared/master and Rumble are the only common transport tools installed here.
 install -m 0755 /opt/fgbears-live/bin/start-stream.sh /usr/local/bin/fgbears-start-stream
-install -m 0755 /opt/fgbears-live/bin/youtube-relay.sh /usr/local/bin/fgbears-youtube-relay
 install -m 0755 /opt/fgbears-live/bin/rumble-relay.sh /usr/local/bin/fgbears-rumble-relay
 install -m 0755 /opt/fgbears-live/bin/configure-rumble.sh /usr/local/bin/fgbears-configure-rumble
 install -m 0755 /opt/fgbears-live/bin/normalize-library.sh /usr/local/bin/fgbears-normalize
@@ -65,29 +61,29 @@ install -m 0755 /opt/fgbears-live/bin/rebuild-playlist.sh /usr/local/bin/fgbears
 install -m 0755 /opt/fgbears-live/bin/add-episode.sh /usr/local/bin/fgbears-add-episode
 install -m 0755 /opt/fgbears-live/bin/healthcheck.sh /usr/local/bin/fgbears-healthcheck
 install -m 0755 /opt/fgbears-live/bin/audio-health.py /usr/local/bin/fgbears-audio-health
-install -m 0755 /opt/fgbears-live/bin/youtube-audio-watchdog.sh /usr/local/bin/fgbears-youtube-audio-watchdog
 install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-stream-status
 
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
-install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-relay.service /etc/systemd/system/fgbears-youtube-relay.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-rumble-relay.service /etc/systemd/system/fgbears-rumble-relay.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.service /etc/systemd/system/fgbears-live-health.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.timer /etc/systemd/system/fgbears-live-health.timer
-install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-audio-watchdog.service /etc/systemd/system/fgbears-youtube-audio-watchdog.service
-install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-audio-watchdog.timer /etc/systemd/system/fgbears-youtube-audio-watchdog.timer
+
+# YouTube has exactly one authorized destination-specific implementation.
+install -d -m 0755 /opt/fgbears-live/youtube-v2 /opt/fgbears-live/youtube-v2/creatives
+install -m 0755 "$SOURCE_DIR/youtube-v2/run-youtube-v2.sh" /opt/fgbears-live/youtube-v2/run-youtube-v2.sh
+install -m 0755 "$SOURCE_DIR/youtube-v2/youtube-v2-overlay.py" /opt/fgbears-live/youtube-v2/youtube-v2-overlay.py
+install -m 0755 "$SOURCE_DIR/youtube-v2/verify-youtube-v2.sh" /opt/fgbears-live/youtube-v2/verify-youtube-v2.sh
+install -m 0644 "$SOURCE_DIR/youtube-v2/fgbears-youtube-v2.service" /etc/systemd/system/fgbears-youtube-v2.service
+install -m 0644 "$SOURCE_DIR/tools/build-youtube-rumble-trivia-card.py" /opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py
 
 ENV_PATH=/etc/fgbears-live/stream.env
 if [[ ! -e "$ENV_PATH" ]]; then
   install -o root -g fgbears -m 0640 /opt/fgbears-live/config/stream.env.example "$ENV_PATH"
 fi
 
-# Preserve credentials while locking each platform to its isolated transport.
-# The shared master carries pre-mastered AAC unchanged. Rumble receives the
-# shared MPEG-TS program by copy-remux. YouTube copies the shared H.264 video
-# but regenerates only AAC-LC audio at 44.1 kHz stereo / 128 kb/s with async
-# timestamp correction, preventing the TS->FLV AAC timing/framing problem that
-# produced degraded YouTube playback. Retired live audio DSP and packet-router
-# settings are removed so a future full install cannot reactivate them.
+# Preserve credentials while pinning one shared master and one post-split
+# YouTube-v2 destination path. All earlier YouTube relay/router/watchdog env
+# toggles are removed so a future shared install cannot revive them.
 python3 - "$ENV_PATH" <<'PY'
 from pathlib import Path
 import sys
@@ -111,17 +107,11 @@ if not upstream:
 updates = {
     "YOUTUBE_LOCAL_UDP_URL": "udp://127.0.0.1:1939?pkt_size=1316",
     "YOUTUBE_UPSTREAM_RTMP_BASE": upstream,
-    "YOUTUBE_AUDIO_BITRATE": "128k",
-    "YOUTUBE_AUDIO_SAMPLE_RATE": "44100",
-    "YOUTUBE_AUDIO_CHANNELS": "2",
-    "YOUTUBE_VIDEO_BITRATE": "5000k",
-    "YOUTUBE_VIDEO_MAXRATE": "5500k",
-    "YOUTUBE_VIDEO_BUFSIZE": "10000k",
-    "FGB_YOUTUBE_PACKET_ROUTER_ENABLE": "0",
     "RUMBLE_TRIVIA_URL": "https://rumble.com/v7eqrsu-chicago-bears-live-trivia-every-20-minutes-cash-prizes-fgb.html",
     "RUMBLE_TRIVIA_DISPLAY_URL": "rumble.com/v7eqrsu",
     "RUMBLE_LOCAL_UDP_URL": "udp://127.0.0.1:1940?pkt_size=1316",
     "RUMBLE_UPSTREAM_RTMP_BASE": "rtmp://rtmp.rumble.com/live",
+    "FGB_YOUTUBE_PACKET_ROUTER_ENABLE": "0",
     "OUTPUT_FPS": "30",
     "AD_OVERLAY_FPS": "15",
     "CRAWL_OVERLAY_FPS": "30",
@@ -132,7 +122,17 @@ updates = {
     "BEARS_NEWS_SCROLL_PPS": "76",
 }
 retired_prefixes = ("X_", "INSTAGRAM_", "FACEBOOK_", "YOUTUBE_TRIVIA_")
-retired_exact = {"FGB_YOUTUBE_TRIVIA_CARD_H264", "PODCAST_AUDIO_FILTER"}
+retired_exact = {
+    "FGB_YOUTUBE_TRIVIA_CARD_H264",
+    "PODCAST_AUDIO_FILTER",
+    "YOUTUBE_AUDIO_BITRATE",
+    "YOUTUBE_AUDIO_SAMPLE_RATE",
+    "YOUTUBE_AUDIO_CHANNELS",
+    "YOUTUBE_VIDEO_BITRATE",
+    "YOUTUBE_VIDEO_MAXRATE",
+    "YOUTUBE_VIDEO_BUFSIZE",
+    "YOUTUBE_RTMP_BASE",
+}
 seen = set()
 out = []
 for line in lines:
@@ -156,13 +156,41 @@ PY
 chown root:fgbears "$ENV_PATH"
 chmod 0640 "$ENV_PATH"
 
-systemctl daemon-reload
-systemctl enable fgbears-youtube-relay.service
-# The capacity-limited Oracle host still runs only one live video encoder.
-# YouTube copies H.264 and re-encodes audio only; Rumble remains copy-remux.
-systemctl reset-failed fgbears-youtube-relay.service || true
-systemctl restart fgbears-youtube-relay.service
-systemctl enable --now fgbears-live-health.timer
-systemctl enable --now fgbears-youtube-audio-watchdog.timer
+# Remove every callable legacy YouTube transport/presentation entry point.
+rm -f \
+  /usr/local/bin/fgbears-youtube-relay \
+  /usr/local/bin/fgbears-youtube-audio-watchdog \
+  /opt/fgbears-live/bin/youtube-relay.sh \
+  /opt/fgbears-live/bin/youtube-relay-legacy.sh \
+  /opt/fgbears-live/bin/youtube-stream-router.py \
+  /opt/fgbears-live/bin/youtube-stream-router-v5.py \
+  /opt/fgbears-live/bin/youtube-trivia-overlay.py \
+  /opt/fgbears-live/bin/youtube-question-mask.py \
+  /opt/fgbears-live/bin/youtube-offhost-compositor.sh \
+  /opt/fgbears-live/bin/youtube-compositor-source-relay.sh \
+  /opt/fgbears-live/bin/youtube-audio-watchdog.sh
 
-echo "Installed FGBears Live with YouTube H.264-copy/AAC-reclock and Rumble copy-remux isolation."
+retired_units=(
+  fgbears-youtube-output.service
+  fgbears-youtube-relay.service
+  fgbears-youtube-router.service
+  fgbears-youtube-lovable-routing.service
+  fgbears-youtube-lovable-compositor.service
+  fgbears-youtube-audio-watchdog.service
+  fgbears-youtube-audio-watchdog.timer
+)
+for unit in "${retired_units[@]}"; do
+  systemctl disable --now "$unit" >/dev/null 2>&1 || true
+  rm -f "/etc/systemd/system/$unit" "/lib/systemd/system/$unit" "/usr/lib/systemd/system/$unit"
+done
+systemctl daemon-reload
+for unit in "${retired_units[@]}"; do
+  systemctl mask "$unit" >/dev/null 2>&1 || true
+done
+
+# Install/enable canonical units without restarting any live transport. The
+# deployment workflow owns the smallest necessary restart for the change type.
+systemctl enable fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-v2.service >/dev/null
+systemctl enable --now fgbears-live-health.timer
+
+echo "Installed FGBears shared program with Rumble canonical output and sole YouTube-v2 destination overlay. Live transport was not restarted by installer."
