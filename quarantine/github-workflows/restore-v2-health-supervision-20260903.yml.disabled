@@ -1,0 +1,6 @@
+# QUARANTINED 2026-09-03
+# Original path: .github/workflows/restore-v2-health-supervision-20260903.yml
+# Original blob: 7cd18792f9d7076e78ad7e105c148366b113d7c1
+# Reason: explicitly restores a v2-only healthcheck and requires fgbears-youtube-v2.service active.
+# Current production generation is v3; this workflow must never run again.
+# Complete original content remains recoverable from Git history using the blob above.
