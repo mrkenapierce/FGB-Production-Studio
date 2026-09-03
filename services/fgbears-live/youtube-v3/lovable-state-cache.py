@@ -30,7 +30,7 @@ HEALTH_FILE = Path(os.getenv(
     "FGB_CONTROL_HEALTH_FILE", "/run/fgbears-control-plane/cache-health.json"
 ))
 POLL_SECONDS = float(os.getenv("FGB_CONTROL_POLL_SECONDS", "0.5"))
-HTTP_TIMEOUT_SECONDS = float(os.getenv("FGB_CONTROL_HTTP_TIMEOUT_SECONDS", "1.5"))
+HTTP_TIMEOUT_SECONDS = float(os.getenv("FGB_CONTROL_HTTP_TIMEOUT_SECONDS", "3.0"))
 EXPECTED_SCHEMA = "fgb-stream-state/v1"
 EXPECTED_CREATIVE = "yt_rumble_trivia_redirect"
 EXPECTED_REGION = {
