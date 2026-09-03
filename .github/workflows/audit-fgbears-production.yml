@@ -1,4 +1,4 @@
-name: Emergency Recover Frozen YouTube Output
+name: Deploy YouTube Frozen-Output Watchdog
 
 on:
   push:
@@ -12,11 +12,11 @@ permissions:
   contents: read
 
 concurrency:
-  group: fgbears-youtube-emergency-recovery
+  group: fgbears-youtube-watchdog-deploy
   cancel-in-progress: false
 
 jobs:
-  recover:
+  deploy:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     env:
@@ -24,88 +24,55 @@ jobs:
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
       ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
-      - name: Configure SSH
+      - uses: actions/checkout@v4
+        with:
+          ref: lovable-routing-bridge-20260902
+      - name: Validate watchdog source
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/youtube-transport-watchdog.sh
+          grep -Fq 'compositor_pid_changed' services/fgbears-live/bin/youtube-transport-watchdog.sh
+          grep -Fq 'monitor_not_advancing' services/fgbears-live/bin/youtube-transport-watchdog.sh
+      - name: Configure SSH and stage
         run: |
           set -Eeuo pipefail
           install -d -m700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      - name: Diagnose and recover YouTube only
+          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-transport-watchdog.sh "$target:/tmp/youtube-transport-watchdog.sh"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/systemd/fgbears-youtube-audio-watchdog.service "$target:/tmp/fgbears-youtube-audio-watchdog.service"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/systemd/fgbears-youtube-audio-watchdog.timer "$target:/tmp/fgbears-youtube-audio-watchdog.timer"
+      - name: Install and certify self-healing watchdog
         shell: bash
         run: |
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          M=fgbears-live.service
-          R=fgbears-rumble-relay.service
-          Q=fgbears-youtube-lovable-routing.service
-          C=fgbears-youtube-lovable-compositor.service
-          L=fgbears-youtube-relay.service
-          MON=/run/fgbears-youtube-lovable-compositor
-          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-          nr(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
+          M=fgbears-live.service; R=fgbears-rumble-relay.service; C=fgbears-youtube-lovable-compositor.service; Q=fgbears-youtube-lovable-routing.service; T=fgbears-youtube-audio-watchdog.timer; S=fgbears-youtube-audio-watchdog.service
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }; nr(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
           conn(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
-          latest_seg(){ find "$MON" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %s %p\n' 2>/dev/null | sort -nr | head -n1; }
-          progress_sig(){ awk -F= '$1=="frame"||$1=="out_time_us"||$1=="progress"{printf "%s=%s;",$1,$2}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null; }
-
-          systemctl is-active --quiet "$M" || { echo MASTER_DOWN; exit 20; }
-          systemctl is-active --quiet "$R" || { echo RUMBLE_DOWN; exit 21; }
+          latest(){ find /run/fgbears-youtube-lovable-compositor -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %s %p\n' 2>/dev/null | sort -nr | head -n1; }
           M0=$(pid "$M"); R0=$(pid "$R"); MN0=$(nr "$M"); RN0=$(nr "$R")
-          conn "$R0" 1935 || { echo RUMBLE_SOCKET_DOWN; exit 22; }
-          echo "PRE master=$M0 rumble=$R0 routing=$(pid "$Q") compositor=$(pid "$C") master_restarts=$MN0 rumble_restarts=$RN0"
-
-          p1=$(progress_sig); s1=$(latest_seg || true); h1='';
-          if [[ -n "$s1" ]]; then f1=${s1##* }; h1=$(ffmpeg -nostdin -v error -ss 0.7 -i "$f1" -frames:v 1 -f hash -hash md5 - 2>/dev/null | tail -n1 || true); fi
-          sleep 6
-          p2=$(progress_sig); s2=$(latest_seg || true); h2='';
-          if [[ -n "$s2" ]]; then f2=${s2##* }; h2=$(ffmpeg -nostdin -v error -ss 0.7 -i "$f2" -frames:v 1 -f hash -hash md5 - 2>/dev/null | tail -n1 || true); fi
-          master_adv=0; [[ -n "$p1" && -n "$p2" && "$p1" != "$p2" ]] && master_adv=1
-          monitor_adv=0; [[ -n "$s1" && -n "$s2" && "$s1" != "$s2" ]] && monitor_adv=1
-          frame_changed=0; [[ -n "$h1" && -n "$h2" && "$h1" != "$h2" ]] && frame_changed=1
-          CP=$(pid "$C"); yt_socket=0; conn "$CP" 443 && yt_socket=1 || true
-          echo "ADVANCE master=$master_adv monitor=$monitor_adv frame_changed=$frame_changed yt_socket=$yt_socket"
-          echo "SEG1=$s1"
-          echo "SEG2=$s2"
-          journalctl -u "$C" --since '20 minutes ago' --no-pager 2>/dev/null | grep -Ei 'error|failed|broken|reset|timeout|overrun|stalled|dropp|non-monoton|timestamp|eof' | tail -n 40 || true
-
-          # The shared master and Rumble are protected. If the YouTube branch is
-          # not demonstrably advancing, recycle only its lightweight control and
-          # compositor processes to establish a fresh ingest session.
-          if (( master_adv==1 && (monitor_adv==0 || yt_socket==0) )); then
-            echo YOUTUBE_STALL_CONFIRMED=YES
-            systemctl restart "$Q"
-            sleep 1
-            systemctl restart "$C"
-          elif ! systemctl is-active --quiet "$Q" || ! systemctl is-active --quiet "$C"; then
-            echo YOUTUBE_SERVICE_FAILURE=YES
-            systemctl restart "$Q"
-            sleep 1
-            systemctl restart "$C"
-          else
-            # User-visible freeze can persist at the ingest session while local
-            # tee segments continue. Refresh only YouTube once; never master/Rumble.
-            echo YOUTUBE_INGEST_REFRESH=YES
-            systemctl restart "$C"
-          fi
-
-          # Certify reconnection and actual segment advancement after recovery.
-          for _ in $(seq 1 30); do
-            CP=$(pid "$C")
-            systemctl is-active --quiet "$Q" && systemctl is-active --quiet "$C" && conn "$CP" 443 && break
-            sleep 1
-          done
-          CP=$(pid "$C"); systemctl is-active --quiet "$Q"; systemctl is-active --quiet "$C"; conn "$CP" 443
-          [[ "$(pid "$M")" == "$M0" && "$(pid "$R")" == "$R0" ]] || { echo SHARED_PID_CHANGED; exit 30; }
-          [[ "$(nr "$M")" == "$MN0" && "$(nr "$R")" == "$RN0" ]] || { echo SHARED_RESTARTED; exit 31; }
-          conn "$R0" 1935
-          a=$(latest_seg || true); sleep 6; b=$(latest_seg || true)
-          [[ -n "$a" && -n "$b" && "$a" != "$b" ]] || { echo YOUTUBE_MONITOR_NOT_ADVANCING_AFTER_RECOVERY; exit 32; }
+          systemctl is-active --quiet "$M"; systemctl is-active --quiet "$R"; conn "$R0" 1935
+          install -m0755 /tmp/youtube-transport-watchdog.sh /opt/fgbears-live/bin/youtube-transport-watchdog.sh
+          install -m0644 /tmp/fgbears-youtube-audio-watchdog.service /etc/systemd/system/fgbears-youtube-audio-watchdog.service
+          install -m0644 /tmp/fgbears-youtube-audio-watchdog.timer /etc/systemd/system/fgbears-youtube-audio-watchdog.timer
+          systemctl daemon-reload
+          systemctl enable --now "$T"
+          mkdir -p /run/fgbears-youtube-transport-watchdog
+          echo "$(pid "$C")" > /run/fgbears-youtube-transport-watchdog/last-compositor-pid
+          systemctl start "$S"
+          systemctl is-active --quiet "$T"
+          systemctl is-active --quiet "$C"; systemctl is-active --quiet "$Q"
+          CP=$(pid "$C"); conn "$CP" 443
+          [[ "$(pid "$M")" == "$M0" && "$(pid "$R")" == "$R0" ]] || exit 40
+          [[ "$(nr "$M")" == "$MN0" && "$(nr "$R")" == "$RN0" ]] || exit 41
+          a=$(latest); sleep 8; b=$(latest); [[ -n "$a" && -n "$b" && "$a" != "$b" ]]
           seg=${b##* }
           ffprobe -v fatal -show_entries stream=codec_type,width,height,r_frame_rate -of json "$seg" | python3 -c 'import json,sys;p=json.load(sys.stdin);v=next(x for x in p["streams"] if x.get("codec_type")=="video");assert (v["width"],v["height"],v["r_frame_rate"])==(1280,720,"30/1")'
-          ! systemctl is-active --quiet "$L"
-          cpu=$(ps -p "$CP" -o %cpu= | awk '{print $1+0}')
-          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
-          echo "YOUTUBE_RECOVERY=PASS master=$M0 rumble=$R0 compositor=$CP cpu=${cpu}% speed=${speed:-unknown}x output=1280x720/30"
+          echo "WATCHDOG_TIMER=$(systemctl is-active "$T")"
+          echo "WATCHDOG_LAST_RUN=$(journalctl -u "$S" -n 8 --no-pager | tail -n 8 | tr '\n' ' ')"
+          echo "YOUTUBE_SELF_HEAL=PASS master=$M0 rumble=$R0 compositor=$CP output=1280x720/30"
           REMOTE
