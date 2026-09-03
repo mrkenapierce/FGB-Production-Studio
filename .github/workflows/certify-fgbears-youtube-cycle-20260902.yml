@@ -1,4 +1,5 @@
 name: Temporary FGBears YouTube Cycle Certification
+# One-time certification trigger after registration on main.
 
 on:
   push:
@@ -98,7 +99,6 @@ PY
           printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert p.get("payloadSwap")=="next-segment-boundary"'
           echo 'TICKERS=PASS rss=30fps/76pps crawl=30fps boundary-swaps'
 
-          # Transparent baseline outside a question.
           p=question
           for _ in $(seq 1 360); do
             stable
@@ -115,7 +115,6 @@ PY
           done
           [[ "$p" != question ]] || fail NO_NONQUESTION_BASELINE
 
-          # Next complete real question.
           started=0
           for _ in $(seq 1 900); do
             stable
