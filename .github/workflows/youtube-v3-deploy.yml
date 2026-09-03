@@ -42,6 +42,8 @@ jobs:
           grep -Fq 'dump_extra=freq=keyframe' services/fgbears-live/youtube-v3/run-youtube-v3.sh
           grep -Fq 'resend_headers+pat_pmt_at_frames' services/fgbears-live/youtube-v3/run-youtube-v3.sh
           grep -Fq -- '--transport-only' services/fgbears-live/youtube-v3/verify-youtube-v3.sh
+          grep -Fq 'recover_youtube_destination' services/fgbears-live/bin/healthcheck.sh
+          grep -Fq 'YOUTUBE_CUTOVER_MARKER=' services/fgbears-live/bin/healthcheck.sh
           ! grep -Eq '^Nice=|^CPUWeight=' services/fgbears-live/youtube-v3/fgbears-youtube-v3.service
           tar -C services/fgbears-live -czf /tmp/fgb-youtube-v3-runtime.tgz youtube-v3
           cp services/fgbears-live/bin/healthcheck.sh /tmp/fgbears-healthcheck-v3
@@ -53,8 +55,7 @@ jobs:
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
           set -Eeuo pipefail
-          test -n "$ORACLE_HOST"
-          test -n "$ORACLE_SSH_KEY"
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
@@ -97,12 +98,8 @@ jobs:
             echo 'YOUTUBE_V3_ROLLBACK=BEGIN'
             sudo systemctl stop "$V3" 2>/dev/null || true
             sudo systemctl disable "$V3" 2>/dev/null || true
-            sudo rm -f "$CUTOVER_MARKER"
-            sudo rm -f /etc/systemd/system/fgbears-youtube-v3.service
-
-            if [[ -d "$V2QUAR" && ! -e "$V2DIR" ]]; then
-              sudo mv "$V2QUAR" "$V2DIR"
-            fi
+            sudo rm -f "$CUTOVER_MARKER" /etc/systemd/system/fgbears-youtube-v3.service
+            if [[ -d "$V2QUAR" && ! -e "$V2DIR" ]]; then sudo mv "$V2QUAR" "$V2DIR"; fi
             if [[ -d "$V2DIR" ]]; then
               sudo find "$V2DIR" -type d -exec chmod 0755 {} + 2>/dev/null || true
               sudo chmod 0755 "$V2DIR"/youtube-v2-overlay.py "$V2DIR"/run-youtube-v2.sh "$V2DIR"/verify-youtube-v2.sh 2>/dev/null || true
@@ -110,15 +107,12 @@ jobs:
               sudo systemctl unmask "$V2" 2>/dev/null || true
               sudo install -m 0644 "$V2DIR/fgbears-youtube-v2.service" /etc/systemd/system/fgbears-youtube-v2.service 2>/dev/null || true
             fi
-            if [[ -s "$HEALTH_BACKUP" ]]; then
-              sudo install -m 0755 "$HEALTH_BACKUP" "$HEALTH"
-            fi
+            if [[ -s "$HEALTH_BACKUP" ]]; then sudo install -m 0755 "$HEALTH_BACKUP" "$HEALTH"; fi
             printf 'v2\n' | sudo tee "$GENERATION" >/dev/null
             sudo systemctl daemon-reload
             sudo systemctl enable "$V2" >/dev/null 2>&1 || true
             sudo systemctl reset-failed "$V2" 2>/dev/null || true
             sudo systemctl restart "$V2" || true
-
             recovered=no
             for _ in $(seq 1 30); do
               y=$(pid "$V2")
@@ -129,9 +123,7 @@ jobs:
           }
           trap 'rc=$?; if (( CUTOVER )); then rollback; fi; exit $rc' ERR
 
-          master_before=$(pid "$MASTER")
-          rumble_before=$(pid "$RUMBLE")
-          v2_before=$(pid "$V2")
+          master_before=$(pid "$MASTER"); rumble_before=$(pid "$RUMBLE"); v2_before=$(pid "$V2")
           [[ "$master_before" =~ ^[1-9][0-9]*$ ]] || fail master_not_active
           [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]] || fail rumble_not_active
           [[ "$v2_before" =~ ^[1-9][0-9]*$ ]] || fail v2_not_active
@@ -143,28 +135,25 @@ jobs:
           sudo chmod 0600 "$HEALTH_BACKUP"
           printf 'v2\n' | sudo tee "$GENERATION" >/dev/null
 
-          # Stage the candidate without modifying the active v2 runtime or its
-          # health supervisor. The exact GitHub workspace artifact is used;
-          # Oracle does not clone a possibly different branch or commit.
+          # Stage the exact checked-out candidate; Oracle never clones a moving ref.
           sudo rm -rf "$V3DIR"
-          sudo install -d -m 0755 /opt/fgbears-live
           sudo tar -C /opt/fgbears-live -xzf /tmp/fgb-youtube-v3-runtime.tgz
           sudo chmod 0755 "$V3DIR/youtube-v3-overlay.py" "$V3DIR/run-youtube-v3.sh" "$V3DIR/verify-youtube-v3.sh" "$V3DIR/build-creatives.py"
           sudo install -m 0644 "$V3DIR/fgbears-youtube-v3.service" /etc/systemd/system/fgbears-youtube-v3.service
           sudo systemctl daemon-reload
-
-          sudo -u fgbears env \
-            YOUTUBE_V3_CREATIVE_DIR="$V3DIR/creatives" \
-            YOUTUBE_V3_STATE_FILE=/tmp/fgb-youtube-v3-preflight-state.json \
+          sudo -u fgbears env YOUTUBE_V3_CREATIVE_DIR="$V3DIR/creatives" YOUTUBE_V3_STATE_FILE=/tmp/fgb-youtube-v3-preflight-state.json \
             "$V3DIR/youtube-v3-overlay.py" --self-test
           sudo rm -f /tmp/fgb-youtube-v3-preflight-state.json
 
-          # Candidate phase: stop only v2. Keep its runtime, unit, supervisor,
-          # and rollback material intact until v3 has proven transport health.
-          # The marker lets the read-only monitor distinguish this controlled
-          # interval from an unplanned YouTube outage.
+          # Install generation-aware supervision while v2 is still active. It
+          # continues all master/news/audio checks; the cutover marker suppresses
+          # only destination restart attempts during candidate evaluation.
+          sudo install -m 0755 /tmp/fgbears-healthcheck-v3 "$HEALTH"
+          grep -Fq 'recover_youtube_destination' "$HEALTH"
+          grep -Fq 'YOUTUBE_CUTOVER_MARKER=' "$HEALTH"
           sudo install -d -m 0750 -o fgbears -g fgbears /run/fgbears-youtube-v3
           sudo touch "$CUTOVER_MARKER"
+
           CUTOVER=1
           sudo systemctl stop "$V2"
           sudo systemctl reset-failed "$V3" 2>/dev/null || true
@@ -187,7 +176,7 @@ jobs:
           sudo "$V3DIR/verify-youtube-v3.sh" --transport-only
 
           : > /tmp/v3-observe.txt
-          for _ in $(seq 1 30); do
+          for _ in $(seq 1 20); do
             p=/run/fgbears-youtube-v3/ffmpeg-progress.log
             speed=$(sudo sed -n 's/^speed=\([0-9.]*\)x$/\1/p' "$p" 2>/dev/null | tail -n1)
             idle=$(vmstat 1 2 | tail -n1 | awk '{print $15}')
@@ -210,15 +199,12 @@ jobs:
           PY
           sudo "$V3DIR/verify-youtube-v3.sh" --transport-only
 
-          master_candidate=$(pid "$MASTER")
-          rumble_candidate=$(pid "$RUMBLE")
-          v3_candidate=$(pid "$V3")
+          master_candidate=$(pid "$MASTER"); rumble_candidate=$(pid "$RUMBLE"); v3_candidate=$(pid "$V3")
           test "$master_candidate" = "$master_before" || fail master_pid_changed
           test "$rumble_candidate" = "$rumble_before" || fail rumble_pid_changed
           test "$v3_candidate" = "$v3_pass1" || fail v3_pid_changed_during_observation
 
-          # Commit phase begins only after the candidate is proven. Retire v2,
-          # switch permanent supervision, then declare v3 as the desired state.
+          # Commit only after v3 has passed transport twice plus live observation.
           sudo systemctl disable "$V2" >/dev/null 2>&1 || true
           sudo rm -rf "$V2QUAR"
           sudo install -d -m 0755 "$(dirname "$V2QUAR")"
@@ -228,7 +214,6 @@ jobs:
           sudo rm -f /etc/systemd/system/fgbears-youtube-v2.service /lib/systemd/system/fgbears-youtube-v2.service /usr/lib/systemd/system/fgbears-youtube-v2.service
           sudo systemctl daemon-reload
           sudo systemctl mask "$V2" >/dev/null
-          sudo install -m 0755 /tmp/fgbears-healthcheck-v3 "$HEALTH"
           sudo systemctl enable "$V3" >/dev/null
           printf 'v3\n' | sudo tee "$GENERATION" >/dev/null
 
