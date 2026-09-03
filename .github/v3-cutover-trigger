@@ -1,3 +1,4 @@
 release: youtube-v3
-validated_head: ed1604fefaa1801efe70e4d42c103b18217f8a4f
+validated_head: 44d3f7f96d3a50f85e5fc8ee35dff50376fc616e
 mode: one-shot-audited-cutover
+attempt: 720p24-capacity-rebuild
