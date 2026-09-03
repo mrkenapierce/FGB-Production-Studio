@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: python3 -m pip install --user pillow qrcode
 
-      - name: Build and validate control-plane candidate locally
+      - name: Build and validate Lovable-controlled v3 candidate
         run: |
           set -Eeuo pipefail
           V3=services/fgbears-live/youtube-v3
@@ -46,7 +46,7 @@ jobs:
             python3 "$V3/youtube-v3-overlay.py" --self-test
           tar -C services/fgbears-live -czf /tmp/fgb-youtube-v3-control-plane.tgz youtube-v3
           cp services/fgbears-live/bin/healthcheck.sh /tmp/fgbears-healthcheck-control-plane
-          echo 'CONTROL_PLANE_LOCAL_PREFLIGHT=PASS renderer=local-only cache=sole-http-client master=untouched rumble=untouched'
+          echo 'CONTROL_PLANE_LOCAL_PREFLIGHT=PASS renderer=local-only cache=sole-http-client v2_rollback=preserved master=untouched rumble=untouched'
 
       - name: Configure Oracle SSH
         env:
@@ -70,7 +70,7 @@ jobs:
             /tmp/fgbears-healthcheck-control-plane \
             "$ORACLE_USER@$ORACLE_HOST:/tmp/"
 
-      - name: Install cache boundary and restart YouTube destination only
+      - name: Prove v3 beside live v2, cut over, then quarantine v2
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -78,17 +78,26 @@ jobs:
           set -Eeuo pipefail
           MASTER=fgbears-live.service
           RUMBLE=fgbears-rumble-relay.service
-          YOUTUBE=fgbears-youtube-v3.service
+          V2=fgbears-youtube-v2.service
+          V3=fgbears-youtube-v3.service
           CACHE=fgbears-lovable-state-cache.service
+          V2DIR=/opt/fgbears-live/youtube-v2
+          V2QUAR=/opt/fgbears-live/quarantine/youtube-v2-retired-20260903
           V3DIR=/opt/fgbears-live/youtube-v3
           STAGE=/opt/fgbears-live/.youtube-v3-control-plane-candidate
-          BACKUP=/opt/fgbears-live/.youtube-v3-before-control-plane
+          V3BACKUP=/opt/fgbears-live/.youtube-v3-before-control-plane
           HEALTH=/usr/local/bin/fgbears-healthcheck
           HEALTH_BACKUP=/tmp/fgbears-healthcheck-before-control-plane
-          YT_UNIT_BACKUP=/tmp/fgbears-youtube-v3.service.before-control-plane
+          V3_UNIT_BACKUP=/tmp/fgbears-youtube-v3.service.before-control-plane
           CACHE_UNIT_BACKUP=/tmp/fgbears-lovable-state-cache.service.before-control-plane
-          CACHE_PREEXISTED=0
-          CUTOVER=0
+          GENERATION=/etc/fgbears-live/youtube-generation
+          GENERATION_BACKUP=/tmp/fgbears-youtube-generation.before-control-plane
+          CUTOVER_MARKER=/run/fgbears-youtube-v3/cutover-in-progress
+          V3_DIR_PREEXISTED=0
+          V3_UNIT_PREEXISTED=0
+          CACHE_UNIT_PREEXISTED=0
+          GENERATION_PREEXISTED=0
+          MUTATION=0
 
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
           connected(){
@@ -97,82 +106,126 @@ jobs:
             sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'
           }
           fail(){ echo "CONTROL_PLANE_DEPLOY=FAIL reason=$1" >&2; return 1; }
+          restore_v2_unit(){
+            sudo systemctl unmask "$V2" >/dev/null 2>&1 || true
+            if [[ -r "$V2DIR/fgbears-youtube-v2.service" ]]; then
+              sudo install -m 0644 "$V2DIR/fgbears-youtube-v2.service" /etc/systemd/system/fgbears-youtube-v2.service
+            fi
+          }
           rollback(){
             trap - ERR; set +e
             echo 'CONTROL_PLANE_ROLLBACK=BEGIN'
-            sudo systemctl stop "$YOUTUBE" 2>/dev/null || true
+            sudo systemctl stop "$V3" 2>/dev/null || true
             sudo systemctl stop "$CACHE" 2>/dev/null || true
-            if [[ -d "$BACKUP" ]]; then
-              sudo rm -rf "$V3DIR"
-              sudo mv "$BACKUP" "$V3DIR"
+            sudo rm -f "$CUTOVER_MARKER"
+
+            if [[ -d "$V2QUAR" && ! -e "$V2DIR" ]]; then
+              sudo mv "$V2QUAR" "$V2DIR"
+              sudo find "$V2DIR" -type d -exec chmod 0755 {} + 2>/dev/null || true
+              sudo chmod 0755 "$V2DIR"/youtube-v2-overlay.py "$V2DIR"/run-youtube-v2.sh "$V2DIR"/verify-youtube-v2.sh 2>/dev/null || true
+              sudo chmod 0644 "$V2DIR"/fgbears-youtube-v2.service 2>/dev/null || true
             fi
-            [[ -s "$YT_UNIT_BACKUP" ]] && sudo install -m 0644 "$YT_UNIT_BACKUP" /etc/systemd/system/fgbears-youtube-v3.service
-            if (( CACHE_PREEXISTED )) && [[ -s "$CACHE_UNIT_BACKUP" ]]; then
+
+            if (( V3_DIR_PREEXISTED )) && [[ -d "$V3BACKUP" ]]; then
+              sudo rm -rf "$V3DIR"
+              sudo mv "$V3BACKUP" "$V3DIR"
+            elif (( ! V3_DIR_PREEXISTED )); then
+              sudo rm -rf "$V3DIR"
+            fi
+
+            if (( V3_UNIT_PREEXISTED )) && [[ -s "$V3_UNIT_BACKUP" ]]; then
+              sudo install -m 0644 "$V3_UNIT_BACKUP" /etc/systemd/system/fgbears-youtube-v3.service
+            else
+              sudo rm -f /etc/systemd/system/fgbears-youtube-v3.service
+            fi
+            if (( CACHE_UNIT_PREEXISTED )) && [[ -s "$CACHE_UNIT_BACKUP" ]]; then
               sudo install -m 0644 "$CACHE_UNIT_BACKUP" /etc/systemd/system/fgbears-lovable-state-cache.service
             else
               sudo rm -f /etc/systemd/system/fgbears-lovable-state-cache.service
             fi
             [[ -s "$HEALTH_BACKUP" ]] && sudo install -m 0755 "$HEALTH_BACKUP" "$HEALTH"
+            if (( GENERATION_PREEXISTED )) && [[ -s "$GENERATION_BACKUP" ]]; then
+              sudo install -m 0644 "$GENERATION_BACKUP" "$GENERATION"
+            else
+              sudo rm -f "$GENERATION"
+            fi
+
+            restore_v2_unit
             sudo systemctl daemon-reload
-            sudo systemctl reset-failed "$YOUTUBE" 2>/dev/null || true
-            sudo systemctl start "$YOUTUBE" || true
-            echo "CONTROL_PLANE_ROLLBACK=END master=$(pid "$MASTER") rumble=$(pid "$RUMBLE") youtube=$(pid "$YOUTUBE")"
+            sudo systemctl enable "$V2" >/dev/null 2>&1 || true
+            sudo systemctl reset-failed "$V2" 2>/dev/null || true
+            if ! systemctl is-active --quiet "$V2"; then sudo systemctl start "$V2" || true; fi
+            recovered=no
+            for _ in $(seq 1 30); do
+              p=$(pid "$V2")
+              if systemctl is-active --quiet "$V2" && connected "$p" 443; then recovered=yes; break; fi
+              sleep 1
+            done
+            master_after=$(pid "$MASTER"); rumble_after=$(pid "$RUMBLE")
+            echo "CONTROL_PLANE_ROLLBACK=END v2_recovered=$recovered master=$master_after rumble=$rumble_after master_preserved=$([[ "$master_after" == "$master_before" ]] && echo yes || echo no) rumble_preserved=$([[ "$rumble_after" == "$rumble_before" ]] && echo yes || echo no)"
           }
-          trap 'rc=$?; if (( CUTOVER )); then rollback; fi; exit $rc' ERR
+          trap 'rc=$?; if (( MUTATION )); then rollback; fi; exit $rc' ERR
 
           systemctl is-active --quiet "$MASTER" || fail master_inactive
           systemctl is-active --quiet "$RUMBLE" || fail rumble_inactive
-          systemctl is-active --quiet "$YOUTUBE" || fail youtube_inactive
+          systemctl is-active --quiet "$V2" || fail youtube_v2_not_active
+          for alt in fgbears-youtube-output.service fgbears-youtube-relay.service fgbears-youtube-router.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service; do
+            systemctl is-active --quiet "$alt" && fail "alternate_youtube_active:$alt"
+          done
+
           master_before=$(pid "$MASTER")
           rumble_before=$(pid "$RUMBLE")
-          youtube_before=$(pid "$YOUTUBE")
+          v2_before=$(pid "$V2")
           [[ "$master_before" =~ ^[1-9][0-9]*$ ]] || fail master_pid_invalid
           [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]] || fail rumble_pid_invalid
-          [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]] || fail youtube_pid_invalid
+          [[ "$v2_before" =~ ^[1-9][0-9]*$ ]] || fail v2_pid_invalid
           connected "$rumble_before" 1935 || fail rumble_socket_missing
-          connected "$youtube_before" 443 || fail youtube_socket_missing
-          [[ -d "$V3DIR" ]] || fail youtube_v3_runtime_missing
+          connected "$v2_before" 443 || fail v2_socket_missing
+          [[ -d "$V2DIR" ]] || fail v2_runtime_missing
+          sudo bash -c 'set -a; source /etc/fgbears-live/stream.env; test -n "${YOUTUBE_STREAM_KEY:-}"' || fail youtube_stream_key_unavailable
 
           sudo cp "$HEALTH" "$HEALTH_BACKUP"
-          sudo cp /etc/systemd/system/fgbears-youtube-v3.service "$YT_UNIT_BACKUP"
+          if [[ -d "$V3DIR" ]]; then V3_DIR_PREEXISTED=1; fi
+          if [[ -r /etc/systemd/system/fgbears-youtube-v3.service ]]; then
+            V3_UNIT_PREEXISTED=1
+            sudo cp /etc/systemd/system/fgbears-youtube-v3.service "$V3_UNIT_BACKUP"
+          fi
           if [[ -r /etc/systemd/system/fgbears-lovable-state-cache.service ]]; then
-            CACHE_PREEXISTED=1
+            CACHE_UNIT_PREEXISTED=1
             sudo cp /etc/systemd/system/fgbears-lovable-state-cache.service "$CACHE_UNIT_BACKUP"
           fi
+          if [[ -r "$GENERATION" ]]; then
+            GENERATION_PREEXISTED=1
+            sudo cp "$GENERATION" "$GENERATION_BACKUP"
+          fi
 
-          sudo rm -rf "$STAGE" "$BACKUP"
+          sudo rm -rf "$STAGE" "$V3BACKUP"
           sudo install -d -m 0755 "$STAGE"
           sudo tar -C "$STAGE" -xzf /tmp/fgb-youtube-v3-control-plane.tgz
           CANDIDATE="$STAGE/youtube-v3"
           sudo chmod 0755 "$CANDIDATE/youtube-v3-overlay.py" "$CANDIDATE/lovable-state-cache.py" "$CANDIDATE/run-youtube-v3.sh" "$CANDIDATE/verify-youtube-v3.sh" "$CANDIDATE/build-creatives.py"
 
-          sudo -u fgbears env \
-            FGB_CONTROL_STATE_FILE=/tmp/fgb-control-preflight-state.json \
-            FGB_CONTROL_HEALTH_FILE=/tmp/fgb-control-preflight-health.json \
-            "$CANDIDATE/lovable-state-cache.py" --self-test
+          # Prove the one Lovable contract before touching the live YouTube v2 media path.
+          sudo -u fgbears "$CANDIDATE/lovable-state-cache.py" --self-test
           sudo -u fgbears env \
             YOUTUBE_V3_CREATIVE_DIR="$CANDIDATE/creatives" \
             FGB_CONTROL_STATE_FILE=/tmp/fgb-control-state-intentionally-missing.json \
             "$CANDIDATE/youtube-v3-overlay.py" --self-test
-          sudo rm -f /tmp/fgb-control-preflight-state.json /tmp/fgb-control-preflight-health.json
 
-          CUTOVER=1
-          sudo systemctl stop "$YOUTUBE"
-          sudo systemctl stop "$CACHE" 2>/dev/null || true
-          sudo mv "$V3DIR" "$BACKUP"
+          MUTATION=1
+          if (( V3_DIR_PREEXISTED )); then sudo mv "$V3DIR" "$V3BACKUP"; fi
           sudo mv "$CANDIDATE" "$V3DIR"
           sudo rm -rf "$STAGE"
           sudo install -m 0644 "$V3DIR/fgbears-lovable-state-cache.service" /etc/systemd/system/fgbears-lovable-state-cache.service
           sudo install -m 0644 "$V3DIR/fgbears-youtube-v3.service" /etc/systemd/system/fgbears-youtube-v3.service
-          sudo install -m 0755 /tmp/fgbears-healthcheck-control-plane "$HEALTH"
           sudo systemctl daemon-reload
-          sudo systemctl reset-failed "$CACHE" "$YOUTUBE" 2>/dev/null || true
+          sudo systemctl reset-failed "$CACHE" "$V3" 2>/dev/null || true
           sudo systemctl enable --now "$CACHE"
 
           cache_ready=no
           for _ in $(seq 1 30); do
             if systemctl is-active --quiet "$CACHE" && [[ -s /run/fgbears-control-plane/stream-state.json ]]; then
-              if sudo -u fgbears python3 -c "import json,time; from datetime import datetime; p=json.load(open('/run/fgbears-control-plane/stream-state.json',encoding='utf-8')); assert p.get('schemaVersion')=='fgb-stream-state/v1'; assert datetime.fromisoformat(p['validUntil'].replace('Z','+00:00')).timestamp()>time.time(); assert p['presentation']['routing']['rumble']['rendersRealQuestion'] is True"; then
+              if sudo python3 -c "import json,time; from datetime import datetime; p=json.load(open('/run/fgbears-control-plane/stream-state.json',encoding='utf-8')); assert p.get('schemaVersion')=='fgb-stream-state/v1'; assert datetime.fromisoformat(p['validUntil'].replace('Z','+00:00')).timestamp()>time.time(); assert p['presentation']['routing']['rumble']['rendersRealQuestion'] is True"; then
                 cache_ready=yes
                 break
               fi
@@ -180,30 +233,62 @@ jobs:
             sleep 1
           done
           [[ "$cache_ready" == yes ]] || fail cache_never_became_ready
+          test "$(pid "$MASTER")" = "$master_before" || fail master_changed_during_cache_start
+          test "$(pid "$RUMBLE")" = "$rumble_before" || fail rumble_changed_during_cache_start
+          test "$(pid "$V2")" = "$v2_before" || fail v2_changed_before_cutover
 
-          sudo systemctl start "$YOUTUBE"
-          youtube_ready=no
+          sudo install -d -m 0750 -o fgbears -g fgbears /run/fgbears-youtube-v3
+          sudo touch "$CUTOVER_MARKER"
+          sudo systemctl stop "$V2"
+          sudo systemctl reset-failed "$V3" 2>/dev/null || true
+          sudo systemctl start "$V3"
+
+          v3_ready=no
           for _ in $(seq 1 45); do
-            y=$(pid "$YOUTUBE")
-            if systemctl is-active --quiet "$YOUTUBE" && connected "$y" 443; then youtube_ready=yes; break; fi
+            y=$(pid "$V3")
+            if systemctl is-active --quiet "$V3" && connected "$y" 443; then v3_ready=yes; break; fi
             sleep 1
           done
-          [[ "$youtube_ready" == yes ]] || fail youtube_did_not_reconnect
+          [[ "$v3_ready" == yes ]] || fail v3_did_not_connect
 
           sleep 3
-          sudo "$V3DIR/verify-youtube-v3.sh"
-          youtube_verified=$(pid "$YOUTUBE")
-          sudo "$V3DIR/verify-youtube-v3.sh"
-          test "$(pid "$YOUTUBE")" = "$youtube_verified" || fail youtube_pid_changed_during_verification
-          test "$(pid "$MASTER")" = "$master_before" || fail master_pid_changed
-          test "$(pid "$RUMBLE")" = "$rumble_before" || fail rumble_pid_changed
-          connected "$rumble_before" 1935 || fail rumble_socket_lost
+          v3_pass1=$(pid "$V3")
+          sudo "$V3DIR/verify-youtube-v3.sh" --transport-only
+          test "$(pid "$V3")" = "$v3_pass1" || fail v3_pid_changed_after_transport_pass1
+          sudo "$V3DIR/verify-youtube-v3.sh" --transport-only
+          test "$(pid "$V3")" = "$v3_pass1" || fail v3_pid_changed_after_transport_pass2
+          test "$(pid "$MASTER")" = "$master_before" || fail master_pid_changed_precommit
+          test "$(pid "$RUMBLE")" = "$rumble_before" || fail rumble_pid_changed_precommit
+          connected "$rumble_before" 1935 || fail rumble_socket_lost_precommit
 
-          sudo systemctl enable "$YOUTUBE" "$CACHE" >/dev/null
-          sudo rm -rf "$BACKUP"
-          sudo rm -f "$HEALTH_BACKUP" "$YT_UNIT_BACKUP" "$CACHE_UNIT_BACKUP" \
+          # v3 has now proved transport and control-plane state twice. Retire v2.
+          sudo systemctl disable "$V2" >/dev/null 2>&1 || true
+          sudo rm -rf "$V2QUAR"
+          sudo install -d -m 0755 "$(dirname "$V2QUAR")"
+          sudo mv "$V2DIR" "$V2QUAR"
+          sudo find "$V2QUAR" -type d -exec chmod 0755 {} +
+          sudo find "$V2QUAR" -type f -exec chmod 0644 {} +
+          sudo rm -f /etc/systemd/system/fgbears-youtube-v2.service /lib/systemd/system/fgbears-youtube-v2.service /usr/lib/systemd/system/fgbears-youtube-v2.service
+          sudo systemctl daemon-reload
+          sudo systemctl mask "$V2" >/dev/null
+          sudo systemctl enable "$V3" "$CACHE" >/dev/null
+          printf 'v3\n' | sudo tee "$GENERATION" >/dev/null
+          sudo install -m 0755 /tmp/fgbears-healthcheck-control-plane "$HEALTH"
+
+          final_v3=$(pid "$V3")
+          sudo "$V3DIR/verify-youtube-v3.sh"
+          test "$(pid "$V3")" = "$final_v3" || fail v3_pid_changed_final_pass1
+          sudo "$V3DIR/verify-youtube-v3.sh"
+          test "$(pid "$V3")" = "$final_v3" || fail v3_pid_changed_final_pass2
+          test "$(pid "$MASTER")" = "$master_before" || fail master_pid_changed_final
+          test "$(pid "$RUMBLE")" = "$rumble_before" || fail rumble_pid_changed_final
+          connected "$rumble_before" 1935 || fail rumble_socket_lost_final
+
+          sudo rm -f "$CUTOVER_MARKER"
+          sudo rm -rf "$V3BACKUP"
+          sudo rm -f "$HEALTH_BACKUP" "$V3_UNIT_BACKUP" "$CACHE_UNIT_BACKUP" "$GENERATION_BACKUP" \
             /tmp/fgb-youtube-v3-control-plane.tgz /tmp/fgbears-healthcheck-control-plane
-          CUTOVER=0
+          MUTATION=0
           trap - ERR
-          echo "CONTROL_PLANE_DEPLOY=PASS master=$master_before rumble=$rumble_before youtube_before=$youtube_before youtube_after=$youtube_verified cache=$(pid "$CACHE") schema=fgb-stream-state/v1 master_restarted=no rumble_restarted=no"
+          echo "CONTROL_PLANE_DEPLOY=PASS master=$master_before rumble=$rumble_before v2_before=$v2_before youtube_v3=$final_v3 cache=$(pid "$CACHE") schema=fgb-stream-state/v1 v2=quarantined master_restarted=no rumble_restarted=no"
           REMOTE
