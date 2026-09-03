@@ -19,7 +19,7 @@ LOCAL_INPUT="${LOCAL_BASE}?fifo_size=2000000&overrun_nonfatal=1&reuse=1"
 TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 OVERLAY=/opt/fgbears-live/youtube-v3/youtube-v3-overlay.py
 PROGRESS=/run/fgbears-youtube-v3/ffmpeg-progress.log
-FILTER_COMPLEX='[0:v:0]fps=24:start_time=0,settb=AVTB,setpts=N/(24*TB),setsar=1[base];[1:v:0]settb=AVTB,setpts=N/(5*TB)[cover];[base][cover]overlay=462:104:format=auto:shortest=0:repeatlast=1:eof_action=repeat[composited];[composited]scale=854:480:flags=fast_bilinear[v];[0:a:0]aresample=44100:async=1000:first_pts=0,asetpts=N/SR/TB[a]'
+FILTER_COMPLEX='[0:v:0]fps=30:start_time=0,settb=AVTB,setpts=N/(30*TB),setsar=1[base];[1:v:0]settb=AVTB,setpts=N/(5*TB)[cover];[base][cover]overlay=462:104:format=auto:shortest=0:repeatlast=1:eof_action=repeat[composited];[composited]scale=854:480:flags=fast_bilinear[v];[0:a:0]aresample=44100:async=1000:first_pts=0,asetpts=N/SR/TB[a]'
 
 [[ -x "$OVERLAY" ]] || { echo "Missing YouTube v3 overlay renderer: $OVERLAY" >&2; exit 78; }
 
@@ -41,7 +41,8 @@ fi
 
 # The exact 1280x720 Lovable presentation contract is composited first. Only
 # the final YouTube destination is scaled to 854x480 to keep Oracle safely
-# above real time without changing the shared master, Rumble, mask, or audio.
+# above real time. The destination remains cadence-matched to the 30 fps shared
+# master so moving crawl/news overlays do not acquire 30->24 judder.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
   -progress pipe:3 -stats_period 1 \
@@ -55,9 +56,9 @@ exec ffmpeg \
   -filter_complex "$FILTER_COMPLEX" \
   -map '[v]' -map '[a]' \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high -pix_fmt yuv420p \
-  -r 24 -fps_mode cfr -g 48 -keyint_min 48 -sc_threshold 0 \
+  -r 30 -fps_mode cfr -g 60 -keyint_min 60 -sc_threshold 0 \
   -b:v 2200k -maxrate 2700k -bufsize 4500k \
-  -threads 1 -x264-params 'repeat-headers=1:keyint=48:min-keyint=48:scenecut=0' \
+  -threads 1 -x264-params 'repeat-headers=1:keyint=60:min-keyint=60:scenecut=0' \
   -c:a aac -profile:a aac_low -b:a 128k -ar 44100 -ac 2 \
   -max_muxing_queue_size 2048 \
   -rw_timeout 15000000 \
