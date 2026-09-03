@@ -1,4 +1,4 @@
-name: Enforce Minimal FGBears Live Topology
+name: Inspect Minimal YouTube Connection
 
 on:
   push:
@@ -11,98 +11,38 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: fgbears-minimal-live-cutover
-  cancel-in-progress: false
-
 env:
   ORACLE_USER: ubuntu
 
 jobs:
-  cutover:
+  inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 3
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: lovable-routing-bridge-20260902
-      - name: Validate minimal branch
-        run: |
-          set -Eeuo pipefail
-          bash -n services/fgbears-live/bin/youtube-output-minimal.sh
-          python3 -m py_compile services/fgbears-live/bin/youtube-overlay-stream.py
-          grep -Fq -- '-c:a copy' services/fgbears-live/bin/youtube-output-minimal.sh
-          grep -Fq -- 'overlay=462:104' services/fgbears-live/bin/youtube-output-minimal.sh
-      - name: Configure SSH and stage minimal files
+      - name: Configure SSH
         run: |
           set -Eeuo pipefail
           install -d -m700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-          target="$ORACLE_USER@$ORACLE_HOST"
-          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-output-minimal.sh "$target:/tmp/youtube-output-minimal.sh"
-          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-overlay-stream.py "$target:/tmp/youtube-overlay-stream.py"
-          scp -i ~/.ssh/oracle_key services/fgbears-live/systemd/fgbears-youtube-output.service "$target:/tmp/fgbears-youtube-output.service"
-      - name: Enforce one YouTube owner
+      - name: Read current state
         shell: bash
         run: |
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          M=fgbears-live.service; R=fgbears-rumble-relay.service; Y=fgbears-youtube-output.service
-          OLD=(fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service fgbears-youtube-audio-watchdog.timer fgbears-youtube-audio-watchdog.service fgbears-youtube-relay.service fgbears-youtube-router.service)
-          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-          nr(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
-          conn(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
-
-          systemctl is-active --quiet "$M"; systemctl is-active --quiet "$R"
-          M0=$(pid "$M"); R0=$(pid "$R"); MN0=$(nr "$M"); RN0=$(nr "$R")
-          conn "$R0" 1935
-          echo "PRE master=$M0 rumble=$R0"
-
-          install -m0755 /tmp/youtube-output-minimal.sh /opt/fgbears-live/bin/youtube-output-minimal.sh
-          install -m0755 /tmp/youtube-overlay-stream.py /opt/fgbears-live/bin/youtube-overlay-stream.py
-          install -m0644 /tmp/fgbears-youtube-output.service /etc/systemd/system/fgbears-youtube-output.service
-
-          for u in "${OLD[@]}"; do
-            systemctl stop "$u" 2>/dev/null || true
-            systemctl disable "$u" >/dev/null 2>&1 || true
+          set -u
+          units=(fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-output.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service)
+          for u in "${units[@]}"; do
+            echo "UNIT $u load=$(systemctl show -p LoadState --value "$u" 2>/dev/null || true) active=$(systemctl is-active "$u" 2>/dev/null || true) pid=$(systemctl show -p MainPID --value "$u" 2>/dev/null || true) restarts=$(systemctl show -p NRestarts --value "$u" 2>/dev/null || true)"
           done
-          systemctl daemon-reload
-          systemctl enable "$Y" >/dev/null
-          systemctl reset-failed "$Y" || true
-          systemctl restart "$Y"
-
-          for _ in $(seq 1 35); do
-            YP=$(pid "$Y")
-            systemctl is-active --quiet "$Y" && conn "$YP" 443 && break
-            sleep 1
-          done
-          YP=$(pid "$Y"); systemctl is-active --quiet "$Y"; conn "$YP" 443
-
-          for _ in $(seq 1 10); do
-            [[ "$(pid "$Y")" == "$YP" ]]
-            conn "$YP" 443
-            [[ "$(pid "$M")" == "$M0" && "$(pid "$R")" == "$R0" ]]
-            [[ "$(nr "$M")" == "$MN0" && "$(nr "$R")" == "$RN0" ]]
-            sleep 2
-          done
-          conn "$R0" 1935
-
-          mapfile -t owners < <(ss -ntpH state established 2>/dev/null | awk '/:443/ && /ffmpeg/ { if (match($0,/pid=[0-9]+/)) { print substr($0,RSTART+4,RLENGTH-4) } }' | sort -u)
-          [[ ${#owners[@]} -eq 1 && "${owners[0]}" == "$YP" ]]
-
-          for u in "${OLD[@]}"; do rm -f "/etc/systemd/system/$u"; done
-          rm -f /usr/local/bin/fgbears-youtube-relay /usr/local/bin/fgbears-youtube-audio-watchdog
-          rm -f /opt/fgbears-live/bin/youtube-lovable-compositor.sh /opt/fgbears-live/bin/youtube-question-mask.py /opt/fgbears-live/bin/youtube-transport-watchdog.sh /opt/fgbears-live/bin/youtube-relay.sh /opt/fgbears-live/bin/youtube-relay-legacy.sh /opt/fgbears-live/bin/youtube-stream-router.py /opt/fgbears-live/bin/youtube-stream-router-v5.py /opt/fgbears-live/bin/youtube-compositor-source-relay.sh
-          systemctl daemon-reload
-
-          for u in "${OLD[@]}"; do ! systemctl is-active --quiet "$u"; done
-          cpu=$(ps -p "$YP" -o %cpu= | awk '{print $1+0}')
-          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
-          echo "MINIMAL_OWNER=PASS master=$M0 rumble=$R0 youtube=$YP cpu=${cpu}% speed=${speed:-unknown}x"
+          echo SOCKETS
+          ss -ntpH state established 2>/dev/null | grep -E ':(1935|443)' || true
+          echo YOUTUBE_JOURNAL
+          journalctl -u fgbears-youtube-output.service --since '10 minutes ago' --no-pager 2>/dev/null | tail -n 120 || true
+          echo MASTER_PROGRESS
+          tail -n 12 /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true
           REMOTE
