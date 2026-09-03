@@ -1,0 +1,23 @@
+[Unit]
+Description=FGBears YouTube v3.6 single recovery supervisor
+After=network-online.target fgbears-youtube-v3-source.service fgbears-youtube-v3.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/opt/fgbears-live/youtube-v3/youtube-v3-supervisor.py
+Restart=always
+RestartSec=5
+TimeoutStopSec=8
+Nice=15
+CPUWeight=5
+NoNewPrivileges=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/opt/fgbears-live /etc/fgbears-live /proc /sys
+ReadWritePaths=/run/fgbears-youtube-v3
+
+[Install]
+WantedBy=multi-user.target
