@@ -13,7 +13,7 @@ EnvironmentFile=/etc/fgbears-live/stream.env
 Environment=FGB_CONTROL_STATE_FILE=/run/fgbears-control-plane/stream-state.json
 Environment=YOUTUBE_V3_CREATIVE_DIR=/opt/fgbears-live/youtube-v3/creatives
 ExecStart=/opt/fgbears-live/youtube-v3/run-youtube-v3.sh
-Restart=on-failure
+Restart=always
 RestartSec=8
 TimeoutStopSec=8
 KillSignal=SIGINT
