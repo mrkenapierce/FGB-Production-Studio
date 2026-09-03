@@ -19,10 +19,13 @@ NEWS_REFRESH_BIN=${BEARS_NEWS_REFRESH_BIN:-/opt/fgbears-live/bin/refresh-bears-n
 NEWS_REFRESH_INTERVAL_SECONDS=${BEARS_NEWS_REFRESH_INTERVAL_SECONDS:-900}
 NEWS_LOCAL_FEED=${BEARS_NEWS_LOCAL_FEED_FILE:-/srv/fgbears-live/runtime/fgb-bears-news.xml}
 NEWS_REFRESH_STATUS=${BEARS_NEWS_REFRESH_STATUS_FILE:-/srv/fgbears-live/runtime/bears-news-refresh-status.env}
-# These two values are intentionally not environment-overridable. YouTube v2
-# is quarantined, so stale stream.env values must never be able to reactivate it.
-YOUTUBE_SERVICE=fgbears-youtube-v3.service
-YOUTUBE_PROGRESS_FILE=/run/fgbears-youtube-v3/ffmpeg-progress.log
+# YouTube desired generation is host state, not stream.env state. This prevents
+# stale environment values from reviving a retired destination.
+YOUTUBE_GENERATION_FILE=/etc/fgbears-live/youtube-generation
+YOUTUBE_CUTOVER_MARKER=/run/fgbears-youtube-v3/cutover-in-progress
+YOUTUBE_V2_SERVICE=fgbears-youtube-v2.service
+YOUTUBE_V3_SERVICE=fgbears-youtube-v3.service
+YOUTUBE_V3_PROGRESS_FILE=/run/fgbears-youtube-v3/ffmpeg-progress.log
 YOUTUBE_WARNING_FILE=${YOUTUBE_WARNING_FILE:-$HEALTH_STATE_DIR/youtube-v3-warning}
 AUDIO_HEALTH_BIN=${FGB_AUDIO_HEALTH_BIN:-/usr/local/bin/fgbears-audio-health}
 AUDIO_HEALTH_INTERVAL_SECONDS=${FGB_AUDIO_HEALTH_INTERVAL_SECONDS:-300}
@@ -65,41 +68,69 @@ guarded_restart() {
   systemctl restart fgbears-live.service
 }
 
-recover_youtube_v3() {
-  if systemctl is-active --quiet "$YOUTUBE_SERVICE"; then
+youtube_generation() {
+  local generation=''
+  if [[ -r "$YOUTUBE_GENERATION_FILE" ]]; then
+    generation=$(tr -d '[:space:]' < "$YOUTUBE_GENERATION_FILE")
+  fi
+  case "$generation" in
+    v2|v3) printf '%s\n' "$generation" ;;
+    *)
+      # Bootstrap only. Deployment writes an explicit marker before changing
+      # either destination, so steady state never depends on inference.
+      if systemctl is-active --quiet "$YOUTUBE_V3_SERVICE"; then printf 'v3\n'; else printf 'v2\n'; fi
+      ;;
+  esac
+}
+
+recover_youtube_destination() {
+  local generation service label
+  if [[ -e "$YOUTUBE_CUTOVER_MARKER" ]]; then
+    logger -t fgbears-live-health "YouTube controlled cutover active; destination recovery intentionally deferred while shared-program health remains supervised."
     return 0
   fi
-  logger -t fgbears-live-health "YouTube v3 is inactive; restarting only the destination process."
-  systemctl reset-failed "$YOUTUBE_SERVICE" || true
-  systemctl restart "$YOUTUBE_SERVICE" || true
+  generation=$(youtube_generation)
+  if [[ "$generation" == v3 ]]; then
+    service=$YOUTUBE_V3_SERVICE; label=V3
+  else
+    service=$YOUTUBE_V2_SERVICE; label=V2
+  fi
+  if systemctl is-active --quiet "$service"; then return 0; fi
+
+  logger -t fgbears-live-health "YouTube ${generation} is inactive; restarting only desired destination process."
+  systemctl reset-failed "$service" || true
+  systemctl restart "$service" || true
   for _ in {1..20}; do
-    if systemctl is-active --quiet "$YOUTUBE_SERVICE"; then
-      logger -t fgbears-live-health "YOUTUBE_V3_RECOVERY=RECOVERED service=$YOUTUBE_SERVICE"
+    if systemctl is-active --quiet "$service"; then
+      logger -t fgbears-live-health "YOUTUBE_${label}_RECOVERY=RECOVERED service=$service"
       return 0
     fi
     sleep 0.25
   done
-  logger -t fgbears-live-health "YOUTUBE_V3_RECOVERY=FAILED service=$YOUTUBE_SERVICE"
+  logger -t fgbears-live-health "YOUTUBE_${label}_RECOVERY=FAILED service=$service"
   return 1
 }
 
 check_youtube_v3_pacing() {
-  local now updated age speed pressure warning=""
-  systemctl is-active --quiet "$YOUTUBE_SERVICE" || return 0
-  if [[ ! -s "$YOUTUBE_PROGRESS_FILE" ]]; then
+  local now updated age speed pressure warning="" generation
+  [[ ! -e "$YOUTUBE_CUTOVER_MARKER" ]] || return 0
+  generation=$(youtube_generation)
+  [[ "$generation" == v3 ]] || { rm -f "$YOUTUBE_WARNING_FILE"; return 0; }
+  systemctl is-active --quiet "$YOUTUBE_V3_SERVICE" || return 0
+  if [[ ! -s "$YOUTUBE_V3_PROGRESS_FILE" ]]; then
     warning="PROGRESS_MISSING"
   else
     now=$(date +%s)
-    updated=$(stat -c %Y "$YOUTUBE_PROGRESS_FILE" 2>/dev/null || echo 0)
+    updated=$(stat -c %Y "$YOUTUBE_V3_PROGRESS_FILE" 2>/dev/null || echo 0)
     age=$((now - updated))
-    speed=$(sed -n 's/^speed=\([0-9.]*\)x$/\1/p' "$YOUTUBE_PROGRESS_FILE" | tail -n1)
+    speed=$(sed -n 's/^speed=\([0-9.]*\)x$/\1/p' "$YOUTUBE_V3_PROGRESS_FILE" | tail -n1)
     if (( age > 20 )); then
       warning="PROGRESS_STALE_${age}S"
     elif [[ -n "$speed" ]] && ! python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$speed"; then
       warning="BELOW_REALTIME_${speed}X"
     fi
   fi
-  if journalctl -u "$YOUTUBE_SERVICE" --since '-10 minutes' --no-pager 2>/dev/null | grep -Fq 'Circular buffer overrun'; then
+  if journalctl -u "$YOUTUBE_V3_SERVICE" --since '-10 minutes' --no-pager 2>/dev/null | grep -Fq 'Circular buffer overrun'; then
     warning="${warning:+${warning}_}UDP_OVERRUN"
   fi
   pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"=");print a[2]}}' /proc/pressure/cpu 2>/dev/null || true)
@@ -126,7 +157,7 @@ run_lag_check() {
   speed=$(printf '%s\n' "$output" | sed -n 's/^INTERVAL_SPEED=//p' | tail -n 1)
   if [[ "$reason" == "ENCODER_BELOW_REALTIME" ]]; then
     printf '%s speed=%s threshold=%s\n' "$(date +%s)" "${speed:-NA}" "$LAG_WARN_SPEED" > "$LAG_WARNING_FILE"
-    logger -t fgbears-live-health "Encoder lag warning: interval_speed=${speed:-NA}x threshold=${LAG_WARN_SPEED}x. Stream left running to avoid a restart loop."
+    logger -t fgbears-live-health "Encoder lag warning: interval_speed=${speed:-NA}x threshold=${LAG_WARN_SPEED}x. Stream left running to avoid restart loops."
   elif [[ "$status" == "OK" ]]; then
     rm -f "$LAG_WARNING_FILE"
   fi
@@ -155,8 +186,9 @@ run_news_refresh
 [[ -r "$ENV_FILE" && -s "$PLAYLIST_FILE" ]] || exit 0
 if grep -q '^YOUTUBE_STREAM_KEY=REPLACE_WITH_YOUTUBE_STREAM_KEY$' "$ENV_FILE"; then exit 0; fi
 
-# Destination recovery and pacing checks are isolated from the shared program.
-recover_youtube_v3 || true
+# Only destination recovery changes with the YouTube generation. Master, news,
+# crawl-independent lag sampling, and audio health remain continuously active.
+recover_youtube_destination || true
 check_youtube_v3_pacing
 
 if ! systemctl is-active --quiet fgbears-live.service; then
