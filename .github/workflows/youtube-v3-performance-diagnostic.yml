@@ -35,6 +35,7 @@ jobs:
           set -Eeuo pipefail
           Y=fgbears-youtube-v3.service
           P=/run/fgbears-youtube-v3/ffmpeg-progress.log
+          B=/run/fgbears-youtube-v3/delay-health.json
           pid(){ systemctl show -p MainPID --value "$1"; }
           media_us(){ sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$P" | tail -n1; }
           sample(){
@@ -46,12 +47,27 @@ jobs:
           print(f'{((m1-m0)/1e6)/((t1-t0)/1e9):.4f}')
           PY
           }
+          M=$(pid fgbears-live.service); R=$(pid fgbears-rumble-relay.service); C=$(pid fgbears-lovable-state-cache.service); YP=$(pid "$Y")
           echo "generation=$(sudo cat /etc/fgbears-live/youtube-generation)"
-          echo "master_pid=$(pid fgbears-live.service)"
-          echo "rumble_pid=$(pid fgbears-rumble-relay.service)"
-          echo "youtube_pid=$(pid "$Y")"
+          echo "nproc=$(nproc)"
+          echo "master_pid=$M"
+          echo "rumble_pid=$R"
+          echo "youtube_pid=$YP"
           echo "youtube_restarts=$(systemctl show -p NRestarts --value "$Y")"
-          echo "cache_pid=$(pid fgbears-lovable-state-cache.service)"
+          echo "cache_pid=$C"
+          echo 'CORE_PROCESS_USAGE_BEGIN'
+          ps -p "$M,$R,$C,$YP" -o pid=,ppid=,psr=,pcpu=,pmem=,nlwp=,ni=,pri=,stat=,etime=,comm= || true
+          echo 'YOUTUBE_CGROUP_BEGIN'
+          systemctl status "$Y" --no-pager -l || true
+          echo 'YOUTUBE_CGROUP_PROCESSES_BEGIN'
+          ycg=$(systemctl show -p ControlGroup --value "$Y")
+          if [[ -r "/sys/fs/cgroup${ycg}/cgroup.procs" ]]; then
+            while read -r p; do ps -p "$p" -o pid=,ppid=,psr=,pcpu=,pmem=,nlwp=,ni=,pri=,stat=,etime=,comm=,args=; done < "/sys/fs/cgroup${ycg}/cgroup.procs"
+          fi
+          echo 'YOUTUBE_CGROUP_PROCESSES_END'
+          echo 'TOP_CPU_BEGIN'
+          ps -eo pid=,ppid=,psr=,pcpu=,pmem=,nlwp=,ni=,pri=,stat=,comm= --sort=-pcpu | head -n 20
+          echo 'TOP_CPU_END'
           echo "rate_5s_1=$(sample 5)"
           echo "rate_5s_2=$(sample 5)"
           echo "rate_10s=$(sample 10)"
@@ -61,8 +77,10 @@ jobs:
           echo "progress_age=$(( $(date +%s)-$(sudo stat -c %Y "$P") ))"
           echo "cpu_pressure=$(awk '/^some/{for(i=1;i<=NF;i++)if($i~/^avg10=/){split($i,a,"=");print a[2]}}' /proc/pressure/cpu)"
           echo "cpu_idle=$(vmstat 1 2|tail -n1|awk '{print $15}')"
-          sudo ss -ntpH state established | awk -v q="pid=$(pid "$Y")" 'index($0,q)&&index($0,":443"){print "youtube_443=yes"; ok=1} END{if(!ok)print "youtube_443=no"}'
-          sudo ss -ntpH state established | awk -v q="pid=$(pid fgbears-rumble-relay.service)" 'index($0,q)&&index($0,":1935"){print "rumble_1935=yes"; ok=1} END{if(!ok)print "rumble_1935=no"}'
+          echo "load=$(cat /proc/loadavg)"
+          if [[ -s "$B" ]]; then echo "buffer_health=$(cat "$B")"; fi
+          sudo ss -ntpH state established | awk -v q="pid=$YP" 'index($0,q)&&index($0,":443"){print "youtube_443=yes"; ok=1} END{if(!ok)print "youtube_443=no"}'
+          sudo ss -ntpH state established | awk -v q="pid=$R" 'index($0,q)&&index($0,":1935"){print "rumble_1935=yes"; ok=1} END{if(!ok)print "rumble_1935=no"}'
           sudo python3 - <<'PY'
           import json,time
           h=json.load(open('/run/fgbears-control-plane/cache-health.json'))
@@ -70,4 +88,5 @@ jobs:
           print('cache_age=%.2f'%(time.time()-float(h.get('lastGoodEpoch') or 0)))
           print('cache_latency_ms='+str(h.get('routingLatencyMs')))
           PY
+          echo 'READ_ONLY_CURRENT_V3_DIAG=PASS'
           REMOTE
