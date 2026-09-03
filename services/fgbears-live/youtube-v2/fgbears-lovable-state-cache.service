@@ -1,0 +1,32 @@
+[Unit]
+Description=FGBears Lovable presentation-state cache
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=6
+
+[Service]
+Type=simple
+User=fgbears
+Group=fgbears
+EnvironmentFile=/etc/fgbears-live/stream.env
+Environment=FGB_CONTROL_STATE_FILE=/run/fgbears-control-plane/stream-state.json
+Environment=FGB_CONTROL_HEALTH_FILE=/run/fgbears-control-plane/cache-health.json
+Environment=FGB_CONTROL_POLL_SECONDS=0.5
+ExecStart=/usr/bin/python3 /opt/fgbears-live/youtube-v2/lovable-state-cache.py
+Restart=always
+RestartSec=3
+TimeoutStopSec=5
+Nice=12
+CPUWeight=10
+RuntimeDirectory=fgbears-control-plane
+RuntimeDirectoryMode=0750
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/opt/fgbears-live /etc/fgbears-live
+ReadWritePaths=/run/fgbears-control-plane
+
+[Install]
+WantedBy=multi-user.target
