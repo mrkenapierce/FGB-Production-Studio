@@ -1,10 +1,10 @@
-name: Deploy FGBears Live Production
+name: Certify FGBears Live Production
 
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Type DEPLOY to run the guarded production deployment'
+        description: 'Type DEPLOY to run the authorized read-only certification'
         required: true
         type: string
 
@@ -12,26 +12,23 @@ permissions:
   contents: read
 
 concurrency:
-  group: fgbears-live-production-deploy
-  cancel-in-progress: false
+  group: fgbears-live-production-certification
+  cancel-in-progress: true
 
 env:
   ORACLE_USER: ubuntu
 
 jobs:
-  deploy:
+  certify:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 19
     steps:
-      - name: Require explicit deployment confirmation
+      - name: Require authorization token
         env:
           CONFIRM: ${{ inputs.confirm }}
         run: test "$CONFIRM" = 'DEPLOY'
 
-      - name: Check out selected revision
-        uses: actions/checkout@v4
-
-      - name: Configure SSH and package selected revision
+      - name: Configure SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
@@ -43,194 +40,156 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-          tar -czf /tmp/fgbears-live-release.tgz \
-            services/fgbears-live \
-            renderer/assets/epic-logo-for-qr.base64.txt
-          scp -i ~/.ssh/oracle_key /tmp/fgbears-live-release.tgz "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-live-release.tgz"
 
-      - name: Preflight exact-box production
+      - name: Certify one complete live trivia cycle read only
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        shell: bash
         run: |
           set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-          has_port(){ local p=$1 port=$2; sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
-
-          for unit in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service; do
-            systemctl is-active --quiet "$unit"
-          done
-          ! systemctl is-active --quiet fgbears-youtube-relay.service
-          ! grep -Eq '^(After|Wants|Requires)=.*fgbears-youtube-' /etc/systemd/system/fgbears-live.service
-          for port in 8787 8788 8789; do
-            curl -fsS --max-time 2 "http://127.0.0.1:${port}/healthz" >/dev/null
-          done
-
-          master=$(pid fgbears-live.service)
-          rumble=$(pid fgbears-rumble-relay.service)
-          youtube=$(pid fgbears-youtube-lovable-compositor.service)
-          [[ "$master" =~ ^[1-9][0-9]*$ && "$rumble" =~ ^[1-9][0-9]*$ && "$youtube" =~ ^[1-9][0-9]*$ ]]
-          has_port "$rumble" 1935
-          has_port "$youtube" 443
-          printf '%s\n' "$rumble" | sudo tee /tmp/fgbears-rumble-pid-before-deploy >/dev/null
-          echo "PREFLIGHT=PASS master=$master rumble=$rumble youtube=$youtube legacy=inactive"
-          REMOTE
-
-      - name: Install selected revision with source-first rollback
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          release=/tmp/fgbears-live-release
-          backup=/srv/fgbears-live/runtime/deploy-backup-$(date -u +%Y%m%dT%H%M%SZ)
           MASTER=fgbears-live.service
           RUMBLE=fgbears-rumble-relay.service
           ROUTING=fgbears-youtube-lovable-routing.service
           COMP=fgbears-youtube-lovable-compositor.service
           LEGACY=fgbears-youtube-relay.service
+          MASK=/opt/fgbears-live/bin/youtube-question-mask.py
+          MONDIR=/run/fgbears-youtube-lovable-compositor
+          STATUS=/srv/fgbears-live/health/youtube-audio/status.env
+
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          restarts(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
           active(){ systemctl is-active --quiet "$1"; }
-          has_port(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
-          wait_master(){
-            for _ in $(seq 1 60); do
-              active "$MASTER" \
-                && curl -fsS --max-time 1 http://127.0.0.1:8787/healthz >/dev/null 2>&1 \
-                && curl -fsS --max-time 1 http://127.0.0.1:8788/healthz >/dev/null 2>&1 \
-                && curl -fsS --max-time 1 http://127.0.0.1:8789/healthz >/dev/null 2>&1 \
-                && return 0
-              sleep 1
-            done
-            return 1
+          connected(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+          fail(){ echo "FULL_CYCLE_FAIL=$1" >&2; exit 1; }
+          health(){ curl -fsS --max-time 3 http://127.0.0.1:8791/healthz; }
+          check_alpha(){
+            python3 - "$1" <<'PY'
+import sys, urllib.request
+expected=int(sys.argv[1]); w,h=399,235; n=w*h*4
+with urllib.request.urlopen('http://127.0.0.1:8791/overlay.rgba', timeout=4) as r:
+    data=r.read(n)
+assert len(data)==n,(len(data),n)
+a=data[3::4]
+assert min(a)==expected and max(a)==expected,(min(a),max(a),expected)
+print(f'OVERLAY_ALPHA=PASS expected={expected} pixels={len(a)}')
+PY
           }
-          wait_destinations(){
-            local rumble_ok=0 youtube_ok=0 rp cp
-            for _ in $(seq 1 35); do
-              rp=$(pid "$RUMBLE"); cp=$(pid "$COMP")
-              active "$RUMBLE" && has_port "$rp" 1935 && rumble_ok=1 || true
-              active "$COMP" && has_port "$cp" 443 && youtube_ok=1 || true
-              (( rumble_ok == 1 && youtube_ok == 1 )) && return 0
-              sleep 1
-            done
-            return 1
+          stable(){
+            [[ "$(pid "$MASTER")" == "$M0" ]] || fail MASTER_PID_CHANGED
+            [[ "$(pid "$RUMBLE")" == "$R0" ]] || fail RUMBLE_PID_CHANGED
+            [[ "$(pid "$ROUTING")" == "$Q0" ]] || fail ROUTING_PID_CHANGED
+            [[ "$(pid "$COMP")" == "$C0" ]] || fail COMPOSITOR_PID_CHANGED
+            [[ "$(restarts "$MASTER")" == "$MN0" ]] || fail MASTER_RESTARTED
+            [[ "$(restarts "$RUMBLE")" == "$RN0" ]] || fail RUMBLE_RESTARTED
+            active "$MASTER" || fail MASTER_INACTIVE
+            active "$RUMBLE" || fail RUMBLE_INACTIVE
+            active "$ROUTING" || fail ROUTING_INACTIVE
+            active "$COMP" || fail COMPOSITOR_INACTIVE
+            ! active "$LEGACY" || fail LEGACY_RELAY_ACTIVE
+            connected "$R0" 1935 || fail RUMBLE_SOCKET_LOST
+            connected "$C0" 443 || fail YOUTUBE_SOCKET_LOST
           }
 
-          sudo rm -rf "$release"
-          mkdir -p "$release"
-          tar -xzf /tmp/fgbears-live-release.tgz -C "$release"
-          bash -n "$release/services/fgbears-live/bin/install.sh"
-          ! grep -Eq '^(After|Wants|Requires)=.*fgbears-youtube-' "$release/services/fgbears-live/systemd/fgbears-live.service"
+          grep -Fq 'self.active = phase == "question"' "$MASK" || fail PHASE_AUTHORITY_NOT_DEPLOYED
+          M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE"); Q0=$(pid "$ROUTING"); C0=$(pid "$COMP")
+          MN0=$(restarts "$MASTER"); RN0=$(restarts "$RUMBLE")
+          [[ "$M0" =~ ^[1-9][0-9]*$ && "$R0" =~ ^[1-9][0-9]*$ && "$Q0" =~ ^[1-9][0-9]*$ && "$C0" =~ ^[1-9][0-9]*$ ]] || fail INVALID_BASELINE_PID
+          stable
 
-          sudo mkdir -p "$backup/usr-local-bin" "$backup/systemd"
-          sudo cp -a /opt/fgbears-live "$backup/opt-fgbears-live"
-          sudo cp -a /etc/fgbears-live/stream.env "$backup/stream.env"
-          while IFS= read -r path; do sudo cp -a "$path" "$backup/usr-local-bin/"; done < <(find /usr/local/bin -maxdepth 1 -type f -name 'fgbears-*' -print)
-          while IFS= read -r path; do sudo cp -a "$path" "$backup/systemd/"; done < <(find /etc/systemd/system -maxdepth 1 -type f \( -name 'fgbears-*.service' -o -name 'fgbears-*.timer' \) -print)
+          h=$(health) || fail MASK_HEALTH_UNAVAILABLE
+          printf '%s' "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470};assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235};assert p.get("frameSize")==[399,235];assert p.get("fps")==30;assert p.get("failClosedDuringQuestion") is True'
 
-          rollback() {
-            rc=$?
-            trap - ERR
-            set +e
-            echo "ROLLBACK=BEGIN rc=$rc" >&2
-            sudo rm -rf /opt/fgbears-live
-            sudo cp -a "$backup/opt-fgbears-live" /opt/fgbears-live
-            sudo cp -a "$backup/stream.env" /etc/fgbears-live/stream.env
-            sudo find /usr/local/bin -maxdepth 1 -type f -name 'fgbears-*' -delete
-            sudo cp -a "$backup/usr-local-bin/." /usr/local/bin/
-            sudo find /etc/systemd/system -maxdepth 1 -type f \( -name 'fgbears-*.service' -o -name 'fgbears-*.timer' \) -delete
-            sudo cp -a "$backup/systemd/." /etc/systemd/system/
-            # Never restore the historical master -> direct-YouTube dependency,
-            # even if an old backup happens to contain it.
-            sudo install -m 0644 "$release/services/fgbears-live/systemd/fgbears-live.service" /etc/systemd/system/fgbears-live.service
-            sudo systemctl daemon-reload
-            sudo systemctl disable --now "$LEGACY" >/dev/null 2>&1 || true
-            sudo systemctl enable "$ROUTING" "$COMP" >/dev/null 2>&1 || true
-            sudo systemctl reset-failed "$MASTER" "$ROUTING" "$COMP" >/dev/null 2>&1 || true
-            active "$ROUTING" || sudo systemctl start "$ROUTING"
-            sudo systemctl start "$MASTER"
-            if wait_master; then
-              wait_destinations || {
-                active "$RUMBLE" || sudo systemctl restart "$RUMBLE"
-                sudo systemctl restart "$COMP"
-                wait_destinations
-              }
+          news=$(curl -fsS --max-time 3 http://127.0.0.1:8789/healthz) || fail RSS_HEALTH_UNAVAILABLE
+          crawl=$(curl -fsS --max-time 3 http://127.0.0.1:8788/healthz) || fail CRAWL_HEALTH_UNAVAILABLE
+          printf '%s' "$news" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert int(p.get("scrollPps",0))==76;assert p.get("payloadSwap")=="next-cycle-boundary"'
+          printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert p.get("payloadSwap")=="next-segment-boundary"'
+          echo 'TICKERS=PASS rss=30fps/76pps crawl=30fps boundary-swaps'
+
+          # Transparent baseline outside a question.
+          p=question
+          for _ in $(seq 1 360); do
+            stable
+            h=$(health) || fail MASK_HEALTH_LOST_BASELINE
+            p=$(printf '%s' "$h" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("phase") or "none")')
+            a=$(printf '%s' "$h" | python3 -c 'import json,sys;print(str(json.load(sys.stdin).get("active")).lower())')
+            if [[ "$p" != question ]]; then
+              [[ "$a" == false ]] || fail COVER_ACTIVE_OUTSIDE_QUESTION
+              check_alpha 0
+              echo "PRE_QUESTION=PASS phase=$p transparent=yes"
+              break
             fi
-            echo "ROLLBACK=COMPLETE master=$(systemctl is-active "$MASTER" 2>/dev/null) rumble=$(systemctl is-active "$RUMBLE" 2>/dev/null) youtube=$(systemctl is-active "$COMP" 2>/dev/null)" >&2
-            exit "$rc"
-          }
-          trap rollback ERR
+            sleep 1
+          done
+          [[ "$p" != question ]] || fail NO_NONQUESTION_BASELINE
 
-          sudo bash "$release/services/fgbears-live/bin/install.sh"
+          # Next complete real question.
+          started=0
+          for _ in $(seq 1 900); do
+            stable
+            h=$(health) || fail MASK_HEALTH_LOST_WAITING
+            p=$(printf '%s' "$h" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("phase") or "none")')
+            a=$(printf '%s' "$h" | python3 -c 'import json,sys;print(str(json.load(sys.stdin).get("active")).lower())')
+            if [[ "$p" == question ]]; then
+              [[ "$a" == true ]] || fail QUESTION_STARTED_UNCONCEALED
+              q_start=$(date +%s); q_start_iso=$(date -Iseconds); started=1
+              echo "QUESTION_START=PASS epoch=$q_start active=true"
+              break
+            fi
+            sleep 1
+          done
+          (( started == 1 )) || fail QUESTION_NOT_OBSERVED
 
-          # One and only one intentional shared-master restart loads repository
-          # renderer/master changes. Clear historical failure counters first.
-          sudo systemctl enable "$MASTER" >/dev/null
-          sudo systemctl reset-failed "$MASTER" >/dev/null 2>&1 || true
-          sudo systemctl restart "$MASTER"
-          wait_master
-          ! active "$LEGACY"
+          samples=0; opaque=0
+          while true; do
+            stable
+            h=$(health) || fail MASK_HEALTH_LOST_DURING_QUESTION
+            p=$(printf '%s' "$h" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("phase") or "none")')
+            a=$(printf '%s' "$h" | python3 -c 'import json,sys;print(str(json.load(sys.stdin).get("active")).lower())')
+            age=$(printf '%s' "$h" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("lastGoodAgeSeconds") or 0)')
+            [[ "$p" == question ]] || break
+            [[ "$a" == true ]] || fail COVER_DROPPED_DURING_QUESTION
+            python3 -c 'import sys;assert float(sys.argv[1])<8' "$age" || fail ROUTING_STALE_DURING_QUESTION
+            samples=$((samples+1))
+            if (( samples % 3 == 1 )); then check_alpha 255; opaque=$((opaque+1)); fi
+            sleep 1
+          done
+          (( samples >= 3 )) || fail QUESTION_TOO_SHORT_TO_CERTIFY
+          q_end=$(date +%s); duration=$((q_end-q_start))
+          echo "QUESTION_CONCEALMENT=PASS samples=$samples opaque_frames=$opaque duration=${duration}s exit_phase=$p"
 
-          # Do not intentionally restart Rumble. Give both destinations time to
-          # reconnect to the restored local source and require live uplinks.
-          wait_destinations
+          sleep 2
+          stable
+          h=$(health) || fail MASK_HEALTH_LOST_AFTER_QUESTION
+          p2=$(printf '%s' "$h" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("phase") or "none")')
+          a2=$(printf '%s' "$h" | python3 -c 'import json,sys;print(str(json.load(sys.stdin).get("active")).lower())')
+          [[ "$p2" != question && "$a2" == false ]] || fail COVER_DID_NOT_CLEAR
+          check_alpha 0
+          echo "POST_QUESTION=PASS phase=$p2 transparent=yes"
 
-          crawl=$(curl -fsS --max-time 3 http://127.0.0.1:8788/healthz)
-          news=$(curl -fsS --max-time 3 http://127.0.0.1:8789/healthz)
-          printf '%s' "$crawl" | jq -e '.ok == true and .fps == 30 and .payloadSwap == "next-segment-boundary"' >/dev/null
-          printf '%s' "$news" | jq -e '.ok == true and .fps == 30 and .scrollPps == 76 and .payloadSwap == "next-cycle-boundary"' >/dev/null
+          SEG=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
+          [[ -n "$SEG" && -s "$SEG" ]] || fail MONITOR_SEGMENT_MISSING
+          ffprobe -v fatal -show_entries stream=codec_type,codec_name,sample_rate,channels,width,height,r_frame_rate,sample_aspect_ratio,display_aspect_ratio -of json "$SEG" \
+            | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p["streams"];a=next(x for x in s if x.get("codec_type")=="audio");v=next(x for x in s if x.get("codec_type")=="video");assert a.get("codec_name")=="aac";assert str(a.get("sample_rate"))=="48000";assert int(a.get("channels") or 0)==2;assert (int(v.get("width",0)),int(v.get("height",0)))==(640,360);assert v.get("r_frame_rate") in {"30/1","60/2"};assert v.get("sample_aspect_ratio") in {"1:1","N/A"};assert v.get("display_aspect_ratio") in {"16:9","N/A"}'
+          echo 'YOUTUBE_AV=PASS 640x360/30 SAR1:1 DAR16:9 AAC48k-stereo'
 
-          youtube=$(pid "$COMP")
-          args=$(mktemp)
-          sudo tr '\0' '\n' < "/proc/$youtube/cmdline" > "$args"
-          grep -Fq 'udp://127.0.0.1:1939' "$args"
-          grep -Fxq '48000' "$args"
-          grep -Fq 'aresample=48000:async=1:first_pts=0' "$args"
-          grep -Fq 'scale=640:360:flags=fast_bilinear' "$args"
-          grep -Fq 'overlay=231:52:format=auto:shortest=1' "$args"
-          rm -f "$args"
-          has_port "$youtube" 443
+          faults=$(journalctl -u "$COMP" --since "$q_start_iso" --no-pager 2>/dev/null | grep -Eic 'circular buffer overrun|non-monotonous dts|timestamp discontinuity|broken pipe|connection reset by peer' || true)
+          [[ "$faults" == 0 ]] || fail "YOUTUBE_TRANSPORT_FAULTS_$faults"
+          echo 'YOUTUBE_TRANSPORT=PASS faults=0'
 
-          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
-          sleep 10
-          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' "$progress")
-          dropped=$(awk -F= '$1=="drop_frames"{v=$2} END{if(v!="") print v+0}' "$progress")
-          python3 - "$speed" "${dropped:-0}" <<'PY'
-          import sys
-          speed=float(sys.argv[1]); dropped=int(float(sys.argv[2]))
-          assert speed >= 0.95, speed
-          assert dropped == 0, dropped
-          print(f'MASTER_REALTIME=PASS speed={speed:.3f}x dropped={dropped}')
-          PY
-
-          sudo systemctl start fgbears-live-health.service
-          ! sudo systemctl is-failed --quiet fgbears-live-health.service
-          ! grep -Eq '^(After|Wants|Requires)=.*fgbears-youtube-' /etc/systemd/system/fgbears-live.service
-
-          rumble_before=$(cat /tmp/fgbears-rumble-pid-before-deploy)
-          rumble_after=$(pid "$RUMBLE")
-          if [[ "$rumble_after" == "$rumble_before" ]]; then
-            echo "RUMBLE_PROCESS=PRESERVED pid=$rumble_after"
-          else
-            echo "RUMBLE_PROCESS=SYSTEMD_RECONNECTED old=$rumble_before new=$rumble_after"
+          if [[ -s "$STATUS" ]]; then
+            owner=$(sed -n 's/^owner=\([^[:space:]]*\)$/\1/p' "$STATUS" | tail -n1)
+            rate=$(sed -n 's/^youtube_audio_rate=\([0-9][0-9]*\)$/\1/p' "$STATUS" | tail -n1)
+            sfaults=$(sed -n 's/^recent_transport_faults=\([0-9][0-9]*\)$/\1/p' "$STATUS" | tail -n1)
+            [[ "$owner" == exact_box_compositor ]] || fail WATCHDOG_OWNER_INVALID
+            [[ "$rate" == 48000 ]] || fail WATCHDOG_AUDIO_RATE_INVALID
+            [[ "$sfaults" == 0 ]] || fail WATCHDOG_TRANSPORT_FAULTS
+            echo "WATCHDOG=PASS owner=$owner rate=$rate faults=$sfaults"
           fi
 
-          trap - ERR
-          mapfile -t old_backups < <(find /srv/fgbears-live/runtime -maxdepth 1 -type d -name 'deploy-backup-*' -printf '%T@ %p\n' | sort -nr | tail -n +4 | cut -d' ' -f2-)
-          if ((${#old_backups[@]})); then sudo rm -rf "${old_backups[@]}"; fi
-          echo "DEPLOY=PASS master=$(pid "$MASTER") rumble=$(pid "$RUMBLE") youtube=$(pid "$COMP") legacy=inactive"
-          REMOTE
-
-      - name: Final read-only architecture report
-        if: success()
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          for unit in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service fgbears-youtube-audio-watchdog.timer fgbears-live-health.timer; do
-            printf '%s=%s pid=%s\n' "$unit" "$(systemctl is-active "$unit")" "$(systemctl show -p MainPID --value "$unit" 2>/dev/null || true)"
-          done
-          printf 'youtube_legacy_fallback=%s\n' "$(systemctl is-active fgbears-youtube-relay.service || true)"
+          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
+          if [[ -n "$speed" ]]; then python3 -c 'import sys;assert float(sys.argv[1])>=0.985' "$speed" || fail MASTER_BELOW_REALTIME; fi
+          stable
+          echo "FULL_TRIVIA_CYCLE_CERTIFICATION=PASS master=$M0 rumble=$R0 routing=$Q0 compositor=$C0 samples=$samples opaque_frames=$opaque duration=${duration}s master_speed=${speed:-unknown}x"
           REMOTE
