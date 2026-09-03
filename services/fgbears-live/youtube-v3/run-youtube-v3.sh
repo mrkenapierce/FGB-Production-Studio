@@ -9,8 +9,10 @@ source "$ENV_FILE"
 : "${YOUTUBE_STREAM_KEY:?YOUTUBE_STREAM_KEY is required}"
 : "${YOUTUBE_LOCAL_UDP_URL:=udp://127.0.0.1:1939?pkt_size=1316}"
 : "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"
+: "${YOUTUBE_V3_STARTUP_DELAY_SECONDS:=10}"
 
 [[ "$YOUTUBE_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || { echo "YouTube input must be loopback UDP" >&2; exit 78; }
+[[ "$YOUTUBE_V3_STARTUP_DELAY_SECONDS" =~ ^[0-9]+$ ]] || { echo "YOUTUBE_V3_STARTUP_DELAY_SECONDS must be a nonnegative integer" >&2; exit 78; }
 
 LOCAL_BASE=${YOUTUBE_LOCAL_UDP_URL%%\?*}
 LOCAL_INPUT="${LOCAL_BASE}?fifo_size=2000000&overrun_nonfatal=1&reuse=1"
@@ -32,6 +34,14 @@ progress_sink() {
     fi
   done
 }
+
+# A destination generation cutover can leave the prior YouTube RTMPS publish
+# session alive briefly after its process exits. Wait only on the YouTube
+# destination before opening the replacement session; the shared master and
+# Rumble relay continue uninterrupted during this interval.
+if (( YOUTUBE_V3_STARTUP_DELAY_SECONDS > 0 )); then
+  sleep "$YOUTUBE_V3_STARTUP_DELAY_SECONDS"
+fi
 
 # v3 preserves the proven 1280x720 Lovable overlay contract and A/V clock
 # rebuild, composites at the source geometry, then scales only the YouTube
