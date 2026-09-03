@@ -7,6 +7,9 @@ on:
       - '.github/workflows/fgbears-live-validate.yml'
       - '.github/workflows/fgbears-live-monitor.yml'
       - '.github/workflows/fgbears-stream-health-audit.yml'
+      - '.github/workflows/fgbears-youtube-key-activate.yml'
+      - '.github/workflows/youtube-v2-validate.yml'
+      - '.github/quarantine/youtube-legacy-workflows/**'
   push:
     branches: [main]
     paths:
@@ -14,6 +17,9 @@ on:
       - '.github/workflows/fgbears-live-validate.yml'
       - '.github/workflows/fgbears-live-monitor.yml'
       - '.github/workflows/fgbears-stream-health-audit.yml'
+      - '.github/workflows/fgbears-youtube-key-activate.yml'
+      - '.github/workflows/youtube-v2-validate.yml'
+      - '.github/quarantine/youtube-legacy-workflows/**'
 
 permissions:
   contents: read
