@@ -12,26 +12,41 @@ cleanup(){
 trap cleanup EXIT
 
 for script in "$ROOT"/bin/*.sh "$ROOT"/youtube-v3/*.sh; do bash -n "$script"; done
-python3 -m py_compile "$ROOT/bin/ad-overlay.py" "$ROOT/bin/ad-overlay-smart.py" "$ROOT/bin/game_overlay.py" "$ROOT/bin/crawl-overlay.py" "$ROOT/bin/bears-news-feed.py" "$ROOT/youtube-v3/youtube-v3-overlay.py" "$ROOT/youtube-v3/build-creatives.py"
+python3 -m py_compile "$ROOT/bin/ad-overlay.py" "$ROOT/bin/ad-overlay-smart.py" "$ROOT/bin/game_overlay.py" "$ROOT/bin/crawl-overlay.py" "$ROOT/bin/bears-news-feed.py" "$ROOT/youtube-v3/youtube-v3-overlay.py" "$ROOT/youtube-v3/lovable-state-cache.py" "$ROOT/youtube-v3/build-creatives.py"
 python3 "$ROOT/tests/test-game-overlay.py"
 python3 "$ROOT/youtube-v3/build-creatives.py"
 
 YOUTUBE_V3_CREATIVE_DIR="$ROOT/youtube-v3/creatives" python3 - "$ROOT/youtube-v3/youtube-v3-overlay.py" <<'PY'
-import importlib.util, inspect, sys
+import importlib.util, sys
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 path=Path(sys.argv[1]); spec=importlib.util.spec_from_file_location('v3overlay',path)
 m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m)
-assert 'fetch(' not in inspect.getsource(m.stream)
+assert 'urllib' not in path.read_text(), 'renderer must contain no HTTP client'
 region={"x":462,"y":104,"width":798,"height":470,"coordinateSpace":"pixels","referenceWidth":1280,"referenceHeight":720}
+def iso(seconds): return (datetime.now(timezone.utc)+timedelta(seconds=seconds)).isoformat().replace('+00:00','Z')
 def payload(key='yt_rumble_trivia_redirect', **change):
-    trivia={"stale":False,"phase":"question","adsVisible":False,"isAdBreak":False,"adBreakActive":False,"youtubeMaskActive":True,"youtubeCreativeKey":key,"maskRegion":region,"presentation":{"rumble":{"rendersRealQuestion":True},"youtube":{"rendersRealQuestion":False,"maskedRegion":{"x":462,"y":104,"width":798,"height":470},"creativeKey":key,"sourceTemplateKey":key,"presentationMode":"full_creative_scaled"}}}
-    trivia.update(change); return {"trivia":trivia}
-t=m.validate(payload()); assert m.should_cover(t); assert len(m.build_frame(t['_validatedCreativeKey'])) == 798*470*4
-for change in ({"stale":True},{"phase":"revealed"},{"adsVisible":True},{"isAdBreak":True},{"adBreakActive":True},{"youtubeMaskActive":False}): assert not m.should_cover(m.validate(payload(**change)))
+    trivia={"active":True,"stale":False,"phase":"question","gameVisible":True,"youtubeRedirectRequired":True}
+    ad={"active":False,"adsVisible":False,"isAdBreak":False}
+    diff={"enabled":True,"creativeKey":key,"reason":"question_phase","region":region,"presentationMode":"full_creative_scaled"}
+    for k,v in change.items():
+        if k.startswith('trivia_'): trivia[k[7:]]=v
+        elif k.startswith('ad_'): ad[k[3:]]=v
+        else: diff[k]=v
+    return {"schemaVersion":"fgb-stream-state/v1","generatedAt":iso(-1),"validUntil":iso(4),"revision":"rtest",
+            "presentation":{"adBreak":ad,"trivia":trivia,"routing":{"rumble":{"rendersRealQuestion":True},"youtube":{"differenceLayer":diff}},
+                            "overlay":{},"crawl":{},"news":{},"schedule":{},"mask":{"region":region}}}
+pres,key=m.validate(payload()); assert m.should_cover(pres,key); assert len(m.build_frame(key)) == 798*470*4
+for changed in (payload(trivia_stale=True),payload(trivia_phase='revealed'),payload(trivia_gameVisible=False),payload(trivia_youtubeRedirectRequired=False),payload(ad_active=True),payload(enabled=False)):
+    pres,key=m.validate(changed); assert not m.should_cover(pres,key)
+expired=payload(); expired['validUntil']=iso(-1)
+try: m.validate(expired)
+except ValueError: pass
+else: raise AssertionError('expired state must fail transparent')
 try: m.build_frame('not_installed')
 except FileNotFoundError: pass
 else: raise AssertionError('unapproved creative must fail closed')
-print('YOUTUBE_V3_RENDERER_TEST=PASS')
+print('YOUTUBE_V3_RENDERER_TEST=PASS contract=fgb-stream-state/v1 local_state_only=yes')
 PY
 
 # Shared program is still encoded once and mirrored to YouTube/Rumble loopback.
