@@ -1,4 +1,4 @@
-name: Audit FGBears Production
+name: Deploy Faster YouTube Concealment and Lower Overlay Overhead
 
 on:
   push:
@@ -9,58 +9,154 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: fgbears-youtube-timing-fix
+  cancel-in-progress: false
 
 jobs:
-  audit:
+  deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 9
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
       ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
-      - name: Configure SSH
+      - uses: actions/checkout@v4
+        with:
+          ref: lovable-routing-bridge-20260902
+          fetch-depth: 0
+
+      - name: Patch permanent YouTube timing and overhead contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          mask=Path('services/fgbears-live/bin/youtube-question-mask.py')
+          s=mask.read_text()
+          s=s.replace('FPS = max(1, min(30, int(os.getenv("YOUTUBE_QUESTION_MASK_FPS", "30"))))',
+                      'FPS = max(1, min(30, int(os.getenv("YOUTUBE_QUESTION_MASK_FPS", "15"))))')
+          s=s.replace('POLL_SECONDS = max(1, int(os.getenv("YOUTUBE_QUESTION_MASK_POLL_SECONDS", "1")))',
+                      'POLL_SECONDS = max(0.10, min(1.0, float(os.getenv("YOUTUBE_QUESTION_MASK_POLL_SECONDS", "0.20"))))')
+          s=s.replace('with urllib.request.urlopen(req, timeout=6) as response:',
+                      'with urllib.request.urlopen(req, timeout=2.0) as response:')
+          old='''        trivia = payload.get("trivia") if isinstance(payload.get("trivia"), dict) else {}\n        phase = str(trivia.get("phase") or "") or None\n        with self.lock:\n            # The actual trivia phase is the sole concealment authority. A\n            # question can never be exposed because of a secondary ad/mask flag\n            # changing late or briefly disagreeing with the phase state.\n            self.active = phase == "question"\n            self.phase = phase\n            self.last_good = time.time()\n            self.last_error = None\n'''
+          new='''        trivia = payload.get("trivia") if isinstance(payload.get("trivia"), dict) else {}\n        phase = str(trivia.get("phase") or "") or None\n        question_active = trivia.get("questionActive") is True\n        mask_active = trivia.get("youtubeMaskActive") is True\n        ads_visible = trivia.get("adsVisible") is True\n        ad_break = trivia.get("isAdBreak") is True or trivia.get("adBreakActive") is True\n        session_active = trivia.get("active") is True\n        # Pre-arm in the clean transition immediately before a question. This\n        # closes the control-plane/video-paint race without covering ad breaks.\n        prearmed = bool(session_active and phase == "transition" and not ads_visible and not ad_break)\n        should_cover = bool(phase == "question" or question_active or mask_active or prearmed)\n        with self.lock:\n            self.active = should_cover\n            self.phase = phase\n            self.question_active = question_active\n            self.mask_active = mask_active\n            self.prearmed = prearmed\n            self.last_good = time.time()\n            self.last_error = None\n'''
+          if old not in s:
+              raise SystemExit('state-update block not found')
+          s=s.replace(old,new)
+          s=s.replace('''        self.last_error: str | None = None\n''','''        self.last_error: str | None = None\n        self.question_active = False\n        self.mask_active = False\n        self.prearmed = False\n''',1)
+          s=s.replace('''                "failClosedDuringQuestion": True,\n                "fps": FPS,\n''','''                "failClosedDuringQuestion": True,\n                "questionActiveSignal": STATE.question_active,\n                "youtubeMaskActiveSignal": STATE.mask_active,\n                "prearmed": STATE.prearmed,\n                "pollSeconds": POLL_SECONDS,\n                "fps": FPS,\n''')
+          s=s.replace('server_version = "FGBearsLovableRoutingBridge/5.2"','server_version = "FGBearsLovableRoutingBridge/5.3"')
+          mask.write_text(s)
+
+          unit=Path('services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service')
+          u=unit.read_text()
+          if 'Environment=YOUTUBE_QUESTION_MASK_FPS=' in u:
+              import re
+              u=re.sub(r'Environment=YOUTUBE_QUESTION_MASK_FPS=.*', 'Environment=YOUTUBE_QUESTION_MASK_FPS=15', u)
+          else:
+              u=u.replace('Environment=YOUTUBE_QUESTION_MASK_PORT=8791\n', 'Environment=YOUTUBE_QUESTION_MASK_PORT=8791\nEnvironment=YOUTUBE_QUESTION_MASK_FPS=15\nEnvironment=YOUTUBE_QUESTION_MASK_POLL_SECONDS=0.20\n')
+          if 'Environment=YOUTUBE_QUESTION_MASK_POLL_SECONDS=' not in u:
+              u=u.replace('Environment=YOUTUBE_QUESTION_MASK_FPS=15\n', 'Environment=YOUTUBE_QUESTION_MASK_FPS=15\nEnvironment=YOUTUBE_QUESTION_MASK_POLL_SECONDS=0.20\n')
+          else:
+              import re
+              u=re.sub(r'Environment=YOUTUBE_QUESTION_MASK_POLL_SECONDS=.*', 'Environment=YOUTUBE_QUESTION_MASK_POLL_SECONDS=0.20', u)
+          unit.write_text(u)
+
+          comp=Path('services/fgbears-live/bin/youtube-lovable-compositor.sh')
+          c=comp.read_text()
+          if 'YOUTUBE_OVERLAY_FPS=' not in c:
+              c=c.replace('YOUTUBE_OUTPUT_FPS=30\n', 'YOUTUBE_OUTPUT_FPS=30\nYOUTUBE_OVERLAY_FPS=15\n')
+          c=c.replace('-framerate "$YOUTUBE_OUTPUT_FPS" -i "$OVERLAY_URL"', '-framerate "$YOUTUBE_OVERLAY_FPS" -i "$OVERLAY_URL"')
+          c=c.replace('overlay=${MASK_X}:${MASK_Y}:format=auto:shortest=1[v]', 'overlay=${MASK_X}:${MASK_Y}:format=auto:shortest=0:repeatlast=1:eof_action=repeat[v]')
+          comp.write_text(c)
+          PY
+
+          python3 -m py_compile services/fgbears-live/bin/youtube-question-mask.py
+          bash -n services/fgbears-live/bin/youtube-lovable-compositor.sh
+          grep -Fq 'YOUTUBE_QUESTION_MASK_FPS=15' services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service
+          grep -Fq 'YOUTUBE_QUESTION_MASK_POLL_SECONDS=0.20' services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service
+          grep -Fq 'question_active or mask_active or prearmed' services/fgbears-live/bin/youtube-question-mask.py
+          grep -Fq 'YOUTUBE_OVERLAY_FPS=15' services/fgbears-live/bin/youtube-lovable-compositor.sh
+          grep -Fq 'repeatlast=1' services/fgbears-live/bin/youtube-lovable-compositor.sh
+
+          git config user.name 'FGB Production Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add services/fgbears-live/bin/youtube-question-mask.py services/fgbears-live/bin/youtube-lovable-compositor.sh services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service
+          if ! git diff --cached --quiet; then
+            git commit -m 'Tighten YouTube question timing and reduce overlay overhead'
+            git push origin HEAD:lovable-routing-bridge-20260902
+          fi
+
+      - name: Configure SSH and stage YouTube-only files
+        shell: bash
         run: |
           set -Eeuo pipefail
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-question-mask.py "${ORACLE_USER:-ubuntu}@$ORACLE_HOST:/tmp/youtube-question-mask.py.timing"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-lovable-compositor.sh "${ORACLE_USER:-ubuntu}@$ORACLE_HOST:/tmp/youtube-lovable-compositor.sh.timing"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service "${ORACLE_USER:-ubuntu}@$ORACLE_HOST:/tmp/fgbears-youtube-lovable-routing.service.timing"
 
-      - name: Capture production evidence
+      - name: Guarded YouTube-only cutover and live timing certification
         shell: bash
         run: |
           set -Eeuo pipefail
-          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
-          ssh -i ~/.ssh/oracle_key "$target" 'sudo bash -s' <<'REMOTE'
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          COMP=fgbears-youtube-lovable-compositor.service
-          MONDIR=/run/fgbears-youtube-lovable-compositor
-          C=$(systemctl show -p MainPID --value "$COMP")
-          echo "COMP_PID=$C"
-          echo "COMP_CPU=$(ps -p "$C" -o %cpu= | awk '{print $1+0}')"
-          echo "MASTER_SPEED=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log)x"
-          SEG=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
-          test -s "$SEG"
-          /usr/bin/ffprobe -v error -show_entries stream=codec_type,width,height,r_frame_rate,avg_frame_rate,sample_aspect_ratio,display_aspect_ratio,sample_rate,channels -of json "$SEG" | python3 -c 'import json,sys;print("PROBE",json.dumps(json.load(sys.stdin),sort_keys=True))'
-          crop=$(ffmpeg -nostdin -hide_banner -loglevel info -i "$SEG" -vf 'cropdetect=24:2:0' -frames:v 55 -an -f null - 2>&1 | grep -oE 'crop=[0-9]+:[0-9]+:[0-9]+:[0-9]+' | tail -n1 || true)
-          echo "CROP=${crop:-none}"
-          /usr/bin/ffprobe -v error -select_streams v:0 -show_entries frame=best_effort_timestamp_time -of csv=p=0 "$SEG" >/tmp/pts.txt
-          python3 -c 'from pathlib import Path; xs=[float(s.split(",")[0]) for s in Path("/tmp/pts.txt").read_text().splitlines() if s.strip()]; ds=[b-a for a,b in zip(xs,xs[1:]) if b>=a]; d=sorted(ds); print("PACING unavailable" if not d else f"PACING frames={len(xs)} median={d[len(d)//2]:.6f} p95={d[min(len(d)-1,int((len(d)-1)*.95))]:.6f} max={max(d):.6f} bad={sum(abs(x-1/30)>.004 for x in d)}/{len(d)}")'
-          ffmpeg -nostdin -hide_banner -loglevel error -ss 1 -i "$SEG" -frames:v 1 -y /tmp/youtube-live-frame.png
-          chmod 0644 /tmp/youtube-live-frame.png
-          faults=0
-          faults=$(journalctl -u "$COMP" --since '30 minutes ago' --no-pager 2>/dev/null | grep -Eci 'Circular buffer overrun|timestamp discontinuity|Packet corrupt|Non-monotonous DTS|Invalid DTS|Queue input is backward in time|Broken pipe|Connection reset by peer|dropping frame|dup=' || true)
-          echo "FAULT_LINES_30M=$faults"
-          journalctl -u "$COMP" --since '30 minutes ago' --no-pager 2>/dev/null | grep -Ei 'Circular buffer overrun|timestamp discontinuity|Packet corrupt|Non-monotonous DTS|Invalid DTS|Queue input is backward in time|Broken pipe|Connection reset by peer|dropping frame|dup=' | tail -n 40 || true
-          REMOTE
-          scp -i ~/.ssh/oracle_key "$target:/tmp/youtube-live-frame.png" youtube-live-frame.png
+          MASTER=fgbears-live.service; RUMBLE=fgbears-rumble-relay.service; ROUTING=fgbears-youtube-lovable-routing.service; COMP=fgbears-youtube-lovable-compositor.service; LEGACY=fgbears-youtube-relay.service; WT=fgbears-youtube-audio-watchdog.timer
+          MASK=/opt/fgbears-live/bin/youtube-question-mask.py; COMPSH=/opt/fgbears-live/bin/youtube-lovable-compositor.sh; UNIT=/etc/systemd/system/fgbears-youtube-lovable-routing.service; MONDIR=/run/fgbears-youtube-lovable-compositor
+          BACK=$(mktemp -d /tmp/fgb-yt-timing.XXXXXX); OK=0
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }; nr(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }; active(){ systemctl is-active --quiet "$1"; }; conn(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }; fail(){ echo "TIMING_FIX_FAIL=$1" >&2; exit 1; }
+          active "$MASTER" || fail MASTER_DOWN_PRE; active "$RUMBLE" || fail RUMBLE_DOWN_PRE; active "$ROUTING" || fail ROUTING_DOWN_PRE; active "$COMP" || fail COMP_DOWN_PRE; ! active "$LEGACY" || fail LEGACY_ACTIVE_PRE
+          M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE"); MN0=$(nr "$MASTER"); RN0=$(nr "$RUMBLE")
+          shared(){ [[ "$(pid "$MASTER")" == "$M0" && "$(pid "$RUMBLE")" == "$R0" ]] || fail SHARED_PID_CHANGED; [[ "$(nr "$MASTER")" == "$MN0" && "$(nr "$RUMBLE")" == "$RN0" ]] || fail SHARED_RESTARTED; active "$MASTER" || fail MASTER_DOWN; active "$RUMBLE" || fail RUMBLE_DOWN; conn "$R0" 1935 || fail RUMBLE_SOCKET_LOST; }
+          cp -a "$MASK" "$BACK/mask"; cp -a "$COMPSH" "$BACK/comp"; cp -a "$UNIT" "$BACK/unit"
+          rollback(){ rc=$?; ((OK==0)) || return 0; echo "TIMING_FIX_ROLLBACK rc=$rc" >&2; systemctl stop "$WT" 2>/dev/null || true; install -m0755 "$BACK/mask" "$MASK"; install -m0755 "$BACK/comp" "$COMPSH"; install -m0644 "$BACK/unit" "$UNIT"; systemctl daemon-reload; systemctl reset-failed "$ROUTING" "$COMP" || true; systemctl restart "$ROUTING" || true; systemctl restart "$COMP" || true; systemctl start "$WT" || true; rm -rf "$BACK"; exit "$rc"; }; trap rollback EXIT
+          systemctl stop "$WT" 2>/dev/null || true
+          install -m0755 /tmp/youtube-question-mask.py.timing "$MASK"; install -m0755 /tmp/youtube-lovable-compositor.sh.timing "$COMPSH"; install -m0644 /tmp/fgbears-youtube-lovable-routing.service.timing "$UNIT"
+          systemctl daemon-reload; systemctl reset-failed "$ROUTING" "$COMP" || true; systemctl restart "$ROUTING"; systemctl restart "$COMP"; shared
+          C1=0
+          for _ in $(seq 1 35); do shared; C1=$(pid "$COMP"); h=$(curl -fsS --max-time 2 http://127.0.0.1:8791/healthz 2>/dev/null || true); if active "$ROUTING" && active "$COMP" && conn "$C1" 443 && printf '%s' "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("canvas")==[1280,720];assert p.get("fps")==15;assert abs(float(p.get("pollSeconds"))-0.20)<0.01;assert p.get("maskRegion")=={"x":462,"y":104,"width":798,"height":470}' 2>/dev/null; then break; fi; sleep 1; done
+          [[ "$C1" =~ ^[1-9][0-9]*$ ]] && conn "$C1" 443 || fail YOUTUBE_DID_NOT_RECONNECT
+          shared; ! active "$LEGACY" || fail LEGACY_ACTIVE_AFTER
 
-      - name: Upload live frame
-        uses: actions/upload-artifact@v4
-        with:
-          name: youtube-live-frame
-          path: youtube-live-frame.png
-          if-no-files-found: error
-          retention-days: 1
+          seg=''
+          for _ in $(seq 1 20); do seg=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}'); [[ -n "$seg" && -s "$seg" ]] && break; sleep 1; done
+          [[ -n "$seg" && -s "$seg" ]] || fail MONITOR_MISSING
+          ffprobe -v fatal -show_entries stream=codec_type,width,height,r_frame_rate,sample_rate,channels -of json "$seg" | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p["streams"];v=next(x for x in s if x.get("codec_type")=="video");a=next(x for x in s if x.get("codec_type")=="audio");assert (v["width"],v["height"])==(1280,720);assert v["r_frame_rate"]=="30/1";assert str(a["sample_rate"])=="48000";assert a["channels"]==2' || fail AV_INVALID
+
+          # Prove the 30-fps base remains perfectly paced after cutting overlay IPC in half.
+          ffprobe -v error -select_streams v:0 -show_entries frame=best_effort_timestamp_time -of csv=p=0 "$seg" >/tmp/pts
+          python3 -c 'from pathlib import Path; x=[float(s.split(",")[0]) for s in Path("/tmp/pts").read_text().splitlines() if s.strip()]; d=[b-a for a,b in zip(x,x[1:])]; assert d and max(abs(z-1/30) for z in d)<0.004' || fail FRAME_PACING_BAD
+
+          # Observe live control signals for up to 4 minutes. Any direct question
+          # signal must produce an active local cover within the next 500 ms.
+          seen=0; misses=0; deadline=$(( $(date +%s)+240 ))
+          while (( $(date +%s)<deadline )); do
+            remote=$(curl -fsS --max-time 1.5 'https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing?_verify=1' 2>/dev/null || echo '{}')
+            localh=$(curl -fsS --max-time 1 http://127.0.0.1:8791/healthz 2>/dev/null || echo '{}')
+            read -r direct pre localactive phase <<EOF
+$(python3 -c 'import json,sys;r=json.loads(sys.argv[1]);t=r.get("trivia") or {};l=json.loads(sys.argv[2]);direct=int(t.get("phase")=="question" or t.get("questionActive") is True or t.get("youtubeMaskActive") is True);pre=int(t.get("active") is True and t.get("phase")=="transition" and not (t.get("adsVisible") is True or t.get("isAdBreak") is True or t.get("adBreakActive") is True));print(direct,pre,int(l.get("active") is True),t.get("phase") or "none")' "$remote" "$localh")
+EOF
+            if ((direct==1 || pre==1)); then seen=$((seen+1)); if ((localactive!=1)); then sleep 0.35; localh=$(curl -fsS --max-time 1 http://127.0.0.1:8791/healthz || echo '{}'); localactive=$(python3 -c 'import json,sys;print(int(json.loads(sys.argv[1]).get("active") is True))' "$localh"); ((localactive==1)) || misses=$((misses+1)); fi; fi
+            ((seen>=12)) && break
+            sleep 0.20
+          done
+          echo "LIVE_SIGNAL_CERT seen=$seen misses=$misses"
+          ((seen>0)) || fail NO_QUESTION_SIGNAL_OBSERVED
+          ((misses==0)) || fail QUESTION_SIGNAL_MISSED
+
+          maxcpu=0; for _ in $(seq 1 12); do shared; [[ "$(pid "$COMP")" == "$C1" ]] || fail COMP_RESTARTED; conn "$C1" 443 || fail YOUTUBE_SOCKET_LOST; cpu=$(ps -p "$C1" -o %cpu= | awk '{print $1+0}'); maxcpu=$(python3 -c 'import sys;print(max(float(sys.argv[1]),float(sys.argv[2])))' "$maxcpu" "$cpu"); sleep 2; done
+          systemctl start "$WT" || fail WATCHDOG_TIMER_FAIL; sleep 2; active "$WT" || fail WATCHDOG_TIMER_DOWN; ! active "$LEGACY" || fail WATCHDOG_STARTED_LEGACY; shared
+          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
+          echo "TIMING_OVERHEAD_FIX=PASS master=$M0 rumble=$R0 compositor=$C1 overlay_fps=15 poll=0.20s live_signals=$seen misses=$misses max_cpu=${maxcpu}% master_speed=${speed:-unknown}x"
+          OK=1; trap - EXIT; rm -rf "$BACK" /tmp/*.timing
+          REMOTE
