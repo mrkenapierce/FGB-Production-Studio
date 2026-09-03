@@ -12,6 +12,9 @@ SUP=fgbears-youtube-v3-supervisor.service
 RETIRED=(fgbears-youtube-output.service fgbears-youtube-relay.service fgbears-youtube-router.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service fgbears-youtube-audio-watchdog.service fgbears-youtube-audio-watchdog.timer)
 ROOT=/run/fgbears-youtube-v3
 RELEASE="/opt/fgbears-live/releases/${RELEASE_SHA}/youtube-v3"
+LIVE_MASTER=/usr/local/bin/fgbears-start-stream
+LIVE_MASTER_BACKUP=""
+MASTER_PATCHED=0
 CUTOVER=0
 
 pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
@@ -24,6 +27,10 @@ cleanup_failure(){
   rc=$?
   if ((rc != 0)); then
     systemctl stop "$SUP" "$V3" "$SOURCE" 2>/dev/null || true
+    if ((MASTER_PATCHED == 1)) && [[ -n "$LIVE_MASTER_BACKUP" && -r "$LIVE_MASTER_BACKUP" ]]; then
+      install -o root -g root -m755 "$LIVE_MASTER_BACKUP" "$LIVE_MASTER" || true
+      echo 'V3_6_ROLLBACK=MASTER_LAUNCHER_RESTORED_FOR_NEXT_RESTART' >&2
+    fi
     if ((CUTOVER == 1)); then
       echo 'V3_6_ROLLBACK=BEGIN' >&2
       systemctl reset-failed "$V2" 2>/dev/null || true
@@ -37,7 +44,7 @@ cleanup_failure(){
 trap cleanup_failure EXIT
 
 install -d -o root -g root -m755 "$RELEASE"
-for f in run-youtube-v3-source.sh run-youtube-v3.sh make-youtube-v3-cover.py youtube-v3-supervisor.py; do
+for f in run-youtube-v3-source.sh run-youtube-v3.sh make-youtube-v3-cover.py youtube-v3-supervisor.py make-master-v3-export.py; do
   install -o root -g root -m755 "/tmp/$f" "$RELEASE/$f"
 done
 ln -sfn "$RELEASE" /opt/fgbears-live/youtube-v3
@@ -50,7 +57,7 @@ systemctl daemon-reload
 
 bash -n "$RELEASE/run-youtube-v3-source.sh"
 bash -n "$RELEASE/run-youtube-v3.sh"
-python3 -m py_compile "$RELEASE/youtube-v3-supervisor.py"
+python3 -m py_compile "$RELEASE/youtube-v3-supervisor.py" "$RELEASE/make-master-v3-export.py"
 ffmpeg -hide_banner -h demuxer=hls > /tmp/v3-hls-demuxer-help.txt 2>&1 || true
 grep -q live_start_index /tmp/v3-hls-demuxer-help.txt || fail hls_live_start_index_unsupported
 ffmpeg -hide_banner -h muxer=hls > /tmp/v3-hls-muxer-help.txt 2>&1 || true
@@ -66,6 +73,7 @@ echo "V3_6_HOST_PREFLIGHT=PASS release=$RELEASE filter=yes hls=yes cover=798x470
 systemctl is-active --quiet "$MASTER" || fail master_inactive
 systemctl is-active --quiet "$RUMBLE" || fail rumble_inactive
 systemctl is-active --quiet "$V2" || fail v2_inactive_before_shadow
+[[ -x "$LIVE_MASTER" ]] || fail live_master_launcher_missing
 M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE"); V20=$(pid "$V2")
 RN0=$(nr "$RUMBLE"); V2N0=$(nr "$V2")
 conn "$R0" 1935 || fail rumble_socket_missing
@@ -94,11 +102,20 @@ systemctl is-active --quiet "$SOURCE" || fail source_not_active_before_master_re
 grep -q ':1950' /tmp/v3-udp-sockets.txt || fail source_not_bound_1950_before_master_restart
 echo "V3_6_SOURCE_PREBIND=PASS pid=$(pid "$SOURCE") port=1950"
 
+# Patch the executable systemd actually launches. Preserve all existing FIFO,
+# overlay, cleanup, and thread behavior; add only the third local tee output.
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 q="/opt/fgbears-live/quarantine/v3-6-$stamp"
 install -d -m755 "$q"
-cp -a /opt/fgbears-live/bin/start-stream.sh "$q/start-stream.sh.pre-v3"
-install -o root -g root -m755 /tmp/start-stream-v3.sh /opt/fgbears-live/bin/start-stream.sh
+LIVE_MASTER_BACKUP="$q/fgbears-start-stream.pre-v3"
+cp -a "$LIVE_MASTER" "$LIVE_MASTER_BACKUP"
+python3 /tmp/make-master-v3-export.py "$LIVE_MASTER" /tmp/fgbears-start-stream-v3-live
+bash -n /tmp/fgbears-start-stream-v3-live
+grep -Fq 'YOUTUBE_V3_LOCAL_UDP_URL' /tmp/fgbears-start-stream-v3-live || fail live_master_v3_patch_missing
+grep -Fq -- '-use_fifo 1' /tmp/fgbears-start-stream-v3-live || fail live_master_fifo_not_preserved
+install -o root -g root -m755 /tmp/fgbears-start-stream-v3-live "$LIVE_MASTER"
+MASTER_PATCHED=1
+
 systemctl restart "$MASTER"
 for _ in $(seq 1 30); do systemctl is-active --quiet "$MASTER" && break; sleep 1; done
 systemctl is-active --quiet "$MASTER" || fail master_failed_after_export
@@ -115,8 +132,6 @@ conn "$(pid "$V2")" 443 || fail v2_socket_lost_after_master_restart
 [[ "$(pid "$V2")" == "$V20" && "$(nr "$V2")" == "$V2N0" ]] || fail v2_process_changed_during_master_export
 echo "V3_6_MASTER_EXPORT=PASS old_master=$M0 new_master=$M1 rumble=$R0 v2=$V20 source=$(pid "$SOURCE") speed=${speed}x"
 
-# The already-bound source must now publish decoder-safe segments. Do NOT
-# restart it here; doing so can cause the active master UDP tee slave to fail.
 for _ in $(seq 1 50); do
   [[ -s "$ROOT/source/live.m3u8" ]] && grep -q '^#EXT-X-PROGRAM-DATE-TIME:' "$ROOT/source/live.m3u8" && break
   sleep 0.5
