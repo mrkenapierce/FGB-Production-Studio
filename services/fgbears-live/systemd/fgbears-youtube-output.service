@@ -2,7 +2,6 @@
 Description=FGBears minimal YouTube output
 After=network-online.target fgbears-live.service
 Wants=network-online.target
-Requires=fgbears-live.service
 
 [Service]
 Type=simple
