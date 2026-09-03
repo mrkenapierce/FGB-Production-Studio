@@ -49,20 +49,10 @@ progress_sink() {
   done
 }
 
-DELAY_PID=""
-FFMPEG_PID=""
-cleanup() {
-  if [[ -n "$FFMPEG_PID" ]] && kill -0 "$FFMPEG_PID" 2>/dev/null; then
-    kill -INT "$FFMPEG_PID" 2>/dev/null || true
-    wait "$FFMPEG_PID" 2>/dev/null || true
-  fi
-  if [[ -n "$DELAY_PID" ]] && kill -0 "$DELAY_PID" 2>/dev/null; then
-    kill "$DELAY_PID" 2>/dev/null || true
-    wait "$DELAY_PID" 2>/dev/null || true
-  fi
-}
-trap cleanup EXIT INT TERM
-
+# The delay relay remains a child in the same systemd cgroup. Exec keeps FFmpeg
+# as the service MainPID so existing RTMPS socket and pacing monitors remain
+# accurate. systemd's default control-group kill behavior cleans the relay up
+# whenever the YouTube service is restarted.
 YOUTUBE_V3_BUFFER_SECONDS="$YOUTUBE_V3_BUFFER_SECONDS" \
 YOUTUBE_LOCAL_UDP_URL="$YOUTUBE_LOCAL_UDP_URL" \
 YOUTUBE_V3_BUFFERED_UDP_URL="$YOUTUBE_V3_BUFFERED_UDP_URL" \
@@ -75,8 +65,7 @@ if (( YOUTUBE_V3_STARTUP_DELAY_SECONDS > 0 )); then
   sleep "$YOUTUBE_V3_STARTUP_DELAY_SECONDS"
 fi
 
-YOUTUBE_V3_BUFFER_SECONDS="$YOUTUBE_V3_BUFFER_SECONDS" \
-ffmpeg \
+exec env YOUTUBE_V3_BUFFER_SECONDS="$YOUTUBE_V3_BUFFER_SECONDS" ffmpeg \
   -hide_banner -nostdin -loglevel warning \
   -progress pipe:3 -stats_period 1 \
   -fflags +genpts+discardcorrupt \
@@ -96,20 +85,4 @@ ffmpeg \
   -max_muxing_queue_size 2048 \
   -rw_timeout 15000000 \
   -f flv -flvflags no_duration_filesize \
-  "$TARGET" 3> >(progress_sink) &
-FFMPEG_PID=$!
-
-while true; do
-  if ! kill -0 "$DELAY_PID" 2>/dev/null; then
-    echo "YouTube delay relay exited; restarting destination to avoid unbuffered output" >&2
-    exit 70
-  fi
-  if ! kill -0 "$FFMPEG_PID" 2>/dev/null; then
-    set +e
-    wait "$FFMPEG_PID"
-    status=$?
-    set -e
-    exit "$status"
-  fi
-  sleep 1
-done
+  "$TARGET" 3> >(progress_sink)
