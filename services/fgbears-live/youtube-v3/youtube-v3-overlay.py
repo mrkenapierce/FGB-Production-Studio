@@ -3,15 +3,15 @@
 
 Hard boundary: this renderer performs NO network I/O. Lovable is polled by the
 independent lovable-state-cache.py process, which atomically publishes validated
-state locally. This media-clock process reads only that local cache and fails
-transparent for missing, malformed, expired, ambiguous, ad-break, or unknown-
-creative state.
+state locally. A validated positive concealment trigger is latched for at least
+15 seconds so a short phase transition cannot expose the question prematurely.
 """
 from __future__ import annotations
 
 import argparse
 from datetime import datetime
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -20,9 +20,24 @@ import time
 
 from PIL import Image
 
-WIDTH = 798
-HEIGHT = 470
+REFERENCE_WIDTH = 1280
+REFERENCE_HEIGHT = 720
+SOURCE_X = 462
+SOURCE_Y = 104
+SOURCE_WIDTH = 798
+SOURCE_HEIGHT = 470
+OUTPUT_WIDTH = 854
+OUTPUT_HEIGHT = 480
+OUTPUT_X = math.floor(SOURCE_X * OUTPUT_WIDTH / REFERENCE_WIDTH)
+OUTPUT_Y = math.floor(SOURCE_Y * OUTPUT_HEIGHT / REFERENCE_HEIGHT)
+OUTPUT_RIGHT = math.ceil((SOURCE_X + SOURCE_WIDTH) * OUTPUT_WIDTH / REFERENCE_WIDTH)
+OUTPUT_BOTTOM = math.ceil((SOURCE_Y + SOURCE_HEIGHT) * OUTPUT_HEIGHT / REFERENCE_HEIGHT)
+WIDTH = OUTPUT_RIGHT - OUTPUT_X
+HEIGHT = OUTPUT_BOTTOM - OUTPUT_Y
 FPS = 5.0
+HOLD_SECONDS = float(os.getenv("YOUTUBE_V3_CONCEALMENT_HOLD_SECONDS", "15"))
+if HOLD_SECONDS <= 0:
+    raise ValueError("YOUTUBE_V3_CONCEALMENT_HOLD_SECONDS must be positive")
 STATE_FILE = Path(os.getenv(
     "FGB_CONTROL_STATE_FILE", "/run/fgbears-control-plane/stream-state.json"
 ))
@@ -31,19 +46,42 @@ CREATIVE_DIR = Path(os.getenv(
 ))
 BUILTIN_REDIRECT_KEY = "yt_rumble_trivia_redirect"
 EXPECTED_SCHEMA = "fgb-stream-state/v1"
-VISIBLE_QUESTION_PHASES = {"question", "revealed"}
 KEY_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 EXPECTED_REGION = {
-    "x": 462,
-    "y": 104,
+    "x": SOURCE_X,
+    "y": SOURCE_Y,
+    "width": SOURCE_WIDTH,
+    "height": SOURCE_HEIGHT,
+    "coordinateSpace": "pixels",
+    "referenceWidth": REFERENCE_WIDTH,
+    "referenceHeight": REFERENCE_HEIGHT,
+}
+OUTPUT_REGION = {
+    "x": OUTPUT_X,
+    "y": OUTPUT_Y,
     "width": WIDTH,
     "height": HEIGHT,
-    "coordinateSpace": "pixels",
-    "referenceWidth": 1280,
-    "referenceHeight": 720,
+    "referenceWidth": OUTPUT_WIDTH,
+    "referenceHeight": OUTPUT_HEIGHT,
 }
 TRANSPARENT = bytes(WIDTH * HEIGHT * 4)
 _FRAME_CACHE: dict[str, bytes] = {}
+
+
+class ConcealmentLatch:
+    """Minimum-duration latch driven only by validated positive triggers."""
+
+    def __init__(self, hold_seconds: float = HOLD_SECONDS) -> None:
+        self.hold_seconds = hold_seconds
+        self.hold_until = 0.0
+        self.was_triggered = False
+
+    def update(self, triggered: bool, *, now: float | None = None) -> bool:
+        now = time.monotonic() if now is None else now
+        if triggered and not self.was_triggered:
+            self.hold_until = max(self.hold_until, now + self.hold_seconds)
+        self.was_triggered = triggered
+        return triggered or now < self.hold_until
 
 
 def parse_timestamp(value: object) -> float:
@@ -122,12 +160,8 @@ def validate(payload: dict, *, now: float | None = None) -> tuple[dict, str]:
 
 def should_cover(presentation: dict, key: str) -> bool:
     try:
-        ad_break = presentation["adBreak"]
         trivia = presentation["trivia"]
         difference = presentation["routing"]["youtube"]["differenceLayer"]
-        # Lovable is authoritative: this one boolean already mirrors the exact
-        # shared/Rumble question-visible state. Oracle only verifies the locked
-        # creative and compatibility mirror; it does not infer phase/timing.
         return (
             difference.get("enabled") is True
             and key == BUILTIN_REDIRECT_KEY
@@ -150,10 +184,7 @@ def build_frame(key: str) -> bytes:
         raise FileNotFoundError(f"creative is not installed: {key}")
     source = Image.open(path).convert("RGBA")
     if source.size != (WIDTH, HEIGHT):
-        source.thumbnail((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
-        out = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
-        out.alpha_composite(source, ((WIDTH - source.width) // 2, (HEIGHT - source.height) // 2))
-        source = out
+        source = source.resize((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
     frame = source.tobytes()
     if len(frame) != WIDTH * HEIGHT * 4:
         raise RuntimeError("creative frame has invalid byte size")
@@ -185,6 +216,13 @@ def self_test() -> int:
         raise RuntimeError("built-in redirect creative missing from local allowlist")
     frame = build_frame(BUILTIN_REDIRECT_KEY)
     assert len(frame) == WIDTH * HEIGHT * 4
+    latch = ConcealmentLatch(15.0)
+    assert latch.update(True, now=100.0) is True
+    assert latch.update(False, now=114.999) is True
+    assert latch.update(False, now=115.001) is False
+    assert latch.update(True, now=120.0) is True
+    assert latch.update(False, now=134.999) is True
+    assert latch.update(False, now=135.001) is False
     active, key, error = local_decision()
     print(json.dumps({
         "ok": True,
@@ -193,36 +231,39 @@ def self_test() -> int:
         "localStateError": error,
         "availableCreativeKeys": keys,
         "fps": FPS,
-        "maskRegion": EXPECTED_REGION,
+        "holdSeconds": HOLD_SECONDS,
+        "sourceMaskRegion": EXPECTED_REGION,
+        "outputMaskRegion": OUTPUT_REGION,
         "networkInRenderer": False,
     }, separators=(",", ":")))
     return 0
 
 
 def stream() -> int:
-    # Static approved creative is rasterized once and retained in memory.
     active_frame = build_frame(BUILTIN_REDIRECT_KEY)
     interval = 1.0 / FPS
     deadline = time.monotonic()
     last_mtime_ns: int | None = None
-    active = False
+    raw_active = False
+    latch = ConcealmentLatch()
 
     while True:
-        # Local filesystem only. Re-read on atomic-cache changes; while active,
-        # re-check every media tick so validUntil expiration cannot leave a
-        # stuck cover if the cache daemon stops.
+        # The local state remains authoritative for starting concealment. Once a
+        # validated positive trigger occurs, the latch protects that question
+        # for a minimum of 15 seconds even if Lovable transitions immediately.
         try:
             mtime_ns = STATE_FILE.stat().st_mtime_ns
-            if mtime_ns != last_mtime_ns or active:
-                active, _, error = local_decision()
+            if mtime_ns != last_mtime_ns or raw_active:
+                raw_active, _, error = local_decision()
                 if error:
                     print(f"local control-state warning: {error}", file=sys.stderr)
                 last_mtime_ns = mtime_ns
         except OSError as exc:
-            active = False
+            raw_active = False
             last_mtime_ns = None
             print(f"local control-state warning: {exc}", file=sys.stderr)
 
+        active = latch.update(raw_active)
         try:
             write_all(active_frame if active else TRANSPARENT)
         except BrokenPipeError:
