@@ -11,6 +11,7 @@ on:
         options:
           - status
           - enable
+          - cutover
           - disable
 
 permissions:
@@ -35,6 +36,8 @@ jobs:
           set -Eeuo pipefail
           bash -n services/fgbears-live/bin/rumble-studio-relay.sh
           grep -Fq 'RUMBLE_STUDIO_ENABLE:=0' services/fgbears-live/bin/rumble-studio-relay.sh
+          grep -Fq 'RUMBLE_STUDIO_MODE:=shadow' services/fgbears-live/bin/rumble-studio-relay.sh
+          grep -Fq 'studio-only' services/fgbears-live/bin/rumble-studio-relay.sh
           grep -Fq -- '-c copy' services/fgbears-live/bin/rumble-studio-relay.sh
           ! grep -Eq 'libx264|libx265|h264_nvenc|hevc_nvenc' services/fgbears-live/bin/rumble-studio-relay.sh
           echo 'PILOT_BOUNDARY=PASS'
@@ -59,7 +62,7 @@ jobs:
           STUDIO_KEY: ${{ secrets.RUMBLE_STUDIO_STREAM_KEY }}
         run: |
           set -Eeuo pipefail
-          if [[ "${{ inputs.action }}" == "enable" ]]; then
+          if [[ "${{ inputs.action }}" == "enable" || "${{ inputs.action }}" == "cutover" ]]; then
             test -n "$STUDIO_KEY"
           fi
           install -m 600 /dev/null /tmp/rumble-studio-pilot.credentials
@@ -145,16 +148,20 @@ jobs:
           credentials = credentials_path.read_text(encoding="utf-8").splitlines()
           base = credentials[0].strip() if credentials else ""
           key = credentials[1].strip() if len(credentials) > 1 else ""
-          if action == "enable":
+          if action in {"enable", "cutover"}:
               if base != "rtmp://studio-rtmp.rumble.com/live" or not key or "\n" in key or "\r" in key:
                   raise SystemExit("Invalid Rumble Studio credentials")
               updates = {
                   "RUMBLE_STUDIO_ENABLE": "1",
                   "RUMBLE_STUDIO_RTMP_BASE": base,
                   "RUMBLE_STUDIO_STREAM_KEY": key,
+                  "RUMBLE_STUDIO_MODE": "studio-only" if action == "cutover" else "shadow",
               }
           elif action == "disable":
-              updates = {"RUMBLE_STUDIO_ENABLE": "0"}
+              updates = {
+                  "RUMBLE_STUDIO_ENABLE": "0",
+                  "RUMBLE_STUDIO_MODE": "shadow",
+              }
           else:
               raise SystemExit("Unsupported pilot action")
 
@@ -197,7 +204,7 @@ jobs:
           [[ "$rumble_after" =~ ^[1-9][0-9]*$ ]]
           test "$rumble_after" != "$rumble_before"
           expected=0
-          [[ "$PILOT_ACTION" == enable ]] && expected=1
+          [[ "$PILOT_ACTION" == enable || "$PILOT_ACTION" == cutover ]] && expected=1
           test "$(enabled_value)" = "$expected"
 
           trap - ERR
