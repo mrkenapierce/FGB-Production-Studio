@@ -1,0 +1,66 @@
+name: Install YouTube v2 Passive Health Protocol
+
+on:
+  push:
+    branches: [lovable-routing-bridge-20260902]
+    paths: ['.github/workflows/install-youtube-v2-health.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: lovable-routing-bridge-20260902
+
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Install passive health timer without restarting transport
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/youtube-v2/fgbears-youtube-v2-health.service \
+            services/fgbears-live/youtube-v2/fgbears-youtube-v2-health.timer \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          nr(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
+          MASTER=fgbears-live.service; RUMBLE=fgbears-rumble-relay.service; YOUTUBE=fgbears-youtube-v2.service
+          M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE"); Y0=$(pid "$YOUTUBE")
+          MN0=$(nr "$MASTER"); RN0=$(nr "$RUMBLE"); YN0=$(nr "$YOUTUBE")
+          [[ "$M0" =~ ^[1-9][0-9]*$ && "$R0" =~ ^[1-9][0-9]*$ && "$Y0" =~ ^[1-9][0-9]*$ ]]
+
+          install -o root -g root -m644 /tmp/fgbears-youtube-v2-health.service /etc/systemd/system/fgbears-youtube-v2-health.service
+          install -o root -g root -m644 /tmp/fgbears-youtube-v2-health.timer /etc/systemd/system/fgbears-youtube-v2-health.timer
+          systemctl daemon-reload
+          systemctl enable --now fgbears-youtube-v2-health.timer
+          systemctl start fgbears-youtube-v2-health.service
+
+          [[ "$(pid "$MASTER")" == "$M0" && "$(nr "$MASTER")" == "$MN0" ]]
+          [[ "$(pid "$RUMBLE")" == "$R0" && "$(nr "$RUMBLE")" == "$RN0" ]]
+          [[ "$(pid "$YOUTUBE")" == "$Y0" && "$(nr "$YOUTUBE")" == "$YN0" ]]
+          systemctl is-active --quiet fgbears-youtube-v2-health.timer
+          echo "YOUTUBE_V2_HEALTH_PROTOCOL=PASS master=$M0 rumble=$R0 youtube=$Y0 transport_restarts=0 cadence=5m passive_only=yes"
+          REMOTE
