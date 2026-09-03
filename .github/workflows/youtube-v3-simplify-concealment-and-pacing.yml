@@ -1,0 +1,151 @@
+name: Simplify YouTube Concealment And Pacing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/youtube-v3-simplify-concealment-and-pacing.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fgbears-youtube-v3-targeted-repair
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  patch-deploy-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Simplify Oracle concealment and remove single-thread bottleneck
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          overlay = Path('services/fgbears-live/youtube-v3/youtube-v3-overlay.py')
+          s = overlay.read_text()
+          old = '''        phase = str(trivia.get("phase") or "").strip().lower()\n        return (\n            difference.get("enabled") is True\n            and key == BUILTIN_REDIRECT_KEY\n            and difference.get("creativeKey") == BUILTIN_REDIRECT_KEY\n            and ad_break.get("active") is False\n            and phase in VISIBLE_QUESTION_PHASES\n            and trivia.get("questionVisible") is True\n            and trivia.get("stale") is not True\n            and trivia.get("gameVisible") is True\n            and trivia.get("youtubeRedirectRequired") is True\n        )\n'''
+          new = '''        # Lovable is authoritative: this one boolean already mirrors the exact\n        # shared/Rumble question-visible state. Oracle only verifies the locked\n        # creative and compatibility mirror; it does not infer phase/timing.\n        return (\n            difference.get("enabled") is True\n            and key == BUILTIN_REDIRECT_KEY\n            and difference.get("creativeKey") == BUILTIN_REDIRECT_KEY\n            and trivia.get("questionVisible") is True\n            and trivia.get("youtubeRedirectRequired") is True\n        )\n'''
+          if old not in s:
+              raise SystemExit('overlay decision block changed; aborting')
+          s = s.replace(old, new, 1)
+          overlay.write_text(s)
+
+          cache = Path('services/fgbears-live/youtube-v3/lovable-state-cache.py')
+          s = cache.read_text()
+          old = '''    if difference.get("enabled") is True:\n        if difference.get("creativeKey") != EXPECTED_CREATIVE:\n            raise ValueError("unknown active creative")\n        if ad_break.get("active") is not False:\n            raise ValueError("difference layer active during ad break")\n        phase = str(trivia.get("phase") or "").strip().lower()\n        if phase not in VISIBLE_QUESTION_PHASES:\n            raise ValueError("difference layer active outside visible question phase")\n        if trivia.get("questionVisible") is not True:\n            raise ValueError("difference layer active while question is not visible")\n        if trivia.get("stale") is True:\n            raise ValueError("difference layer active on stale trivia")\n        if trivia.get("gameVisible") is not True:\n            raise ValueError("difference layer active while game is hidden")\n        if trivia.get("youtubeRedirectRequired") is not True:\n            raise ValueError("difference layer lacks explicit Lovable requirement")\n'''
+          new = '''    if difference.get("enabled") is True:\n        if difference.get("creativeKey") != EXPECTED_CREATIVE:\n            raise ValueError("unknown active creative")\n        # Lovable's authoritative decision mirrors the real shared/Rumble\n        # question visibility. Do not add independent phase, age, or ad timing.\n        if trivia.get("questionVisible") is not True:\n            raise ValueError("difference layer active while question is not visible")\n        if trivia.get("youtubeRedirectRequired") is not True:\n            raise ValueError("difference layer lacks explicit Lovable requirement")\n'''
+          if old not in s:
+              raise SystemExit('cache validation block changed; aborting')
+          s = s.replace(old, new, 1)
+          cache.write_text(s)
+
+          runner = Path('services/fgbears-live/youtube-v3/run-youtube-v3.sh')
+          s = runner.read_text()
+          if '-threads 1 ' not in s:
+              raise SystemExit('YouTube thread setting changed; aborting')
+          s = s.replace('-threads 1 ', '-threads 2 ', 1)
+          runner.write_text(s)
+          PY
+
+          python3 -m py_compile \
+            services/fgbears-live/youtube-v3/youtube-v3-overlay.py \
+            services/fgbears-live/youtube-v3/lovable-state-cache.py
+          bash -n services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq -- '-threads 2 ' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          ! grep -Fq 'phase in VISIBLE_QUESTION_PHASES' services/fgbears-live/youtube-v3/youtube-v3-overlay.py
+          ! grep -Fq 'difference layer active during ad break' services/fgbears-live/youtube-v3/lovable-state-cache.py
+
+      - name: Commit permanent source fix
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'mrkenapierce'
+          git config user.email 'mrkenapierce@gmail.com'
+          git add services/fgbears-live/youtube-v3/youtube-v3-overlay.py \
+                  services/fgbears-live/youtube-v3/lovable-state-cache.py \
+                  services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          if ! git diff --cached --quiet; then
+            git commit -m 'Mirror Rumble question visibility on YouTube and restore realtime pacing'
+            git push origin HEAD:main
+          fi
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy only control cache and YouTube v3
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          connected(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          CACHE=fgbears-lovable-state-cache.service
+          YOUTUBE=fgbears-youtube-v3.service
+          PROGRESS=/run/fgbears-youtube-v3/ffmpeg-progress.log
+          master_before=$(pid "$MASTER")
+          rumble_before=$(pid "$RUMBLE")
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]] || exit 1
+          [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]] || exit 1
+          connected "$rumble_before" 1935 || exit 1
+
+          rm -rf /tmp/fgbears-yt-repair
+          git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-yt-repair
+          sudo install -m 0755 /tmp/fgbears-yt-repair/services/fgbears-live/youtube-v3/youtube-v3-overlay.py /opt/fgbears-live/youtube-v3/youtube-v3-overlay.py
+          sudo install -m 0755 /tmp/fgbears-yt-repair/services/fgbears-live/youtube-v3/lovable-state-cache.py /opt/fgbears-live/youtube-v3/lovable-state-cache.py
+          sudo install -m 0755 /tmp/fgbears-yt-repair/services/fgbears-live/youtube-v3/run-youtube-v3.sh /opt/fgbears-live/youtube-v3/run-youtube-v3.sh
+
+          sudo systemctl restart "$CACHE"
+          sleep 2
+          sudo systemctl is-active --quiet "$CACHE"
+          sudo systemctl restart "$YOUTUBE"
+
+          ok=no
+          for _ in $(seq 1 45); do
+            ypid=$(pid "$YOUTUBE")
+            if systemctl is-active --quiet "$YOUTUBE" && connected "$ypid" 443; then ok=yes; break; fi
+            sleep 1
+          done
+          [[ "$ok" == yes ]] || { sudo journalctl -u "$YOUTUBE" -n 120 --no-pager; exit 1; }
+          test "$(pid "$MASTER")" = "$master_before"
+          test "$(pid "$RUMBLE")" = "$rumble_before"
+          connected "$rumble_before" 1935
+
+          media_us(){ sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$PROGRESS" 2>/dev/null | tail -n1; }
+          sleep 4
+          m0=$(media_us); t0=$(date +%s%N); sleep 12; m1=$(media_us); t1=$(date +%s%N)
+          rate=$(python3 - "$m0" "$m1" "$t0" "$t1" <<'PY'
+          import sys
+          m0,m1,t0,t1=map(int,sys.argv[1:])
+          wall=(t1-t0)/1e9; media=(m1-m0)/1e6
+          print(f'{media/wall:.4f}')
+          PY
+          )
+          python3 - "$rate" <<'PY'
+          import sys
+          rate=float(sys.argv[1]); assert rate >= 0.98, rate
+          PY
+          echo "YOUTUBE_V3_TARGETED_REPAIR=PASS rate=${rate} master_pid_unchanged=$master_before rumble_pid_unchanged=$rumble_before youtube_pid=$(pid "$YOUTUBE")"
+          REMOTE
