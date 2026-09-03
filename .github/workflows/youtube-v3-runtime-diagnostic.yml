@@ -1,0 +1,74 @@
+name: Diagnose YouTube v3 Runtime
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/youtube-v3-runtime-diagnostic.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Read current Oracle topology
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          echo '=== GENERATION ==='
+          if [[ -r /etc/fgbears-live/youtube-generation ]]; then cat /etc/fgbears-live/youtube-generation; else echo missing; fi
+
+          echo '=== CORE UNITS ==='
+          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-v3.service fgbears-lovable-state-cache.service; do
+            echo "UNIT=$u"
+            systemctl show "$u" -p LoadState -p ActiveState -p SubState -p Result -p UnitFileState -p MainPID -p NRestarts -p ExecMainCode -p ExecMainStatus -p ActiveEnterTimestamp -p InactiveEnterTimestamp --no-pager 2>/dev/null || true
+          done
+
+          echo '=== YOUTUBE UNIT INVENTORY ==='
+          systemctl list-unit-files --type=service --no-pager 2>/dev/null | awk 'tolower($1) ~ /youtube/ {print $1,$2}' || true
+          systemctl list-units --type=service --all --no-pager 2>/dev/null | awk 'tolower($1) ~ /youtube/ {print $1,$3,$4}' || true
+
+          echo '=== RETIRED UNIT STATES ==='
+          for u in fgbears-youtube-v2.service fgbears-youtube-output.service fgbears-youtube-relay.service fgbears-youtube-router.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service; do
+            printf '%s active=' "$u"; systemctl is-active "$u" 2>/dev/null || true
+            printf '%s enabled=' "$u"; systemctl is-enabled "$u" 2>/dev/null || true
+          done
+
+          echo '=== LOOPBACK / TRANSPORT ==='
+          sudo ss -lunp 2>/dev/null | awk '$5 ~ /:1939$/ || $5 ~ /:1940$/ {print}' || true
+          sudo ss -ntpH state established 2>/dev/null | awk '$5 ~ /:443$/ || $5 ~ /:1935$/ {print}' || true
+
+          echo '=== SAFE YOUTUBE CONFIG ==='
+          if [[ -r /etc/fgbears-live/stream.env ]]; then
+            grep -E '^(YOUTUBE_SERVICE|YOUTUBE_LOCAL_UDP_URL|YOUTUBE_UPSTREAM_RTMP_BASE|FGB_YOUTUBE_PACKET_ROUTER_ENABLE|FGB_STREAM_ROUTING_URL)=' /etc/fgbears-live/stream.env || true
+          else
+            echo stream_env_unreadable
+          fi
+
+          echo '=== RUNTIME FILES ==='
+          for p in /opt/fgbears-live/youtube-v3 /opt/fgbears-live/youtube-v2 /run/fgbears-youtube-v3/ffmpeg-progress.log /run/fgbears-control-plane/stream-state.json /run/fgbears-control-plane/cache-health.json; do
+            if [[ -e "$p" ]]; then echo "PRESENT $p"; else echo "ABSENT $p"; fi
+          done
+
+          echo 'DIAGNOSTIC_COMPLETE=yes'
+          REMOTE
