@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 03 Sep 2026 19:49:34 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 03 Sep 2026 22:00:09 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Rome Odunze, D&apos;Andre Swift left Bears practice early</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Rome Odunze, D&apos;Andre Swift left Bears practice early</description>
+      <link>https://sports.yahoo.com/articles/rome-odunze-dandre-swift-left-212738386.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f8ff9bce1f21f46c2fab</guid>
+      <pubDate>Thu, 03 Sep 2026 21:27:38 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears training camp diaries with Sam Roush, Neville Gallimore | Week 5</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears training camp diaries with Sam Roush, Neville Gallimore | Week 5</description>
+      <link>https://www.chicagobears.com/news/bears-training-camp-diaries-with-sam-roush-neville-gallimore-week-5</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-be6abf7d92b60410ebb6</guid>
+      <pubDate>Thu, 03 Sep 2026 21:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
 
     <item>
       <title>Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Panthers-Bears, Vikings-Packers markets</title>
@@ -17,16 +37,6 @@
       <pubDate>Thu, 03 Sep 2026 17:11:21 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Is Kentavius Street really the best Chicago Bears defensive tackle?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Is Kentavius Street really the best Chicago Bears defensive tackle?</description>
-      <link>https://sports.yahoo.com/articles/kentavius-street-really-best-chicago-170000876.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9c12be55f6f951759fdb</guid>
-      <pubDate>Thu, 03 Sep 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -40,53 +50,43 @@
     </item>
 
     <item>
-      <title>Bears&apos; Rome Odunze: Last year&apos;s foot injury behind him</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Rome Odunze: Last year&apos;s foot injury behind him</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-rome-odunze-last-years-foot-injury-behind-him/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-36ef9926899765a11426</guid>
-      <pubDate>Thu, 03 Sep 2026 12:35:00 GMT</pubDate>
+      <title>Rome Odunze, D&apos;Andre Swift Leave Chicago Bears Practice Early With Injuries</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Rome Odunze, D&apos;Andre Swift Leave Chicago Bears Practice Early With Injuries</description>
+      <link>https://www.si.com/nfl/bears/onsi/rome-odunze-d-andre-swift-chicago-bears-practice-injuries</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-da70beebce03b47b5e21</guid>
+      <pubDate>Thu, 03 Sep 2026 14:23:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Bears QB Caleb Williams on Hot Ones: Top 3 Takeaways From the Episode</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears QB Caleb Williams on Hot Ones: Top 3 Takeaways From the Episode</description>
-      <link>https://sports.yahoo.com/videos/bears-qb-caleb-williams-hot-180638312.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c7873f2d13f0a602a595</guid>
-      <pubDate>Thu, 03 Sep 2026 11:06:00 GMT</pubDate>
+      <title>The Chicago Bears are getting healthier on the defensive line</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Chicago Bears are getting healthier on the defensive line</description>
+      <link>https://sports.yahoo.com/videos/chicago-bears-getting-healthier-defensive-204416836.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ea5da8025e77164c68c6</guid>
+      <pubDate>Thu, 03 Sep 2026 13:44:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Kyler Gordon Has Bears Fans Worried He&apos;s Taking Chase Claypool Path</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyler Gordon Has Bears Fans Worried He&apos;s Taking Chase Claypool Path</description>
-      <link>https://www.si.com/nfl/bears/onsi/kyler-gordon-has-bears-fans-worried-he-s-taking-chase-claypool-path</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ad73095c02bf832ec48e</guid>
-      <pubDate>Thu, 03 Sep 2026 10:31:00 GMT</pubDate>
+      <title>Press Taylor Provides Update on State of Chicago Bears&apos; Left Tackle Competition</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Press Taylor Provides Update on State of Chicago Bears&apos; Left Tackle Competition</description>
+      <link>https://www.si.com/nfl/bears/onsi/press-taylor-provides-update-on-state-of-chicago-bears-left-tackle-competition</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-be4823af066e8812845c</guid>
+      <pubDate>Thu, 03 Sep 2026 13:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Have Ben Johnson&apos;s Bears Actually Leapfrogged the Powerhouse Rams?</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Have Ben Johnson&apos;s Bears Actually Leapfrogged the Powerhouse Rams?</description>
-      <link>https://www.si.com/nfl/bears/onsi/have-ben-johnson-s-bears-actually-leapfrogged-the-powerhouse-rams</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dcc133a658d3e108dcf8</guid>
-      <pubDate>Thu, 03 Sep 2026 09:30:00 GMT</pubDate>
+      <title>Rome Odunze, D’Andre Swift left Bears practice early</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Rome Odunze, D’Andre Swift left Bears practice early</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/rome-odunze-dandre-swift-left-bears-practice-early</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-23e783abfdbd18f95daa</guid>
+      <pubDate>Thu, 03 Sep 2026 10:27:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>After taking the NFC North, the Chicago Bears are on a mission to ‘never give it back’</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: After taking the NFC North, the Chicago Bears are on a mission to ‘never give it back’</description>
-      <link>https://www.nytimes.com/athletic/7556500/2026/09/03/bears-nfc-north-champions-ryan-poles/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-df056b0d8da43e5c9427</guid>
-      <pubDate>Thu, 03 Sep 2026 04:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
