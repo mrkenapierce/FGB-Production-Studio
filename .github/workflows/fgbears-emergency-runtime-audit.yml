@@ -1,7 +1,9 @@
 name: Emergency FGBears Runtime Audit
 
 on:
+  workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - '.github/workflows/fgbears-emergency-runtime-audit.yml'
 
@@ -16,86 +18,100 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Require Oracle access secrets
+      - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
-          test -n "$ORACLE_HOST"
-          test -n "$ORACLE_SSH_KEY"
-
-      - name: Configure SSH
-        env:
-          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
-        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Trust Oracle host key
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      - name: Inspect live runtime without changing it
+      - name: Inventory current runtime without changing it
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          echo "=== CLOCK ==="
-          date -u
-          TZ=America/Chicago date
+          set -u
+          echo '=== CLOCK ==='; date -u; TZ=America/Chicago date
+          echo '=== GENERATION ==='; sudo cat /etc/fgbears-live/youtube-generation 2>/dev/null || true
 
-          echo "=== SERVICES ==="
-          systemctl is-active fgbears-live.service || true
-          systemctl is-active fgbears-youtube-relay.service || true
-          systemctl is-active fgbears-live-health.timer || true
-          systemctl show fgbears-live.service -p MainPID -p ActiveEnterTimestamp -p NRestarts --no-pager || true
+          echo '=== FGBEARS UNIT FILES ==='
+          systemctl list-unit-files 'fgbears*' --no-pager || true
+          echo '=== FGBEARS UNITS ALL STATES ==='
+          systemctl list-units --all 'fgbears*' --no-pager || true
 
-          echo "=== PROGRESS SAMPLE ==="
-          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
-          if sudo test -s "$progress"; then
-            sudo stat -c 'mtime_epoch=%Y size=%s' "$progress"
-            first=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n 1)
-            echo "out_time_us_1=${first:-missing}"
-            sleep 5
-            second=$(sudo sed -n 's/^out_time_us=\([0-9][0-9]*\)$/\1/p' "$progress" | tail -n 1)
-            echo "out_time_us_2=${second:-missing}"
-          else
-            echo 'progress=missing'
-          fi
-
-          echo "=== OVERLAY HEALTH ==="
-          for port in 8787 8788; do
-            echo "-- port $port health --"
-            curl --silent --show-error --max-time 3 "http://127.0.0.1:${port}/healthz" || true
-            echo
-            echo "-- port $port frame timing --"
-            curl --silent --show-error --max-time 3 -o /tmp/fgb-frame-${port}.jpg -w 'http=%{http_code} bytes=%{size_download} seconds=%{time_total}\n' "http://127.0.0.1:${port}/frame.jpg" || true
-            echo "-- port $port mjpeg bytes in 2s --"
-            set +o pipefail
-            timeout 2 curl --silent --show-error "http://127.0.0.1:${port}/overlay.mjpg" 2>/dev/null | head -c 500000 | wc -c || true
-            set -o pipefail
+          echo '=== CANDIDATE UNIT DETAILS ==='
+          units=(
+            fgbears-live.service fgbears-rumble-relay.service
+            fgbears-lovable-state-cache.service fgbears-youtube-v3.service
+            fgbears-live-health.service fgbears-live-health.timer
+            fgbears-news-refresh.service fgbears-news-refresh.timer
+            fgbears-youtube-v2.service fgbears-youtube-relay.service
+            fgbears-youtube-output.service fgbears-youtube-router.service
+            fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service
+          )
+          for u in "${units[@]}"; do
+            echo "--- $u ---"
+            systemctl show "$u" -p LoadState -p ActiveState -p SubState -p UnitFileState -p MainPID -p NRestarts -p ExecStart --no-pager 2>/dev/null || true
           done
 
-          echo "=== PLAYLIST ==="
-          sudo cat /srv/fgbears-live/playlist.ffconcat || true
-          echo "=== PLAYLIST MEDIA PROBES ==="
-          sudo awk -F"'" '/^file /{print $2}' /srv/fgbears-live/playlist.ffconcat | while IFS= read -r media; do
-            [[ -n "$media" ]] || continue
-            if sudo test -r "$media"; then
-              printf '%s | ' "$media"
-              sudo ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$media" 2>&1 | head -n 1 || true
-            else
-              echo "$media | MISSING"
-            fi
+          echo '=== PROCESS INVENTORY ==='
+          ps -eo pid,ppid,pcpu,pmem,etime,args --sort=-pcpu | grep -E 'fgbears|ffmpeg|youtube|rumble|lovable|overlay' | grep -v grep || true
+          echo '=== CORE CGROUP TREES ==='
+          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-lovable-state-cache.service fgbears-youtube-v3.service; do
+            echo "--- $u ---"; systemctl status "$u" --no-pager -l 2>/dev/null | sed -n '1,24p' || true
           done
 
-          echo "=== RECENT HEALTH JOURNAL ==="
-          sudo journalctl -u fgbears-live-health.service --since '-45 minutes' --no-pager || true
-          echo "=== RECENT STREAM JOURNAL ==="
-          sudo journalctl -u fgbears-live.service --since '-45 minutes' -n 240 --no-pager || true
-          echo "=== RECENT YOUTUBE RELAY JOURNAL ==="
-          sudo journalctl -u fgbears-youtube-relay.service --since '-45 minutes' -n 120 --no-pager || true
+          echo '=== SOCKETS ==='
+          sudo ss -lntup 2>/dev/null | grep -E ':(8787|8788|8789|1939)\b' || true
+          sudo ss -ntpH state established 2>/dev/null | grep -E 'ffmpeg|:443|:1935' || true
+
+          echo '=== RUNTIME DIRECTORIES ==='
+          sudo find /opt/fgbears-live -maxdepth 2 -mindepth 1 -printf '%M %u:%g %p\n' 2>/dev/null | sort || true
+          echo '=== SYSTEMD FILES ==='
+          sudo find /etc/systemd/system -maxdepth 2 -type f -o -type l 2>/dev/null | grep '/fgbears' | sort || true
+
+          echo '=== OVERLAY HEALTH ==='
+          for p in 8787 8788 8789; do printf 'port_%s=' "$p"; curl -fsS --max-time 3 "http://127.0.0.1:${p}/healthz" 2>/dev/null || echo UNREACHABLE; echo; done
+
+          echo '=== CONTROL PLANE ==='
+          sudo python3 - <<'PY' 2>/dev/null || true
+import json,time
+from datetime import datetime
+for path in ['/run/fgbears-control-plane/stream-state.json','/run/fgbears-control-plane/cache-health.json']:
+    print(path)
+    try:
+        p=json.load(open(path,encoding='utf-8'))
+        if path.endswith('stream-state.json'):
+            pr=p.get('presentation') or {}; t=pr.get('trivia') or {}; d=(((pr.get('routing') or {}).get('youtube') or {}).get('differenceLayer') or {})
+            print('revision=%s phase=%s questionVisible=%s redirect=%s diff=%s reason=%s validUntil=%s' % (p.get('revision'),t.get('phase'),t.get('questionVisible'),t.get('youtubeRedirectRequired'),d.get('enabled'),d.get('reason'),p.get('validUntil')))
+        else:
+            last=float(p.get('lastGoodEpoch') or 0); print('ok=%s age=%.3fs latency_ms=%s error=%s' % (p.get('ok'),time.time()-last if last else -1,p.get('routingLatencyMs'),p.get('error')))
+    except Exception as e: print('ERROR',e)
+PY
+
+          echo '=== YOUTUBE V3 INSTALLED SOURCE CONTRACT ==='
+          sudo grep -E -- '-threads [0-9]+|scale=[0-9]+:[0-9]+|overlay=462:104' /opt/fgbears-live/youtube-v3/run-youtube-v3.sh 2>/dev/null || true
+          sudo sed -n '/def should_cover/,/def build_frame/p' /opt/fgbears-live/youtube-v3/youtube-v3-overlay.py 2>/dev/null || true
+
+          echo '=== YOUTUBE PROGRESS ==='
+          prog=/run/fgbears-youtube-v3/ffmpeg-progress.log
+          if sudo test -s "$prog"; then
+            sudo grep -E '^(frame|fps|drop_frames|dup_frames|out_time_us|speed)=' "$prog" || true
+            a=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$prog" | tail -1); t0=$(date +%s%N); sleep 5
+            b=$(sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$prog" | tail -1); t1=$(date +%s%N)
+            python3 - "$a" "$b" "$t0" "$t1" <<'PY' || true
+import sys
+try:
+ a,b,t0,t1=map(int,sys.argv[1:]); print('youtube_rate_5s=%.4fx'%(((b-a)/1e6)/((t1-t0)/1e9)))
+except Exception as e: print('youtube_rate_5s=ERROR',e)
+PY
+          else echo 'youtube_progress=MISSING'; fi
+          echo '=== CPU PRESSURE ==='; cat /proc/pressure/cpu 2>/dev/null || true
+          echo '=== YOUTUBE JOURNAL ==='; sudo journalctl -u fgbears-youtube-v3.service --since '-15 minutes' -n 160 --no-pager 2>/dev/null || true
+          echo '=== CACHE JOURNAL ==='; sudo journalctl -u fgbears-lovable-state-cache.service --since '-15 minutes' -n 100 --no-pager 2>/dev/null || true
           REMOTE
