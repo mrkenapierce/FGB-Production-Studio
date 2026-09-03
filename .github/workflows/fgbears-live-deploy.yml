@@ -34,7 +34,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Verify and complete quarantine without touching active paths
+      - name: Verify retired paths remain quarantined
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         shell: bash
@@ -42,118 +42,27 @@ jobs:
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          MASTER=fgbears-live.service
-          RUMBLE=fgbears-rumble-relay.service
-          YOUTUBE=fgbears-youtube-output.service
-          RETIRED_UNITS=(
-            fgbears-youtube-lovable-routing.service
-            fgbears-youtube-lovable-compositor.service
-            fgbears-youtube-audio-watchdog.service
-            fgbears-youtube-audio-watchdog.timer
-            fgbears-youtube-relay.service
-            fgbears-youtube-router.service
-          )
-          RETIRED_FILES=(
-            /usr/local/bin/fgbears-youtube-relay
-            /usr/local/bin/fgbears-youtube-audio-watchdog
-            /opt/fgbears-live/bin/youtube-lovable-compositor.sh
-            /opt/fgbears-live/bin/youtube-question-mask.py
-            /opt/fgbears-live/bin/youtube-transport-watchdog.sh
-            /opt/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
-            /opt/fgbears-live/bin/youtube-relay.sh
-            /opt/fgbears-live/bin/youtube-relay-legacy.sh
-            /opt/fgbears-live/bin/youtube-stream-router.py
-            /opt/fgbears-live/bin/youtube-stream-router-v5.py
-            /opt/fgbears-live/bin/youtube-compositor-source-relay.sh
-            /opt/fgbears-live/bin/finalize-youtube-only.py
-          )
-          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-          nr(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
+          MASTER=fgbears-live.service; RUMBLE=fgbears-rumble-relay.service; YOUTUBE=fgbears-youtube-output.service
+          RETIRED_UNITS=(fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service fgbears-youtube-audio-watchdog.service fgbears-youtube-audio-watchdog.timer fgbears-youtube-relay.service fgbears-youtube-router.service)
+          RETIRED_FILES=(/usr/local/bin/fgbears-youtube-relay /usr/local/bin/fgbears-youtube-audio-watchdog /opt/fgbears-live/bin/youtube-lovable-compositor.sh /opt/fgbears-live/bin/youtube-question-mask.py /opt/fgbears-live/bin/youtube-transport-watchdog.sh /opt/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh /opt/fgbears-live/bin/youtube-relay.sh /opt/fgbears-live/bin/youtube-relay-legacy.sh /opt/fgbears-live/bin/youtube-stream-router.py /opt/fgbears-live/bin/youtube-stream-router-v5.py /opt/fgbears-live/bin/youtube-compositor-source-relay.sh /opt/fgbears-live/bin/finalize-youtube-only.py)
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }; nr(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
           conn(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
-
-          systemctl is-active --quiet "$MASTER"
-          systemctl is-active --quiet "$RUMBLE"
-          M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE"); MN0=$(nr "$MASTER"); RN0=$(nr "$RUMBLE")
-          conn "$R0" 1935
-          Y0=$(pid "$YOUTUBE"); YA0=$(systemctl is-active "$YOUTUBE" 2>/dev/null || true); YN0=$(nr "$YOUTUBE")
-
-          QBASE=/opt/fgbears-live/quarantine/retired-youtube
-          install -d -m0750 "$QBASE"
-          QROOT=$(find "$QBASE" -mindepth 1 -maxdepth 1 -type d | sort | tail -n1)
-          if [[ -z "$QROOT" ]]; then
-            QROOT="$QBASE/$(date -u +%Y%m%dT%H%M%SZ)"
-            install -d -m0750 "$QROOT/systemd" "$QROOT/bin" "$QROOT/usr-local-bin"
-          fi
-          install -d -m0750 "$QROOT/systemd" "$QROOT/bin" "$QROOT/usr-local-bin"
-          MANIFEST="$QROOT/MANIFEST.txt"
-          chmod -R u+w "$QROOT" 2>/dev/null || true
-
-          # Idempotently enforce persistent masks and archive anything that has
-          # reappeared since the original quarantine attempt.
-          for u in "${RETIRED_UNITS[@]}"; do
-            systemctl stop "$u" 2>/dev/null || true
-            systemctl disable "$u" >/dev/null 2>&1 || true
-            unit="/etc/systemd/system/$u"
-            if [[ -e "$unit" && ! -L "$unit" ]]; then
-              mv "$unit" "$QROOT/systemd/$u.reappeared.$(date +%s)"
-            elif [[ -L "$unit" && "$(readlink "$unit" 2>/dev/null || true)" != /dev/null ]]; then
-              rm -f "$unit"
-            fi
-            rm -f "$unit"
-            ln -s /dev/null "$unit"
-          done
-
-          for f in "${RETIRED_FILES[@]}"; do
-            [[ -e "$f" || -L "$f" ]] || continue
-            base=$(basename "$f")
-            if [[ "$f" == /usr/local/bin/* ]]; then d="$QROOT/usr-local-bin"; else d="$QROOT/bin"; fi
-            dest="$d/$base.reappeared.$(date +%s%N)"
-            mv "$f" "$dest"
-            echo "reappeared_file_quarantined=$f -> $dest" >> "$MANIFEST"
-          done
-          rm -rf /run/fgbears-youtube-lovable-compositor /run/fgbears-youtube-transport-watchdog 2>/dev/null || true
-          systemctl daemon-reload
-
+          systemctl is-active --quiet "$MASTER"; systemctl is-active --quiet "$RUMBLE"
+          M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE"); MN0=$(nr "$MASTER"); RN0=$(nr "$RUMBLE"); conn "$R0" 1935
+          QBASE=/opt/fgbears-live/quarantine/retired-youtube; QROOT=$(find "$QBASE" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort | tail -n1); [[ -n "$QROOT" ]]
           failures=0
           for u in "${RETIRED_UNITS[@]}"; do
             state=$(systemctl is-enabled "$u" 2>/dev/null || true)
             [[ "$state" == masked* ]] || { echo "FAIL unit_not_masked=$u state=$state"; failures=$((failures+1)); }
             ! systemctl is-active --quiet "$u" || { echo "FAIL unit_active=$u"; failures=$((failures+1)); }
             [[ -L "/etc/systemd/system/$u" && "$(readlink "/etc/systemd/system/$u")" == /dev/null ]] || { echo "FAIL mask_link=$u"; failures=$((failures+1)); }
+            p=$(pid "$u"); [[ -z "$p" || "$p" == 0 ]] || { echo "FAIL retired_pid=$u pid=$p"; failures=$((failures+1)); }
           done
-          for f in "${RETIRED_FILES[@]}"; do
-            [[ ! -e "$f" && ! -L "$f" ]] || { echo "FAIL retired_file_present=$f"; failures=$((failures+1)); }
-          done
-
-          # Exact service MainPIDs are authoritative; avoid pgrep self-matches.
-          for u in "${RETIRED_UNITS[@]}"; do
-            [[ "$(pid "$u")" == 0 || -z "$(pid "$u")" ]] || { echo "FAIL retired_pid=$u pid=$(pid "$u")"; failures=$((failures+1)); }
-          done
-
-          [[ "$(pid "$MASTER")" == "$M0" ]] || { echo FAIL_MASTER_PID_CHANGED; failures=$((failures+1)); }
-          [[ "$(pid "$RUMBLE")" == "$R0" ]] || { echo FAIL_RUMBLE_PID_CHANGED; failures=$((failures+1)); }
-          [[ "$(nr "$MASTER")" == "$MN0" ]] || { echo FAIL_MASTER_RESTARTED; failures=$((failures+1)); }
-          [[ "$(nr "$RUMBLE")" == "$RN0" ]] || { echo FAIL_RUMBLE_RESTARTED; failures=$((failures+1)); }
+          for f in "${RETIRED_FILES[@]}"; do [[ ! -e "$f" && ! -L "$f" ]] || { echo "FAIL retired_file_present=$f"; failures=$((failures+1)); }; done
+          [[ "$(pid "$MASTER")" == "$M0" && "$(nr "$MASTER")" == "$MN0" ]] || { echo FAIL_MASTER_CHANGED; failures=$((failures+1)); }
+          [[ "$(pid "$RUMBLE")" == "$R0" && "$(nr "$RUMBLE")" == "$RN0" ]] || { echo FAIL_RUMBLE_CHANGED; failures=$((failures+1)); }
           conn "$R0" 1935 || { echo FAIL_RUMBLE_SOCKET; failures=$((failures+1)); }
-
-          YA1=$(systemctl is-active "$YOUTUBE" 2>/dev/null || true); Y1=$(pid "$YOUTUBE"); YN1=$(nr "$YOUTUBE")
-          # This job never issues any action against the current YouTube unit.
-          if [[ "$YA0" == active ]]; then
-            [[ "$YA1" == active && "$Y1" == "$Y0" && "$YN1" == "$YN0" ]] || { echo "FAIL current_youtube_changed before=$Y0/$YN0 after=$Y1/$YN1"; failures=$((failures+1)); }
-          fi
-          Y443=no; [[ "$YA1" == active ]] && conn "$Y1" 443 && Y443=yes || true
-
-          {
-            echo "verified_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo "master_pid=$M0"
-            echo "rumble_pid=$R0"
-            echo "youtube_pid=$Y1"
-            echo "youtube_active=$YA1"
-            echo "youtube_443=$Y443"
-            echo "failures=$failures"
-          } >> "$MANIFEST"
-          chmod -R a-w "$QROOT"
-
+          YA=$(systemctl is-active "$YOUTUBE" 2>/dev/null || true); YP=$(pid "$YOUTUBE"); YR=$(nr "$YOUTUBE"); Y443=no; [[ "$YA" == active ]] && conn "$YP" 443 && Y443=yes || true
           [[ "$failures" -eq 0 ]]
-          echo "QUARANTINE_VERIFY=PASS archive=$QROOT master=$M0 rumble=$R0 youtube=$Y1 youtube_443=$Y443"
+          echo "QUARANTINE_VERIFY=PASS archive=$QROOT master=$M0 rumble=$R0 current_youtube=$YP restarts=$YR active=$YA youtube_443=$Y443"
           REMOTE
