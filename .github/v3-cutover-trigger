@@ -1,0 +1,3 @@
+release: youtube-v3
+validated_head: ed1604fefaa1801efe70e4d42c103b18217f8a4f
+mode: one-shot-audited-cutover
