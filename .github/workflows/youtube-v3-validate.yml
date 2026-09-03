@@ -63,6 +63,8 @@ jobs:
           echo 'V3_STATIC_ARCHITECTURE=PASS'
 
       - name: Exercise media/control isolation and routing guards
+        env:
+          YOUTUBE_V3_CREATIVE_DIR: ${{ github.workspace }}/services/fgbears-live/youtube-v3/creatives
         run: |
           set -Eeuo pipefail
           python3 - <<'PY'
