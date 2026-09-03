@@ -1,0 +1,70 @@
+name: Test Existing v2 Lovable Bridge
+
+on:
+  push:
+    branches: [lovable-routing-existing-v2-20260903]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pip install --user pillow qrcode
+      - name: Validate static safety boundaries
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          bash -n services/fgbears-live/youtube-v2/run-youtube-v2.sh
+          bash -n services/fgbears-live/youtube-v2/verify-youtube-v2.sh
+          grep -Fq 'youtubeMaskActive") is True' services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          grep -Fq 'active = False' services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          grep -Fq 'load_builder().build()' services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          ! grep -Eq 'ImageDraw|draw\.text|QRCode' services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          grep -Fq 'overlay=462:104' services/fgbears-live/youtube-v2/run-youtube-v2.sh
+          echo 'STATIC_EXISTING_V2_BRIDGE=PASS'
+      - name: Prove exact creative and fail-transparent rules
+        env:
+          YOUTUBE_REDIRECT_CARD_BUILDER: ${{ github.workspace }}/services/fgbears-live/tools/build-youtube-rumble-trivia-card.py
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import importlib.util, os, sys
+          from pathlib import Path
+          from PIL import Image
+          p=Path('services/fgbears-live/youtube-v2/youtube-v2-overlay.py')
+          spec=importlib.util.spec_from_file_location('v2overlay',p)
+          m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m)
+          region={"x":462,"y":104,"width":798,"height":470,"coordinateSpace":"pixels","referenceWidth":1280,"referenceHeight":720}
+          def payload(**overrides):
+              t={"stale":False,"phase":"question","adsVisible":False,"isAdBreak":False,"adBreakActive":False,
+                 "youtubeMaskActive":True,"youtubeCreativeKey":"yt_rumble_trivia_redirect","maskRegion":region,
+                 "presentation":{"rumble":{"rendersRealQuestion":True},"youtube":{"rendersRealQuestion":False,
+                 "maskedRegion":{"x":462,"y":104,"width":798,"height":470},"creativeKey":"yt_rumble_trivia_redirect",
+                 "sourceTemplateKey":"yt_rumble_trivia_redirect","presentationMode":"full_creative_scaled"}}}
+              t.update(overrides); return {"trivia":t}
+          t=m.validate(payload())
+          assert m.should_cover(t)
+          for change in ({"phase":"revealed"},{"stale":True},{"adsVisible":True},{"isAdBreak":True},{"youtubeMaskActive":False}):
+              assert not m.should_cover(m.validate(payload(**change)))
+          actual=Image.frombytes("RGBA",(798,470),m.build_active_frame())
+          builder=m.load_builder().build().convert("RGBA")
+          builder.thumbnail((798,470),Image.Resampling.LANCZOS)
+          expected=Image.new("RGBA",(798,470),(11,22,42,255))
+          expected.paste(builder,((798-builder.width)//2,(470-builder.height)//2),builder)
+          assert actual.tobytes()==expected.tobytes()
+          assert builder.size==(798,449)
+          print('EXACT_LOCKED_CARD_SCALE=PASS')
+          print('FAIL_TRANSPARENT_CONTROL_RULES=PASS')
+          PY
+      - name: Validate repository and runtime invariants
+        run: |
+          set -Eeuo pipefail
+          test -f services/fgbears-live/tools/build-youtube-rumble-trivia-card.py
+          grep -Fq -- '-threads 1' services/fgbears-live/youtube-v2/run-youtube-v2.sh
+          grep -Fq -- '-c:a aac' services/fgbears-live/youtube-v2/run-youtube-v2.sh
+          grep -Fq 'fgbears-rumble-relay.service' services/fgbears-live/youtube-v2/verify-youtube-v2.sh
+          echo 'EXISTING_TOPOLOGY_INVARIANTS=PASS'
