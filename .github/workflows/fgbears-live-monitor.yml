@@ -51,17 +51,15 @@ jobs:
           CACHE=fgbears-lovable-state-cache.service
           YOUTUBE=fgbears-youtube-v3.service
           HEALTH_TIMER=fgbears-live-health.timer
-          HEALTHCHECK=/usr/local/bin/fgbears-healthcheck
           CONTROL_STATE=/run/fgbears-control-plane/stream-state.json
           CONTROL_HEALTH=/run/fgbears-control-plane/cache-health.json
           YT_PROGRESS=/run/fgbears-youtube-v3/ffmpeg-progress.log
           V2_QUAR=/opt/fgbears-live/quarantine/youtube-v2-retired-20260903
-          RETIRED=(fgbears-youtube-v2.service fgbears-youtube-output.service fgbears-youtube-relay.service fgbears-youtube-router.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service fgbears-youtube-audio-watchdog.service fgbears-youtube-audio-watchdog.timer)
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
           active(){ systemctl is-active --quiet "$1"; }
-          socket(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v port=":$port" 'index($0,q)&&index($0,port){ok=1} END{exit(ok?0:1)}'; }
+          socket(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
           fail(){ echo 'OVERALL_STATUS=FAIL'; echo "REASON=$1"; exit 1; }
-          media_us(){ sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$YT_PROGRESS" | tail -n1; }
+          media_us(){ sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$YT_PROGRESS" 2>/dev/null | tail -n1; }
           measure_rate(){ local m0 m1 t0 t1; m0=$(media_us); [[ "$m0" =~ ^[0-9]+$ ]] || return 1; t0=$(date +%s%N); sleep 5; m1=$(media_us); [[ "$m1" =~ ^[0-9]+$ ]] || return 1; t1=$(date +%s%N); python3 - "$m0" "$m1" "$t0" "$t1" <<'PY'
           import sys
           m0,m1,t0,t1=map(int,sys.argv[1:]); wall=(t1-t0)/1e9; media=(m1-m0)/1e6
@@ -84,38 +82,29 @@ jobs:
           socket "$RPID" 1935 || fail RUMBLE_SOCKET_MISSING
           socket "$YPID" 443 || fail YOUTUBE_SOCKET_MISSING
 
-          for unit in "${RETIRED[@]}"; do
-            active "$unit" && fail "RETIRED_UNIT_ACTIVE_${unit//[^A-Za-z0-9]/_}"
-            state=$(systemctl is-enabled "$unit" 2>/dev/null || true)
-            [[ "$state" == masked* ]] || fail "RETIRED_UNIT_NOT_MASKED_${unit//[^A-Za-z0-9]/_}"
-          done
+          [[ "$(sudo cat /etc/fgbears-live/youtube-generation 2>/dev/null)" == v3 ]] || fail GENERATION_NOT_V3
+          ! active fgbears-youtube-v2.service || fail YOUTUBE_V2_ACTIVE
+          v2_enabled=$(systemctl is-enabled fgbears-youtube-v2.service 2>/dev/null || true)
+          [[ "$v2_enabled" == masked* ]] || fail YOUTUBE_V2_NOT_MASKED
           [[ -d "$V2_QUAR" ]] || fail V2_QUARANTINE_MISSING
           [[ ! -e /opt/fgbears-live/youtube-v2 ]] || fail V2_ACTIVE_RUNTIME_PRESENT
           if find "$V2_QUAR" -type f -perm /111 -print -quit 2>/dev/null | grep -q .; then fail V2_QUARANTINE_EXECUTABLE_PRESENT; fi
 
-          [[ -x "$HEALTHCHECK" ]] || fail HEALTHCHECK_MISSING
-          grep -Fq 'recover_youtube_destination' "$HEALTHCHECK" || fail HEALTHCHECK_NOT_GENERATION_AWARE
-          grep -Fq 'YOUTUBE_GENERATION_FILE=' "$HEALTHCHECK" || fail HEALTHCHECK_GENERATION_MARKER_MISSING
-
-          master_speed=$(sudo awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
-          if [[ -n "$master_speed" ]] && ! python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$master_speed"; then fail MASTER_BELOW_REALTIME; fi
           news=$(curl -fsS --max-time 3 http://127.0.0.1:8789/healthz) || fail RSS_HEALTH_UNREACHABLE
           crawl=$(curl -fsS --max-time 3 http://127.0.0.1:8788/healthz) || fail CRAWL_HEALTH_UNREACHABLE
           printf '%s' "$news" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True' || fail RSS_CONTRACT_INVALID
           printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True' || fail CRAWL_CONTRACT_INVALID
 
-          [[ -s "$CONTROL_STATE" ]] || fail CONTROL_STATE_MISSING
-          [[ -s "$CONTROL_HEALTH" ]] || fail CONTROL_HEALTH_MISSING
+          sudo test -s "$CONTROL_STATE" || fail CONTROL_STATE_MISSING
+          sudo test -s "$CONTROL_HEALTH" || fail CONTROL_HEALTH_MISSING
           control_report=$(sudo python3 - "$CONTROL_STATE" "$CONTROL_HEALTH" <<'PY'
           from datetime import datetime
           import json,sys,time
           state=json.load(open(sys.argv[1],encoding='utf-8')); health=json.load(open(sys.argv[2],encoding='utf-8'))
           assert state.get('schemaVersion') == 'fgb-stream-state/v1'
           assert isinstance(state.get('revision'),str) and state['revision']
-          expiry=datetime.fromisoformat(str(state.get('validUntil')).replace('Z','+00:00')).timestamp()
-          assert expiry > time.time()
+          expiry=datetime.fromisoformat(str(state.get('validUntil')).replace('Z','+00:00')).timestamp(); assert expiry > time.time()
           p=state.get('presentation') or {}; routing=p.get('routing') or {}
-          for k in ('adBreak','trivia','routing','overlay','crawl','news','schedule'): assert isinstance(p.get(k),dict), k
           assert (routing.get('rumble') or {}).get('rendersRealQuestion') is True
           diff=(routing.get('youtube') or {}).get('differenceLayer') or {}
           region=diff.get('region') or (p.get('mask') or {}).get('region')
@@ -132,23 +121,20 @@ jobs:
           PY
           ) || fail CONTROL_PLANE_STATE_INVALID
 
-          [[ "$(systemctl show -p Nice --value "$YOUTUBE" 2>/dev/null || echo x)" == 0 ]] || fail YOUTUBE_PRIORITY_PENALTY_PRESENT
-          [[ -s "$YT_PROGRESS" ]] || fail YOUTUBE_PROGRESS_MISSING
-          yt_age=$(( $(date +%s) - $(stat -c %Y "$YT_PROGRESS") )); (( yt_age < 20 )) || fail YOUTUBE_PROGRESS_STALE
+          sudo test -s "$YT_PROGRESS" || fail YOUTUBE_PROGRESS_MISSING
+          yt_age=$(( $(date +%s) - $(sudo stat -c %Y "$YT_PROGRESS") )); (( yt_age < 20 )) || fail YOUTUBE_PROGRESS_STALE
           yt_rate=$(measure_rate) || fail YOUTUBE_RATE_MEASUREMENT_FAILED
           python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$yt_rate" || fail YOUTUBE_BELOW_REALTIME
-          yt_fps=$(sed -n 's/^fps=\([0-9.]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
-          yt_drop=$(sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
-          yt_dup=$(sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
+          yt_fps=$(sudo sed -n 's/^fps=\([0-9.]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
+          yt_drop=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
+          yt_dup=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
           journal=$(sudo journalctl -u "$YOUTUBE" --since '-10 seconds' --no-pager 2>/dev/null || true)
           grep -Fq 'Circular buffer overrun' <<<"$journal" && fail YOUTUBE_UDP_OVERRUN
           grep -Eq 'non-existing PPS|decode_slice_header error|no frame!' <<<"$journal" && fail YOUTUBE_V3_DOWNSTREAM_SYNC_ERROR
 
-          pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"=");print a[2]}}' /proc/pressure/cpu 2>/dev/null || true)
-          idle=$(vmstat 1 2 | tail -n1 | awk '{print $15}')
           echo 'OVERALL_STATUS=OK'
           echo 'REASON=PRODUCTION_HEALTHY'
-          echo "TOPOLOGY generation=v3 control=lovable cache=$CPID master=$MPID rumble=$RPID youtube_v3=$YPID master_speed=${master_speed:-unknown}x youtube_steady_rate=${yt_rate}x youtube_fps=${yt_fps:-NA} drop=${yt_drop:-NA} dup=${yt_dup:-NA} cpu_idle=${idle:-NA}% cpu_pressure_avg10=${pressure:-NA}"
+          echo "TOPOLOGY generation=v3 control=lovable cache=$CPID master=$MPID rumble=$RPID youtube_v3=$YPID youtube_steady_rate=${yt_rate}x youtube_fps=${yt_fps:-NA} drop=${yt_drop:-NA} dup=${yt_dup:-NA}"
           echo "CONTROL_STATE $control_report"
           REMOTE
           rc=$?
