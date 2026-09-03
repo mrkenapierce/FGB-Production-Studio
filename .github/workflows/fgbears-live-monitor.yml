@@ -100,9 +100,8 @@ jobs:
           pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"=");print a[2]}}' /proc/pressure/cpu 2>/dev/null || true)
           idle=$(vmstat 1 2 | tail -n1 | awk '{print $15}')
 
-          # A deployment marker is valid only while desired generation is still
-          # v2. It suppresses a false incident during the short candidate gap,
-          # but never bypasses master, Rumble, news, crawl, or legacy checks.
+          # During a controlled candidate interval only destination recovery is
+          # deferred; master, Rumble, news, crawl and legacy checks still pass.
           if [[ "$generation" == v2 && -e "$CUTOVER_MARKER" ]]; then
             echo 'OVERALL_STATUS=OK'
             echo 'REASON=CONTROLLED_YOUTUBE_CUTOVER_IN_PROGRESS'
@@ -118,16 +117,22 @@ jobs:
             [[ -d /opt/fgbears-live/youtube-v2 ]] || fail YOUTUBE_V2_RUNTIME_MISSING
             if active "$V3"; then fail UNEXPECTED_YOUTUBE_V3_ACTIVE_DURING_V2_GENERATION; fi
             [[ -x "$HEALTHCHECK" ]] || fail HEALTHCHECK_MISSING
-            grep -Fq 'recover_youtube_v2' "$HEALTHCHECK" || fail V2_HEALTH_SUPERVISION_MISMATCH
-            ! grep -Fq 'recover_youtube_v3' "$HEALTHCHECK" || fail V2_HEALTH_SUPERVISION_AMBIGUOUS
+            if grep -Fq 'recover_youtube_destination' "$HEALTHCHECK"; then
+              grep -Fq 'YOUTUBE_GENERATION_FILE=' "$HEALTHCHECK" || fail GENERATION_AWARE_HEALTHCHECK_INVALID
+              grep -Fq 'YOUTUBE_CUTOVER_MARKER=' "$HEALTHCHECK" || fail GENERATION_AWARE_HEALTHCHECK_GUARD_MISSING
+              supervision=generation_aware
+            else
+              grep -Fq 'recover_youtube_v2' "$HEALTHCHECK" || fail V2_HEALTH_SUPERVISION_MISMATCH
+              ! grep -Fq 'recover_youtube_v3' "$HEALTHCHECK" || fail V2_HEALTH_SUPERVISION_AMBIGUOUS
+              supervision=rollback_v2
+            fi
             echo 'OVERALL_STATUS=OK'
             echo 'REASON=SAFE_V2_ROLLBACK_ACTIVE'
-            echo "TOPOLOGY generation=v2 source=$generation_source master=$MPID rumble=$RPID youtube_v2=$V2PID master_speed=${master_speed:-unknown}x cpu_idle=${idle:-NA}% cpu_pressure_avg10=${pressure:-NA}"
+            echo "TOPOLOGY generation=v2 source=$generation_source supervision=$supervision master=$MPID rumble=$RPID youtube_v2=$V2PID master_speed=${master_speed:-unknown}x cpu_idle=${idle:-NA}% cpu_pressure_avg10=${pressure:-NA}"
             exit 0
           fi
 
-          # Generation v3 is committed state. It must never silently fall back
-          # to v2; the quarantine and permanent supervisor are part of health.
+          # Generation v3 is committed state; silent fallback to v2 is forbidden.
           active "$V3" || fail YOUTUBE_V3_INACTIVE
           if active "$V2"; then fail RETIRED_YOUTUBE_V2_ACTIVE; fi
           v2state=$(systemctl is-enabled "$V2" 2>/dev/null || true)
@@ -136,8 +141,9 @@ jobs:
           [[ ! -e /opt/fgbears-live/youtube-v2 ]] || fail V2_ACTIVE_RUNTIME_PRESENT
           if find "$V2_QUAR" -type f -perm /111 -print -quit 2>/dev/null | grep -q .; then fail V2_QUARANTINE_EXECUTABLE_PRESENT; fi
           [[ -x "$HEALTHCHECK" ]] || fail HEALTHCHECK_MISSING
-          grep -Fq 'recover_youtube_v3' "$HEALTHCHECK" || fail V3_HEALTH_SUPERVISION_MISMATCH
-          ! grep -Fq 'recover_youtube_v2' "$HEALTHCHECK" || fail V3_HEALTH_SUPERVISION_AMBIGUOUS
+          grep -Fq 'recover_youtube_destination' "$HEALTHCHECK" || fail V3_HEALTH_SUPERVISION_NOT_GENERATION_AWARE
+          grep -Fq 'YOUTUBE_GENERATION_FILE=' "$HEALTHCHECK" || fail V3_HEALTH_GENERATION_MARKER_MISSING
+          grep -Fq 'YOUTUBE_CUTOVER_MARKER=' "$HEALTHCHECK" || fail V3_HEALTH_CUTOVER_GUARD_MISSING
 
           YPID=$(pid "$V3")
           [[ "$YPID" =~ ^[1-9][0-9]*$ ]] || fail YOUTUBE_V3_PID_INVALID
@@ -175,7 +181,7 @@ jobs:
 
           echo 'OVERALL_STATUS=OK'
           echo 'REASON=PRODUCTION_HEALTHY'
-          echo "TOPOLOGY generation=v3 source=$generation_source master=$MPID rumble=$RPID youtube_v3=$YPID retired=masked master_speed=${master_speed:-unknown}x youtube_speed=${yt_speed}x youtube_fps=${yt_fps:-NA} drop=${yt_drop:-NA} dup=${yt_dup:-NA} cpu_idle=${idle:-NA}% cpu_pressure_avg10=${pressure:-NA}"
+          echo "TOPOLOGY generation=v3 source=$generation_source supervision=generation_aware master=$MPID rumble=$RPID youtube_v3=$YPID retired=masked master_speed=${master_speed:-unknown}x youtube_speed=${yt_speed}x youtube_fps=${yt_fps:-NA} drop=${yt_drop:-NA} dup=${yt_dup:-NA} cpu_idle=${idle:-NA}% cpu_pressure_avg10=${pressure:-NA}"
           echo "OVERLAY_ROUTING $overlay_report"
           REMOTE
           rc=$?
