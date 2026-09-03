@@ -1,0 +1,152 @@
+name: Deploy Current YouTube v3
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-current-youtube-v3.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-v3-current-production
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pip install --user pillow
+
+      - name: Build and validate current v3 candidate
+        run: |
+          set -Eeuo pipefail
+          V3=services/fgbears-live/youtube-v3
+          python3 "$V3/build-creatives.py"
+          python3 -m py_compile "$V3/youtube-v3-overlay.py" "$V3/lovable-state-cache.py"
+          bash -n "$V3/run-youtube-v3.sh"
+          bash -n "$V3/verify-youtube-v3.sh"
+          grep -Fq 'HOLD_SECONDS = float' "$V3/youtube-v3-overlay.py"
+          grep -Fq '"15"' "$V3/youtube-v3-overlay.py"
+          grep -Fq -- '-video_size 533x314' "$V3/run-youtube-v3.sh"
+          grep -Fq 'overlay=308:69:' "$V3/run-youtube-v3.sh"
+          grep -Fq -- '-threads 1' "$V3/run-youtube-v3.sh"
+          YOUTUBE_V3_CREATIVE_DIR="$PWD/$V3/creatives" FGB_CONTROL_STATE_FILE=/tmp/fgb-control-state-missing.json python3 "$V3/youtube-v3-overlay.py" --self-test
+          tar -C services/fgbears-live -czf /tmp/fgb-youtube-v3-current.tgz youtube-v3
+          echo 'CURRENT_V3_PREFLIGHT=PASS hold=15s output=854x480 overlay=533x314 cadence=30fps'
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stage candidate
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: scp -i ~/.ssh/oracle_key /tmp/fgb-youtube-v3-current.tgz "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-youtube-v3-current.tgz"
+
+      - name: Replace and restart YouTube only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          CACHE=fgbears-lovable-state-cache.service
+          YOUTUBE=fgbears-youtube-v3.service
+          ACTIVE=/opt/fgbears-live/youtube-v3
+          STAGE=/opt/fgbears-live/.youtube-v3-current-candidate
+          QROOT=/opt/fgbears-live/quarantine
+          BACKUP="$QROOT/youtube-v3-before-15s-latch-$(date -u +%Y%m%dT%H%M%SZ)"
+          MUTATED=0
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          connected(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+          fail(){ echo "CURRENT_V3_DEPLOY=FAIL reason=$1" >&2; return 1; }
+          rollback(){
+            trap - ERR; set +e
+            echo 'CURRENT_V3_ROLLBACK=BEGIN'
+            sudo systemctl stop "$YOUTUBE" 2>/dev/null || true
+            if [[ -d "$ACTIVE" ]]; then sudo mv "$ACTIVE" "$QROOT/youtube-v3-failed-$(date -u +%Y%m%dT%H%M%SZ)"; fi
+            if [[ -d "$BACKUP" ]]; then sudo mv "$BACKUP" "$ACTIVE"; fi
+            if [[ -r "$ACTIVE/fgbears-youtube-v3.service" ]]; then sudo install -m 0644 "$ACTIVE/fgbears-youtube-v3.service" /etc/systemd/system/fgbears-youtube-v3.service; fi
+            if [[ -r "$ACTIVE/fgbears-lovable-state-cache.service" ]]; then sudo install -m 0644 "$ACTIVE/fgbears-lovable-state-cache.service" /etc/systemd/system/fgbears-lovable-state-cache.service; fi
+            sudo systemctl daemon-reload
+            sudo systemctl reset-failed "$YOUTUBE" 2>/dev/null || true
+            sudo systemctl start "$YOUTUBE" || true
+            echo 'CURRENT_V3_ROLLBACK=END'
+          }
+          trap 'rc=$?; if (( MUTATED )); then rollback; fi; exit $rc' ERR
+
+          systemctl is-active --quiet "$MASTER" || fail master_inactive
+          systemctl is-active --quiet "$RUMBLE" || fail rumble_inactive
+          systemctl is-active --quiet "$CACHE" || fail cache_inactive
+          systemctl is-active --quiet "$YOUTUBE" || fail youtube_inactive
+          [[ "$(sudo cat /etc/fgbears-live/youtube-generation 2>/dev/null)" == v3 ]] || fail generation_not_v3
+          M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE"); C0=$(pid "$CACHE"); Y0=$(pid "$YOUTUBE")
+          [[ "$M0" =~ ^[1-9][0-9]*$ && "$R0" =~ ^[1-9][0-9]*$ && "$C0" =~ ^[1-9][0-9]*$ && "$Y0" =~ ^[1-9][0-9]*$ ]] || fail invalid_core_pid
+          connected "$R0" 1935 || fail rumble_socket_missing
+          connected "$Y0" 443 || fail youtube_socket_missing
+          ! systemctl is-active --quiet fgbears-youtube-v2-health.timer || fail legacy_v2_health_timer_active
+          ! systemctl is-active --quiet fgbears-youtube-v2.service || fail legacy_v2_active
+
+          sudo rm -rf "$STAGE"
+          sudo install -d -m 0755 "$STAGE"
+          sudo tar -C "$STAGE" -xzf /tmp/fgb-youtube-v3-current.tgz
+          CANDIDATE="$STAGE/youtube-v3"
+          sudo chmod 0755 "$CANDIDATE/youtube-v3-overlay.py" "$CANDIDATE/lovable-state-cache.py" "$CANDIDATE/run-youtube-v3.sh" "$CANDIDATE/verify-youtube-v3.sh" "$CANDIDATE/build-creatives.py"
+          sudo -u fgbears env YOUTUBE_V3_CREATIVE_DIR="$CANDIDATE/creatives" FGB_CONTROL_STATE_FILE=/tmp/fgb-control-state-intentionally-missing.json "$CANDIDATE/youtube-v3-overlay.py" --self-test
+
+          MUTATED=1
+          sudo install -d -m 0755 "$QROOT"
+          sudo mv "$ACTIVE" "$BACKUP"
+          sudo mv "$CANDIDATE" "$ACTIVE"
+          sudo rm -rf "$STAGE"
+          sudo install -m 0644 "$ACTIVE/fgbears-youtube-v3.service" /etc/systemd/system/fgbears-youtube-v3.service
+          sudo install -m 0644 "$ACTIVE/fgbears-lovable-state-cache.service" /etc/systemd/system/fgbears-lovable-state-cache.service
+          sudo systemctl daemon-reload
+
+          # Improve trigger responsiveness live without restarting the cache or deleting its LKG state.
+          sudo renice -n 0 -p "$C0" >/dev/null
+          sudo systemctl set-property --runtime "$CACHE" CPUWeight=100 >/dev/null
+
+          # Only YouTube v3 is intentionally restarted. Master, Rumble, and cache stay live.
+          sudo systemctl restart "$YOUTUBE"
+          ready=no
+          for _ in $(seq 1 35); do
+            Y1=$(pid "$YOUTUBE")
+            if systemctl is-active --quiet "$YOUTUBE" && connected "$Y1" 443; then ready=yes; break; fi
+            sleep 1
+          done
+          [[ "$ready" == yes ]] || fail youtube_did_not_reconnect
+          test "$(pid "$MASTER")" = "$M0" || fail master_pid_changed
+          test "$(pid "$RUMBLE")" = "$R0" || fail rumble_pid_changed
+          test "$(pid "$CACHE")" = "$C0" || fail cache_pid_changed
+          connected "$R0" 1935 || fail rumble_socket_lost
+
+          # Let the destination settle past the initial keyframe acquisition, then prove realtime pacing.
+          sleep 12
+          sudo "$ACTIVE/verify-youtube-v3.sh" --transport-only
+          sleep 5
+          sudo "$ACTIVE/verify-youtube-v3.sh" --transport-only
+          test "$(pid "$MASTER")" = "$M0" || fail master_pid_changed_after_verify
+          test "$(pid "$RUMBLE")" = "$R0" || fail rumble_pid_changed_after_verify
+          test "$(pid "$CACHE")" = "$C0" || fail cache_pid_changed_after_verify
+          sudo "$ACTIVE/verify-youtube-v3.sh"
+          MUTATED=0
+          echo "CURRENT_V3_DEPLOY=PASS master=$M0 rumble=$R0 cache=$C0 old_youtube=$Y0 new_youtube=$(pid "$YOUTUBE") hold=15s"
+          REMOTE
