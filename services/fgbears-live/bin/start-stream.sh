@@ -25,7 +25,7 @@ source "$ENV_FILE"
 : "${BEARS_NEWS_SCRIPT:=/opt/fgbears-live/bin/bears-news-feed.py}"
 : "${BEARS_NEWS_OVERLAY_PORT:=8789}"
 : "${BEARS_NEWS_OVERLAY_FPS:=30}"
-: "${BEARS_NEWS_SCROLL_PPS:=76}"
+: "${BEARS_NEWS_SCROLL_PPS:=58}"
 : "${FFMPEG_PROGRESS_FILE:=/srv/fgbears-live/logs/ffmpeg-progress.log}"
 : "${AD_FRAME_FILE:=/srv/fgbears-live/runtime/ad-frame.jpg}"
 : "${CRAWL_RUNTIME_DIR:=/srv/fgbears-live/runtime}"
@@ -112,8 +112,8 @@ FFMPEG_PID=""
 # All scrolling text is rasterized before FFmpeg. The news ribbon and lower
 # crawl arrive as sharp RGBA image overlays. Moving layers stay uncompressed
 # over loopback so there is no per-frame JPEG encode/decode burst in the media
-# clock. The slow-changing ad overlay remains MJPEG at 15 fps; both moving news
-# and crawl overlays are cadence-matched to the 30 fps final program.
+# clock. Both moving layers are cadence-matched to the 30 fps final program;
+# the upper news ticker is speed-matched to the lower crawl for visual cadence.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
