@@ -76,7 +76,7 @@ assert p.get('maskRegion') == {'x':462,'y':104,'width':798,'height':470,'coordin
 assert p.get('frameSize') == [798,470]
 assert p.get('presentationMode') == 'full_creative_scaled'
 assert p.get('routingAuthority') == 'lovable_public_stream_routing'
-assert float(p.get('fps') or 0) == 5.0
+assert float(p.get('fps') or 0) == 10.0
 keys=p.get('availableCreativeKeys')
 assert isinstance(keys,list) and 'yt_rumble_trivia_redirect' in keys
 last=float(p.get('lastGoodEpoch') or 0)
