@@ -84,10 +84,11 @@ install -m 0644 /opt/fgbears-live/systemd/fgbears-live-health.timer /etc/systemd
 
 # YouTube v3 is the only authorized destination-specific media implementation.
 # Lovable is the control plane; the independent local cache is the only network
-# client in the YouTube presentation path.
+# client in the YouTube presentation path. The YouTube-only delay relay is a
+# bounded loopback transport helper and never touches Rumble.
 python3 /opt/fgbears-live/youtube-v3/build-creatives.py
 chmod 0644 /opt/fgbears-live/youtube-v3/creatives/*.png
-chmod 0755 /opt/fgbears-live/youtube-v3/youtube-v3-overlay.py /opt/fgbears-live/youtube-v3/lovable-state-cache.py /opt/fgbears-live/youtube-v3/run-youtube-v3.sh /opt/fgbears-live/youtube-v3/verify-youtube-v3.sh /opt/fgbears-live/youtube-v3/build-creatives.py
+chmod 0755 /opt/fgbears-live/youtube-v3/youtube-v3-overlay.py /opt/fgbears-live/youtube-v3/youtube-v3-delay-relay.py /opt/fgbears-live/youtube-v3/lovable-state-cache.py /opt/fgbears-live/youtube-v3/run-youtube-v3.sh /opt/fgbears-live/youtube-v3/verify-youtube-v3.sh /opt/fgbears-live/youtube-v3/build-creatives.py
 install -m 0644 /opt/fgbears-live/youtube-v3/fgbears-lovable-state-cache.service /etc/systemd/system/fgbears-lovable-state-cache.service
 install -m 0644 /opt/fgbears-live/youtube-v3/fgbears-youtube-v3.service /etc/systemd/system/fgbears-youtube-v3.service
 
@@ -110,6 +111,8 @@ if not upstream:
     upstream=current_base if current_base and not current_base.startswith('rtmp://127.0.0.1:') else 'rtmps://a.rtmps.youtube.com/live2'
 updates={
     'YOUTUBE_LOCAL_UDP_URL':'udp://127.0.0.1:1939?pkt_size=1316',
+    'YOUTUBE_V3_BUFFERED_UDP_URL':'udp://127.0.0.1:1941?pkt_size=1316',
+    'YOUTUBE_V3_BUFFER_SECONDS':'4',
     'YOUTUBE_UPSTREAM_RTMP_BASE':upstream,
     'YOUTUBE_SERVICE':'fgbears-youtube-v3.service',
     'YOUTUBE_PROGRESS_FILE':'/run/fgbears-youtube-v3/ffmpeg-progress.log',
