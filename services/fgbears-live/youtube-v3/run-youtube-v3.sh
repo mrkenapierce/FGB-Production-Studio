@@ -17,7 +17,7 @@ LOCAL_INPUT="${LOCAL_BASE}?fifo_size=2000000&overrun_nonfatal=1&reuse=1"
 TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 OVERLAY=/opt/fgbears-live/youtube-v3/youtube-v3-overlay.py
 PROGRESS=/run/fgbears-youtube-v3/ffmpeg-progress.log
-FILTER_COMPLEX='[0:v:0]fps=24:start_time=0,settb=AVTB,setpts=N/(24*TB),setsar=1[base];[1:v:0]settb=AVTB,setpts=N/(5*TB)[cover];[base][cover]overlay=462:104:format=auto:shortest=0:repeatlast=1:eof_action=repeat[v];[0:a:0]aresample=44100:async=1000:first_pts=0,asetpts=N/SR/TB[a]'
+FILTER_COMPLEX='[0:v:0]fps=24:start_time=0,settb=AVTB,setpts=N/(24*TB),setsar=1[base];[1:v:0]settb=AVTB,setpts=N/(5*TB)[cover];[base][cover]overlay=462:104:format=auto:shortest=0:repeatlast=1:eof_action=repeat[composited];[composited]scale=1152:648:flags=fast_bilinear[v];[0:a:0]aresample=44100:async=1000:first_pts=0,asetpts=N/SR/TB[a]'
 
 [[ -x "$OVERLAY" ]] || { echo "Missing YouTube v3 overlay renderer: $OVERLAY" >&2; exit 78; }
 
@@ -33,10 +33,9 @@ progress_sink() {
   done
 }
 
-# v3 keeps the proven v2 A/V clock rebuild while encoding the YouTube-only
-# 1280x720 output at 24 fps. The static destination overlay is supplied at
-# 5 fps and held with repeatlast, reducing overlay pipe work without changing
-# master, Rumble, resolution, bitrate, audio, or the Lovable overlay contract.
+# v3 preserves the proven 1280x720 Lovable overlay contract and A/V clock
+# rebuild, composites at the source geometry, then scales only the YouTube
+# destination to 1152x648 before H.264 encoding. Master and Rumble stay intact.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
   -progress pipe:3 -stats_period 1 \
