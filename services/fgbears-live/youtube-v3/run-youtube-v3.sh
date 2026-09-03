@@ -36,13 +36,12 @@ progress_sink() {
 # v3 intentionally uses the exact proven v2 media path. The shared master
 # already emits MPEG-TS with resend_headers plus dump_extra on every keyframe,
 # so a late listener receives fresh PAT/PMT and H.264 SPS/PPS at the next IDR.
-# Keeping the destination to one FFmpeg process avoids the CPU and scheduling
-# penalty introduced by the rejected nested remux normalizer. Initial partial
-# GOP packets are discarded until the next self-contained keyframe; the master
-# and Rumble branches are never touched.
+# Keeping the destination to one FFmpeg process avoids extra CPU cost. Progress
+# is emitted once per second so verification can measure steady-state media-time
+# delta instead of FFmpeg's startup-history-weighted cumulative speed field.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
-  -progress pipe:3 -stats_period 2 \
+  -progress pipe:3 -stats_period 1 \
   -fflags +genpts+discardcorrupt \
   -err_detect ignore_err \
   -probesize 10000000 -analyzeduration 10000000 \
