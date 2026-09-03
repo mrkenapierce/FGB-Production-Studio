@@ -12,7 +12,8 @@ Group=fgbears
 EnvironmentFile=/etc/fgbears-live/stream.env
 ExecStart=/usr/local/bin/fgbears-start-stream
 # This is a 24/7 master. Any process exit, including FFmpeg status 0, is an
-# outage and must be recovered automatically.
+# outage and must be recovered automatically. The deployment guard captures
+# service and overlay diagnostics if a restart cannot remain active.
 Restart=always
 RestartSec=15
 TimeoutStopSec=20
