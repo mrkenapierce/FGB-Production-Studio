@@ -1,0 +1,201 @@
+name: Rumble Studio Shadow Pilot
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Pilot operation
+        required: true
+        default: status
+        type: choice
+        options:
+          - status
+          - enable
+          - disable
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-rumble-studio-pilot
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate pilot boundary
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/rumble-studio-relay.sh
+          grep -Fq 'RUMBLE_STUDIO_ENABLE:=0' services/fgbears-live/bin/rumble-studio-relay.sh
+          grep -Fq -- '-c copy' services/fgbears-live/bin/rumble-studio-relay.sh
+          ! grep -Eq 'libx264|libx265|h264_nvenc|hevc_nvenc' services/fgbears-live/bin/rumble-studio-relay.sh
+          echo 'PILOT_BOUNDARY=PASS'
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stage pilot files
+        if: inputs.action != 'status'
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          STUDIO_KEY: ${{ secrets.RUMBLE_STUDIO_STREAM_KEY }}
+        run: |
+          set -Eeuo pipefail
+          if [[ "${{ inputs.action }}" == "enable" ]]; then
+            test -n "$STUDIO_KEY"
+          fi
+          install -m 600 /dev/null /tmp/rumble-studio-pilot.credentials
+          printf '%s\n%s\n' 'rtmp://studio-rtmp.rumble.com/live' "$STUDIO_KEY" > /tmp/rumble-studio-pilot.credentials
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/rumble-studio-relay.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/rumble-studio-relay.sh"
+          scp -i ~/.ssh/oracle_key /tmp/rumble-studio-pilot.credentials "$ORACLE_USER@$ORACLE_HOST:/tmp/rumble-studio-pilot.credentials"
+          rm -f /tmp/rumble-studio-pilot.credentials
+
+      - name: Apply and verify pilot state
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          PILOT_ACTION: ${{ inputs.action }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "PILOT_ACTION='$PILOT_ACTION' bash -s" <<'REMOTE'
+          set -Eeuo pipefail
+          env_file=/etc/fgbears-live-live/stream.env
+          env_file=/etc/fgbears-live/stream.env
+          pilot_script=/tmp/rumble-studio-relay.sh
+          credentials=/tmp/resso-studio-pilot.credentials
+          credentials=/tmp/rumble-studio-pilot.credentials
+          backup_script=/usr/local/local/bin/fgbears-rumble-relay.pre-studio
+          backup_script=/usr/local/bin/fgbears-rumble-relay.pre-studio
+          backup_env=/etc/fgbears-live/stream.env.pre-studio
+
+          pid() { systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          enabled_value() {
+            sudo awk -F= '$1=="RUMBLE_STUDIO_ENABLE"{print $2}' "$env_file" | tail -n1
+          }
+
+          master_before=$(pid fgbears-live.service)
+          youtube_before=$(pid fgbears-youtube-v3.service)
+          rumble_before=$(pid fgbears-rumble-relay.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]]
+
+          if [[ "$PILOT_ACTION" == status ]]; then
+            state=$(enabled_value)
+            [[ "$state" == 0 || "$state" == 1 || -z "$state" ]]
+            echo "RUMBLE_STUDIO_PILOT_STATUS=PASS enabled=${state:-0} master_pid=$master_before rumble_pid=$rumble_before youtube_v3_pid=$youtube_before"
+            exit 0
+          fi
+
+          cleanup() {
+            sudo rm -f "$credentials" "$pilot_script"
+          }
+          rollback() {
+            echo 'Pilot activation failed; restoring the canonical Rumble relay.' >&2
+            if sudo test -f "$backup_env"; then
+              sudo cp -a "$backup_env" "$env_file"
+            else
+              sudo sed -i 's/^RUMBLE_STUDIO_ENABLE=.*/RUMBLE_STUDIO_ENABLE=0/' "$env_file"
+            fi
+            if sudo test -f "$backup_script"; then
+              sudo cp -a "$backup_script" /usr/local/bin/fgbears-rumble-relay
+            fi
+            sudo systemctl restart fgbears-rumble-relay.service || true
+            cleanup
+          }
+          trap rollback ERR
+          trap cleanup EXIT
+
+          sudo test -r "$env_file"
+          sudo test -s "$credentials"
+          bash -n "$pilot_script"
+          sudo cp -a /usr/local/bin/fgbears-rumble-relay "$backup_script"
+          sudo cp -a "$env_file" "$backup_env"
+          sudo install -m 0755 "$pilot_script" /usr/local/bin/fgbears-rumble-relay
+
+          sudo python3 - "$env_file" "$credentials" "$PILOT_ACTION" <<'PY'
+          from pathlib import Path
+          import os
+          import sys
+
+          env_path = Path(sys.argv[1])
+          credentials_path = Path(sys.argv[2])
+          action = sys.argv[3]
+          credentials = credentials_path.read_text(encoding="utf-8").splitlines()
+          base = credentials[0].strip() if credentials else ""
+          key = credentials[1].strip() if len(credentials) > 1 else ""
+          if action == "enable":
+              if base != "rtmp://studio-rtmp.rumble.com/live" or not key or "\n" in key or "\r" in key:
+                  raise SystemExit("Invalid Rumble Studio credentials")
+              updates = {
+                  "RUMBLE_STUDIO_ENABLE": "1",
+                  "RUMBLE_STUDIO_RTMP_BASE": base,
+                  "RUMBLE_STUDIO_STREAM_KEY": key,
+              }
+          elif action == "disable":
+              updates = {"RUMBLE_STUDIO_ENABLE": "0"}
+          else:
+              raise SystemExit("Unsupported pilot action")
+
+          lines = env_path.read_text(encoding="utf-8").splitlines()
+          seen = set()
+          output = []
+          for line in lines:
+              if "=" in line and not line.lstrip().startswith("#"):
+                  name = line.split("=", 1)[0]
+                  if name in updates:
+                      if name not in seen:
+                          output.append(f"{name}={updates[name]}")
+                          seen.add(name)
+                      continue
+              output.append(line)
+          for name, value in updates.items():
+              if name not in seen:
+                  output.append(f"{name}={value}")
+          temp = env_path.with_name(env_path.name + ".pilot.tmp")
+          temp.write_text("\n".join(output) + "\n", encoding="utf-8")
+          os.chmod(temp, 0o640)
+          temp.replace(env_path)
+          PY
+          sudo chown root:fgbears "$env_file"
+          sudo chmod 0640 "$env_file"
+          sudo rm -f "$credentials"
+
+          sudo systemctl restart fgbears-rumble-relay.service
+          for _ in $(seq 1 20); do
+            systemctl is-active --quiet fgbears-rumble-relay.service && break
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-rumble-relay.service
+
+          master_after=$(pid fgbears-live.service)
+          youtube_after=$(pid fgbears-youtube-v3.service)
+          rumble_after=$(pid fgbears-rumble-relay.service)
+          test "$master_after" = "$master_before"
+          test "$youtube_after" = "$youtube_before"
+          [[ "$rumble_after" =~ ^[1-9][0-9]*$ ]]
+          test "$rumble_after" != "$rumble_before"
+          expected=0
+          [[ "$PILOT_ACTION" == enable ]] && expected=1
+          test "$(enabled_value)" = "$expected"
+
+          trap - ERR
+          echo "RUMBLE_STUDIO_PILOT=PASS action=$PILOT_ACTION enabled=$expected master_pid_unchanged=$master_after youtube_v3_pid_unchanged=$youtube_after rumble_pid=$rumble_after"
+          REMOTE
