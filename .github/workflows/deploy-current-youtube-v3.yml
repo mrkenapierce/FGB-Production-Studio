@@ -39,12 +39,13 @@ jobs:
           bash -n "$V3/verify-youtube-v3.sh"
           grep -Fq 'HOLD_SECONDS = float' "$V3/youtube-v3-overlay.py"
           grep -Fq '"15"' "$V3/youtube-v3-overlay.py"
-          grep -Fq -- '-video_size 533x314' "$V3/run-youtube-v3.sh"
-          grep -Fq 'overlay=308:69:' "$V3/run-youtube-v3.sh"
+          grep -Fq 'scale=640:360:flags=fast_bilinear' "$V3/run-youtube-v3.sh"
+          grep -Fq -- '-video_size 399x235' "$V3/run-youtube-v3.sh"
+          grep -Fq 'overlay=231:52:' "$V3/run-youtube-v3.sh"
           grep -Fq -- '-threads 1' "$V3/run-youtube-v3.sh"
           YOUTUBE_V3_CREATIVE_DIR="$PWD/$V3/creatives" FGB_CONTROL_STATE_FILE=/tmp/fgb-control-state-missing.json python3 "$V3/youtube-v3-overlay.py" --self-test
           tar -C services/fgbears-live -czf /tmp/fgb-youtube-v3-current.tgz youtube-v3
-          echo 'CURRENT_V3_PREFLIGHT=PASS hold=15s output=854x480 overlay=533x314 cadence=30fps'
+          echo 'CURRENT_V3_PREFLIGHT=PASS hold=15s output=640x360 overlay=399x235 cadence=30fps'
 
       - name: Configure Oracle SSH
         env:
@@ -76,7 +77,7 @@ jobs:
           ACTIVE=/opt/fgbears-live/youtube-v3
           STAGE=/opt/fgbears-live/.youtube-v3-current-candidate
           QROOT=/opt/fgbears-live/quarantine
-          BACKUP="$QROOT/youtube-v3-before-15s-latch-$(date -u +%Y%m%dT%H%M%SZ)"
+          BACKUP="$QROOT/youtube-v3-before-360p-$(date -u +%Y%m%dT%H%M%SZ)"
           MUTATED=0
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
           connected(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
@@ -149,5 +150,5 @@ jobs:
           test "$(pid "$CACHE")" = "$C0" || fail cache_pid_changed_after_verify
           sudo "$ACTIVE/verify-youtube-v3.sh"
           MUTATED=0
-          echo "CURRENT_V3_DEPLOY=PASS master=$M0 rumble=$R0 cache=$C0 old_youtube=$Y0 new_youtube=$(pid "$YOUTUBE") hold=15s"
+          echo "CURRENT_V3_DEPLOY=PASS master=$M0 rumble=$R0 cache=$C0 old_youtube=$Y0 new_youtube=$(pid "$YOUTUBE") hold=15s output=640x360"
           REMOTE
