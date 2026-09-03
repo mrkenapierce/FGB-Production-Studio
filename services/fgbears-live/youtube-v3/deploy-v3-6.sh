@@ -36,7 +36,6 @@ cleanup_failure(){
 }
 trap cleanup_failure EXIT
 
-# Install immutable v3.6 release; this does not touch active transport.
 install -d -o root -g root -m755 "$RELEASE"
 for f in run-youtube-v3-source.sh run-youtube-v3.sh make-youtube-v3-cover.py youtube-v3-supervisor.py; do
   install -o root -g root -m755 "/tmp/$f" "$RELEASE/$f"
@@ -49,12 +48,13 @@ install -o root -g root -m644 /tmp/fgbears-youtube-v3.service /etc/systemd/syste
 install -o root -g root -m644 /tmp/fgbears-youtube-v3-supervisor.service /etc/systemd/system/fgbears-youtube-v3-supervisor.service
 systemctl daemon-reload
 
-# Exact host capability preflight.
 bash -n "$RELEASE/run-youtube-v3-source.sh"
 bash -n "$RELEASE/run-youtube-v3.sh"
 python3 -m py_compile "$RELEASE/youtube-v3-supervisor.py"
-ffmpeg -hide_banner -h demuxer=hls 2>/dev/null | grep -q live_start_index
-ffmpeg -hide_banner -h muxer=hls 2>/dev/null | grep -q program_date_time
+ffmpeg -hide_banner -h demuxer=hls > /tmp/v3-hls-demuxer-help.txt 2>&1 || true
+grep -q live_start_index /tmp/v3-hls-demuxer-help.txt || fail hls_live_start_index_unsupported
+ffmpeg -hide_banner -h muxer=hls > /tmp/v3-hls-muxer-help.txt 2>&1 || true
+grep -q program_date_time /tmp/v3-hls-muxer-help.txt || fail hls_program_date_time_unsupported
 FILTER="[0:v:0]setpts=PTS-STARTPTS,fps=30,setsar=1[base];[1:v:0]format=rgba[cover];[base][cover]overlay=462:104:format=auto:shortest=0:repeatlast=1:eof_action=repeat:enable='lt(mod(t+0,1200),300)+gte(mod(t+0,1200),1192)'[v];[2:a:0]aresample=48000:async=1:first_pts=0,asetpts=PTS-STARTPTS[a]"
 ffmpeg -hide_banner -nostdin -loglevel error \
   -f lavfi -i 'testsrc2=size=1280x720:rate=30' \
@@ -63,7 +63,6 @@ ffmpeg -hide_banner -nostdin -loglevel error \
   -filter_complex "$FILTER" -map '[v]' -map '[a]' -t 0.5 -f null -
 echo "V3_6_HOST_PREFLIGHT=PASS release=$RELEASE filter=yes hls=yes cover=798x470"
 
-# Pre-migration invariants.
 systemctl is-active --quiet "$MASTER" || fail master_inactive
 systemctl is-active --quiet "$RUMBLE" || fail rumble_inactive
 systemctl is-active --quiet "$V2" || fail v2_inactive_before_shadow
@@ -79,8 +78,6 @@ done
 speed=$(grep '^speed=' /srv/fgbears-live/logs/ffmpeg-progress.log | tail -1 | cut -d= -f2 | tr -d x)
 python3 -c 'import sys; assert float(sys.argv[1] or 0)>=.985' "$speed"
 
-# Add one independent loopback destination. One bounded master restart is the
-# only shared-path mutation in the migration.
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 q="/opt/fgbears-live/quarantine/v3-6-$stamp"
 install -d -m755 "$q"
@@ -101,7 +98,6 @@ conn "$(pid "$V2")" 443 || fail v2_socket_lost_after_master_restart
 [[ "$(pid "$V2")" == "$V20" && "$(nr "$V2")" == "$V2N0" ]] || fail v2_process_changed_during_master_export
 echo "V3_6_MASTER_EXPORT=PASS old_master=$M0 new_master=$M1 rumble=$R0 v2=$V20 speed=${speed}x"
 
-# Shadow source validation while v2 still owns YouTube.
 systemctl stop "$SUP" "$V3" "$SOURCE" 2>/dev/null || true
 systemctl reset-failed "$SOURCE" "$V3" "$SUP" 2>/dev/null || true
 systemctl start "$SOURCE"
@@ -122,7 +118,6 @@ acodec=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -o
 [[ -n "$acodec" ]] || fail source_audio_missing
 echo "V3_6_SOURCE_SHADOW=PASS segment=$(basename "$latest") video=$dims audio=$acodec"
 
-# Exact output graph shadow test, still leaving v2 live.
 rm -f "$ROOT/shadow.flv"
 set +e
 sudo -u fgbears env YOUTUBE_V3_TARGET="$ROOT/shadow.flv" timeout --signal=INT 35 /opt/fgbears-live/youtube-v3/run-youtube-v3.sh
@@ -141,7 +136,6 @@ conn "$V20" 443 || fail v2_socket_lost_during_shadow
 conn "$R0" 1935 || fail rumble_socket_lost_during_shadow
 echo "V3_6_OUTPUT_SHADOW=PASS video=$v audio=$a v2_unchanged=yes rumble_unchanged=yes"
 
-# Single-owner cutover. v2 remains installed and unmasked for deployment rollback.
 systemctl disable --now "$V2T" 2>/dev/null || true
 systemctl stop "$V2"
 CUTOVER=1
@@ -181,8 +175,6 @@ F2=$(progress frame); T2=$(progress out_time_us)
 [[ "$(pid "$MASTER")" == "$M1" ]] || fail master_changed_after_hold
 [[ "$(pid "$RUMBLE")" == "$R0" && "$(nr "$RUMBLE")" == "$RN0" ]] || fail rumble_changed_after_hold
 conn "$R0" 1935 || fail rumble_socket_missing_after_hold
-
-# Supervisor must have emitted at least one healthy line and no recovery.
 journalctl -u "$SUP" --since '-40 seconds' --no-pager | grep -q 'V3_HEALTH' || fail supervisor_no_health_sample
 ! journalctl -u "$SUP" --since '-40 seconds' --no-pager | grep -q 'V3_RECOVERY' || fail supervisor_recovered_during_acceptance
 
