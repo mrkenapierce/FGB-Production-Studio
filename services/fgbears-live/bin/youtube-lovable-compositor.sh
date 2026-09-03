@@ -4,8 +4,11 @@ set -Eeuo pipefail
 # Native-size YouTube-only compositor. The 1280x720/30 master is never scaled;
 # only the exact Lovable trivia question rectangle is replaced on YouTube.
 # The static RGBA cover runs at 15fps and FFmpeg repeats its most recent frame
-# over the 30fps base. This cuts unnecessary overlay IPC roughly in half without
-# reducing the program frame rate. Rumble remains on the untouched master.
+# over the 30fps base. Rumble remains on the untouched master.
+#
+# Audio policy: the master program audio is already normalized/polished and is
+# copied bit-for-bit from the master transport. The YouTube branch performs no
+# loudness processing, resampling, compression, limiting, or AAC re-encode.
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 [[ -r "$ENV_FILE" ]] || { echo "Missing environment file: $ENV_FILE" >&2; exit 78; }
@@ -23,9 +26,6 @@ YOUTUBE_OVERLAY_FPS=15
 YOUTUBE_VIDEO_BITRATE=3500k
 YOUTUBE_VIDEO_MAXRATE=4000k
 YOUTUBE_VIDEO_BUFSIZE=7000k
-YOUTUBE_AUDIO_SAMPLE_RATE=48000
-YOUTUBE_AUDIO_BITRATE=128k
-YOUTUBE_AUDIO_CHANNELS=2
 YOUTUBE_MONITOR_DIR=${YOUTUBE_MONITOR_DIR:-/run/fgbears-youtube-lovable-compositor}
 YOUTUBE_UDP_FIFO_SIZE=1000000
 YOUTUBE_MASTER_THREAD_QUEUE=512
@@ -62,7 +62,7 @@ print(r["x"],r["y"],r["width"],r["height"])
 ')
 EOF
 
-echo "Starting 1280x720/30 YouTube compositor; exact trivia box=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}; overlay=${YOUTUBE_OVERLAY_FPS}fps; video=3500k; AAC 48k stereo." >&2
+echo "Starting 1280x720/30 YouTube compositor; exact trivia box=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}; overlay=${YOUTUBE_OVERLAY_FPS}fps; video=3500k; audio=direct master passthrough." >&2
 
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
@@ -76,7 +76,6 @@ exec ffmpeg \
   -r "$YOUTUBE_OUTPUT_FPS" -g 60 -keyint_min 60 -sc_threshold 0 \
   -b:v "$YOUTUBE_VIDEO_BITRATE" -maxrate "$YOUTUBE_VIDEO_MAXRATE" -bufsize "$YOUTUBE_VIDEO_BUFSIZE" \
   -threads 1 -x264-params 'repeat-headers=1:keyint=60:min-keyint=60:scenecut=0' \
-  -c:a aac -profile:a aac_low -b:a "$YOUTUBE_AUDIO_BITRATE" -ar "$YOUTUBE_AUDIO_SAMPLE_RATE" -ac "$YOUTUBE_AUDIO_CHANNELS" \
-  -af "aresample=${YOUTUBE_AUDIO_SAMPLE_RATE}:async=1:first_pts=0" \
+  -c:a copy \
   -f tee -use_fifo 1 -fifo_options "$FIFO_OPTIONS" \
   "[f=flv:onfail=abort]${UPSTREAM_TARGET}|[f=segment:segment_time=2:segment_wrap=3:segment_format=mpegts:reset_timestamps=1:onfail=ignore]${MONITOR_PATTERN}"
