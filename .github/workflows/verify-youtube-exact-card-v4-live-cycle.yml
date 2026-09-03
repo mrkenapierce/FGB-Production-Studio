@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: fgbears-youtube-live-cycle-certification
@@ -24,6 +24,10 @@ jobs:
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
       ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: lovable-routing-bridge-20260902
+
       - name: Configure SSH
         shell: bash
         run: |
@@ -34,10 +38,12 @@ jobs:
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
       - name: Observe one complete live trivia question cycle read-only
+        id: observe
+        continue-on-error: true
         shell: bash
         run: |
           set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE' | tee /tmp/youtube-cycle-certification.log
           set -Eeuo pipefail
           MASTER=fgbears-live.service
           RUMBLE=fgbears-rumble-relay.service
@@ -86,7 +92,6 @@ PY
             connected "$C0" 443 || fail YOUTUBE_SOCKET_LOST
           }
 
-          # Wait until the just-authorized renderer has actually reached Oracle.
           deployed=0
           for _ in $(seq 1 90); do
             if grep -Fq 'self.active = phase == "question"' "$MASK" 2>/dev/null && active "$ROUTING" && active "$COMP"; then
@@ -118,9 +123,8 @@ PY
           printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert p.get("payloadSwap")=="next-segment-boundary"'
           echo 'TICKERS=PASS rss=30fps/76pps crawl=30fps boundary-swaps'
 
-          # Establish a non-question baseline. If certification starts during a
-          # question, wait for it to end and certify the next full question.
           baseline_deadline=$(( $(date +%s) + 360 ))
+          p=question
           while (( $(date +%s) < baseline_deadline )); do
             stable_shared
             p=$(phase)
@@ -133,9 +137,8 @@ PY
             fi
             sleep 1
           done
-          [[ "${p:-question}" != question ]] || fail NO_NONQUESTION_BASELINE
+          [[ "$p" != question ]] || fail NO_NONQUESTION_BASELINE
 
-          # Wait for the next real question.
           question_deadline=$(( $(date +%s) + 900 ))
           started=0
           while (( $(date +%s) < question_deadline )); do
@@ -155,8 +158,6 @@ PY
           done
           (( started == 1 )) || fail QUESTION_NOT_OBSERVED
 
-          # Every second of phase=question must report active=true. Every third
-          # sample also reads a real RGBA frame and requires complete opacity.
           samples=0
           alpha_samples=0
           while true; do
@@ -191,7 +192,6 @@ PY
           check_alpha 0
           echo "POST_QUESTION=PASS phase=$p2 transparent=yes"
 
-          # Verify actual encoded YouTube monitor output after the cycle.
           SEG=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
           [[ -n "$SEG" && -s "$SEG" ]] || fail MONITOR_SEGMENT_MISSING
           ffprobe -v fatal -show_entries stream=codec_type,codec_name,sample_rate,channels,width,height,r_frame_rate -of json "$SEG" \
@@ -218,3 +218,29 @@ PY
 
           echo "FULL_TRIVIA_CYCLE_CERTIFICATION=PASS master=$M0 rumble=$R0 routing=$Q0 compositor=$C0 samples=$samples opaque_frames=$alpha_samples duration=${duration}s master_speed=${speed:-unknown}x"
           REMOTE
+
+      - name: Persist certification evidence
+        if: always()
+        shell: bash
+        env:
+          OBSERVE_OUTCOME: ${{ steps.observe.outcome }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p services/fgbears-live/health/certifications
+          out=services/fgbears-live/health/certifications/latest-youtube-cycle.txt
+          {
+            echo "outcome=$OBSERVE_OUTCOME"
+            echo "certified_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "source_commit=$GITHUB_SHA"
+            cat /tmp/youtube-cycle-certification.log 2>/dev/null || true
+          } > "$out"
+          git config user.name 'FGB Production Certification'
+          git config user.email 'actions@users.noreply.github.com'
+          git add "$out"
+          git commit -m 'Record latest YouTube trivia cycle certification' || true
+          git push origin HEAD:lovable-routing-bridge-20260902
+
+      - name: Enforce certification result
+        if: steps.observe.outcome != 'success'
+        shell: bash
+        run: exit 1
