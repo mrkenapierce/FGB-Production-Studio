@@ -3,12 +3,13 @@
 
 Systemd does not restart the v3 media units. This supervisor restarts only the
 v3 source/output when a process is dead or when media/transport advancement is
-confirmed stalled. It never restarts the shared master or Rumble.
+confirmed stalled or outside the live-edge budget. It never restarts the
+shared master or Rumble.
 """
 from __future__ import annotations
 
+from datetime import datetime
 import fcntl
-import os
 from pathlib import Path
 import re
 import subprocess
@@ -21,10 +22,12 @@ RUMBLE = "fgbears-rumble-relay.service"
 ROOT = Path("/run/fgbears-youtube-v3")
 PLAYLIST = ROOT / "source/live.m3u8"
 PROGRESS = ROOT / "output.progress"
+START_FILE = ROOT / "output.start_epoch"
 LOCK = ROOT / "recovery.lock"
 INTERVAL = 5.0
 HOLD_DOWN = 45.0
 STARTUP_GRACE = 25.0
+MAX_LAG_SECONDS = 8.0
 
 
 def run(*args: str) -> str:
@@ -49,6 +52,17 @@ def age(path: Path) -> float:
         return 1e9
 
 
+def latest_program_epoch() -> float:
+    try:
+        last = None
+        for line in PLAYLIST.read_text(encoding="utf-8").splitlines():
+            if line.startswith("#EXT-X-PROGRAM-DATE-TIME:"):
+                last = line.split(":", 1)[1].strip().replace("Z", "+00:00")
+        return datetime.fromisoformat(last).timestamp() if last else 0.0
+    except Exception:
+        return 0.0
+
+
 def source_ok() -> tuple[bool, str]:
     if not active(SOURCE):
         return False, "source_inactive"
@@ -60,6 +74,8 @@ def source_ok() -> tuple[bool, str]:
     newest = max(segments, key=lambda p: p.stat().st_mtime)
     if age(newest) > 7:
         return False, f"segment_stale:{age(newest):.1f}s"
+    if latest_program_epoch() <= 0:
+        return False, "program_time_missing"
     return True, "ok"
 
 
@@ -80,6 +96,20 @@ def progress_values() -> tuple[int, int, int]:
                 pass
         return 0
     return num("frame"), num("out_time_us", "out_time_ms"), num("total_size")
+
+
+def output_lag(out_us: int) -> float:
+    try:
+        start = float(START_FILE.read_text(encoding="utf-8").strip())
+    except Exception:
+        return 1e9
+    live = latest_program_epoch()
+    if live <= 0 or out_us <= 0:
+        return 1e9
+    # PDT marks the start of the newest ~2 second segment; add one segment to
+    # approximate the current live edge. The target is ~one segment behind and
+    # the hard operating budget is two segments plus small timing tolerance.
+    return (live + 2.0) - (start + out_us / 1_000_000.0)
 
 
 def tcp443(p: int) -> tuple[bool, int, int]:
@@ -146,6 +176,7 @@ def main() -> int:
         src_good, src_reason = source_ok()
         p = pid(OUTPUT)
         pr = progress_values()
+        lag = output_lag(pr[1])
         connected, acked, sendq = tcp443(p)
         output_alive = active(OUTPUT) and p > 0
 
@@ -157,7 +188,8 @@ def main() -> int:
 
         progress_advancing = pr[0] > last_progress[0] and pr[1] > last_progress[1]
         ack_advancing = connected and (last_acked == 0 or acked > last_acked)
-        output_good = output_alive and connected and progress_advancing and ack_advancing and sendq < 2_000_000
+        lag_ok = -2.0 <= lag <= MAX_LAG_SECONDS
+        output_good = output_alive and connected and progress_advancing and ack_advancing and sendq < 2_000_000 and lag_ok
 
         if time.monotonic() < hold_until:
             failures = {"source": 0, "output": 0}
@@ -170,14 +202,14 @@ def main() -> int:
                 failures = {"source": 0, "output": 0}
                 hold_until = time.monotonic() + HOLD_DOWN
             elif failures["output"] >= 2:
-                reason = f"alive={output_alive},connected={connected},progress={progress_advancing},ack={ack_advancing},sendq={sendq}"
+                reason = f"alive={output_alive},connected={connected},progress={progress_advancing},ack={ack_advancing},sendq={sendq},lag={lag:.2f}"
                 recover("output", reason)
                 failures["output"] = 0
                 hold_until = time.monotonic() + HOLD_DOWN
 
         print(
             f"V3_HEALTH source={src_good} output={output_good} pid={p} frame={pr[0]} "
-            f"out_us={pr[1]} bytes={pr[2]} connected={connected} acked={acked} sendq={sendq} "
+            f"out_us={pr[1]} bytes={pr[2]} lag={lag:.2f}s connected={connected} acked={acked} sendq={sendq} "
             f"master={active(MASTER)} rumble={active(RUMBLE)}",
             flush=True,
         )
