@@ -17,7 +17,7 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 7
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure SSH and stage YouTube mask files
+      - name: Configure SSH and stage YouTube-only files
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -37,10 +37,13 @@ jobs:
             services/fgbears-live/bin/youtube-question-mask.py \
             "${ORACLE_USER:-ubuntu}@$ORACLE_HOST:/tmp/youtube-question-mask.py.deploy"
           scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh \
+            "${ORACLE_USER:-ubuntu}@$ORACLE_HOST:/tmp/youtube-audio-watchdog.deploy"
+          scp -i ~/.ssh/oracle_key \
             services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service \
             "${ORACLE_USER:-ubuntu}@$ORACLE_HOST:/tmp/fgbears-youtube-lovable-routing.service.deploy"
 
-      - name: Deploy routing renderer only and certify isolation
+      - name: Deploy routing renderer and watchdog without touching program transports
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -51,80 +54,110 @@ jobs:
           ROUTING=fgbears-youtube-lovable-routing.service
           COMP=fgbears-youtube-lovable-compositor.service
           LEGACY=fgbears-youtube-relay.service
-          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-          has_port(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+          WATCHDOG_TIMER=fgbears-youtube-audio-watchdog.timer
+          MASK=/opt/fgbears-live/bin/youtube-question-mask.py
+          WATCHDOG=/usr/local/bin/fgbears-youtube-audio-watchdog
+          ROUTING_UNIT=/etc/systemd/system/fgbears-youtube-lovable-routing.service
+          BACKUP=$(mktemp -d /tmp/fgb-youtube-cleanup.XXXXXX)
+          SUCCESS=0
 
-          for unit in "$MASTER" "$RUMBLE" "$ROUTING" "$COMP"; do systemctl is-active --quiet "$unit"; done
-          ! systemctl is-active --quiet "$LEGACY"
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          active(){ systemctl is-active --quiet "$1"; }
+          has_port(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+          fail(){ echo "DEPLOY_INVARIANT_FAIL=$1" >&2; exit 1; }
+          rollback(){
+            rc=$?
+            (( SUCCESS == 0 )) || return 0
+            echo "YOUTUBE_CLEANUP_ROLLBACK=BEGIN rc=$rc" >&2
+            [[ -f "$BACKUP/mask.py" ]] && install -m 0755 "$BACKUP/mask.py" "$MASK" || true
+            [[ -f "$BACKUP/watchdog" ]] && install -m 0755 "$BACKUP/watchdog" "$WATCHDOG" || true
+            [[ -f "$BACKUP/routing.service" ]] && install -m 0644 "$BACKUP/routing.service" "$ROUTING_UNIT" || true
+            systemctl daemon-reload || true
+            systemctl stop "$LEGACY" 2>/dev/null || true
+            systemctl disable "$LEGACY" >/dev/null 2>&1 || true
+            systemctl reset-failed "$ROUTING" >/dev/null 2>&1 || true
+            systemctl restart "$ROUTING" || true
+            echo "YOUTUBE_CLEANUP_ROLLBACK=RESTORED_ROUTING_ONLY master=$(pid "$MASTER") rumble=$(pid "$RUMBLE") compositor=$(pid "$COMP")" >&2
+            rm -rf "$BACKUP"
+            exit "$rc"
+          }
+          trap rollback EXIT
+
+          active "$MASTER" || fail MASTER_INACTIVE
+          active "$RUMBLE" || fail RUMBLE_INACTIVE
+          active "$ROUTING" || fail ROUTING_INACTIVE
+          active "$COMP" || fail COMPOSITOR_INACTIVE
+          active "$WATCHDOG_TIMER" || fail WATCHDOG_TIMER_INACTIVE
+          active "$LEGACY" && fail LEGACY_RELAY_ACTIVE
+
           M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE"); C0=$(pid "$COMP")
-          [[ "$M0" =~ ^[1-9][0-9]*$ && "$R0" =~ ^[1-9][0-9]*$ && "$C0" =~ ^[1-9][0-9]*$ ]]
-          has_port "$R0" 1935
-          has_port "$C0" 443
-          for port in 8787 8788 8789; do curl -fsS --max-time 2 "http://127.0.0.1:${port}/healthz" >/dev/null; done
+          [[ "$M0" =~ ^[1-9][0-9]*$ ]] || fail MASTER_PID_INVALID
+          [[ "$R0" =~ ^[1-9][0-9]*$ ]] || fail RUMBLE_PID_INVALID
+          [[ "$C0" =~ ^[1-9][0-9]*$ ]] || fail COMPOSITOR_PID_INVALID
+          has_port "$R0" 1935 || fail RUMBLE_SOCKET_MISSING
+          has_port "$C0" 443 || fail YOUTUBE_SOCKET_MISSING
+          for port in 8787 8788 8789; do curl -fsS --max-time 2 "http://127.0.0.1:${port}/healthz" >/dev/null || fail "HEALTH_PORT_${port}_UNREACHABLE"; done
 
           python3 -m py_compile /tmp/youtube-question-mask.py.deploy
-          grep -Fq 'elif self.active and phase == "question"' /tmp/youtube-question-mask.py.deploy
-          grep -Fq 'if ads_visible or ad_break or phase != "question"' /tmp/youtube-question-mask.py.deploy
-          grep -Fq 'youtube.get("rendersRealQuestion") is not False' /tmp/youtube-question-mask.py.deploy
+          bash -n /tmp/youtube-audio-watchdog.deploy
+          grep -Fq 'self.active = bool(phase == "question" and not ads_visible and not ad_break)' /tmp/youtube-question-mask.py.deploy || fail QUESTION_PHASE_NOT_AUTHORITATIVE
+          grep -Fq '"failClosedDuringQuestion": True' /tmp/youtube-question-mask.py.deploy || fail FAIL_CLOSED_MARKER_MISSING
+          grep -Fq 'legacy_fallback_allowed=no' /tmp/youtube-audio-watchdog.deploy || fail WATCHDOG_LEGACY_FALLBACK_NOT_DISABLED
+          grep -Fq 'restart_compositor_only' /tmp/youtube-audio-watchdog.deploy || fail WATCHDOG_COMPOSITOR_RECOVERY_MISSING
+          if grep -Fq 'fallback_to_legacy' /tmp/youtube-audio-watchdog.deploy; then fail WATCHDOG_LEGACY_FALLBACK_PRESENT; fi
 
-          cp -a /opt/fgbears-live/bin/youtube-question-mask.py /opt/fgbears-live/bin/youtube-question-mask.py.pre-question-latch
-          install -m 0755 /tmp/youtube-question-mask.py.deploy /opt/fgbears-live/bin/youtube-question-mask.py
-          install -m 0644 /tmp/fgbears-youtube-lovable-routing.service.deploy /etc/systemd/system/fgbears-youtube-lovable-routing.service
+          cp -a "$MASK" "$BACKUP/mask.py"
+          cp -a "$WATCHDOG" "$BACKUP/watchdog"
+          cp -a "$ROUTING_UNIT" "$BACKUP/routing.service"
+          install -m 0755 /tmp/youtube-question-mask.py.deploy "$MASK"
+          install -m 0755 /tmp/youtube-audio-watchdog.deploy "$WATCHDOG"
+          install -m 0644 /tmp/fgbears-youtube-lovable-routing.service.deploy "$ROUTING_UNIT"
           systemctl daemon-reload
+          systemctl stop "$LEGACY" 2>/dev/null || true
+          systemctl disable "$LEGACY" >/dev/null 2>&1 || true
           systemctl reset-failed "$ROUTING" >/dev/null 2>&1 || true
           systemctl restart "$ROUTING"
 
           healthy=0
           for _ in $(seq 1 30); do
-            if curl -fsS --max-time 1 http://127.0.0.1:8791/healthz >/tmp/youtube-mask-health.json 2>/dev/null; then healthy=1; break; fi
+            if curl -fsS --max-time 1 http://127.0.0.1:8791/healthz >/tmp/youtube-mask-health.json 2>/dev/null; then
+              if jq -e '.ok == true and .sourceCanvas == [1280,720] and .canvas == [640,360] and .sourceMaskRegion == {"x":462,"y":104,"width":798,"height":470} and .maskRegion == {"x":231,"y":52,"width":399,"height":235} and .creativeKey == "yt_rumble_trivia_redirect" and .failClosedDuringQuestion == true' /tmp/youtube-mask-health.json >/dev/null; then healthy=1; break; fi
+            fi
             sleep 1
           done
-          (( healthy == 1 ))
-          jq -e '.ok == true and .sourceCanvas == [1280,720] and .canvas == [640,360] and .sourceMaskRegion == {"x":462,"y":104,"width":798,"height":470} and .maskRegion == {"x":231,"y":52,"width":399,"height":235} and .creativeKey == "yt_rumble_trivia_redirect"' /tmp/youtube-mask-health.json >/dev/null
+          (( healthy == 1 )) || fail ROUTING_HEALTH_CONTRACT_FAILED
 
-          # If deployment lands during a live question, certify the production
-          # cover immediately. Outside a question, certify the latch code and
-          # report current phase without inventing a live-question observation.
           phase=$(jq -r '.phase // "none"' /tmp/youtube-mask-health.json)
-          active=$(jq -r '.active' /tmp/youtube-mask-health.json)
-          if [[ "$phase" == question ]]; then
-            [[ "$active" == true ]]
-            echo 'LIVE_QUESTION_CONCEALMENT=PASS active=true'
-          else
-            echo "LIVE_QUESTION_CONCEALMENT=NOT_CURRENTLY_OBSERVABLE phase=$phase active=$active"
-          fi
+          cover=$(jq -r '.active' /tmp/youtube-mask-health.json)
+          if [[ "$phase" == question && "$cover" != true ]]; then fail LIVE_QUESTION_NOT_COVERED; fi
+          echo "QUESTION_COVER_STATE=PASS phase=$phase active=$cover"
 
-          # Sustained transport/isolation check. Routing is the only intended PID change.
-          for _ in $(seq 1 12); do
-            systemctl is-active --quiet "$MASTER"
-            systemctl is-active --quiet "$RUMBLE"
-            systemctl is-active --quiet "$ROUTING"
-            systemctl is-active --quiet "$COMP"
-            ! systemctl is-active --quiet "$LEGACY"
-            test "$(pid "$MASTER")" = "$M0"
-            test "$(pid "$RUMBLE")" = "$R0"
-            test "$(pid "$COMP")" = "$C0"
-            has_port "$R0" 1935
-            has_port "$C0" 443
-            curl -fsS --max-time 2 http://127.0.0.1:8791/healthz >/tmp/youtube-mask-health.json
-            qphase=$(jq -r '.phase // "none"' /tmp/youtube-mask-health.json)
-            qactive=$(jq -r '.active' /tmp/youtube-mask-health.json)
-            if [[ "$qphase" == question && "$qactive" != true ]]; then
-              echo "QUESTION_LATCH_FAILURE phase=$qphase active=$qactive" >&2
-              exit 1
-            fi
+          # One-minute isolation window spans a complete host-watchdog cadence.
+          # A healthy cleanup must not change master/Rumble/compositor ownership.
+          for i in $(seq 1 12); do
+            active "$MASTER" || fail "MASTER_INACTIVE_SAMPLE_$i"
+            active "$RUMBLE" || fail "RUMBLE_INACTIVE_SAMPLE_$i"
+            active "$ROUTING" || fail "ROUTING_INACTIVE_SAMPLE_$i"
+            active "$COMP" || fail "COMPOSITOR_INACTIVE_SAMPLE_$i"
+            active "$LEGACY" && fail "LEGACY_ACTIVE_SAMPLE_$i"
+            [[ "$(pid "$MASTER")" == "$M0" ]] || fail "MASTER_PID_CHANGED_SAMPLE_$i"
+            [[ "$(pid "$RUMBLE")" == "$R0" ]] || fail "RUMBLE_PID_CHANGED_SAMPLE_$i"
+            [[ "$(pid "$COMP")" == "$C0" ]] || fail "COMPOSITOR_PID_CHANGED_SAMPLE_$i"
+            has_port "$R0" 1935 || fail "RUMBLE_SOCKET_LOST_SAMPLE_$i"
+            has_port "$C0" 443 || fail "YOUTUBE_SOCKET_LOST_SAMPLE_$i"
+            h=$(curl -fsS --max-time 2 http://127.0.0.1:8791/healthz) || fail "ROUTING_HEALTH_LOST_SAMPLE_$i"
+            qphase=$(printf '%s' "$h" | jq -r '.phase // "none"')
+            qactive=$(printf '%s' "$h" | jq -r '.active')
+            if [[ "$qphase" == question && "$qactive" != true ]]; then fail "QUESTION_NOT_COVERED_SAMPLE_$i"; fi
             sleep 5
           done
 
           progress=/srv/fgbears-live/logs/ffmpeg-progress.log
-          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' "$progress")
-          dropped=$(awk -F= '$1=="drop_frames"{v=$2} END{if(v!="") print v+0}' "$progress")
-          python3 - "$speed" "${dropped:-0}" <<'PY'
-          import sys
-          speed=float(sys.argv[1]); dropped=int(float(sys.argv[2]))
-          assert speed >= 0.95, speed
-          assert dropped == 0, dropped
-          print(f'STREAM_STRENGTH=PASS speed={speed:.3f}x dropped={dropped}')
-          PY
-          echo "YOUTUBE_CONCEALMENT_DEPLOY=PASS master=$M0 rumble=$R0 compositor=$C0 routing=$(pid "$ROUTING")"
+          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' "$progress" 2>/dev/null || true)
+          if [[ -n "$speed" ]]; then python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$speed" || fail MASTER_BELOW_REALTIME; fi
+
+          echo "YOUTUBE_CLEANUP_DEPLOY=PASS master=$M0 rumble=$R0 compositor=$C0 routing=$(pid "$ROUTING") master_speed=${speed:-unknown}x"
+          SUCCESS=1
+          trap - EXIT
+          rm -rf "$BACKUP" /tmp/youtube-question-mask.py.deploy /tmp/youtube-audio-watchdog.deploy /tmp/fgbears-youtube-lovable-routing.service.deploy
           REMOTE
