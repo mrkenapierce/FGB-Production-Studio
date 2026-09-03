@@ -2,14 +2,14 @@
 Description=Refresh FGBears local news feed
 Wants=network-online.target
 After=network-online.target
-ConditionPathIsExecutable=/opt/fgbears-live/bin/refresh-bears-news.py
+ConditionPathExists=/opt/fgbears-live/bin/refresh-bears-news.py
 
 [Service]
 Type=oneshot
 User=fgbears
 Group=fgbears
 Environment=PYTHONDONTWRITEBYTECODE=1
-ExecStart=/opt/fgbears-live/bin/refresh-bears-news.py --interval-seconds 900 --force
+ExecStart=/usr/bin/python3 /opt/fgbears-live/bin/refresh-bears-news.py --interval-seconds 900 --force
 TimeoutStartSec=5min
 UMask=0077
 NoNewPrivileges=true
