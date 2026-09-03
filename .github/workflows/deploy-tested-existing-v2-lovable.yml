@@ -1,0 +1,154 @@
+name: Deploy Tested Existing-v2 Lovable Bridge
+
+on:
+  push:
+    branches: [lovable-routing-existing-v2-20260903]
+    paths: ['.github/workflows/deploy-tested-existing-v2-lovable.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-v2-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+      TESTED_SHA: df3d695567439702d2c61d9dc255640d7360fc43
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TESTED_SHA }}
+
+      - name: Verify exact tested candidate
+        run: |
+          set -Eeuo pipefail
+          [[ "$(git rev-parse HEAD)" == "$TESTED_SHA" ]]
+          python3 -m py_compile services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          grep -Fq 'load_builder().build()' services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          grep -Fq 'youtubeMaskActive") is True' services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          echo "TESTED_RELEASE=PASS sha=$TESTED_SHA"
+
+      - name: Configure SSH and stage candidate
+        run: |
+          set -Eeuo pipefail
+          install -d -m700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+          scp -i ~/.ssh/oracle_key             services/fgbears-live/youtube-v2/youtube-v2-overlay.py             services/fgbears-live/tools/build-youtube-rumble-trivia-card.py             "${ORACLE_USER:-ubuntu}@$ORACLE_HOST:/tmp/"
+
+      - name: Preflight candidate without touching live services
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          python3 -m py_compile /tmp/youtube-v2-overlay.py /tmp/build-youtube-rumble-trivia-card.py
+          PYTHONPATH=/opt/fgbears-live/exact-card-pylib             YOUTUBE_REDIRECT_CARD_BUILDER=/tmp/build-youtube-rumble-trivia-card.py             YOUTUBE_V2_STATE_FILE=/tmp/youtube-v2-lovable-preflight.json             /tmp/youtube-v2-overlay.py --self-test > /tmp/youtube-v2-lovable-self-test.json
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/youtube-v2-lovable-self-test.json'))
+          assert p['ok'] is True
+          assert p['maskRegion']=={'x':462,'y':104,'width':798,'height':470,'coordinateSpace':'pixels','referenceWidth':1280,'referenceHeight':720}
+          assert p['frameSize']==[798,470]
+          assert p['creativeKey']=='yt_rumble_trivia_redirect'
+          print('HOST_CANDIDATE_PREFLIGHT=PASS')
+          PY
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          systemctl is-active --quiet fgbears-youtube-v2.service
+          REMOTE
+
+      - name: Transactional YouTube-v2-only cutover
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" "sudo env TESTED_SHA='$TESTED_SHA' bash -s" <<'REMOTE'
+          set -Eeuo pipefail
+          M=fgbears-live.service
+          R=fgbears-rumble-relay.service
+          Y=fgbears-youtube-v2.service
+          OVERLAY=/opt/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          BUILDER=/opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py
+          STATE=/run/fgbears-youtube-v2/overlay-state.json
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          nr(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
+          conn(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+          fail(){ echo "EXISTING_V2_CUTOVER=FAIL reason=$1" >&2; exit 1; }
+
+          systemctl is-active --quiet "$M" || fail master_inactive
+          systemctl is-active --quiet "$R" || fail rumble_inactive
+          systemctl is-active --quiet "$Y" || fail youtube_v2_inactive
+          M0=$(pid "$M"); R0=$(pid "$R"); Y0=$(pid "$Y")
+          MN0=$(nr "$M"); RN0=$(nr "$R")
+          conn "$R0" 1935 || fail rumble_socket_missing
+          conn "$Y0" 443 || fail youtube_socket_missing
+
+          stamp=$(date -u +%Y%m%dT%H%M%SZ)
+          backup=/opt/fgbears-live/quarantine/existing-v2-lovable-$stamp
+          install -d -m755 "$backup"
+          cp -a "$OVERLAY" "$backup/youtube-v2-overlay.py"
+          cp -a "$BUILDER" "$backup/build-youtube-rumble-trivia-card.py"
+
+          rollback(){
+            rc=$?
+            echo 'EXISTING_V2_ROLLBACK=BEGIN' >&2
+            install -o root -g root -m755 "$backup/youtube-v2-overlay.py" "$OVERLAY" || true
+            install -o root -g root -m755 "$backup/build-youtube-rumble-trivia-card.py" "$BUILDER" || true
+            systemctl restart "$Y" || true
+            echo 'EXISTING_V2_ROLLBACK=END' >&2
+            exit "$rc"
+          }
+          trap rollback ERR
+
+          install -o root -g root -m755 /tmp/youtube-v2-overlay.py "$OVERLAY"
+          install -o root -g root -m755 /tmp/build-youtube-rumble-trivia-card.py "$BUILDER"
+          sha256sum "$OVERLAY" "$BUILDER"
+
+          systemctl restart "$Y"
+          for _ in $(seq 1 30); do
+            Y1=$(pid "$Y")
+            if systemctl is-active --quiet "$Y" && conn "$Y1" 443; then break; fi
+            sleep 2
+          done
+          Y1=$(pid "$Y")
+          systemctl is-active --quiet "$Y" || fail youtube_inactive_after_restart
+          conn "$Y1" 443 || fail youtube_socket_missing_after_restart
+          [[ "$Y1" != "$Y0" ]] || fail youtube_pid_did_not_rotate
+
+          sleep 45
+          systemctl is-active --quiet "$Y" || fail youtube_inactive_after_observation
+          [[ "$(pid "$Y")" == "$Y1" ]] || fail youtube_restarted_during_observation
+          conn "$Y1" 443 || fail youtube_socket_lost
+          [[ "$(pid "$M")" == "$M0" && "$(nr "$M")" == "$MN0" ]] || fail master_changed
+          [[ "$(pid "$R")" == "$R0" && "$(nr "$R")" == "$RN0" ]] || fail rumble_changed
+          conn "$R0" 1935 || fail rumble_socket_lost
+
+          python3 - "$STATE" <<'PY'
+          import json,sys,time
+          p=json.load(open(sys.argv[1]))
+          assert p.get('ok') is True, p
+          assert p.get('maskRegion')=={'x':462,'y':104,'width':798,'height':470,'coordinateSpace':'pixels','referenceWidth':1280,'referenceHeight':720}
+          assert p.get('frameSize')==[798,470]
+          assert p.get('creativeKey')=='yt_rumble_trivia_redirect'
+          assert p.get('presentationMode')=='full_creative_scaled'
+          assert p.get('routingAuthority')=='lovable_public_stream_routing'
+          assert time.time()-float(p.get('lastGoodEpoch') or 0)<5
+          print('LIVE_LOVABLE_OVERLAY_STATE=PASS')
+          PY
+
+          fatal=$(journalctl -u "$Y" --since "@$stamp" --no-pager 2>/dev/null | grep -Eic 'Broken pipe|All tee outputs failed|Error writing trailer|Connection reset by peer|Failed with result' || true)
+          [[ "$fatal" == 0 ]] || fail "youtube_fatal_transport_faults:$fatal"
+          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log)
+          awk -v s="$speed" 'BEGIN{exit !(s>=0.97)}' || fail "master_speed_low:$speed"
+          cpu=$(ps -p "$Y1" -o %cpu= | awk '{print $1+0}')
+          awk -v c="$cpu" 'BEGIN{exit !(c<=30)}' || fail "youtube_cpu_high:$cpu"
+
+          trap - ERR
+          echo "EXISTING_V2_LOVABLE_DEPLOY=PASS sha=$TESTED_SHA master=$M0 rumble=$R0 youtube=$Y1 master_speed=${speed}x youtube_cpu=${cpu}%"
+          REMOTE
