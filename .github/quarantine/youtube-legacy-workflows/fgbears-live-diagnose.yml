@@ -1,0 +1,64 @@
+name: Diagnose FGBears Live
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-live-diagnose.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-production-diagnostics
+  cancel-in-progress: true
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Require Oracle deployment secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+
+      - name: Trust Oracle host key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Capture shared-master and relay diagnostics
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo 'SYSTEM'; date -u; uptime; free -m; df -h / /srv/fgbears-live
+          echo 'SERVICES'
+          for service in fgbears-live.service fgbears-youtube-relay.service fgbears-rumble-relay.service; do
+            systemctl show "$service" -p ActiveState -p SubState -p MainPID -p NRestarts -p ExecMainStartTimestamp -p ExecMainStatus --no-pager
+          done
+          master_pid=$(systemctl show -p MainPID --value fgbears-live.service)
+          youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-relay.service)
+          rumble_pid=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          echo 'PROCESS SNAPSHOT'
+          ps -o pid,ppid,pcpu,pmem,rss,nlwp,stat,etime,comm -p "$master_pid,$youtube_pid,$rumble_pid" || true
+          echo 'RECENT MASTER WARNINGS'; sudo journalctl -u fgbears-live.service --since '-20 minutes' --no-pager | tail -n 250
+          echo 'RECENT YOUTUBE RELAY WARNINGS'; sudo journalctl -u fgbears-youtube-relay.service --since '-20 minutes' --no-pager | tail -n 250 | sed -E 's#(rtmps?://[^/]+/live2/)[^[:space:]]+#\1[redacted]#g'
+          echo 'RECENT RUMBLE RELAY WARNINGS'; sudo journalctl -u fgbears-rumble-relay.service --since '-20 minutes' --no-pager | tail -n 250 | sed -E 's#(rtmps?://[^/]+/live/)[^[:space:]]+#\1[redacted]#g'
+          REMOTE
