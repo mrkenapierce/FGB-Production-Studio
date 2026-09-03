@@ -111,7 +111,9 @@ grep -Fq 'youtube-v2-overlay.py' "$ROOT/youtube-v2/run-youtube-v2.sh"
 grep -Fq 'Rumble must remain the canonical live-question presentation' "$ROOT/youtube-v2/youtube-v2-overlay.py"
 
 grep -Fq 'FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0' "$ROOT/config/stream.env.example"
-grep -Fq 'systemctl enable fgbears-youtube-v2.service' "$ROOT/bin/install.sh"
+# The installer must enable the sole authorized YouTube destination. The exact
+# grouping of enable operations is intentionally not part of the architecture.
+grep -Eq '^systemctl enable .*fgbears-youtube-v2\.service' "$ROOT/bin/install.sh"
 if grep -Eq 'install .*youtube-relay|enable .*youtube-relay|restart .*youtube-relay' "$ROOT/bin/install.sh"; then
   echo 'Installer can reactivate retired YouTube relay.' >&2; exit 1
 fi
