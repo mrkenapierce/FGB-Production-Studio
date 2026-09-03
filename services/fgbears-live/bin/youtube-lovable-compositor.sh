@@ -76,7 +76,7 @@ EOF
 
 [[ "$CREATIVE" == yt_rumble_trivia_redirect && "$AUTHORITY" == lovable_public_stream_routing ]]
 
-echo "Starting Lovable-controlled YouTube compositor: 640x360/30, panel=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}, video=2200k, source-character AAC-LC 48k stereo, protected input continuity." >&2
+echo "Starting Lovable-controlled YouTube compositor: 640x360/30 square-pixel 16:9, panel=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}, video=2200k, source-character AAC-LC 48k stereo, protected input continuity." >&2
 
 # A single encode feeds YouTube and a bounded read-only monitor. The monitor is
 # three rotating 2-second MPEG-TS segments in /run (tmpfs), so it is always
@@ -90,7 +90,7 @@ exec ffmpeg \
   -thread_queue_size "$YOUTUBE_MASTER_THREAD_QUEUE" -i "$LOCAL_INPUT" \
   -thread_queue_size "$YOUTUBE_OVERLAY_THREAD_QUEUE" -f rawvideo -pixel_format rgba -video_size "${MASK_WIDTH}x${MASK_HEIGHT}" -framerate "$YOUTUBE_OUTPUT_FPS" \
   -i "$OVERLAY_URL" \
-  -filter_complex "[0:v:0]scale=${YOUTUBE_OUTPUT_WIDTH}:${YOUTUBE_OUTPUT_HEIGHT}:flags=fast_bilinear[base];[base][1:v:0]overlay=${MASK_X}:${MASK_Y}:format=auto:shortest=1[v]" \
+  -filter_complex "[0:v:0]scale=${YOUTUBE_OUTPUT_WIDTH}:${YOUTUBE_OUTPUT_HEIGHT}:flags=fast_bilinear,setsar=1[base];[base][1:v:0]overlay=${MASK_X}:${MASK_Y}:format=auto:shortest=1[v]" \
   -map '[v]' -map 0:a:0 \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
   -pix_fmt yuv420p -r "$YOUTUBE_OUTPUT_FPS" -g 60 -keyint_min 60 -sc_threshold 0 \
