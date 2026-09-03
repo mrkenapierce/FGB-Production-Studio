@@ -1,0 +1,66 @@
+name: Rumble Studio Read-Only Diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/rumble-studio-readonly-diag.yml
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Inspect relay without mutations
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          env_file=/etc/fgbears-live/stream.env
+          relay_pid=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          echo "relay_active=$(systemctl is-active fgbears-rumble-relay.service)"
+          echo "relay_pid=$relay_pid"
+          echo "relay_restarts=$(systemctl show -p NRestarts --value fgbears-rumble-relay.service)"
+          echo "studio_enable=$(sudo sed -n 's/^RUMBLE_STUDIO_ENABLE=//p' "$env_file"|tail -n1)"
+          echo "studio_mode=$(sudo sed -n 's/^RUMBLE_STUDIO_MODE=//p' "$env_file"|tail -n1)"
+          echo "studio_base=$(sudo sed -n 's/^RUMBLE_STUDIO_RTMP_BASE=//p' "$env_file"|tail -n1)"
+          echo "studio_key_present=$(sudo sed -n 's/^RUMBLE_STUDIO_STREAM_KEY=//p' "$env_file"|tail -n1|awk '{print length($0)>0?"yes":"no"}')"
+          echo 'CURRENT_RTMP_SOCKETS_BEGIN'
+          sudo ss -ntpH state established | awk -v q="pid=$relay_pid" 'index($0,q){gsub(/[0-9A-Za-z_-]{20,}/,"[redacted]"); print}' || true
+          echo 'CURRENT_RTMP_SOCKETS_END'
+          echo 'RECENT_RELAY_JOURNAL_BEGIN'
+          sudo journalctl -u fgbears-rumble-relay.service --since '10 minutes ago' --no-pager -o cat \
+            | sed -E 's#(rtmps?://[^ /]+/live)/[^ ]+#\1/[redacted]#g; s#(rtmps?://[^ /]+)/[^ ]+#\1/[redacted]#g' \
+            | tail -n 120
+          echo 'RECENT_RELAY_JOURNAL_END'
+          getent ahostsv4 studio-rtmp.rumble.com | head -n 5 || true
+          python3 - <<'PY'
+          import socket
+          for host in ('studio-rtmp.rumble.com','rtmp.rumble.com'):
+              try:
+                  with socket.create_connection((host,1935),timeout=5):
+                      print(f'tcp_1935_{host}=yes')
+              except Exception as e:
+                  print(f'tcp_1935_{host}=no:{type(e).__name__}')
+          PY
+          echo 'RUMBLE_STUDIO_READONLY_DIAG=PASS'
+          REMOTE
