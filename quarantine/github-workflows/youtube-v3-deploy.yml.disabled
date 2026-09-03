@@ -1,0 +1,7 @@
+# QUARANTINED 2026-09-03
+# Original path: .github/workflows/youtube-v3-deploy.yml
+# Original blob: 9e67afe15e8c72723886c3fd6d5f290c0ae00005
+# Reason: retired cutover workflow assumes YouTube v2 is active, can restore/re-enable v2 on rollback,
+# and validates obsolete 1152x648 output. Current production is v3-only at 854x480@30.
+# The complete original remains recoverable from Git history by the blob/commit above.
+# This file is intentionally outside .github/workflows and cannot execute as a GitHub Action.
