@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 02 Sep 2026 22:09:04 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 03 Sep 2026 00:11:50 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears Over Beers Happy Hour and Open Thread: Bears Trade Incoming?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Over Beers Happy Hour and Open Thread: Bears Trade Incoming?</description>
+      <link>https://sports.yahoo.com/articles/bears-over-beers-happy-hour-000000487.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e30b8a6c4e8f412e5ed5</guid>
+      <pubDate>Thu, 03 Sep 2026 00:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Fourth-year cornerback Clark Phillips III excited to join Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Fourth-year cornerback Clark Phillips III excited to join Bears</description>
+      <link>https://www.chicagobears.com/news/fourth-year-cornerback-clark-phillips-iii-excited-to-join-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2d764105a361bbc7f227</guid>
+      <pubDate>Wed, 02 Sep 2026 23:13:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
 
     <item>
       <title>You’re not crazy: The refs really do hate the Chicago Bears</title>
@@ -30,16 +50,6 @@
     </item>
 
     <item>
-      <title>Chicago Bears Mega Season Preview with Aaron Leming</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Mega Season Preview with Aaron Leming</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-mega-season-preview-200000173.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c6436a79c7c77b554be3</guid>
-      <pubDate>Wed, 02 Sep 2026 20:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Bears-Panthers, Vikings-Packers markets</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Bears-Panthers, Vikings-Packers markets</description>
       <link>https://www.cbssports.com/prediction/news/week-1-nfl-picks-predictions-kalshi-polymarket-underdog-bears-panthers-vikings-packers-markets/</link>
@@ -50,23 +60,23 @@
     </item>
 
     <item>
-      <title>Bears&apos; Kyle Monangai: Resumes running</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyle Monangai: Resumes running</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-kyle-monangai-resumes-running/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1f230c1290968056f6df</guid>
-      <pubDate>Wed, 02 Sep 2026 14:38:00 GMT</pubDate>
+      <title>Bears&apos; Offense Boldly Predicted to Make NFL History During 2026 Season</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Offense Boldly Predicted to Make NFL History During 2026 Season</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-offense-boldly-predicted-to-make-nfl-history-during-2026-season</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-de318f407c1b2d922df9</guid>
+      <pubDate>Wed, 02 Sep 2026 15:20:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Chicago Bears launch Vamos Bears, new Spanish-language initiative for fans worldwide</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears launch Vamos Bears, new Spanish-language initiative for fans worldwide</description>
-      <link>https://www.chicagobears.com/news/chicago-bears-launch-vamos-bears-new-spanish-language-initiative-for-fans-worldwide</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e5b4ccb41b4db19d86ea</guid>
-      <pubDate>Wed, 02 Sep 2026 14:00:00 GMT</pubDate>
+      <title>Joey Porter Jr. Landing Spots: Chicago Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Joey Porter Jr. Landing Spots: Chicago Bears</description>
+      <link>https://www.cbssports.com/watch/nfl/video/joey-porter-jr-landing-spots-chicago-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9cbe4f2fe30dfb0577fc</guid>
+      <pubDate>Wed, 02 Sep 2026 14:14:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -75,16 +85,6 @@
       <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-from-d-andre-swift-gives-hope-for-bears-rb-s-week-1-status-01m1httrp8pt</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-9046614122686cb32dc6</guid>
       <pubDate>Wed, 02 Sep 2026 14:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Rookie DTs Aren&apos;t the Only Reasons Bears Felt Comfortable Trading Gervon Dexter</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Rookie DTs Aren&apos;t the Only Reasons Bears Felt Comfortable Trading Gervon Dexter</description>
-      <link>https://www.si.com/nfl/bears/onsi/rookie-dts-aren-t-the-only-reasons-bears-felt-comfortable-trading-gervon-dexter</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-355f0812f97dd8d5dbe8</guid>
-      <pubDate>Wed, 02 Sep 2026 13:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
