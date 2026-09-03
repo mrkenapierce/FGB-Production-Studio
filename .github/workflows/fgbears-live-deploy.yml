@@ -6,9 +6,10 @@ on:
     branches: [main]
     paths:
       - 'services/fgbears-live/**'
-      - '!services/fgbears-live/youtube-v2/**'
+      - '!services/fgbears-live/youtube-v3/**'
       - '!services/fgbears-live/quarantine/**'
       - '!services/fgbears-live/bin/install.sh'
+      - '!services/fgbears-live/bin/healthcheck.sh'
       - '!services/fgbears-live/bin/youtube-*'
       - '!services/fgbears-live/bin/finalize-youtube-only.py'
       - '!services/fgbears-live/systemd/fgbears-youtube-*'
@@ -39,7 +40,8 @@ jobs:
           bash -n services/fgbears-live/bin/rumble-relay.sh
           ! grep -Eq 'install .*youtube-relay|enable .*youtube-relay|restart .*youtube-relay' services/fgbears-live/bin/install.sh
           ! grep -Eq 'install .*youtube-audio-watchdog|enable .*youtube-audio-watchdog|restart .*youtube-audio-watchdog' services/fgbears-live/bin/install.sh
-          grep -Fq 'systemctl enable fgbears-youtube-v2.service' services/fgbears-live/bin/install.sh
+          grep -Fq 'fgbears-youtube-v3.service' services/fgbears-live/bin/install.sh
+          ! grep -Fq 'systemctl enable fgbears-youtube-v2.service' services/fgbears-live/bin/install.sh
           echo 'SHARED_DEPLOY_BOUNDARY=PASS'
 
       - name: Configure Oracle SSH
@@ -55,7 +57,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Install shared program without touching YouTube v2
+      - name: Install shared program without touching YouTube v3
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -63,12 +65,11 @@ jobs:
           set -Eeuo pipefail
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
 
-          youtube_before=$(pid fgbears-youtube-v2.service)
-          [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]] || { echo "YouTube v2 is not active"; exit 1; }
+          youtube_before=$(pid fgbears-youtube-v3.service)
+          [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]] || { echo "YouTube v3 is not active"; exit 1; }
 
           rm -rf /tmp/fgbears-shared-deploy
           git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-shared-deploy
-
           sudo bash /tmp/fgbears-shared-deploy/services/fgbears-live/bin/install.sh
 
           sudo systemctl reset-failed fgbears-live.service fgbears-rumble-relay.service
@@ -78,23 +79,23 @@ jobs:
           for _ in $(seq 1 30); do
             if systemctl is-active --quiet fgbears-live.service &&
                systemctl is-active --quiet fgbears-rumble-relay.service &&
-               systemctl is-active --quiet fgbears-youtube-v2.service; then
+               systemctl is-active --quiet fgbears-youtube-v3.service; then
               break
             fi
             sleep 1
           done
-
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet fgbears-rumble-relay.service
-          systemctl is-active --quiet fgbears-youtube-v2.service
+          systemctl is-active --quiet fgbears-youtube-v3.service
 
-          youtube_after=$(pid fgbears-youtube-v2.service)
+          youtube_after=$(pid fgbears-youtube-v3.service)
           test "$youtube_after" = "$youtube_before" || {
-            echo "Shared deployment changed YouTube v2 PID: $youtube_before -> $youtube_after" >&2
+            echo "Shared deployment changed YouTube v3 PID: $youtube_before -> $youtube_after" >&2
             exit 1
           }
 
           for unit in \
+            fgbears-youtube-v2.service \
             fgbears-youtube-output.service \
             fgbears-youtube-relay.service \
             fgbears-youtube-router.service \
@@ -104,8 +105,8 @@ jobs:
             fgbears-youtube-audio-watchdog.timer
           do
             state=$(systemctl is-enabled "$unit" 2>/dev/null || true)
-            [[ "$state" == masked* ]] || { echo "Legacy unit not masked: $unit ($state)" >&2; exit 1; }
+            [[ "$state" == masked* ]] || { echo "Retired unit not masked: $unit ($state)" >&2; exit 1; }
           done
 
-          echo "SHARED_DEPLOY=PASS youtube_v2_pid_unchanged=$youtube_after"
+          echo "SHARED_DEPLOY=PASS youtube_v3_pid_unchanged=$youtube_after"
           REMOTE

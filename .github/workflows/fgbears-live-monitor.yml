@@ -32,8 +32,7 @@ jobs:
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
           set -Eeuo pipefail
-          test -n "$ORACLE_HOST"
-          test -n "$ORACLE_SSH_KEY"
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
@@ -49,19 +48,12 @@ jobs:
           set -u
           MASTER=fgbears-live.service
           RUMBLE=fgbears-rumble-relay.service
-          YOUTUBE=fgbears-youtube-v2.service
+          YOUTUBE=fgbears-youtube-v3.service
           HEALTH_TIMER=fgbears-live-health.timer
-          OVERLAY_STATE=/run/fgbears-youtube-v2/overlay-state.json
-          LEGACY_UNITS=(
-            fgbears-youtube-output.service
-            fgbears-youtube-relay.service
-            fgbears-youtube-router.service
-            fgbears-youtube-lovable-routing.service
-            fgbears-youtube-lovable-compositor.service
-            fgbears-youtube-audio-watchdog.service
-            fgbears-youtube-audio-watchdog.timer
-          )
-
+          OVERLAY_STATE=/run/fgbears-youtube-v3/overlay-state.json
+          YT_PROGRESS=/run/fgbears-youtube-v3/ffmpeg-progress.log
+          V2_QUAR=/opt/fgbears-live/quarantine/youtube-v2-retired-20260903
+          RETIRED=(fgbears-youtube-v2.service fgbears-youtube-output.service fgbears-youtube-relay.service fgbears-youtube-router.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service fgbears-youtube-audio-watchdog.service fgbears-youtube-audio-watchdog.timer)
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
           active(){ systemctl is-active --quiet "$1"; }
           socket(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v port=":$port" 'index($0,q)&&index($0,port){ok=1} END{exit(ok?0:1)}'; }
@@ -69,51 +61,56 @@ jobs:
 
           active "$MASTER" || fail MASTER_INACTIVE
           active "$RUMBLE" || fail RUMBLE_INACTIVE
-          active "$YOUTUBE" || fail YOUTUBE_V2_INACTIVE
+          active "$YOUTUBE" || fail YOUTUBE_V3_INACTIVE
           active "$HEALTH_TIMER" || fail MASTER_HEALTH_TIMER_INACTIVE
-
-          for unit in "${LEGACY_UNITS[@]}"; do
-            active "$unit" && fail "LEGACY_UNIT_ACTIVE_${unit//[^A-Za-z0-9]/_}"
+          for unit in "${RETIRED[@]}"; do
+            active "$unit" && fail "RETIRED_UNIT_ACTIVE_${unit//[^A-Za-z0-9]/_}"
             state=$(systemctl is-enabled "$unit" 2>/dev/null || true)
-            [[ "$state" == masked* ]] || fail "LEGACY_UNIT_NOT_MASKED_${unit//[^A-Za-z0-9]/_}"
+            [[ "$state" == masked* ]] || fail "RETIRED_UNIT_NOT_MASKED_${unit//[^A-Za-z0-9]/_}"
           done
+          [[ -d "$V2_QUAR" ]] || fail V2_QUARANTINE_MISSING
+          [[ ! -e /opt/fgbears-live/youtube-v2 ]] || fail V2_ACTIVE_RUNTIME_PRESENT
 
           MPID=$(pid "$MASTER"); RPID=$(pid "$RUMBLE"); YPID=$(pid "$YOUTUBE")
           [[ "$MPID" =~ ^[1-9][0-9]*$ ]] || fail MASTER_PID_INVALID
           [[ "$RPID" =~ ^[1-9][0-9]*$ ]] || fail RUMBLE_PID_INVALID
-          [[ "$YPID" =~ ^[1-9][0-9]*$ ]] || fail YOUTUBE_V2_PID_INVALID
+          [[ "$YPID" =~ ^[1-9][0-9]*$ ]] || fail YOUTUBE_V3_PID_INVALID
           socket "$RPID" 1935 || fail RUMBLE_SOCKET_MISSING
           socket "$YPID" 443 || fail YOUTUBE_SOCKET_MISSING
+          [[ "$(systemctl show -p Nice --value "$YOUTUBE" 2>/dev/null || echo x)" == 0 ]] || fail YOUTUBE_PRIORITY_PENALTY_PRESENT
 
-          speed=$(sudo awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
-          if [[ -n "$speed" ]] && ! python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$speed"; then
-            fail MASTER_BELOW_REALTIME
-          fi
+          master_speed=$(sudo awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
+          if [[ -n "$master_speed" ]] && ! python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$master_speed"; then fail MASTER_BELOW_REALTIME; fi
 
-          # Routing loss is deliberately non-fatal: the v2 worker writes a fresh
-          # state and fails transparent while YouTube transport stays live.
+          [[ -s "$YT_PROGRESS" ]] || fail YOUTUBE_PROGRESS_MISSING
+          yt_age=$(( $(date +%s) - $(stat -c %Y "$YT_PROGRESS") ))
+          (( yt_age < 20 )) || fail YOUTUBE_PROGRESS_STALE
+          yt_speed=$(sed -n 's/^speed=\([0-9.]*\)x$/\1/p' "$YT_PROGRESS" | tail -n1)
+          yt_fps=$(sed -n 's/^fps=\([0-9.]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
+          yt_drop=$(sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
+          yt_dup=$(sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
+          [[ -n "$yt_speed" ]] || fail YOUTUBE_SPEED_MISSING
+          python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$yt_speed" || fail YOUTUBE_BELOW_REALTIME
+          if sudo journalctl -u "$YOUTUBE" --since '-20 minutes' --no-pager 2>/dev/null | grep -Fq 'Circular buffer overrun'; then fail YOUTUBE_UDP_OVERRUN; fi
+
           overlay_routing=UNKNOWN
           if sudo test -s "$OVERLAY_STATE"; then
             overlay_report=$(sudo python3 - "$OVERLAY_STATE" <<'PY'
           import json, os, sys, time
-          path=sys.argv[1]
-          p=json.load(open(path, encoding='utf-8'))
-          assert p.get('maskRegion') == {
-              'x':462,'y':104,'width':798,'height':470,
-              'coordinateSpace':'pixels','referenceWidth':1280,'referenceHeight':720,
-          }
+          path=sys.argv[1]; p=json.load(open(path,encoding='utf-8')); age=time.time()-os.path.getmtime(path)
+          assert p.get('workerVersion') == 'youtube-v3'
+          assert p.get('maskRegion') == {'x':462,'y':104,'width':798,'height':470,'coordinateSpace':'pixels','referenceWidth':1280,'referenceHeight':720}
           assert p.get('frameSize') == [798,470]
           assert p.get('routingAuthority') == 'lovable_public_stream_routing'
-          assert float(p.get('fps') or 0) == 10.0
-          age=time.time()-os.path.getmtime(path)
+          assert float(p.get('fps') or 0) == 5.0
           assert 0 <= age < 120, age
           status='OK' if p.get('ok') is True else 'DEGRADED_FAIL_TRANSPARENT'
-          print(f'{status} age={age:.1f}s active={str(bool(p.get("active"))).lower()} creative={p.get("creativeKey")}')
+          print(f'{status} age={age:.1f}s active={str(bool(p.get("active"))).lower()} creative={p.get("creativeKey")} latency_ms={p.get("routingLatencyMs")} clock_misses={p.get("frameClockMisses")}')
           PY
-            ) || fail YOUTUBE_V2_STATE_INVALID
+            ) || fail YOUTUBE_V3_STATE_INVALID
             overlay_routing=$overlay_report
           else
-            fail YOUTUBE_V2_STATE_MISSING
+            fail YOUTUBE_V3_STATE_MISSING
           fi
 
           news=$(curl -fsS --max-time 3 http://127.0.0.1:8789/healthz) || fail RSS_HEALTH_UNREACHABLE
@@ -121,9 +118,11 @@ jobs:
           printf '%s' "$news" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True' || fail RSS_CONTRACT_INVALID
           printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True' || fail CRAWL_CONTRACT_INVALID
 
+          pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"=");print a[2]}}' /proc/pressure/cpu 2>/dev/null || true)
+          idle=$(vmstat 1 2 | tail -n1 | awk '{print $15}')
           echo 'OVERALL_STATUS=OK'
           echo 'REASON=PRODUCTION_HEALTHY'
-          echo "TOPOLOGY master=$MPID rumble=$RPID youtube_v2=$YPID legacy=masked master_speed=${speed:-unknown}x"
+          echo "TOPOLOGY master=$MPID rumble=$RPID youtube_v3=$YPID retired=masked master_speed=${master_speed:-unknown}x youtube_speed=${yt_speed}x youtube_fps=${yt_fps:-NA} drop=${yt_drop:-NA} dup=${yt_dup:-NA} cpu_idle=${idle:-NA}% cpu_pressure_avg10=${pressure:-NA}"
           echo "OVERLAY_ROUTING $overlay_routing"
           REMOTE
           rc=$?
@@ -131,12 +130,10 @@ jobs:
           cat production-status.env || true
           status=$(sed -n 's/^OVERALL_STATUS=\(OK\|FAIL\)$/\1/p' production-status.env | tail -n1)
           reason=$(sed -n 's/^REASON=\([A-Z0-9_]*\)$/\1/p' production-status.env | tail -n1)
-          [[ -n "$status" ]] || status=FAIL
-          [[ -n "$reason" ]] || reason=INVALID_MONITOR_REPORT
+          [[ -n "$status" ]] || status=FAIL; [[ -n "$reason" ]] || reason=INVALID_MONITOR_REPORT
           printf 'status=%s\nreason=%s\n' "$status" "$reason" >> "$GITHUB_OUTPUT"
           printf '## FGBears Live: %s\n\n```text\n' "$status" >> "$GITHUB_STEP_SUMMARY"
-          cat production-status.env >> "$GITHUB_STEP_SUMMARY"
-          printf '```\n' >> "$GITHUB_STEP_SUMMARY"
+          cat production-status.env >> "$GITHUB_STEP_SUMMARY"; printf '```\n' >> "$GITHUB_STEP_SUMMARY"
           exit 0
 
       - name: Manage stream incident
@@ -148,16 +145,11 @@ jobs:
           STREAM_REASON: ${{ steps.health.outputs.reason }}
         run: |
           set -Eeuo pipefail
-          status=${STREAM_STATUS:-FAIL}
-          reason=${STREAM_REASON:-MONITOR_STEP_FAILED}
+          status=${STREAM_STATUS:-FAIL}; reason=${STREAM_REASON:-MONITOR_STEP_FAILED}
           gh label create stream-monitor --color B60205 --description 'Automated FGBears Live stream incident' --force
           issue=$(gh issue list --state open --label stream-monitor --json number --jq '.[0].number // empty')
           if [[ "$status" != OK ]]; then
-            if [[ -z "$issue" ]]; then
-              gh issue create --title '[Stream Monitor] FGBears Live incident' --label stream-monitor --body "Read-only production monitor detected \`$reason\`. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-            fi
+            if [[ -z "$issue" ]]; then gh issue create --title '[Stream Monitor] FGBears Live incident' --label stream-monitor --body "Read-only production monitor detected \`$reason\`. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"; fi
             exit 1
           fi
-          if [[ -n "$issue" ]]; then
-            gh issue close "$issue" --comment "Recovered. Current monitoring run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
-          fi
+          if [[ -n "$issue" ]]; then gh issue close "$issue" --comment "Recovered. Current monitoring run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"; fi

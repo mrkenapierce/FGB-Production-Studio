@@ -1,0 +1,206 @@
+name: Deploy YouTube v3 Rebuild
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'services/fgbears-live/youtube-v3/**'
+      - 'services/fgbears-live/quarantine/youtube-v2-retired-20260903/**'
+      - 'services/fgbears-live/bin/install.sh'
+      - 'services/fgbears-live/bin/healthcheck.sh'
+      - '.github/workflows/youtube-v3-deploy.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-v3-production
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pip install --user pillow qrcode
+
+      - name: Build and validate replacement locally
+        run: |
+          set -Eeuo pipefail
+          python3 services/fgbears-live/youtube-v3/build-creatives.py
+          python3 -m py_compile services/fgbears-live/youtube-v3/youtube-v3-overlay.py
+          bash -n services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          bash -n services/fgbears-live/youtube-v3/verify-youtube-v3.sh
+          YOUTUBE_V3_CREATIVE_DIR="$PWD/services/fgbears-live/youtube-v3/creatives" \
+            python3 services/fgbears-live/youtube-v3/youtube-v3-overlay.py --self-test --offline
+          ! grep -Eq '^Nice=|^CPUWeight=' services/fgbears-live/youtube-v3/fgbears-youtube-v3.service
+          echo 'V3_LOCAL_PREFLIGHT=PASS'
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stage locked creative on Oracle
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/youtube-v3/creatives/yt_rumble_trivia_redirect.png \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/yt-rumble-v3.png"
+
+      - name: Cut over v2 to rebuilt v3 and quarantine v2
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          V2=fgbears-youtube-v2.service
+          V3=fgbears-youtube-v3.service
+          V2DIR=/opt/fgbears-live/youtube-v2
+          V2QUAR=/opt/fgbears-live/quarantine/youtube-v2-retired-20260903
+          V3DIR=/opt/fgbears-live/youtube-v3
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          fail(){ echo "YOUTUBE_V3_DEPLOY=FAIL reason=$1" >&2; return 1; }
+          CUTOVER=0
+
+          rollback() {
+            trap - ERR
+            set +e
+            echo 'YOUTUBE_V3_ROLLBACK=BEGIN'
+            sudo systemctl stop "$V3" 2>/dev/null || true
+            sudo systemctl disable "$V3" 2>/dev/null || true
+            sudo rm -f /etc/systemd/system/fgbears-youtube-v3.service
+            if [[ -d "$V2QUAR" && ! -e "$V2DIR" ]]; then
+              sudo mv "$V2QUAR" "$V2DIR"
+            fi
+            if [[ -d "$V2DIR" ]]; then
+              sudo chmod 0755 "$V2DIR" "$V2DIR"/creatives 2>/dev/null || true
+              sudo chmod 0755 "$V2DIR"/youtube-v2-overlay.py "$V2DIR"/run-youtube-v2.sh "$V2DIR"/verify-youtube-v2.sh 2>/dev/null || true
+              sudo chmod 0644 "$V2DIR"/fgbears-youtube-v2.service 2>/dev/null || true
+              sudo systemctl unmask "$V2" 2>/dev/null || true
+              sudo install -m 0644 "$V2DIR/fgbears-youtube-v2.service" /etc/systemd/system/fgbears-youtube-v2.service
+              sudo systemctl daemon-reload
+              sudo systemctl enable "$V2" >/dev/null 2>&1 || true
+              sudo systemctl restart "$V2" || true
+            fi
+            echo 'YOUTUBE_V3_ROLLBACK=END'
+          }
+          trap 'rc=$?; if (( CUTOVER )); then rollback; fi; exit $rc' ERR
+
+          master_before=$(pid "$MASTER")
+          rumble_before=$(pid "$RUMBLE")
+          v2_before=$(pid "$V2")
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]] || fail master_not_active
+          [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]] || fail rumble_not_active
+          [[ "$v2_before" =~ ^[1-9][0-9]*$ ]] || fail v2_not_active
+
+          rm -rf /tmp/fgb-youtube-v3-deploy
+          git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgb-youtube-v3-deploy
+          src=/tmp/fgb-youtube-v3-deploy/services/fgbears-live
+
+          sudo rm -rf "$V3DIR"
+          sudo install -d -m 0755 "$V3DIR/creatives"
+          sudo rsync -a --exclude 'creatives/yt_rumble_trivia_redirect.png' "$src/youtube-v3/" "$V3DIR/"
+          sudo install -m 0644 /tmp/yt-rumble-v3.png "$V3DIR/creatives/yt_rumble_trivia_redirect.png"
+          sudo chmod 0755 "$V3DIR/youtube-v3-overlay.py" "$V3DIR/run-youtube-v3.sh" "$V3DIR/verify-youtube-v3.sh" "$V3DIR/build-creatives.py"
+          sudo install -m 0644 "$V3DIR/fgbears-youtube-v3.service" /etc/systemd/system/fgbears-youtube-v3.service
+          sudo install -m 0755 "$src/bin/healthcheck.sh" /usr/local/bin/fgbears-healthcheck
+          sudo systemctl daemon-reload
+
+          sudo -u fgbears env \
+            YOUTUBE_V3_CREATIVE_DIR="$V3DIR/creatives" \
+            YOUTUBE_V3_STATE_FILE=/tmp/fgb-youtube-v3-preflight-state.json \
+            "$V3DIR/youtube-v3-overlay.py" --self-test
+          sudo rm -f /tmp/fgb-youtube-v3-preflight-state.json
+
+          # Cutover begins only after the replacement passes live control-plane
+          # preflight. Master and Rumble are never restarted.
+          CUTOVER=1
+          sudo systemctl stop "$V2"
+          sudo systemctl disable "$V2" >/dev/null 2>&1 || true
+          sudo rm -rf "$V2QUAR"
+          sudo install -d -m 0755 "$(dirname "$V2QUAR")"
+          sudo mv "$V2DIR" "$V2QUAR"
+          sudo find "$V2QUAR" -type d -exec chmod 0755 {} +
+          sudo find "$V2QUAR" -type f -exec chmod 0644 {} +
+          sudo rm -f /etc/systemd/system/fgbears-youtube-v2.service /lib/systemd/system/fgbears-youtube-v2.service /usr/lib/systemd/system/fgbears-youtube-v2.service
+          sudo systemctl daemon-reload
+          sudo systemctl mask "$V2" >/dev/null
+
+          sudo systemctl enable "$V3" >/dev/null
+          sudo systemctl reset-failed "$V3" || true
+          sudo systemctl start "$V3"
+
+          connected=no
+          for _ in $(seq 1 45); do
+            y=$(pid "$V3")
+            if systemctl is-active --quiet "$V3" && [[ "$y" =~ ^[1-9][0-9]*$ ]] && \
+               sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$y" 'index($0,q)&&$5 ~ /:443$/{ok=1} END{exit(ok?0:1)}'; then
+              connected=yes
+              break
+            fi
+            sleep 1
+          done
+          [[ "$connected" == yes ]] || fail v3_did_not_connect
+
+          sleep 12
+          sudo "$V3DIR/verify-youtube-v3.sh"
+          sleep 10
+          sudo "$V3DIR/verify-youtube-v3.sh"
+
+          # Observe the replacement under live load. Any input overrun or
+          # sustained below-realtime encoding invalidates the cutover.
+          : > /tmp/v3-observe.txt
+          for _ in $(seq 1 45); do
+            p=/run/fgbears-youtube-v3/ffmpeg-progress.log
+            speed=$(sudo sed -n 's/^speed=\([0-9.]*\)x$/\1/p' "$p" 2>/dev/null | tail -n1)
+            idle=$(vmstat 1 2 | tail -n1 | awk '{print $15}')
+            pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"=");print a[2]}}' /proc/pressure/cpu)
+            echo "speed=${speed:-NA} idle=${idle:-NA} pressure=${pressure:-NA}" >> /tmp/v3-observe.txt
+            sleep 1
+          done
+          python3 - /tmp/v3-observe.txt <<'PY'
+          import re,sys
+          rows=open(sys.argv[1]).read().splitlines(); vals={k:[] for k in ('speed','idle','pressure')}
+          for row in rows:
+              for k in vals:
+                  m=re.search(k+r'=([^ ]+)',row)
+                  if m and m.group(1)!='NA':
+                      try: vals[k].append(float(m.group(1)))
+                      except ValueError: pass
+          for k,a in vals.items():
+              if a: print('V3_OBSERVE_%s min=%.3f avg=%.3f max=%.3f' % (k.upper(),min(a),sum(a)/len(a),max(a)))
+          assert vals['speed'] and min(vals['speed']) >= 0.98, vals['speed']
+          PY
+          if sudo journalctl -u "$V3" --since '-5 minutes' --no-pager 2>/dev/null | grep -Fq 'Circular buffer overrun'; then
+            fail v3_udp_overrun_observed
+          fi
+
+          master_after=$(pid "$MASTER")
+          rumble_after=$(pid "$RUMBLE")
+          v3_after=$(pid "$V3")
+          test "$master_after" = "$master_before" || fail master_pid_changed
+          test "$rumble_after" = "$rumble_before" || fail rumble_pid_changed
+          [[ "$v3_after" =~ ^[1-9][0-9]*$ ]] || fail v3_pid_invalid
+          sudo "$V3DIR/verify-youtube-v3.sh"
+          CUTOVER=0
+          trap - ERR
+          echo "YOUTUBE_V3_DEPLOY=PASS master=$master_after rumble=$rumble_after v2_before=$v2_before youtube_v3=$v3_after v2=quarantined"
+          REMOTE

@@ -8,8 +8,9 @@ on:
       - '.github/workflows/fgbears-live-monitor.yml'
       - '.github/workflows/fgbears-stream-health-audit.yml'
       - '.github/workflows/fgbears-youtube-key-activate.yml'
-      - '.github/workflows/youtube-v2-validate.yml'
+      - '.github/workflows/youtube-v3-validate.yml'
       - '.github/quarantine/youtube-legacy-workflows/**'
+      - '.github/quarantine/youtube-v2-retired-20260903/**'
   push:
     branches: [main]
     paths:
@@ -18,8 +19,9 @@ on:
       - '.github/workflows/fgbears-live-monitor.yml'
       - '.github/workflows/fgbears-stream-health-audit.yml'
       - '.github/workflows/fgbears-youtube-key-activate.yml'
-      - '.github/workflows/youtube-v2-validate.yml'
+      - '.github/workflows/youtube-v3-validate.yml'
       - '.github/quarantine/youtube-legacy-workflows/**'
+      - '.github/quarantine/youtube-v2-retired-20260903/**'
 
 permissions:
   contents: read
@@ -33,12 +35,12 @@ jobs:
       - name: Install validation tools
         run: sudo apt-get update && sudo apt-get install -y shellcheck ffmpeg jq python3-pil python3-qrcode qrencode
       - name: ShellCheck
-        run: shellcheck --severity=error services/fgbears-live/bin/*.sh services/fgbears-live/tests/*.sh
+        run: shellcheck --severity=error services/fgbears-live/bin/*.sh services/fgbears-live/tests/*.sh services/fgbears-live/youtube-v3/*.sh
       - name: Production invariants
         run: bash services/fgbears-live/tests/test-production-invariants.sh
       - name: Integration scripts
         run: bash services/fgbears-live/tests/test-scripts.sh
-      - name: Multistream and YouTube relay
+      - name: Multistream and YouTube v3
         run: bash services/fgbears-live/tests/test-multistream.sh
       - name: House label
         run: python3 services/fgbears-live/tests/test-house-label.py
