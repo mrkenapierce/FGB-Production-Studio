@@ -38,8 +38,7 @@ jobs:
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
           set -Eeuo pipefail
-          test -n "$ORACLE_HOST"
-          test -n "$ORACLE_SSH_KEY"
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
@@ -81,14 +80,16 @@ jobs:
           [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]]
 
           rollback(){
+            trap - ERR
             echo 'SHADOW_ACTIVATION=ROLLBACK' >&2
             sudo cp -a "$backup_env" "$env_file" 2>/dev/null || true
             sudo cp -a "$backup_relay" "$relay" 2>/dev/null || true
-            sudo systemctl restart fgbears-rumble-relay.service || true
-            sudo rm -f "$staged" "$credentials"
+            sudo systemctl restart fgbears-rumble-relay.service >/dev/null 2>&1 || true
+            sudo rm -f "$staged" "$credentials" || true
           }
+          cleanup(){ sudo rm -f "$staged" "$credentials" || true; }
           trap rollback ERR
-          trap 'sudo rm -f "$staged" "$credentials"' EXIT
+          trap cleanup EXIT
 
           sudo test -r "$env_file"
           sudo test -s "$credentials"
@@ -101,16 +102,11 @@ jobs:
           from pathlib import Path
           import os, sys
           env_path=Path(sys.argv[1]); cred=Path(sys.argv[2]).read_text().splitlines()
-          base=(cred[0].strip() if cred else '')
-          key=(cred[1].strip() if len(cred)>1 else '')
+          base=cred[0].strip() if cred else ''
+          key=cred[1].strip() if len(cred)>1 else ''
           if base != 'rtmp://studio-rtmp.rumble.com/live' or not key or '\n' in key or '\r' in key:
               raise SystemExit('invalid Studio credential')
-          updates={
-              'RUMBLE_STUDIO_ENABLE':'1',
-              'RUMBLE_STUDIO_MODE':'shadow',
-              'RUMBLE_STUDIO_RTMP_BASE':base,
-              'RUMBLE_STUDIO_STREAM_KEY':key,
-          }
+          updates={'RUMBLE_STUDIO_ENABLE':'1','RUMBLE_STUDIO_MODE':'shadow','RUMBLE_STUDIO_RTMP_BASE':base,'RUMBLE_STUDIO_STREAM_KEY':key}
           out=[]; seen=set()
           for line in env_path.read_text().splitlines():
               if '=' in line and not line.lstrip().startswith('#'):
@@ -137,8 +133,11 @@ jobs:
           test "$youtube_after" = "$youtube_before"
           [[ "$rumble_after" =~ ^[1-9][0-9]*$ ]]
           test "$rumble_after" != "$rumble_before"
-          test "$(sudo awk -F= '$1==\"RUMBLE_STUDIO_ENABLE\"{print $2}' "$env_file"|tail -n1)" = 1
-          test "$(sudo awk -F= '$1==\"RUMBLE_STUDIO_MODE\"{print $2}' "$env_file"|tail -n1)" = shadow
+
+          enabled=$(sudo sed -n 's/^RUMBLE_STUDIO_ENABLE=//p' "$env_file" | tail -n1)
+          mode=$(sudo sed -n 's/^RUMBLE_STUDIO_MODE=//p' "$env_file" | tail -n1)
+          test "$enabled" = 1
+          test "$mode" = shadow
 
           sockets=$(sudo ss -ntpH state established | awk -v q="pid=$rumble_after" 'index($0,q)&&index($0,":1935"){n++} END{print n+0}')
           test "$sockets" -ge 2
