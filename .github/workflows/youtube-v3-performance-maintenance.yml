@@ -91,6 +91,6 @@ jobs:
           drop=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$P" | tail -n1)
           dup=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$P" | tail -n1)
           echo "YOUTUBE_PERF_DEPLOY=PASS master=$m rumble=$r youtube_before=$y0 youtube_after=$(pid "$Y") rate10=$r3 fps=$fps drop=$drop dup=$dup master_restarted=no rumble_restarted=no"
-          rm -f "$BACK" /tmp/run-youtube-v3.performance.sh
+          sudo rm -f "$BACK" /tmp/run-youtube-v3.performance.sh
           trap - ERR
           REMOTE
