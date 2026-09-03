@@ -12,6 +12,7 @@ source "$ENV_FILE"
 : "${RUMBLE_STUDIO_ENABLE:=0}"
 : "${RUMBLE_STUDIO_RTMP_BASE:=}"
 : "${RUMBLE_STUDIO_STREAM_KEY:=}"
+: "${RUMBLE_STUDIO_MODE:=shadow}"
 : "${FFMPEG_LOGLEVEL:=warning}"
 
 [[ "$RUMBLE_STREAM_KEY" != "REPLACE_WITH_RUMBLE_STREAM_KEY" ]] || {
@@ -28,6 +29,10 @@ source "$ENV_FILE"
 }
 [[ "$RUMBLE_STUDIO_ENABLE" == 0 || "$RUMBLE_STUDIO_ENABLE" == 1 ]] || {
   echo "RUMBLE_STUDIO_ENABLE must be 0 or 1." >&2
+  exit 78
+}
+[[ "$RUMBLE_STUDIO_MODE" == shadow || "$RUMBLE_STUDIO_MODE" == studio-only ]] || {
+  echo "RUMBLE_STUDIO_MODE must be shadow or studio-only." >&2
   exit 78
 }
 
@@ -59,6 +64,19 @@ fi
 }
 
 STUDIO_TARGET="${RUMBLE_STUDIO_RTMP_BASE%/}/${RUMBLE_STUDIO_STREAM_KEY}"
+
+if [[ "$RUMBLE_STUDIO_MODE" == studio-only ]]; then
+  # Reversible cutover: Studio becomes the Rumble + YouTube distributor while
+  # the shared master and legacy YouTube-v3 safety path remain untouched.
+  exec ffmpeg \
+    -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
+    -fflags +genpts -probesize 10000000 -analyzeduration 10000000 \
+    -i "$LOCAL_INPUT" \
+    -map 0:v:0 -map 0:a:0 -c copy \
+    -f flv -flvflags no_duration_filesize \
+    "$STUDIO_TARGET"
+fi
+
 TEE_FIFO_OPTIONS='attempt_recovery=1:recover_any_error=1:recovery_wait_time=5'
 TEE_TARGETS="[f=flv:flvflags=no_duration_filesize:onfail=ignore]${RUMBLE_TARGET}|[f=flv:flvflags=no_duration_filesize:onfail=ignore]${STUDIO_TARGET}"
 
