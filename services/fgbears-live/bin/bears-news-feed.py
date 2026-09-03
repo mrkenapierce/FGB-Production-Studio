@@ -267,6 +267,7 @@ class Handler(BaseHTTPRequestHandler):
                     "renderCache": "static-panel+precomposed-ticker",
                     "messageChars": len(message),
                     "fps": FPS,
+                    "transport": "rgba-loopback",
                 }
             ).encode("utf-8")
             self.send_response(200)
@@ -292,6 +293,26 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+            return
+        if self.path.startswith("/overlay.rgba"):
+            self.send_response(200)
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Type", "application/octet-stream")
+            self.end_headers()
+            interval = 1.0 / FPS
+            next_frame_at = time.monotonic()
+            try:
+                while True:
+                    self.wfile.write(frame().tobytes())
+                    self.wfile.flush()
+                    next_frame_at += interval
+                    delay = next_frame_at - time.monotonic()
+                    if delay > 0:
+                        time.sleep(delay)
+                    elif delay < -interval:
+                        next_frame_at = time.monotonic()
+            except (BrokenPipeError, ConnectionResetError):
+                return
             return
         if not self.path.startswith("/overlay.mjpg"):
             self.send_error(404)

@@ -30,7 +30,8 @@ fi
 grep -Fq 'qrencode' "$TRIVIA_CARD_BUILDER" || fail 'YouTube trivia creative builder must use the installed qrencode binary.'
 grep -Fq 'apt_get_with_retry' "$INSTALL" || fail 'Installer must retain bounded apt retry handling.'
 # shellcheck disable=SC2016
-grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.mjpg"' "$START" || fail 'FFmpeg must consume the dedicated Bears news MJPEG overlay.'
+grep -Fq -- '-f rawvideo -pixel_format rgba -video_size 1280x139 -framerate "$CRAWL_OVERLAY_FPS" -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.rgba"' "$START" || fail 'Crawl must use uncompressed loopback RGBA at source cadence.'
+grep -Fq -- '-f rawvideo -pixel_format rgba -video_size 1280x104 -framerate "$BEARS_NEWS_OVERLAY_FPS" -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.rgba"' "$START" || fail 'Bears news must use uncompressed loopback RGBA at source cadence.'
 grep -Fq '[1:v][3:v]overlay=x=0:y=0:shortest=1[withnews]' "$START" || fail 'Bears news overlay is not composited in the upper ribbon.'
 grep -Fq 'message_font = font(31, bold=True)' "$NEWS" || fail 'RSS/news message typography diverged from the canonical 31px bold treatment.'
 grep -Fq 'label_font = font(29, bold=True)' "$NEWS" || fail 'RSS/news label typography diverged from the canonical 29px bold treatment.'
@@ -40,9 +41,6 @@ if grep -Fq 'textfile=$CRAWL_RUNTIME_DIR/bears-news-message.txt' "$START"; then
 fi
 if grep -Fq '[news0]crop=' "$START"; then
   fail 'RSS/news reintroduced the retired FFmpeg crop lane.'
-fi
-if grep -Fq -- '-f rawvideo' "$START"; then
-  fail 'RSS/news must use MJPEG rather than the retired rawvideo transport.'
 fi
 
 # RULE 2 — The primary encoder copies source audio without live DSP.

@@ -490,6 +490,8 @@ class Handler(BaseHTTPRequestHandler):
                     "emojiRenderer": "twemoji-png",
                     "messageGraphemes": len(graphemes(str(value["message"]))),
                     "messageCount": int(value.get("messageCount") or 0),
+                    "fps": FPS,
+                    "transport": "rgba-loopback",
                 }
             ).encode("utf-8")
             self.send_response(200)

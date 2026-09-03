@@ -110,18 +110,18 @@ progress_sink() {
 FFMPEG_PID=""
 
 # All scrolling text is rasterized before FFmpeg. The news ribbon and lower
-# crawl arrive as sharp image overlays, so FFmpeg only composites pixels and
-# cannot clip or reshape individual headline glyphs. The slow-changing ad
-# overlay remains 15 fps; both moving news and crawl overlays are 30 fps,
-# cadence-matched to the final encoded program for fluid horizontal motion.
+# crawl arrive as sharp RGBA image overlays. Moving layers stay uncompressed
+# over loopback so there is no per-frame JPEG encode/decode burst in the media
+# clock. The slow-changing ad overlay remains MJPEG at 15 fps; both moving news
+# and crawl overlays are cadence-matched to the 30 fps final program.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
   -re -stream_loop -1 -fflags +genpts \
   -f concat -safe 0 -i "$PLAYLIST_FILE" \
   -thread_queue_size 64 -fflags +genpts -r "$AD_OVERLAY_FPS" -f mpjpeg -i "http://127.0.0.1:${AD_OVERLAY_PORT}/overlay.mjpg" \
-  -thread_queue_size 64 -fflags +genpts -r "$CRAWL_OVERLAY_FPS" -f mpjpeg -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.mjpg" \
-  -thread_queue_size 64 -fflags +genpts -r "$BEARS_NEWS_OVERLAY_FPS" -f mpjpeg -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.mjpg" \
+  -thread_queue_size 256 -f rawvideo -pixel_format rgba -video_size 1280x139 -framerate "$CRAWL_OVERLAY_FPS" -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.rgba" \
+  -thread_queue_size 256 -f rawvideo -pixel_format rgba -video_size 1280x104 -framerate "$BEARS_NEWS_OVERLAY_FPS" -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.rgba" \
   -filter_complex "[1:v][3:v]overlay=x=0:y=0:shortest=1[withnews];[withnews][2:v]overlay=x=0:y=574:shortest=1,drawbox=x=0:y=0:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=713:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=0:w=7:h=720:color=0xC83803:t=fill,drawbox=x=1273:y=0:w=7:h=720:color=0xC83803:t=fill,format=yuv420p[v]" \
   -map "[v]" -map 0:a:0 \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
