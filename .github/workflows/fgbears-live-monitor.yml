@@ -61,6 +61,13 @@ jobs:
           active(){ systemctl is-active --quiet "$1"; }
           socket(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
           fail(){ echo 'OVERALL_STATUS=FAIL'; echo "REASON=$1"; exit 1; }
+          dump_master(){
+            echo 'MASTER_STATUS_BEGIN'
+            sudo systemctl status "$MASTER" --no-pager -l 2>&1 || true
+            echo 'MASTER_JOURNAL_BEGIN'
+            sudo journalctl -u "$MASTER" -n 120 --no-pager 2>&1 || true
+            echo 'MASTER_DIAGNOSTICS_END'
+          }
           media_us(){ sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$YT_PROGRESS" 2>/dev/null | tail -n1; }
           measure_rate(){
             local seconds=$1 m0 m1 t0 t1
@@ -76,7 +83,7 @@ jobs:
           PY
           }
 
-          active "$MASTER" || fail MASTER_INACTIVE
+          active "$MASTER" || { dump_master; fail MASTER_INACTIVE; }
           active "$RUMBLE" || fail RUMBLE_INACTIVE
           active "$CACHE" || fail LOVABLE_CACHE_INACTIVE
           active "$YOUTUBE" || fail YOUTUBE_V3_INACTIVE
