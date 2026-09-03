@@ -19,7 +19,7 @@ LOCAL_INPUT="${LOCAL_BASE}?fifo_size=2000000&overrun_nonfatal=1&reuse=1"
 TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 OVERLAY=/opt/fgbears-live/youtube-v3/youtube-v3-overlay.py
 PROGRESS=/run/fgbears-youtube-v3/ffmpeg-progress.log
-FILTER_COMPLEX='[0:v:0]fps=24:start_time=0,settb=AVTB,setpts=N/(24*TB),setsar=1[base];[1:v:0]settb=AVTB,setpts=N/(5*TB)[cover];[base][cover]overlay=462:104:format=auto:shortest=0:repeatlast=1:eof_action=repeat[composited];[composited]scale=1024:576:flags=fast_bilinear[v];[0:a:0]aresample=44100:async=1000:first_pts=0,asetpts=N/SR/TB[a]'
+FILTER_COMPLEX='[0:v:0]fps=24:start_time=0,settb=AVTB,setpts=N/(24*TB),setsar=1[base];[1:v:0]settb=AVTB,setpts=N/(5*TB)[cover];[base][cover]overlay=462:104:format=auto:shortest=0:repeatlast=1:eof_action=repeat[composited];[composited]scale=854:480:flags=fast_bilinear[v];[0:a:0]aresample=44100:async=1000:first_pts=0,asetpts=N/SR/TB[a]'
 
 [[ -x "$OVERLAY" ]] || { echo "Missing YouTube v3 overlay renderer: $OVERLAY" >&2; exit 78; }
 
@@ -35,16 +35,12 @@ progress_sink() {
   done
 }
 
-# A destination generation cutover can leave the prior YouTube RTMPS publish
-# session alive briefly after its process exits. Wait only on the YouTube
-# destination before opening the replacement session; the shared master and
-# Rumble relay continue uninterrupted during this interval.
 if (( YOUTUBE_V3_STARTUP_DELAY_SECONDS > 0 )); then
   sleep "$YOUTUBE_V3_STARTUP_DELAY_SECONDS"
 fi
 
 # The exact 1280x720 Lovable presentation contract is composited first. Only
-# the final YouTube destination is scaled to 1024x576 to keep Oracle safely
+# the final YouTube destination is scaled to 854x480 to keep Oracle safely
 # above real time without changing the shared master, Rumble, mask, or audio.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
@@ -60,7 +56,7 @@ exec ffmpeg \
   -map '[v]' -map '[a]' \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high -pix_fmt yuv420p \
   -r 24 -fps_mode cfr -g 48 -keyint_min 48 -sc_threshold 0 \
-  -b:v 3000k -maxrate 3500k -bufsize 6000k \
+  -b:v 2200k -maxrate 2700k -bufsize 4500k \
   -threads 1 -x264-params 'repeat-headers=1:keyint=48:min-keyint=48:scenecut=0' \
   -c:a aac -profile:a aac_low -b:a 128k -ar 44100 -ac 2 \
   -max_muxing_queue_size 2048 \
