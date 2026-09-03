@@ -1,4 +1,4 @@
-name: Deploy YouTube Full-Question Concealment 20260902
+name: Certify Full YouTube Trivia Cycle 20260902
 
 on:
   push:
@@ -6,27 +6,24 @@ on:
       - lovable-routing-bridge-20260902
     paths:
       - '.github/workflows/deploy-youtube-question-concealment-20260902.yml'
-  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: fgbears-youtube-concealment
+  group: fgbears-youtube-full-cycle
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  certify:
     runs-on: ubuntu-latest
-    timeout-minutes: 7
+    timeout-minutes: 19
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
       ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Configure SSH and stage YouTube branch files
+      - name: Configure SSH
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -34,14 +31,8 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-          scp -i ~/.ssh/oracle_key \
-            services/fgbears-live/bin/youtube-question-mask.py \
-            "${ORACLE_USER:-ubuntu}@$ORACLE_HOST:/tmp/youtube-question-mask.py.deploy"
-          scp -i ~/.ssh/oracle_key \
-            services/fgbears-live/bin/youtube-lovable-compositor.sh \
-            "${ORACLE_USER:-ubuntu}@$ORACLE_HOST:/tmp/youtube-lovable-compositor.sh.deploy"
 
-      - name: Deploy renderer and geometry without touching shared stream
+      - name: Certify one complete live question cycle read only
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -53,110 +44,141 @@ jobs:
           COMP=fgbears-youtube-lovable-compositor.service
           LEGACY=fgbears-youtube-relay.service
           MASK=/opt/fgbears-live/bin/youtube-question-mask.py
-          COMPOSITOR=/opt/fgbears-live/bin/youtube-lovable-compositor.sh
-          BACKUP=$(mktemp -d /tmp/youtube-branch.backup.XXXXXX)
-          SUCCESS=0
+          MONDIR=/run/fgbears-youtube-lovable-compositor
+          STATUS=/srv/fgbears-live/health/youtube-audio/status.env
 
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
           restarts(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
           active(){ systemctl is-active --quiet "$1"; }
-          has_port(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
-          fail(){ echo "YOUTUBE_BRANCH_DEPLOY_FAIL=$1" >&2; exit 1; }
-          shared_ok(){
+          connected(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+          fail(){ echo "FULL_CYCLE_FAIL=$1" >&2; exit 1; }
+          health(){ curl -fsS --max-time 3 http://127.0.0.1:8791/healthz; }
+          check_alpha(){
+            python3 - "$1" <<'PY'
+import sys, urllib.request
+expected=int(sys.argv[1]); w,h=399,235; n=w*h*4
+with urllib.request.urlopen('http://127.0.0.1:8791/overlay.rgba', timeout=4) as r:
+    data=r.read(n)
+assert len(data)==n,(len(data),n)
+a=data[3::4]
+assert min(a)==expected and max(a)==expected,(min(a),max(a),expected)
+print(f'OVERLAY_ALPHA=PASS expected={expected} pixels={len(a)}')
+PY
+          }
+          stable(){
             [[ "$(pid "$MASTER")" == "$M0" ]] || fail MASTER_PID_CHANGED
             [[ "$(pid "$RUMBLE")" == "$R0" ]] || fail RUMBLE_PID_CHANGED
+            [[ "$(pid "$ROUTING")" == "$Q0" ]] || fail ROUTING_PID_CHANGED
+            [[ "$(pid "$COMP")" == "$C0" ]] || fail COMPOSITOR_PID_CHANGED
             [[ "$(restarts "$MASTER")" == "$MN0" ]] || fail MASTER_RESTARTED
             [[ "$(restarts "$RUMBLE")" == "$RN0" ]] || fail RUMBLE_RESTARTED
             active "$MASTER" || fail MASTER_INACTIVE
             active "$RUMBLE" || fail RUMBLE_INACTIVE
-            has_port "$R0" 1935 || fail RUMBLE_SOCKET_LOST
+            active "$ROUTING" || fail ROUTING_INACTIVE
+            active "$COMP" || fail COMPOSITOR_INACTIVE
+            ! active "$LEGACY" || fail LEGACY_RELAY_ACTIVE
+            connected "$R0" 1935 || fail RUMBLE_SOCKET_LOST
+            connected "$C0" 443 || fail YOUTUBE_SOCKET_LOST
           }
-          rollback(){
-            rc=$?
-            (( SUCCESS == 0 )) || return 0
-            echo "YOUTUBE_BRANCH_ROLLBACK=BEGIN rc=$rc" >&2
-            [[ -f "$BACKUP/mask.py" ]] && install -m 0755 "$BACKUP/mask.py" "$MASK" || true
-            [[ -f "$BACKUP/compositor.sh" ]] && install -m 0755 "$BACKUP/compositor.sh" "$COMPOSITOR" || true
-            systemctl reset-failed "$ROUTING" "$COMP" >/dev/null 2>&1 || true
-            systemctl restart "$ROUTING" 2>/dev/null || true
-            rm -rf "$BACKUP" /tmp/youtube-question-mask.py.deploy /tmp/youtube-lovable-compositor.sh.deploy
-            echo "YOUTUBE_BRANCH_ROLLBACK=RESTORED_PREVIOUS_FILES" >&2
-            exit "$rc"
-          }
-          trap rollback EXIT
 
-          active "$MASTER" || fail MASTER_INACTIVE_PRE
-          active "$RUMBLE" || fail RUMBLE_INACTIVE_PRE
-          active "$ROUTING" || fail ROUTING_INACTIVE_PRE
-          active "$COMP" || fail COMPOSITOR_INACTIVE_PRE
-          active "$LEGACY" && fail LEGACY_RELAY_ACTIVE_PRE
-
-          M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE"); C0=$(pid "$COMP")
+          grep -Fq 'self.active = phase == "question"' "$MASK" || fail PHASE_AUTHORITY_NOT_DEPLOYED
+          M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE"); Q0=$(pid "$ROUTING"); C0=$(pid "$COMP")
           MN0=$(restarts "$MASTER"); RN0=$(restarts "$RUMBLE")
-          [[ "$M0" =~ ^[1-9][0-9]*$ && "$R0" =~ ^[1-9][0-9]*$ && "$C0" =~ ^[1-9][0-9]*$ ]] || fail INVALID_PID_PRE
-          has_port "$R0" 1935 || fail RUMBLE_SOCKET_MISSING_PRE
-          has_port "$C0" 443 || fail YOUTUBE_SOCKET_MISSING_PRE
+          [[ "$M0" =~ ^[1-9][0-9]*$ && "$R0" =~ ^[1-9][0-9]*$ && "$Q0" =~ ^[1-9][0-9]*$ && "$C0" =~ ^[1-9][0-9]*$ ]] || fail INVALID_BASELINE_PID
+          stable
 
-          python3 -m py_compile /tmp/youtube-question-mask.py.deploy
-          bash -n /tmp/youtube-lovable-compositor.sh.deploy
-          grep -Fq 'self.active = phase == "question"' /tmp/youtube-question-mask.py.deploy || fail QUESTION_PHASE_NOT_SOLE_AUTHORITY
-          grep -Fq '"failClosedDuringQuestion": True' /tmp/youtube-question-mask.py.deploy || fail FAIL_CLOSED_MARKER_MISSING
-          grep -Fq 'scale=${YOUTUBE_OUTPUT_WIDTH}:${YOUTUBE_OUTPUT_HEIGHT}:flags=fast_bilinear,setsar=1' /tmp/youtube-lovable-compositor.sh.deploy || fail SQUARE_PIXEL_FILTER_MISSING
-          grep -Fq 'YOUTUBE_OUTPUT_WIDTH=640' /tmp/youtube-lovable-compositor.sh.deploy || fail OUTPUT_WIDTH_CHANGED
-          grep -Fq 'YOUTUBE_OUTPUT_HEIGHT=360' /tmp/youtube-lovable-compositor.sh.deploy || fail OUTPUT_HEIGHT_CHANGED
-          grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE=48000' /tmp/youtube-lovable-compositor.sh.deploy || fail AUDIO_RATE_CHANGED
+          h=$(health) || fail MASK_HEALTH_UNAVAILABLE
+          printf '%s' "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470};assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235};assert p.get("frameSize")==[399,235];assert p.get("fps")==30;assert p.get("failClosedDuringQuestion") is True'
 
-          cp -a "$MASK" "$BACKUP/mask.py"
-          cp -a "$COMPOSITOR" "$BACKUP/compositor.sh"
-          install -m 0755 /tmp/youtube-question-mask.py.deploy "$MASK"
-          install -m 0755 /tmp/youtube-lovable-compositor.sh.deploy "$COMPOSITOR"
-          systemctl reset-failed "$ROUTING" "$COMP" >/dev/null 2>&1 || true
-          systemctl restart "$ROUTING"
-          shared_ok
+          news=$(curl -fsS --max-time 3 http://127.0.0.1:8789/healthz) || fail RSS_HEALTH_UNAVAILABLE
+          crawl=$(curl -fsS --max-time 3 http://127.0.0.1:8788/healthz) || fail CRAWL_HEALTH_UNAVAILABLE
+          printf '%s' "$news" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert int(p.get("scrollPps",0))==76;assert p.get("payloadSwap")=="next-cycle-boundary"'
+          printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert p.get("payloadSwap")=="next-segment-boundary"'
+          echo 'TICKERS=PASS rss=30fps/76pps crawl=30fps boundary-swaps'
 
-          # The compositor consumes the routing renderer's RGBA socket, so one
-          # YouTube-only reconnect is expected. Master and Rumble must not move.
-          C1=0
-          for _ in $(seq 1 45); do
-            shared_ok
-            active "$LEGACY" && fail LEGACY_RELAY_STARTED
-            cp=$(pid "$COMP")
-            if active "$ROUTING" && active "$COMP" && [[ "$cp" =~ ^[1-9][0-9]*$ ]] && has_port "$cp" 443; then
-              C1=$cp
+          # Establish a transparent non-question baseline first.
+          p=question
+          for _ in $(seq 1 360); do
+            stable
+            h=$(health) || fail MASK_HEALTH_LOST_BASELINE
+            p=$(printf '%s' "$h" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("phase") or "none")')
+            a=$(printf '%s' "$h" | python3 -c 'import json,sys;print(str(json.load(sys.stdin).get("active")).lower())')
+            if [[ "$p" != question ]]; then
+              [[ "$a" == false ]] || fail COVER_ACTIVE_OUTSIDE_QUESTION
+              check_alpha 0
+              echo "PRE_QUESTION=PASS phase=$p transparent=yes"
               break
             fi
             sleep 1
           done
-          [[ "$C1" =~ ^[1-9][0-9]*$ ]] || fail YOUTUBE_DID_NOT_RECONNECT
+          [[ "$p" != question ]] || fail NO_NONQUESTION_BASELINE
 
-          health=$(curl -fsS --max-time 3 http://127.0.0.1:8791/healthz) || fail MASK_HEALTH_UNAVAILABLE
-          printf '%s' "$health" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("sourceCanvas")==[1280,720];assert p.get("canvas")==[640,360];assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470};assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235};assert p.get("frameSize")==[399,235];assert p.get("fps")==30;assert p.get("failClosedDuringQuestion") is True'
-          phase=$(printf '%s' "$health" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("phase") or "none")')
-          cover=$(printf '%s' "$health" | python3 -c 'import json,sys; print(str(json.load(sys.stdin).get("active")).lower())')
-          if [[ "$phase" == question && "$cover" != true ]]; then fail QUESTION_EXPOSED_AFTER_DEPLOY; fi
-
-          # Require stable single ownership after the controlled reconnect.
-          for i in $(seq 1 15); do
-            shared_ok
-            [[ "$(pid "$COMP")" == "$C1" ]] || fail COMPOSITOR_RESTARTED_AGAIN
-            has_port "$C1" 443 || fail YOUTUBE_SOCKET_LOST
-            active "$LEGACY" && fail LEGACY_RELAY_ACTIVE
-            sleep 2
+          # Observe the next complete question.
+          started=0
+          for _ in $(seq 1 900); do
+            stable
+            h=$(health) || fail MASK_HEALTH_LOST_WAITING
+            p=$(printf '%s' "$h" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("phase") or "none")')
+            a=$(printf '%s' "$h" | python3 -c 'import json,sys;print(str(json.load(sys.stdin).get("active")).lower())')
+            if [[ "$p" == question ]]; then
+              [[ "$a" == true ]] || fail QUESTION_STARTED_UNCONCEALED
+              q_start=$(date +%s); q_start_iso=$(date -Iseconds); started=1
+              echo "QUESTION_START=PASS epoch=$q_start active=true"
+              break
+            fi
+            sleep 1
           done
+          (( started == 1 )) || fail QUESTION_NOT_OBSERVED
 
-          # Verify the actual encoded output metadata, including square pixels.
-          MONDIR=/run/fgbears-youtube-lovable-compositor
+          samples=0; opaque=0
+          while true; do
+            stable
+            h=$(health) || fail MASK_HEALTH_LOST_DURING_QUESTION
+            p=$(printf '%s' "$h" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("phase") or "none")')
+            a=$(printf '%s' "$h" | python3 -c 'import json,sys;print(str(json.load(sys.stdin).get("active")).lower())')
+            age=$(printf '%s' "$h" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("lastGoodAgeSeconds") or 0)')
+            [[ "$p" == question ]] || break
+            [[ "$a" == true ]] || fail COVER_DROPPED_DURING_QUESTION
+            python3 -c 'import sys;assert float(sys.argv[1])<8' "$age" || fail ROUTING_STALE_DURING_QUESTION
+            samples=$((samples+1))
+            if (( samples % 3 == 1 )); then check_alpha 255; opaque=$((opaque+1)); fi
+            sleep 1
+          done
+          (( samples >= 3 )) || fail QUESTION_TOO_SHORT_TO_CERTIFY
+          q_end=$(date +%s); duration=$((q_end-q_start))
+          echo "QUESTION_CONCEALMENT=PASS samples=$samples opaque_frames=$opaque duration=${duration}s exit_phase=$p"
+
+          sleep 2
+          stable
+          h=$(health) || fail MASK_HEALTH_LOST_AFTER_QUESTION
+          p2=$(printf '%s' "$h" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("phase") or "none")')
+          a2=$(printf '%s' "$h" | python3 -c 'import json,sys;print(str(json.load(sys.stdin).get("active")).lower())')
+          [[ "$p2" != question && "$a2" == false ]] || fail COVER_DID_NOT_CLEAR
+          check_alpha 0
+          echo "POST_QUESTION=PASS phase=$p2 transparent=yes"
+
           SEG=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
           [[ -n "$SEG" && -s "$SEG" ]] || fail MONITOR_SEGMENT_MISSING
-          ffprobe -v fatal -select_streams v:0 -show_entries stream=width,height,sample_aspect_ratio,display_aspect_ratio,r_frame_rate -of json "$SEG" \
-            | python3 -c 'import json,sys;p=json.load(sys.stdin)["streams"][0];assert (int(p["width"]),int(p["height"]))==(640,360);assert p.get("sample_aspect_ratio") in {"1:1","N/A"};assert p.get("display_aspect_ratio") in {"16:9","N/A"};assert p.get("r_frame_rate") in {"30/1","60/2"};print("VIDEO_GEOMETRY=PASS 640x360 SAR=",p.get("sample_aspect_ratio"),"DAR=",p.get("display_aspect_ratio"))'
+          ffprobe -v fatal -show_entries stream=codec_type,codec_name,sample_rate,channels,width,height,r_frame_rate,sample_aspect_ratio,display_aspect_ratio -of json "$SEG" \
+            | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p["streams"];a=next(x for x in s if x.get("codec_type")=="audio");v=next(x for x in s if x.get("codec_type")=="video");assert a.get("codec_name")=="aac";assert str(a.get("sample_rate"))=="48000";assert int(a.get("channels") or 0)==2;assert (int(v.get("width",0)),int(v.get("height",0)))==(640,360);assert v.get("r_frame_rate") in {"30/1","60/2"};assert v.get("sample_aspect_ratio") in {"1:1","N/A"};assert v.get("display_aspect_ratio") in {"16:9","N/A"}'
+          echo 'YOUTUBE_AV=PASS 640x360/30 SAR1:1 DAR16:9 AAC48k-stereo'
 
-          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
-          if [[ -n "$speed" ]]; then python3 -c 'import sys; assert float(sys.argv[1]) >= 0.985' "$speed" || fail MASTER_BELOW_REALTIME; fi
+          faults=$(journalctl -u "$COMP" --since "$q_start_iso" --no-pager 2>/dev/null | grep -Eic 'circular buffer overrun|non-monotonous dts|timestamp discontinuity|broken pipe|connection reset by peer' || true)
+          [[ "$faults" == 0 ]] || fail "YOUTUBE_TRANSPORT_FAULTS_$faults"
+          echo 'YOUTUBE_TRANSPORT=PASS faults=0'
 
-          shared_ok
-          echo "YOUTUBE_BRANCH_DEPLOY=PASS master=$M0 rumble=$R0 old_compositor=$C0 compositor=$C1 phase=$phase active=$cover geometry=640x360-square-pixel speed=${speed:-unknown}x"
-          SUCCESS=1
-          trap - EXIT
-          rm -rf "$BACKUP" /tmp/youtube-question-mask.py.deploy /tmp/youtube-lovable-compositor.sh.deploy
+          if [[ -s "$STATUS" ]]; then
+            owner=$(sed -n 's/^owner=\([^[:space:]]*\)$/\1/p' "$STATUS" | tail -n1)
+            rate=$(sed -n 's/^youtube_audio_rate=\([0-9][0-9]*\)$/\1/p' "$STATUS" | tail -n1)
+            sfaults=$(sed -n 's/^recent_transport_faults=\([0-9][0-9]*\)$/\1/p' "$STATUS" | tail -n1)
+            [[ "$owner" == exact_box_compositor ]] || fail WATCHDOG_OWNER_INVALID
+            [[ "$rate" == 48000 ]] || fail WATCHDOG_AUDIO_RATE_INVALID
+            [[ "$sfaults" == 0 ]] || fail WATCHDOG_TRANSPORT_FAULTS
+            echo "WATCHDOG=PASS owner=$owner rate=$rate faults=$sfaults"
+          fi
+
+          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
+          if [[ -n "$speed" ]]; then python3 -c 'import sys;assert float(sys.argv[1])>=0.985' "$speed" || fail MASTER_BELOW_REALTIME; fi
+          stable
+          echo "FULL_TRIVIA_CYCLE_CERTIFICATION=PASS master=$M0 rumble=$R0 routing=$Q0 compositor=$C0 samples=$samples opaque_frames=$opaque duration=${duration}s master_speed=${speed:-unknown}x"
           REMOTE
