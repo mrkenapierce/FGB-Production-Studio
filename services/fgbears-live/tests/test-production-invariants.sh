@@ -19,6 +19,7 @@ grep -Fq 'BEARS_NEWS_OVERLAY_PORT:=8789' "$START" || fail 'RSS/news dedicated ov
 grep -Fq 'BEARS_NEWS_OVERLAY_FPS:=30' "$START" || fail 'RSS/news image renderer must remain cadence-matched at 30 fps.'
 grep -Fq 'BEARS_NEWS_OVERLAY_PORT=8789' "$ENV_EXAMPLE" || fail 'RSS/news overlay port missing from environment defaults.'
 grep -Fq 'BEARS_NEWS_OVERLAY_FPS=30' "$ENV_EXAMPLE" || fail 'RSS/news overlay FPS must default to 30.'
+grep -Fq "'BEARS_NEWS_SCRIPT':'/opt/fgbears-live/bin/bears-news-feed.py'" "$INSTALL" || fail 'Installer must overwrite stale Bears news renderer paths with the canonical renderer.'
 grep -Fq "'BEARS_NEWS_OVERLAY_FPS':'30'" "$INSTALL" || fail 'Installer must preserve the 30 fps news overlay setting.'
 if grep -Fqw 'python3-qrcode' "$INSTALL"; then
   fail 'Installer must not require python3-qrcode; QR rendering uses qrencode.'
