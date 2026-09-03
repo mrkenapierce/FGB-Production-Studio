@@ -1,5 +1,4 @@
 name: Temporary FGBears YouTube Cycle Certification
-# One-time certification trigger after registration on main.
 
 on:
   push:
@@ -56,18 +55,7 @@ jobs:
           connected(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
           fail(){ echo "FULL_CYCLE_FAIL=$1" >&2; exit 1; }
           health(){ curl -fsS --max-time 3 http://127.0.0.1:8791/healthz; }
-          check_alpha(){
-            python3 - "$1" <<'PY'
-import sys, urllib.request
-expected=int(sys.argv[1]); w,h=399,235; n=w*h*4
-with urllib.request.urlopen('http://127.0.0.1:8791/overlay.rgba', timeout=4) as r:
-    data=r.read(n)
-assert len(data)==n,(len(data),n)
-a=data[3::4]
-assert min(a)==expected and max(a)==expected,(min(a),max(a),expected)
-print(f'OVERLAY_ALPHA=PASS expected={expected} pixels={len(a)}')
-PY
-          }
+          check_alpha(){ python3 -c 'import sys,urllib.request; e=int(sys.argv[1]); n=399*235*4; d=urllib.request.urlopen("http://127.0.0.1:8791/overlay.rgba",timeout=4).read(n); assert len(d)==n,(len(d),n); a=d[3::4]; assert min(a)==e and max(a)==e,(min(a),max(a),e); print(f"OVERLAY_ALPHA=PASS expected={e} pixels={len(a)}")' "$1"; }
           stable(){
             [[ "$(pid "$MASTER")" == "$M0" ]] || fail MASTER_PID_CHANGED
             [[ "$(pid "$RUMBLE")" == "$R0" ]] || fail RUMBLE_PID_CHANGED
@@ -160,8 +148,7 @@ PY
 
           SEG=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
           [[ -n "$SEG" && -s "$SEG" ]] || fail MONITOR_SEGMENT_MISSING
-          ffprobe -v fatal -show_entries stream=codec_type,codec_name,sample_rate,channels,width,height,r_frame_rate,sample_aspect_ratio,display_aspect_ratio -of json "$SEG" \
-            | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p["streams"];a=next(x for x in s if x.get("codec_type")=="audio");v=next(x for x in s if x.get("codec_type")=="video");assert a.get("codec_name")=="aac";assert str(a.get("sample_rate"))=="48000";assert int(a.get("channels") or 0)==2;assert (int(v.get("width",0)),int(v.get("height",0)))==(640,360);assert v.get("r_frame_rate") in {"30/1","60/2"};assert v.get("sample_aspect_ratio") in {"1:1","N/A"};assert v.get("display_aspect_ratio") in {"16:9","N/A"}'
+          ffprobe -v fatal -show_entries stream=codec_type,codec_name,sample_rate,channels,width,height,r_frame_rate,sample_aspect_ratio,display_aspect_ratio -of json "$SEG" | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p["streams"];a=next(x for x in s if x.get("codec_type")=="audio");v=next(x for x in s if x.get("codec_type")=="video");assert a.get("codec_name")=="aac";assert str(a.get("sample_rate"))=="48000";assert int(a.get("channels") or 0)==2;assert (int(v.get("width",0)),int(v.get("height",0)))==(640,360);assert v.get("r_frame_rate") in {"30/1","60/2"};assert v.get("sample_aspect_ratio") in {"1:1","N/A"};assert v.get("display_aspect_ratio") in {"16:9","N/A"}'
           echo 'YOUTUBE_AV=PASS 640x360/30 SAR1:1 DAR16:9 AAC48k-stereo'
 
           faults=$(journalctl -u "$COMP" --since "$q_start_iso" --no-pager 2>/dev/null | grep -Eic 'circular buffer overrun|non-monotonous dts|timestamp discontinuity|broken pipe|connection reset by peer' || true)
