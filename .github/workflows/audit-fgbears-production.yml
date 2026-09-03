@@ -36,7 +36,6 @@ jobs:
           ssh -i ~/.ssh/oracle_key "$target" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
           COMP=fgbears-youtube-lovable-compositor.service
-          MASTER=fgbears-live.service
           MONDIR=/run/fgbears-youtube-lovable-compositor
           C=$(systemctl show -p MainPID --value "$COMP")
           echo "COMP_PID=$C"
@@ -44,17 +43,17 @@ jobs:
           echo "MASTER_SPEED=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log)x"
           SEG=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
           test -s "$SEG"
-          echo "SEG=$SEG"
           /usr/bin/ffprobe -v error -show_entries stream=codec_type,width,height,r_frame_rate,avg_frame_rate,sample_aspect_ratio,display_aspect_ratio,sample_rate,channels -of json "$SEG" | python3 -c 'import json,sys;print("PROBE",json.dumps(json.load(sys.stdin),sort_keys=True))'
-          crop=$(ffmpeg -hide_banner -loglevel info -i "$SEG" -vf 'cropdetect=24:2:0' -frames:v 55 -an -f null - 2>&1 | grep -oE 'crop=[0-9]+:[0-9]+:[0-9]+:[0-9]+' | tail -n1 || true)
+          crop=$(ffmpeg -nostdin -hide_banner -loglevel info -i "$SEG" -vf 'cropdetect=24:2:0' -frames:v 55 -an -f null - 2>&1 | grep -oE 'crop=[0-9]+:[0-9]+:[0-9]+:[0-9]+' | tail -n1 || true)
           echo "CROP=${crop:-none}"
           /usr/bin/ffprobe -v error -select_streams v:0 -show_entries frame=best_effort_timestamp_time -of csv=p=0 "$SEG" >/tmp/pts.txt
           python3 -c 'from pathlib import Path; xs=[float(s.split(",")[0]) for s in Path("/tmp/pts.txt").read_text().splitlines() if s.strip()]; ds=[b-a for a,b in zip(xs,xs[1:]) if b>=a]; d=sorted(ds); print("PACING unavailable" if not d else f"PACING frames={len(xs)} median={d[len(d)//2]:.6f} p95={d[min(len(d)-1,int((len(d)-1)*.95))]:.6f} max={max(d):.6f} bad={sum(abs(x-1/30)>.004 for x in d)}/{len(d)}")'
-          ffmpeg -hide_banner -loglevel error -i "$SEG" -vf 'select=eq(n\,30)' -frames:v 1 -y /tmp/youtube-live-frame.png
+          ffmpeg -nostdin -hide_banner -loglevel error -ss 1 -i "$SEG" -frames:v 1 -y /tmp/youtube-live-frame.png
           chmod 0644 /tmp/youtube-live-frame.png
-          faults=$(journalctl -u "$COMP" --since '20 minutes ago' --no-pager | grep -Eci 'Circular buffer overrun|timestamp discontinuity|Packet corrupt|Non-monotonous DTS|Invalid DTS|Queue input is backward in time|Broken pipe|Connection reset by peer|dropping frame|dup=' || true)
-          echo "FAULT_LINES_20M=$faults"
-          journalctl -u "$COMP" --since '20 minutes ago' --no-pager | grep -Ei 'Circular buffer overrun|timestamp discontinuity|Packet corrupt|Non-monotonous DTS|Invalid DTS|Queue input is backward in time|Broken pipe|Connection reset by peer|dropping frame|dup=' | tail -n 30 || true
+          faults=0
+          faults=$(journalctl -u "$COMP" --since '30 minutes ago' --no-pager 2>/dev/null | grep -Eci 'Circular buffer overrun|timestamp discontinuity|Packet corrupt|Non-monotonous DTS|Invalid DTS|Queue input is backward in time|Broken pipe|Connection reset by peer|dropping frame|dup=' || true)
+          echo "FAULT_LINES_30M=$faults"
+          journalctl -u "$COMP" --since '30 minutes ago' --no-pager 2>/dev/null | grep -Ei 'Circular buffer overrun|timestamp discontinuity|Packet corrupt|Non-monotonous DTS|Invalid DTS|Queue input is backward in time|Broken pipe|Connection reset by peer|dropping frame|dup=' | tail -n 40 || true
           REMOTE
           scp -i ~/.ssh/oracle_key "$target:/tmp/youtube-live-frame.png" youtube-live-frame.png
 
