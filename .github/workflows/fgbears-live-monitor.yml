@@ -98,8 +98,8 @@ jobs:
 
           news=$(curl -fsS --max-time 3 http://127.0.0.1:8789/healthz) || fail RSS_HEALTH_UNREACHABLE
           crawl=$(curl -fsS --max-time 3 http://127.0.0.1:8788/healthz) || fail CRAWL_HEALTH_UNREACHABLE
-          printf '%s' "$news" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True' || fail RSS_CONTRACT_INVALID
-          printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True' || fail CRAWL_CONTRACT_INVALID
+          printf '%s' "$news" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps") or 0)==30' || fail RSS_CONTRACT_INVALID
+          printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps") or 0)==30' || fail CRAWL_CONTRACT_INVALID
 
           sudo test -s "$CONTROL_STATE" || fail CONTROL_STATE_MISSING
           sudo test -s "$CONTROL_HEALTH" || fail CONTROL_HEALTH_MISSING
@@ -118,7 +118,12 @@ jobs:
           if diff.get('enabled') is True:
               assert diff.get('creativeKey') == 'yt_rumble_trivia_redirect'
               assert (p.get('adBreak') or {}).get('active') is False
-              t=p.get('trivia') or {}; assert str(t.get('phase') or '').lower() == 'question'; assert t.get('stale') is not True; assert t.get('gameVisible') is True; assert t.get('youtubeRedirectRequired') is True
+              t=p.get('trivia') or {}
+              assert str(t.get('phase') or '').lower() in {'question','revealed'}
+              assert t.get('questionVisible') is True
+              assert t.get('stale') is not True
+              assert t.get('gameVisible') is True
+              assert t.get('youtubeRedirectRequired') is True
           assert health.get('workerVersion') == 'lovable-control-cache-v1'
           assert health.get('authority') == '/api/public/fgbears/stream-routing'
           assert health.get('ok') is True
@@ -139,13 +144,14 @@ jobs:
           yt_fps=$(sudo sed -n 's/^fps=\([0-9.]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
           yt_drop=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
           yt_dup=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
+          pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"="); print a[2]}}' /proc/pressure/cpu 2>/dev/null || true)
           journal=$(sudo journalctl -u "$YOUTUBE" --since '-10 seconds' --no-pager 2>/dev/null || true)
           grep -Fq 'Circular buffer overrun' <<<"$journal" && fail YOUTUBE_UDP_OVERRUN
           grep -Eq 'non-existing PPS|decode_slice_header error|no frame!' <<<"$journal" && fail YOUTUBE_V3_DOWNSTREAM_SYNC_ERROR
 
           echo 'OVERALL_STATUS=OK'
           echo 'REASON=PRODUCTION_HEALTHY'
-          echo "TOPOLOGY generation=v3 control=lovable cache=$CPID master=$MPID rumble=$RPID youtube_v3=$YPID youtube_rate_5s_1=${yt_rate1}x youtube_rate_5s_2=${yt_rate2}x youtube_rate_10s=${yt_rate10}x youtube_fps=${yt_fps:-NA} drop=${yt_drop:-NA} dup=${yt_dup:-NA}"
+          echo "TOPOLOGY generation=v3 control=lovable cache=$CPID master=$MPID rumble=$RPID youtube_v3=$YPID youtube_rate_5s_1=${yt_rate1}x youtube_rate_5s_2=${yt_rate2}x youtube_steady_rate=${yt_rate10}x youtube_fps=${yt_fps:-NA} drop=${yt_drop:-NA} dup=${yt_dup:-NA} cpu_pressure_avg10=${pressure:-NA} news_fps=30 crawl_fps=30"
           echo "CONTROL_STATE $control_report"
           REMOTE
           rc=$?
