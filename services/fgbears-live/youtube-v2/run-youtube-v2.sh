@@ -16,6 +16,7 @@ LOCAL_BASE=${YOUTUBE_LOCAL_UDP_URL%%\?*}
 LOCAL_INPUT="${LOCAL_BASE}?fifo_size=2000000&overrun_nonfatal=1&reuse=1"
 TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 OVERLAY=/opt/fgbears-live/youtube-v2/youtube-v2-overlay.py
+FILTER_COMPLEX='[0:v:0]fps=30:start_time=0,settb=AVTB,setpts=N/(30*TB),setsar=1[base];[1:v:0]settb=AVTB,setpts=N/(10*TB)[cover];[base][cover]overlay=462:104:format=auto:shortest=0:repeatlast=1:eof_action=repeat[v];[0:a:0]aresample=44100:async=1000:first_pts=0,asetpts=N/SR/TB[a]'
 
 [[ -x "$OVERLAY" ]] || { echo "Missing YouTube v2 overlay renderer: $OVERLAY" >&2; exit 78; }
 
@@ -32,11 +33,7 @@ exec ffmpeg \
   -thread_queue_size 128 \
   -f rawvideo -pixel_format rgba -video_size 798x470 -framerate 10 \
   -i <("$OVERLAY") \
-  -filter_complex \
-    '[0:v:0]fps=30:start_time=0,settb=AVTB,setpts=N/(30*TB),setsar=1[base];\
-     [1:v:0]settb=AVTB,setpts=N/(10*TB)[cover];\
-     [base][cover]overlay=462:104:format=auto:shortest=0:repeatlast=1:eof_action=repeat[v];\
-     [0:a:0]aresample=44100:async=1000:first_pts=0,asetpts=N/SR/TB[a]' \
+  -filter_complex "$FILTER_COMPLEX" \
   -map '[v]' -map '[a]' \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high -pix_fmt yuv420p \
   -r 30 -fps_mode cfr -g 60 -keyint_min 60 -sc_threshold 0 \
