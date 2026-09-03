@@ -12,6 +12,7 @@ YOUTUBE=fgbears-youtube-v3.service
 CONTROL_STATE=/run/fgbears-control-plane/stream-state.json
 CONTROL_HEALTH=/run/fgbears-control-plane/cache-health.json
 PROGRESS=/run/fgbears-youtube-v3/ffmpeg-progress.log
+BUFFER_HEALTH=/run/fgbears-youtube-v3/delay-health.json
 ACTIVE_DIR=/opt/fgbears-live/youtube-v3
 V2_QUAR=/opt/fgbears-live/quarantine/youtube-v2-retired-20260903
 GENERATION_FILE=/etc/fgbears-live/youtube-generation
@@ -60,17 +61,39 @@ connected "$R" 1935 || fail rumble_socket_missing
 connected "$Y" 443 || fail youtube_socket_missing
 
 [[ -x "$ACTIVE_DIR/youtube-v3-overlay.py" ]] || fail active_overlay_missing
+[[ -x "$ACTIVE_DIR/youtube-v3-delay-relay.py" ]] || fail delay_relay_missing
 [[ -x "$ACTIVE_DIR/lovable-state-cache.py" ]] || fail control_cache_worker_missing
 [[ -x "$ACTIVE_DIR/run-youtube-v3.sh" ]] || fail active_runner_missing
 ! grep -Eq 'urllib|urlopen|requests|http://|https://' "$ACTIVE_DIR/youtube-v3-overlay.py" || fail renderer_contains_network_io
 grep -Fq 'HOLD_SECONDS = float' "$ACTIVE_DIR/youtube-v3-overlay.py" || fail concealment_hold_missing
+grep -Fq 'BUFFER_SECONDS = float' "$ACTIVE_DIR/youtube-v3-overlay.py" || fail concealment_buffer_alignment_missing
+grep -Fq 'class DelayedBoolean' "$ACTIVE_DIR/youtube-v3-overlay.py" || fail delayed_control_state_missing
 grep -Fq '"15"' "$ACTIVE_DIR/youtube-v3-overlay.py" || fail concealment_hold_not_15_seconds
 grep -Fq 'OUTPUT_REGION' "$ACTIVE_DIR/youtube-v3-overlay.py" || fail scaled_overlay_region_missing
+grep -Fq 'YOUTUBE_V3_BUFFERED_UDP_URL' "$ACTIVE_DIR/run-youtube-v3.sh" || fail buffered_input_missing
+grep -Fq 'YOUTUBE_V3_BUFFER_SECONDS:=4' "$ACTIVE_DIR/run-youtube-v3.sh" || fail four_second_buffer_default_missing
 grep -Fq -- '-video_size 399x235' "$ACTIVE_DIR/run-youtube-v3.sh" || fail scaled_overlay_pipe_missing
 grep -Fq 'overlay=231:52:' "$ACTIVE_DIR/run-youtube-v3.sh" || fail scaled_overlay_coordinates_missing
 grep -Fq 'scale=640:360:flags=fast_bilinear' "$ACTIVE_DIR/run-youtube-v3.sh" || fail youtube_output_not_360p
 grep -Fq -- '-threads 1' "$ACTIVE_DIR/run-youtube-v3.sh" || fail youtube_encoder_not_single_threaded
 grep -Fq '/api/public/fgbears/stream-routing' "$ACTIVE_DIR/lovable-state-cache.py" || fail cache_not_using_authoritative_contract
+
+[[ -s "$BUFFER_HEALTH" ]] || fail youtube_buffer_health_missing
+buffer_age=$(( $(date +%s) - $(stat -c %Y "$BUFFER_HEALTH") )); (( buffer_age < 4 )) || fail "youtube_buffer_health_stale:${buffer_age}s"
+python3 - "$BUFFER_HEALTH" <<'PY' || fail youtube_buffer_invalid
+import json,sys,time
+h=json.load(open(sys.argv[1],encoding='utf-8'))
+assert h.get('ok') is True, h
+assert float(h.get('bufferSeconds') or 0) == 4.0, h
+assert int(h.get('ingressPort') or 0) == 1939, h
+assert int(h.get('outputPort') or 0) == 1941, h
+assert int(h.get('queuePackets') or 0) > 0, h
+assert int(h.get('queueBytes') or 0) > 0, h
+depth=float(h.get('queueDepthSeconds') or 0)
+assert 2.5 <= depth <= 5.0, h
+updated=float(h.get('updatedAtEpoch') or 0)
+assert updated > 0 and time.time()-updated < 4, h
+PY
 
 [[ -s "$CONTROL_STATE" && -s "$CONTROL_HEALTH" ]] || fail control_state_or_health_missing
 python3 - "$CONTROL_STATE" "$CONTROL_HEALTH" <<'PY' || fail control_state_invalid
@@ -121,5 +144,5 @@ if [[ "$MODE" == final ]]; then
 fi
 
 pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"="); print a[2]}}' /proc/pressure/cpu 2>/dev/null || true)
-printf 'YOUTUBE_V3_VERIFY=PASS mode=%s master=%s rumble=%s cache=%s youtube=%s youtube_restarts=%s sustained_rate=%sx fps=%s drop=%s dup=%s cpu_pressure_avg10=%s hold=15s output=640x360 overlay=399x235@231,52\n' \
+printf 'YOUTUBE_V3_VERIFY=PASS mode=%s master=%s rumble=%s cache=%s youtube=%s youtube_restarts=%s sustained_rate=%sx fps=%s drop=%s dup=%s cpu_pressure_avg10=%s buffer=4s hold=15s output=640x360 overlay=399x235@231,52\n' \
   "$MODE" "$M" "$R" "$C" "$Y" "$(restarts "$Y")" "$rate" "${fps:-NA}" "${drop:-NA}" "${dup:-NA}" "${pressure:-NA}"
