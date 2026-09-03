@@ -1,0 +1,70 @@
+name: Diagnose YouTube Capacity 20260903
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-youtube-capacity-20260903.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Read current production capacity without restarting anything
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          M=$(pid fgbears-live.service); R=$(pid fgbears-rumble-relay.service); V2=$(pid fgbears-youtube-v2.service); V3=$(pid fgbears-youtube-v3.service)
+          echo "UNITS master=$(systemctl is-active fgbears-live.service 2>/dev/null || true) rumble=$(systemctl is-active fgbears-rumble-relay.service 2>/dev/null || true) v2=$(systemctl is-active fgbears-youtube-v2.service 2>/dev/null || true) v3=$(systemctl is-active fgbears-youtube-v3.service 2>/dev/null || true) health=$(systemctl is-active fgbears-live-health.timer 2>/dev/null || true)"
+          echo "PIDS master=$M rumble=$R v2=$V2 v3=$V3"
+          echo "GENERATION=$(cat /etc/fgbears-live/youtube-generation 2>/dev/null || echo unknown)"
+          echo "PRIORITY_BEGIN"
+          for s in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-v2.service fgbears-youtube-v3.service; do
+            echo "$s Nice=$(systemctl show -p Nice --value "$s" 2>/dev/null || true) CPUWeight=$(systemctl show -p CPUWeight --value "$s" 2>/dev/null || true)"
+          done
+          echo "PRIORITY_END"
+          echo "PROCESS_USAGE_BEGIN"
+          for p in "$M" "$R" "$V2" "$V3"; do
+            if [[ "$p" =~ ^[1-9][0-9]*$ ]]; then ps -p "$p" -o pid=,ppid=,pcpu=,pmem=,nlwp=,ni=,pri=,stat=,etime=,comm=; fi
+          done
+          echo "PROCESS_USAGE_END"
+          echo "TOP_CPU_BEGIN"
+          ps -eo pid=,ppid=,pcpu=,pmem=,nlwp=,ni=,pri=,stat=,comm= --sort=-pcpu | head -n 18
+          echo "TOP_CPU_END"
+          echo "HOST_BEGIN"
+          echo "nproc=$(nproc)"
+          echo "load=$(cat /proc/loadavg)"
+          echo "cpu_pressure=$(awk '/^some/{print}' /proc/pressure/cpu)"
+          echo "mem_pressure=$(awk '/^some/{print}' /proc/pressure/memory)"
+          echo "io_pressure=$(awk '/^some/{print}' /proc/pressure/io)"
+          vmstat 1 6
+          echo "HOST_END"
+          echo "SOCKETS_BEGIN"
+          sudo ss -ntpH state established 2>/dev/null | awk -v r="pid=$R" -v v2="pid=$V2" -v v3="pid=$V3" 'index($0,r)||index($0,v2)||index($0,v3){print}'
+          echo "SOCKETS_END"
+          echo "MASTER_SPEED=$(sudo awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || echo NA)"
+          echo "V2_HEALTH=$(sudo /opt/fgbears-live/youtube-v2/verify-youtube-v2.sh 2>&1 | tail -n 3 | tr '\n' ' ' || true)"
+          echo "READ_ONLY_CAPACITY_DIAG=PASS"
+          REMOTE
