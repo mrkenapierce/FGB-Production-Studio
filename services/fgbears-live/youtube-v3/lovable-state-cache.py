@@ -33,6 +33,7 @@ POLL_SECONDS = float(os.getenv("FGB_CONTROL_POLL_SECONDS", "0.5"))
 HTTP_TIMEOUT_SECONDS = float(os.getenv("FGB_CONTROL_HTTP_TIMEOUT_SECONDS", "3.0"))
 EXPECTED_SCHEMA = "fgb-stream-state/v1"
 EXPECTED_CREATIVE = "yt_rumble_trivia_redirect"
+VISIBLE_QUESTION_PHASES = {"question", "revealed"}
 EXPECTED_REGION = {
     "x": 462,
     "y": 104,
@@ -127,8 +128,11 @@ def validate(payload: dict, *, now: float | None = None) -> dict:
             raise ValueError("unknown active creative")
         if ad_break.get("active") is not False:
             raise ValueError("difference layer active during ad break")
-        if str(trivia.get("phase") or "").strip().lower() != "question":
-            raise ValueError("difference layer active outside question phase")
+        phase = str(trivia.get("phase") or "").strip().lower()
+        if phase not in VISIBLE_QUESTION_PHASES:
+            raise ValueError("difference layer active outside visible question phase")
+        if trivia.get("questionVisible") is not True:
+            raise ValueError("difference layer active while question is not visible")
         if trivia.get("stale") is True:
             raise ValueError("difference layer active on stale trivia")
         if trivia.get("gameVisible") is not True:
