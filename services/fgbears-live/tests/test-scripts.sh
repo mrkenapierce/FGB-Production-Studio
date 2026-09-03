@@ -69,12 +69,17 @@ grep -Fq -- '-c:a aac' "$ROOT/youtube-v3/run-youtube-v3.sh"
 grep -Fq 'aresample=44100:async=1000:first_pts=0' "$ROOT/youtube-v3/run-youtube-v3.sh"
 ! grep -Eq '^Nice=|^CPUWeight=' "$ROOT/youtube-v3/fgbears-youtube-v3.service"
 
+# General installation must include the independent Lovable cache as well as v3.
 grep -Fq 'FGB_YOUTUBE_PACKET_ROUTER_ENABLE=0' "$ROOT/config/stream.env.example"
-grep -Eq '^systemctl enable .*fgbears-youtube-v3\.service' "$ROOT/bin/install.sh"
+grep -Fq 'lovable-state-cache.py' "$ROOT/bin/install.sh"
+grep -Fq 'fgbears-lovable-state-cache.service' "$ROOT/bin/install.sh"
+grep -Eq '^systemctl enable .*fgbears-lovable-state-cache\.service .*fgbears-youtube-v3\.service' "$ROOT/bin/install.sh"
 ! grep -Fq 'systemctl enable fgbears-youtube-v2.service' "$ROOT/bin/install.sh"
-grep -Fq 'YOUTUBE_SERVICE=fgbears-youtube-v3.service' "$ROOT/bin/healthcheck.sh"
+
+# Health supervision is generation-aware and recovers only the desired destination.
+grep -Fq 'YOUTUBE_V3_SERVICE=fgbears-youtube-v3.service' "$ROOT/bin/healthcheck.sh"
 ! grep -Fq 'YOUTUBE_SERVICE=${YOUTUBE_SERVICE:-' "$ROOT/bin/healthcheck.sh"
-grep -Fq 'recover_youtube_v3' "$ROOT/bin/healthcheck.sh"
+grep -Fq 'recover_youtube_destination' "$ROOT/bin/healthcheck.sh"
 grep -Fq 'check_youtube_v3_pacing' "$ROOT/bin/healthcheck.sh"
 
 test ! -d "$ROOT/youtube-v2"
@@ -117,4 +122,4 @@ install -m 0755 "$ROOT/bin/validate-media.sh" "$TMP/fgbears-validate"
 VALIDATOR="$TMP/fgbears-validate" MEDIA_DIR="$TMP/media" PLAYLIST_FILE="$TMP/playlist.ffconcat" bash "$ROOT/bin/rebuild-playlist.sh"
 grep -q 'episode-01.mp4' "$TMP/playlist.ffconcat"
 
-echo 'FGBears Live integration tests passed: rebuilt YouTube v3 architecture.'
+echo 'FGBears Live integration tests passed: Lovable control plane + YouTube v3 architecture.'
