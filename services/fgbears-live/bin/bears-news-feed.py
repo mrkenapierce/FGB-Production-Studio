@@ -28,7 +28,7 @@ LOCAL_FEED_FILE = Path(
 POLL_SECONDS = max(30, int(os.getenv("BEARS_NEWS_POLL_SECONDS", "300")))
 MAX_ITEMS = max(1, min(20, int(os.getenv("BEARS_NEWS_MAX_ITEMS", "8"))))
 PORT = int(os.getenv("BEARS_NEWS_OVERLAY_PORT", "8789"))
-FPS = max(10, int(os.getenv("BEARS_NEWS_OVERLAY_FPS", "15")))
+FPS = max(10, int(os.getenv("BEARS_NEWS_OVERLAY_FPS", "30")))
 SCROLL_PPS = max(20, int(os.getenv("BEARS_NEWS_SCROLL_PPS", "76")))
 RUNTIME_DIR = Path(os.getenv("CRAWL_RUNTIME_DIR", "/srv/fgbears-live/runtime"))
 SEPARATOR = "     ◆     "
@@ -85,8 +85,6 @@ def cache_busted_feed_url() -> str:
 def read_feed_bytes() -> bytes:
     if FEED_FILE:
         return Path(FEED_FILE).read_bytes()
-    # Oracle's locally refreshed feed is the live source. GitHub remains the
-    # canonical fallback before the first successful local scan.
     if LOCAL_FEED_FILE.is_file() and LOCAL_FEED_FILE.stat().st_size > 0:
         return LOCAL_FEED_FILE.read_bytes()
     request = urllib.request.Request(
@@ -161,7 +159,6 @@ def poll() -> None:
                 if not current:
                     STATE.update("")
         except Exception as exc:
-            # Keep the last good ribbon during transient source/network failures.
             STATE.error(exc)
         time.sleep(POLL_SECONDS)
 
@@ -173,7 +170,6 @@ def text_bbox(text: str, text_font: ImageFont.ImageFont) -> tuple[int, int, int,
 
 @lru_cache(maxsize=1)
 def base_frame() -> Image.Image:
-    """Build the fixed ribbon geometry once instead of repainting it per frame."""
     image = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
     draw = ImageDraw.Draw(image)
     draw.rectangle((7, 7, 1272, 103), fill=BEARS_BLUE)
@@ -201,7 +197,6 @@ def base_frame() -> Image.Image:
 
 @lru_cache(maxsize=4)
 def ticker_cycle(message: str) -> tuple[Image.Image, int]:
-    """Rasterize a complete RSS message once, then reuse it for every scroll frame."""
     message = message.upper().strip()
     message_font = font(31, bold=True)
     message_box = text_bbox(message, message_font)
@@ -223,11 +218,10 @@ def frame(now: float | None = None) -> Image.Image:
     if not message:
         return Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
 
-    # The static Bears ribbon and the full headline strip are pre-rasterized.
-    # Per-frame work is limited to copying the fixed panel, cropping the
-    # already-shaped ticker pixels, and compositing them into the viewport.
-    # The news overlay refreshes at 15 fps while the final program remains
-    # 30 fps; FFmpeg never shapes or crops individual news glyphs.
+    # Motion is generated at the same 30 fps cadence as the master program.
+    # Static geometry and shaped text remain cached; per-frame work is a crop
+    # and composite only, avoiding both glyph re-rasterization and 15->30 frame
+    # duplication judder.
     image = base_frame().copy()
     strip, cycle_width = ticker_cycle(message)
     elapsed = max(0.0, now - started)
