@@ -59,6 +59,7 @@ jobs:
           bash -n "$runner"; bash -n "$verify"; bash -n "$health"; bash -n "$install"
           grep -Fq 'FPS = 5.0' "$overlay"
           ! grep -Eq 'urllib|urlopen|requests|http://|https://' "$overlay"
+          grep -Fq 'VISIBLE_QUESTION_PHASES = {"question", "revealed"}' "$overlay"
           grep -Fq '/api/public/fgbears/stream-routing' "$cache"
           grep -Fq 'fgb-stream-state/v1' "$cache"
           grep -Fq 'os.replace' "$cache"
@@ -70,13 +71,13 @@ jobs:
           grep -Fq 'fgbears-lovable-state-cache.service' "$install"
           grep -Fq 'fifo_size=2000000&overrun_nonfatal=1&reuse=1' "$runner"
           grep -Fq -- '-probesize 10000000 -analyzeduration 10000000' "$runner"
-          grep -Fq 'fps=24:start_time=0' "$runner"
-          grep -Fq 'N/(24*TB)' "$runner"
+          grep -Fq 'fps=30:start_time=0' "$runner"
+          grep -Fq 'N/(30*TB)' "$runner"
           grep -Fq -- '-framerate 5' "$runner"
           grep -Fq 'N/(5*TB)' "$runner"
           grep -Fq 'overlay=462:104:format=auto:shortest=0:repeatlast=1:eof_action=repeat[composited]' "$runner"
-          grep -Fq 'scale=1152:648:flags=fast_bilinear[v]' "$runner"
-          grep -Fq -- '-r 24 -fps_mode cfr -g 48 -keyint_min 48 -sc_threshold 0' "$runner"
+          grep -Fq 'scale=854:480:flags=fast_bilinear[v]' "$runner"
+          grep -Fq -- '-r 30 -fps_mode cfr -g 60 -keyint_min 60 -sc_threshold 0' "$runner"
           grep -Fq -- '-threads 1' "$runner"
           grep -Fq 'measure_rate' "$verify"
           grep -Fq 'renderer_contains_network_io' "$verify"
@@ -93,7 +94,7 @@ jobs:
           grep -Fq 'fgb-stream-state/v1' "$monitor"
           ! grep -Fq 'overlay-state.json' "$monitor"
           ! grep -Eq 'systemctl[[:space:]]+(restart|start|stop|enable|disable|mask|unmask)' "$monitor"
-          echo 'V3_STATIC_ARCHITECTURE=PASS control=lovable-single-contract cache=independent renderer=local-only monitor=read-only media=1152x648@24 overlay=5fps'
+          echo 'V3_STATIC_ARCHITECTURE=PASS control=lovable-single-contract cache=independent renderer=local-only monitor=read-only media=854x480@30 overlay=5fps'
 
       - name: Exercise local-state routing guards
         env:
@@ -112,7 +113,7 @@ jobs:
           region={"x":462,"y":104,"width":798,"height":470,"coordinateSpace":"pixels","referenceWidth":1280,"referenceHeight":720}
           def iso(seconds): return (datetime.now(timezone.utc)+timedelta(seconds=seconds)).isoformat().replace('+00:00','Z')
           def payload(**patch):
-              trivia={"active":True,"stale":False,"phase":"question","gameVisible":True,"youtubeRedirectRequired":True}
+              trivia={"active":True,"stale":False,"phase":"question","questionVisible":True,"gameVisible":True,"youtubeRedirectRequired":True}
               ad={"active":False,"adsVisible":False,"isAdBreak":False}
               diff={"enabled":True,"creativeKey":"yt_rumble_trivia_redirect","reason":"question_phase","region":region,"presentationMode":"full_creative_scaled"}
               for k,v in patch.items():
@@ -122,8 +123,9 @@ jobs:
               return {"schemaVersion":"fgb-stream-state/v1","generatedAt":iso(-1),"validUntil":iso(4),"revision":"rtest",
                       "presentation":{"adBreak":ad,"trivia":trivia,"routing":{"rumble":{"rendersRealQuestion":True},"youtube":{"differenceLayer":diff}},"overlay":{},"crawl":{},"news":{},"schedule":{},"mask":{"region":region}}}
           pres,key=m.validate(payload()); assert m.should_cover(pres,key)
+          pres,key=m.validate(payload(trivia_phase='revealed')); assert m.should_cover(pres,key)
           assert len(m.build_frame('yt_rumble_trivia_redirect')) == 798*470*4
-          cases=[payload(trivia_phase='revealed'),payload(trivia_stale=True),payload(trivia_gameVisible=False),payload(trivia_youtubeRedirectRequired=False),payload(ad_active=True),payload(enabled=False),payload(creativeKey='unknown_creative')]
+          cases=[payload(trivia_phase='transition'),payload(trivia_phase='scoreboard'),payload(trivia_questionVisible=False),payload(trivia_stale=True),payload(trivia_gameVisible=False),payload(trivia_youtubeRedirectRequired=False),payload(ad_active=True),payload(enabled=False),payload(creativeKey='unknown_creative')]
           for x in cases:
               try:
                   pres,key=m.validate(x)
@@ -133,7 +135,7 @@ jobs:
           expired=payload(); expired['validUntil']=iso(-1)
           try: m.validate(expired); raise AssertionError('expired state accepted')
           except ValueError: pass
-          print('V3_LOCAL_STATE_GUARDS=PASS transparent_failures=stale,expired,ad-break,non-question,unknown-creative,ambiguous')
+          print('V3_LOCAL_STATE_GUARDS=PASS cover=question+revealed transparent=transition,scoreboard,not-visible,stale,expired,ad-break,unknown-creative')
           PY
 
       - name: Exercise cache validator
@@ -148,15 +150,21 @@ jobs:
           m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m)
           region={"x":462,"y":104,"width":798,"height":470,"coordinateSpace":"pixels","referenceWidth":1280,"referenceHeight":720}
           def iso(s): return (datetime.now(timezone.utc)+timedelta(seconds=s)).isoformat().replace('+00:00','Z')
-          base={"schemaVersion":"fgb-stream-state/v1","generatedAt":iso(-1),"validUntil":iso(4),"revision":"rtest",
-            "presentation":{"adBreak":{"active":False},"trivia":{"phase":"question","stale":False,"gameVisible":True,"youtubeRedirectRequired":True},
-            "routing":{"rumble":{"rendersRealQuestion":True},"youtube":{"differenceLayer":{"enabled":True,"creativeKey":"yt_rumble_trivia_redirect","region":region}}},
-            "overlay":{},"crawl":{},"news":{},"schedule":{},"mask":{"region":region}}}
-          assert m.validate(base)['revision']=='rtest'
-          bad=dict(base); bad['schemaVersion']='wrong'
+          def payload(phase='question', visible=True):
+              return {"schemaVersion":"fgb-stream-state/v1","generatedAt":iso(-1),"validUntil":iso(4),"revision":"rtest",
+                "presentation":{"adBreak":{"active":False},"trivia":{"phase":phase,"questionVisible":visible,"stale":False,"gameVisible":True,"youtubeRedirectRequired":True},
+                "routing":{"rumble":{"rendersRealQuestion":True},"youtube":{"differenceLayer":{"enabled":True,"creativeKey":"yt_rumble_trivia_redirect","region":region}}},
+                "overlay":{},"crawl":{},"news":{},"schedule":{},"mask":{"region":region}}}
+          assert m.validate(payload())['revision']=='rtest'
+          assert m.validate(payload('revealed'))['revision']=='rtest'
+          try: m.validate(payload('transition')); raise AssertionError('transition active cover accepted')
+          except ValueError: pass
+          try: m.validate(payload('question',False)); raise AssertionError('hidden question accepted')
+          except ValueError: pass
+          bad=payload(); bad['schemaVersion']='wrong'
           try: m.validate(bad); raise AssertionError('bad schema accepted')
           except ValueError: pass
-          print('V3_CACHE_VALIDATION=PASS')
+          print('V3_CACHE_VALIDATION=PASS visible_question=question+revealed')
           PY
 
       - name: Quarantine boundary
