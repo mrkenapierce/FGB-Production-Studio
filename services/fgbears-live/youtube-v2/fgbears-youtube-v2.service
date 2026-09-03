@@ -2,7 +2,8 @@
 Description=FGBears YouTube v2 isolated output
 After=network-online.target fgbears-live.service
 Wants=network-online.target
-StartLimitIntervalSec=0
+StartLimitIntervalSec=60
+StartLimitBurst=4
 
 [Service]
 Type=simple
@@ -12,8 +13,8 @@ EnvironmentFile=/etc/fgbears-live/stream.env
 Environment=PYTHONPATH=/opt/fgbears-live/exact-card-pylib
 Environment=YOUTUBE_V2_STATE_FILE=/run/fgbears-youtube-v2/overlay-state.json
 ExecStart=/opt/fgbears-live/youtube-v2/run-youtube-v2.sh
-Restart=always
-RestartSec=5
+Restart=on-failure
+RestartSec=8
 TimeoutStopSec=8
 KillSignal=SIGINT
 Nice=10
