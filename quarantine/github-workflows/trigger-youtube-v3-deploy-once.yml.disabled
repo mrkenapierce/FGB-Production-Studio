@@ -1,0 +1,25 @@
+# QUARANTINED 2026-09-03
+# Original path: .github/workflows/trigger-youtube-v3-deploy-once.yml
+# Original blob: 5dd80c7242575ab56cad54b4da3bb0efcfe90750
+# Reason: dispatches the retired youtube-v3-deploy.yml cutover workflow.
+
+name: Trigger YouTube v3 Deployment Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/trigger-youtube-v3-deploy-once.yml'
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch current production workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run youtube-v3-deploy.yml --ref main --repo "$GITHUB_REPOSITORY"
