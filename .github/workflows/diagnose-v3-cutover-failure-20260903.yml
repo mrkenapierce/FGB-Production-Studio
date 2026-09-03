@@ -1,0 +1,64 @@
+name: Diagnose v3 Cutover Failure 20260903
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-v3-cutover-failure-20260903.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read current state and preserved v3 failure evidence
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          echo 'CURRENT_UNITS_BEGIN'
+          for s in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-v2.service fgbears-youtube-v3.service fgbears-live-health.timer; do
+            echo "$s active=$(systemctl is-active "$s" 2>/dev/null || true) enabled=$(systemctl is-enabled "$s" 2>/dev/null || true) pid=$(pid "$s") restarts=$(systemctl show -p NRestarts --value "$s" 2>/dev/null || true)"
+          done
+          echo 'CURRENT_UNITS_END'
+          MP=$(pid fgbears-live.service); RP=$(pid fgbears-rumble-relay.service); V2=$(pid fgbears-youtube-v2.service); V3=$(pid fgbears-youtube-v3.service)
+          echo 'CURRENT_SOCKETS_BEGIN'
+          sudo ss -ntpH state established 2>/dev/null | awk -v m="pid=$MP" -v r="pid=$RP" -v v2="pid=$V2" -v v3="pid=$V3" 'index($0,m)||index($0,r)||index($0,v2)||index($0,v3){print}'
+          echo 'CURRENT_SOCKETS_END'
+          echo 'RUNTIME_DIRS_BEGIN'
+          for p in /opt/fgbears-live/youtube-v2 /opt/fgbears-live/youtube-v3 /opt/fgbears-live/quarantine/youtube-v2-retired-20260903; do
+            if [[ -e "$p" ]]; then printf '%s exists mode=%s\n' "$p" "$(stat -c %a "$p")"; else printf '%s absent\n' "$p"; fi
+          done
+          echo 'RUNTIME_DIRS_END'
+          echo 'HEALTHCHECK_TARGET_BEGIN'
+          sudo grep -E '^YOUTUBE_(SERVICE|PROGRESS_FILE)=' /usr/local/bin/fgbears-healthcheck 2>/dev/null || true
+          echo 'HEALTHCHECK_TARGET_END'
+          echo 'V3_JOURNAL_BEGIN'
+          sudo journalctl -u fgbears-youtube-v3.service --since '2026-09-03 07:08:30 UTC' --until '2026-09-03 07:10:30 UTC' --no-pager 2>/dev/null | tail -n 250 || true
+          echo 'V3_JOURNAL_END'
+          echo 'V2_JOURNAL_AFTER_ROLLBACK_BEGIN'
+          sudo journalctl -u fgbears-youtube-v2.service --since '2026-09-03 07:09:45 UTC' --no-pager 2>/dev/null | grep -Ei 'Started|connection|error|failed|overrun|timeout|broken|speed|frame|buffer' | tail -n 120 || true
+          echo 'V2_JOURNAL_AFTER_ROLLBACK_END'
+          echo 'MASTER_STATE_BEGIN'
+          speed=$(sudo awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
+          echo "master_speed=${speed:-NA}"
+          echo "load=$(cat /proc/loadavg)"
+          echo "cpu_pressure=$(awk '/^some/{print}' /proc/pressure/cpu)"
+          echo 'MASTER_STATE_END'
+          echo 'READ_ONLY_DIAG=PASS'
+          REMOTE
