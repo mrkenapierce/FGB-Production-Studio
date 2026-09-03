@@ -1,0 +1,51 @@
+name: Install Tested Lovable v2 Health Contract
+
+on:
+  push:
+    branches: [lovable-routing-existing-v2-20260903]
+    paths: ['.github/workflows/install-tested-lovable-v2-health.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+      TESTED_SHA: 2806d47cf2054e1e8f577b9f50e0fb372c8bee02
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TESTED_SHA }}
+      - name: Verify exact tested health check
+        run: |
+          set -Eeuo pipefail
+          [[ "$(git rev-parse HEAD)" == "$TESTED_SHA" ]]
+          bash -n services/fgbears-live/youtube-v2/verify-youtube-v2.sh
+          grep -Fq "routingAuthority') == 'lovable_public_stream_routing'" services/fgbears-live/youtube-v2/verify-youtube-v2.sh
+      - name: Install without restarting any service
+        run: |
+          set -Eeuo pipefail
+          install -d -m700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+          scp -i ~/.ssh/oracle_key services/fgbears-live/youtube-v2/verify-youtube-v2.sh "${ORACLE_USER:-ubuntu}@$ORACLE_HOST:/tmp/verify-youtube-v2-lovable.sh"
+          expected=$(sha256sum services/fgbears-live/youtube-v2/verify-youtube-v2.sh | awk '{print $1}')
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" "sudo env EXPECTED='$expected' TESTED_SHA='$TESTED_SHA' bash -s" <<'REMOTE'
+          set -Eeuo pipefail
+          target=/opt/fgbears-live/youtube-v2/verify-youtube-v2.sh
+          backup="$target.pre-lovable-health-$TESTED_SHA"
+          cp -a "$target" "$backup"
+          install -o root -g root -m755 /tmp/verify-youtube-v2-lovable.sh "$target"
+          rollback(){ install -o root -g root -m755 "$backup" "$target" || true; }
+          trap rollback ERR
+          [[ "$(sha256sum "$target" | awk '{print $1}')" == "$EXPECTED" ]]
+          "$target"
+          trap - ERR
+          echo "LOVABLE_V2_PERMANENT_HEALTH=PASS sha=$TESTED_SHA services_restarted=no"
+          REMOTE
