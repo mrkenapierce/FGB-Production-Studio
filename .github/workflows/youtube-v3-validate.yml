@@ -46,18 +46,25 @@ jobs:
           health=services/fgbears-live/bin/healthcheck.sh
           deploy=.github/workflows/youtube-v3-deploy.yml
           monitor=.github/workflows/fgbears-live-monitor.yml
-          python3 -m py_compile services/fgbears-live/youtube-v3/youtube-v3-overlay.py
+          overlay=services/fgbears-live/youtube-v3/youtube-v3-overlay.py
+          python3 -m py_compile "$overlay"
           bash -n "$runner"; bash -n "$verify"; bash -n "$health"
-          grep -Fq 'FPS = 5.0' services/fgbears-live/youtube-v3/youtube-v3-overlay.py
-          grep -Fq 'threading.Thread(target=control_loop' services/fgbears-live/youtube-v3/youtube-v3-overlay.py
-          grep -Fq 'ingest_normalizer' "$runner"
-          grep -Fq -- '-c copy' "$runner"
-          grep -Fq 'dump_extra=freq=keyframe' "$runner"
-          grep -Fq 'resend_headers+pat_pmt_at_frames' "$runner"
-          grep -Fq '[v3-ingest]' "$runner"
-          grep -Fq -- '-framerate 5' "$runner"
+          grep -Fq 'FPS = 10.0' "$overlay"
+          grep -Fq 'threading.Thread(target=control_loop' "$overlay"
+          grep -Fq 'fifo_size=2000000&overrun_nonfatal=1&reuse=1' "$runner"
+          grep -Fq -- '-probesize 10000000 -analyzeduration 10000000' "$runner"
+          grep -Fq -- '-framerate 10' "$runner"
+          grep -Fq 'N/(10*TB)' "$runner"
           grep -Fq -- '-progress pipe:3' "$runner"
           grep -Fq 'aresample=44100:async=1000:first_pts=0' "$runner"
+          grep -Fq -- '-threads 1' "$runner"
+          grep -Fq "repeat-headers=1:keyint=60:min-keyint=60:scenecut=0" "$runner"
+          ! grep -Fq 'ingest_normalizer' "$runner"
+          ! grep -Fq 'youtube-v3-ingest.ts' "$runner"
+          grep -Fq 'measure_rate' "$verify"
+          grep -Fq 'out_time_us=' "$verify"
+          grep -Fq '>= 0.98' "$verify"
+          grep -Fq '== 10.0' "$verify"
           grep -Fq -- '--transport-only' "$verify"
           grep -Fq 'downstream_decoder_not_synchronized' "$verify"
           grep -Fq 'recover_youtube_destination' "$health"
@@ -73,7 +80,9 @@ jobs:
           grep -Fq 'SAFE_V2_ROLLBACK_ACTIVE' "$monitor"
           grep -Fq 'CONTROLLED_YOUTUBE_CUTOVER_IN_PROGRESS' "$monitor"
           grep -Fq 'youtube-generation' "$monitor"
-          echo 'V3_STATIC_ARCHITECTURE=PASS'
+          grep -Fq 'measure_rate' "$monitor"
+          grep -Fq '== 10.0' "$monitor"
+          echo 'V3_STATIC_ARCHITECTURE=PASS cadence=10fps path=direct-udp-single-process'
 
       - name: Prove two-phase cutover ordering
         run: |
@@ -89,8 +98,8 @@ jobs:
           retire=s.index('sudo mv "$V2DIR" "$V2QUAR"')
           committed=s.index("printf 'v3\\n' | sudo tee \"$GENERATION\"")
           assert health < marker < stop < start < passes[0], (health,marker,stop,start,passes)
-          assert len(passes) >= 3, passes
-          assert passes[1] < retire and passes[2] < retire, (passes,retire)
+          assert len(passes) >= 2, passes
+          assert passes[0] < retire and passes[1] < retire, (passes,retire)
           assert retire < committed, (retire,committed)
           assert 'sudo cp "$HEALTH" "$HEALTH_BACKUP"' in s
           assert 'sudo install -m 0755 "$HEALTH_BACKUP" "$HEALTH"' in s
@@ -109,6 +118,7 @@ jobs:
           p=Path('services/fgbears-live/youtube-v3/youtube-v3-overlay.py')
           spec=importlib.util.spec_from_file_location('v3',p)
           m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m)
+          assert m.FPS == 10.0
           source=inspect.getsource(m.stream)
           assert 'fetch(' not in source, source
           assert 'control_loop' in source, source
@@ -124,7 +134,7 @@ jobs:
           assert len(m.build_frame('yt_rumble_trivia_redirect')) == 798*470*4
           for change in ({"phase":"revealed"},{"stale":True},{"adsVisible":True},{"isAdBreak":True},{"adBreakActive":True},{"youtubeMaskActive":False}):
               assert not m.should_cover(m.validate(payload(**change)))
-          print('V3_CONTROL_DECOUPLING=PASS')
+          print('V3_CONTROL_DECOUPLING=PASS cadence=10fps')
           print('V3_ROUTING_GUARDS=PASS')
           PY
 
