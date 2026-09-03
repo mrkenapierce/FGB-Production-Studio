@@ -2,6 +2,10 @@ name: Deploy YouTube v3 Control Plane
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/youtube-v3-deploy.yml'
 
 permissions:
   contents: read
