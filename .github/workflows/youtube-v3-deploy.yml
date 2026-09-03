@@ -224,7 +224,7 @@ jobs:
 
           cache_ready=no
           for _ in $(seq 1 30); do
-            if systemctl is-active --quiet "$CACHE" && [[ -s /run/fgbears-control-plane/stream-state.json ]]; then
+            if systemctl is-active --quiet "$CACHE" && sudo test -s /run/fgbears-control-plane/stream-state.json; then
               if sudo python3 -c "import json,time; from datetime import datetime; p=json.load(open('/run/fgbears-control-plane/stream-state.json',encoding='utf-8')); assert p.get('schemaVersion')=='fgb-stream-state/v1'; assert datetime.fromisoformat(p['validUntil'].replace('Z','+00:00')).timestamp()>time.time(); assert p['presentation']['routing']['rumble']['rendersRealQuestion'] is True"; then
                 cache_ready=yes
                 break
