@@ -59,9 +59,9 @@ jobs:
           grep -Fq 'fgb-stream-state/v1' "$cache"
           grep -Fq 'os.replace' "$cache"
           grep -Fq 'fps=30:start_time=0' "$runner"
-          grep -Fq 'scale=854:480:flags=fast_bilinear' "$runner"
-          grep -Fq -- '-video_size 533x314' "$runner"
-          grep -Fq 'overlay=308:69:' "$runner"
+          grep -Fq 'scale=640:360:flags=fast_bilinear' "$runner"
+          grep -Fq -- '-video_size 399x235' "$runner"
+          grep -Fq 'overlay=231:52:' "$runner"
           grep -Fq -- '-framerate 5' "$runner"
           grep -Fq -- '-r 30 -fps_mode cfr -g 60 -keyint_min 60 -sc_threshold 0' "$runner"
           grep -Fq -- '-threads 1' "$runner"
@@ -69,7 +69,7 @@ jobs:
           test ! -e .github/workflows/trigger-youtube-v3-deploy-once.yml
           test ! -e .github/workflows/youtube-v3-release-once.yml
           test ! -e .github/workflows/restore-v2-health-supervision-20260903.yml
-          echo 'V3_STATIC_ARCHITECTURE=PASS current_only=yes hold=15s output=854x480 overlay_pipe=533x314 cadence=30fps'
+          echo 'V3_STATIC_ARCHITECTURE=PASS current_only=yes hold=15s output=640x360 overlay_pipe=399x235 cadence=30fps'
 
       - name: Exercise concealment latch and routing guards
         env:
@@ -84,7 +84,7 @@ jobs:
           spec=importlib.util.spec_from_file_location('v3',p)
           m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m)
           assert m.HOLD_SECONDS == 15.0
-          assert m.OUTPUT_REGION == {'x':308,'y':69,'width':533,'height':314,'referenceWidth':854,'referenceHeight':480}
+          assert m.OUTPUT_REGION == {'x':231,'y':52,'width':399,'height':235,'referenceWidth':640,'referenceHeight':360}
           latch=m.ConcealmentLatch(15.0)
           assert latch.update(True,now=10.0)
           assert latch.update(False,now=24.999)
@@ -102,8 +102,8 @@ jobs:
           pres,key=m.validate(payload(visible=False)); assert not m.should_cover(pres,key)
           pres,key=m.validate(payload(redirect=False)); assert not m.should_cover(pres,key)
           pres,key=m.validate(payload(enabled=False)); assert not m.should_cover(pres,key)
-          assert len(m.build_frame('yt_rumble_trivia_redirect')) == 533*314*4
-          print('V3_LATCH=PASS minimum_hold=15s retrigger_extends=yes')
+          assert len(m.build_frame('yt_rumble_trivia_redirect')) == 399*235*4
+          print('V3_LATCH=PASS minimum_hold=15s output=640x360')
           PY
 
       - name: Exercise cache validator
