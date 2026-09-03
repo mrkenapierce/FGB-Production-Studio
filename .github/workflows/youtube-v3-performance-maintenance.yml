@@ -1,0 +1,96 @@
+name: Deploy YouTube v3 Performance Profile
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/youtube-v3-performance-maintenance.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate candidate
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq 'overlay=462:104:format=auto' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq 'scale=1024:576:flags=fast_bilinear' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq -- '-r 24 -fps_mode cfr' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq 'aresample=44100:async=1000:first_pts=0' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Stage runner
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: scp -i ~/.ssh/oracle_key services/fgbears-live/youtube-v3/run-youtube-v3.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/run-youtube-v3.performance.sh"
+      - name: Restart YouTube destination only and prove capacity
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MASTER=fgbears-live.service; RUMBLE=fgbears-rumble-relay.service; Y=fgbears-youtube-v3.service
+          RUN=/opt/fgbears-live/youtube-v3/run-youtube-v3.sh
+          BACK=/tmp/run-youtube-v3.before-performance.sh
+          P=/run/fgbears-youtube-v3/ffmpeg-progress.log
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          socket(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+          media_us(){ sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$P" | tail -n1; }
+          rate(){ local seconds=$1 m0 m1 t0 t1; m0=$(media_us); t0=$(date +%s%N); sleep "$seconds"; m1=$(media_us); t1=$(date +%s%N); python3 - "$m0" "$m1" "$t0" "$t1" <<'PY'
+          import sys
+          m0,m1,t0,t1=map(int,sys.argv[1:]); print(f'{((m1-m0)/1e6)/((t1-t0)/1e9):.4f}')
+          PY
+          }
+          rollback(){
+            trap - ERR; set +e
+            echo 'YOUTUBE_PERF_ROLLBACK=BEGIN'
+            sudo install -m 0755 "$BACK" "$RUN"
+            sudo systemctl restart "$Y"
+            for _ in $(seq 1 40); do yp=$(pid "$Y"); systemctl is-active --quiet "$Y" && socket "$yp" 443 && break; sleep 1; done
+            echo "YOUTUBE_PERF_ROLLBACK=END youtube=$(pid "$Y") master=$(pid "$MASTER") rumble=$(pid "$RUMBLE")"
+          }
+          trap 'rc=$?; rollback; exit $rc' ERR
+
+          systemctl is-active --quiet "$MASTER"; systemctl is-active --quiet "$RUMBLE"; systemctl is-active --quiet "$Y"
+          m=$(pid "$MASTER"); r=$(pid "$RUMBLE"); y0=$(pid "$Y")
+          socket "$r" 1935; socket "$y0" 443
+          sudo cp "$RUN" "$BACK"
+          sudo install -m 0755 /tmp/run-youtube-v3.performance.sh "$RUN"
+          sudo systemctl restart "$Y"
+          ready=no
+          for _ in $(seq 1 45); do yp=$(pid "$Y"); if systemctl is-active --quiet "$Y" && socket "$yp" 443; then ready=yes; break; fi; sleep 1; done
+          [[ "$ready" == yes ]]
+          sleep 5
+          test "$(pid "$MASTER")" = "$m"
+          test "$(pid "$RUMBLE")" = "$r"
+          socket "$r" 1935
+          r1=$(rate 5); r2=$(rate 5); r3=$(rate 10)
+          echo "RATE_5S_1=$r1 RATE_5S_2=$r2 RATE_10S=$r3"
+          python3 - "$r1" "$r2" "$r3" <<'PY'
+          import sys,statistics
+          vals=list(map(float,sys.argv[1:])); assert vals[2] >= 0.98 and statistics.median(vals) >= 0.98, vals
+          PY
+          fps=$(sudo sed -n 's/^fps=\([0-9.]*\)$/\1/p' "$P" | tail -n1)
+          drop=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$P" | tail -n1)
+          dup=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$P" | tail -n1)
+          echo "YOUTUBE_PERF_DEPLOY=PASS master=$m rumble=$r youtube_before=$y0 youtube_after=$(pid "$Y") rate10=$r3 fps=$fps drop=$drop dup=$dup master_restarted=no rumble_restarted=no"
+          rm -f "$BACK" /tmp/run-youtube-v3.performance.sh
+          trap - ERR
+          REMOTE
