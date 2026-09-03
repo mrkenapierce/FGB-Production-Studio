@@ -6,17 +6,38 @@ SCRIPT_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 SOURCE_DIR=$(cd -- "$SCRIPT_DIR/.." && pwd)
 
 export DEBIAN_FRONTEND=noninteractive
-required_packages=(ffmpeg ca-certificates curl git jq rsync python3 python3-pil python3-qrcode qrencode fonts-dejavu-core)
+required_packages=(ffmpeg ca-certificates curl git jq rsync python3 python3-pil qrencode fonts-dejavu-core)
 missing_packages=()
 for package in "${required_packages[@]}"; do
   if ! dpkg-query -W -f='${Status}\n' "$package" 2>/dev/null | grep -Fqx 'install ok installed'; then
     missing_packages+=("$package")
   fi
 done
+
+apt_get_with_retry() {
+  local attempt max_attempts=6
+  for attempt in $(seq 1 "$max_attempts"); do
+    if apt-get \
+      -o DPkg::Lock::Timeout=20 \
+      -o Acquire::Retries=3 \
+      -o Acquire::http::Timeout=30 \
+      -o Acquire::https::Timeout=30 \
+      "$@"; then
+      return 0
+    fi
+    if (( attempt == max_attempts )); then
+      echo "apt remained unavailable after ${max_attempts} attempts; aborting safely." >&2
+      return 1
+    fi
+    echo "apt is temporarily busy; retrying in 10 seconds (${attempt}/${max_attempts})." >&2
+    sleep 10
+  done
+}
+
 if ((${#missing_packages[@]})); then
   echo "Installing missing packages: ${missing_packages[*]}"
-  apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-  apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends "${missing_packages[@]}"
+  apt_get_with_retry update
+  apt_get_with_retry install -y --no-install-recommends "${missing_packages[@]}"
 else
   echo "All required FGBears Live packages are already installed; skipping apt."
 fi
@@ -100,7 +121,7 @@ updates={
     'FGB_YOUTUBE_PACKET_ROUTER_ENABLE':'0',
     'OUTPUT_FPS':'30','AD_OVERLAY_FPS':'15','CRAWL_OVERLAY_FPS':'30',
     'CRAWL_OVERLAY_SCRIPT':'/opt/fgbears-live/bin/crawl-overlay-hq.py','CRAWL_TEXT_RENDER_SCALE':'2',
-    'BEARS_NEWS_OVERLAY_PORT':'8789','BEARS_NEWS_OVERLAY_FPS':'15','BEARS_NEWS_SCROLL_PPS':'76',
+    'BEARS_NEWS_OVERLAY_PORT':'8789','BEARS_NEWS_OVERLAY_FPS':'30','BEARS_NEWS_SCROLL_PPS':'76',
 }
 retired_prefixes=('X_','INSTAGRAM_','FACEBOOK_','YOUTUBE_TRIVIA_')
 retired_exact={'FGB_YOUTUBE_TRIVIA_CARD_H264','PODCAST_AUDIO_FILTER','YOUTUBE_AUDIO_BITRATE','YOUTUBE_AUDIO_SAMPLE_RATE','YOUTUBE_AUDIO_CHANNELS','YOUTUBE_VIDEO_BITRATE','YOUTUBE_VIDEO_MAXRATE','YOUTUBE_VIDEO_BUFSIZE','YOUTUBE_RTMP_BASE'}

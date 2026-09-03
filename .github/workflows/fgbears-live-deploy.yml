@@ -57,7 +57,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Install shared program without touching YouTube v3
+      - name: Install shared program while preserving destination transports
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -66,15 +66,18 @@ jobs:
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
 
           youtube_before=$(pid fgbears-youtube-v3.service)
+          rumble_before=$(pid fgbears-rumble-relay.service)
           [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]] || { echo "YouTube v3 is not active"; exit 1; }
+          [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]] || { echo "Rumble relay is not active"; exit 1; }
 
           rm -rf /tmp/fgbears-shared-deploy
           git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-shared-deploy
           sudo bash /tmp/fgbears-shared-deploy/services/fgbears-live/bin/install.sh
 
-          sudo systemctl reset-failed fgbears-live.service fgbears-rumble-relay.service
+          # Only the shared master needs a restart. Destination relays remain
+          # connected and consume the resumed local UDP program immediately.
+          sudo systemctl reset-failed fgbears-live.service
           sudo systemctl restart fgbears-live.service
-          sudo systemctl restart fgbears-rumble-relay.service
 
           for _ in $(seq 1 30); do
             if systemctl is-active --quiet fgbears-live.service &&
@@ -89,8 +92,13 @@ jobs:
           systemctl is-active --quiet fgbears-youtube-v3.service
 
           youtube_after=$(pid fgbears-youtube-v3.service)
+          rumble_after=$(pid fgbears-rumble-relay.service)
           test "$youtube_after" = "$youtube_before" || {
             echo "Shared deployment changed YouTube v3 PID: $youtube_before -> $youtube_after" >&2
+            exit 1
+          }
+          test "$rumble_after" = "$rumble_before" || {
+            echo "Shared deployment changed Rumble relay PID: $rumble_before -> $rumble_after" >&2
             exit 1
           }
 
@@ -108,5 +116,5 @@ jobs:
             [[ "$state" == masked* ]] || { echo "Retired unit not masked: $unit ($state)" >&2; exit 1; }
           done
 
-          echo "SHARED_DEPLOY=PASS youtube_v3_pid_unchanged=$youtube_after"
+          echo "SHARED_DEPLOY=PASS rumble_pid_unchanged=$rumble_after youtube_v3_pid_unchanged=$youtube_after"
           REMOTE
