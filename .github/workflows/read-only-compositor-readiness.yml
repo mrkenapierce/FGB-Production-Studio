@@ -12,6 +12,8 @@ on:
 permissions:
   contents: read
 
+# Protocol v4: diagnostic-only; every remote command below is non-mutating.
+
 concurrency:
   group: read-only-compositor-readiness
   cancel-in-progress: false
