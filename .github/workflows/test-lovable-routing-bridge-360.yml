@@ -7,7 +7,8 @@ on:
       - 'services/fgbears-live/bin/youtube-question-mask.py'
       - 'services/fgbears-live/bin/youtube-lovable-compositor.sh'
       - 'services/fgbears-live/bin/youtube-relay.sh'
-      - 'services/fgbears-live/bin/youtube-audio-watchdog*.sh'
+      - 'services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh'
+      - 'services/fgbears-live/bin/install.sh'
       - 'services/fgbears-live/tools/build-youtube-rumble-trivia-card.py'
       - 'services/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service'
       - '.github/workflows/test-lovable-routing-bridge-360.yml'
@@ -38,16 +39,21 @@ jobs:
             services/fgbears-live/bin/youtube-lovable-compositor.sh \
             services/fgbears-live/bin/youtube-relay.sh \
             services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh \
-            services/fgbears-live/bin/youtube-audio-watchdog.sh; do bash -n "$f"; done
+            services/fgbears-live/bin/install.sh; do bash -n "$f"; done
+          test ! -e services/fgbears-live/bin/youtube-audio-watchdog.sh
           grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE=48000' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'YOUTUBE_UDP_FIFO_SIZE=1000000' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'YOUTUBE_MASTER_THREAD_QUEUE=512' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'aresample=${YOUTUBE_AUDIO_SAMPLE_RATE}:async=1:first_pts=0' services/fgbears-live/bin/youtube-lovable-compositor.sh
           grep -Fq 'YOUTUBE_AUDIO_SAMPLE_RATE=48000' services/fgbears-live/bin/youtube-relay.sh
           grep -Fq 'recent_transport_faults=' services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
+          grep -Fq 'legacy_fallback_allowed=no' services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
+          grep -Fq 'restart_compositor_only' services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh
+          grep -Fq 'ln -s /dev/null /etc/systemd/system/fgbears-youtube-relay.service' services/fgbears-live/bin/install.sh
           grep -Fq 'https://rumble.com/v7eqrsu-chicago-bears-live-trivia-every-20-minutes-cash-prizes-fgb.html' services/fgbears-live/tools/build-youtube-rumble-trivia-card.py
           grep -Fq 'YOUTUBE_QUESTION_MASK_PORT=8791' services/fgbears-live/bin/youtube-lovable-compositor.sh
-          echo 'SOURCE_CONTRACT=PASS exact_box_360 native_audio_48k protected_udp_input canonical_rumble_url mask_port_8791'
+          grep -Fq '"failClosedDuringQuestion": True' services/fgbears-live/bin/youtube-question-mask.py
+          echo 'SOURCE_CONTRACT=PASS exact_box_360 native_audio_48k protected_udp_input fail_closed_recovery mask_port_8791'
 
       - name: Start mocked Lovable routing
         run: |
@@ -86,6 +92,7 @@ jobs:
           assert p['frameSize']==[399,235]
           assert p['creativeKey']=='yt_rumble_trivia_redirect'
           assert p['active'] is True
+          assert p['failClosedDuringQuestion'] is True
           n=399*235*4
           with urllib.request.urlopen('http://127.0.0.1:8791/overlay.rgba',timeout=5) as r: raw=r.read(n)
           assert len(raw)==n
