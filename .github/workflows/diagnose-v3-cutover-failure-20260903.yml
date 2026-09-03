@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  ORACLE_USER: ubuntu
+
 jobs:
   diagnose:
     runs-on: ubuntu-latest
