@@ -20,12 +20,11 @@ TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 OVERLAY=/opt/fgbears-live/youtube-v3/youtube-v3-overlay.py
 PROGRESS=/run/fgbears-youtube-v3/ffmpeg-progress.log
 
-# The shared 1280x720 program is scaled first. The locked 462,104,798,470
-# reference-region maps conservatively to 308,69,533,314 at 854x480. Doing
-# alpha composition after scaling avoids compositing a full 720p frame solely
-# to shrink it again, materially reducing Oracle CPU load while preserving the
-# exact covered content area and 30 fps cadence.
-FILTER_COMPLEX='[0:v:0]fps=30:start_time=0,settb=AVTB,setpts=N/(30*TB),scale=854:480:flags=fast_bilinear,setsar=1[base];[1:v:0]settb=AVTB,setpts=N/(5*TB)[cover];[base][cover]overlay=308:69:format=auto:shortest=0:repeatlast=1:eof_action=repeat[v];[0:a:0]aresample=44100:async=1000:first_pts=0,asetpts=N/SR/TB[a]'
+# YouTube is intentionally 640x360@30 to preserve pacing headroom on the
+# existing Oracle host. The locked 1280x720 concealment region maps exactly
+# into output space as 231,52,399,235. Rumble continues to receive the full
+# shared master unchanged.
+FILTER_COMPLEX='[0:v:0]fps=30:start_time=0,settb=AVTB,setpts=N/(30*TB),scale=640:360:flags=fast_bilinear,setsar=1[base];[1:v:0]settb=AVTB,setpts=N/(5*TB)[cover];[base][cover]overlay=231:52:format=auto:shortest=0:repeatlast=1:eof_action=repeat[v];[0:a:0]aresample=44100:async=1000:first_pts=0,asetpts=N/SR/TB[a]'
 
 [[ -x "$OVERLAY" ]] || { echo "Missing YouTube v3 overlay renderer: $OVERLAY" >&2; exit 78; }
 
@@ -53,13 +52,13 @@ exec ffmpeg \
   -probesize 10000000 -analyzeduration 10000000 \
   -thread_queue_size 2048 -i "$LOCAL_INPUT" \
   -thread_queue_size 128 \
-  -f rawvideo -pixel_format rgba -video_size 533x314 -framerate 5 \
+  -f rawvideo -pixel_format rgba -video_size 399x235 -framerate 5 \
   -i <("$OVERLAY") \
   -filter_complex "$FILTER_COMPLEX" \
   -map '[v]' -map '[a]' \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high -pix_fmt yuv420p \
   -r 30 -fps_mode cfr -g 60 -keyint_min 60 -sc_threshold 0 \
-  -b:v 2200k -maxrate 2700k -bufsize 4500k \
+  -b:v 1600k -maxrate 2000k -bufsize 3500k \
   -threads 1 -x264-params 'repeat-headers=1:keyint=60:min-keyint=60:scenecut=0' \
   -c:a aac -profile:a aac_low -b:a 128k -ar 44100 -ac 2 \
   -max_muxing_queue_size 2048 \
