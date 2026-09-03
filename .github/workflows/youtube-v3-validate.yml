@@ -6,6 +6,8 @@ on:
       - 'services/fgbears-live/youtube-v3/**'
       - 'services/fgbears-live/quarantine/youtube-v2-retired-20260903/**'
       - 'services/fgbears-live/bin/healthcheck.sh'
+      - 'services/fgbears-live/bin/install.sh'
+      - 'services/fgbears-live/tests/test-health-monitor.sh'
       - '.github/workflows/youtube-v3-*.yml'
       - '.github/workflows/fgbears-live-monitor.yml'
   push:
@@ -14,6 +16,8 @@ on:
       - 'services/fgbears-live/youtube-v3/**'
       - 'services/fgbears-live/quarantine/youtube-v2-retired-20260903/**'
       - 'services/fgbears-live/bin/healthcheck.sh'
+      - 'services/fgbears-live/bin/install.sh'
+      - 'services/fgbears-live/tests/test-health-monitor.sh'
       - '.github/workflows/youtube-v3-*.yml'
       - '.github/workflows/fgbears-live-monitor.yml'
 
@@ -48,10 +52,11 @@ jobs:
           youtube_unit=services/fgbears-live/youtube-v3/fgbears-youtube-v3.service
           cache_unit=services/fgbears-live/youtube-v3/fgbears-lovable-state-cache.service
           health=services/fgbears-live/bin/healthcheck.sh
+          install=services/fgbears-live/bin/install.sh
           deploy=.github/workflows/youtube-v3-deploy.yml
           monitor=.github/workflows/fgbears-live-monitor.yml
           python3 -m py_compile "$overlay" "$cache"
-          bash -n "$runner"; bash -n "$verify"; bash -n "$health"
+          bash -n "$runner"; bash -n "$verify"; bash -n "$health"; bash -n "$install"
           grep -Fq 'FPS = 5.0' "$overlay"
           ! grep -Eq 'urllib|urlopen|requests|http://|https://' "$overlay"
           grep -Fq '/api/public/fgbears/stream-routing' "$cache"
@@ -62,6 +67,7 @@ jobs:
           grep -Fq 'Wants=network-online.target fgbears-lovable-state-cache.service' "$youtube_unit"
           ! grep -Fq 'Requires=fgbears-lovable-state-cache.service' "$youtube_unit"
           grep -Fq 'RuntimeDirectory=fgbears-control-plane' "$cache_unit"
+          grep -Fq 'fgbears-lovable-state-cache.service' "$install"
           grep -Fq 'fifo_size=2000000&overrun_nonfatal=1&reuse=1' "$runner"
           grep -Fq -- '-probesize 10000000 -analyzeduration 10000000' "$runner"
           grep -Fq 'fps=24:start_time=0' "$runner"
@@ -81,8 +87,13 @@ jobs:
           test -d services/fgbears-live/quarantine/youtube-v2-retired-20260903
           ! grep -Fq 'systemctl restart fgbears-live.service' "$deploy"
           ! grep -Fq 'systemctl restart fgbears-rumble-relay.service' "$deploy"
-          grep -Fq 'SAFE_V2_ROLLBACK_ACTIVE' "$monitor"
-          echo 'V3_STATIC_ARCHITECTURE=PASS control=lovable-single-contract cache=independent renderer=local-only media=1152x648@24 overlay=5fps'
+          grep -Fq 'CACHE=fgbears-lovable-state-cache.service' "$monitor"
+          grep -Fq 'CONTROL_STATE=/run/fgbears-control-plane/stream-state.json' "$monitor"
+          grep -Fq 'CONTROL_HEALTH=/run/fgbears-control-plane/cache-health.json' "$monitor"
+          grep -Fq 'fgb-stream-state/v1' "$monitor"
+          ! grep -Fq 'overlay-state.json' "$monitor"
+          ! grep -Eq 'systemctl[[:space:]]+(restart|start|stop|enable|disable|mask|unmask)' "$monitor"
+          echo 'V3_STATIC_ARCHITECTURE=PASS control=lovable-single-contract cache=independent renderer=local-only monitor=read-only media=1152x648@24 overlay=5fps'
 
       - name: Exercise local-state routing guards
         env:
@@ -90,7 +101,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           python3 - <<'PY'
-          import importlib.util, json, os, sys, tempfile, time
+          import importlib.util, sys
           from datetime import datetime, timezone, timedelta
           from pathlib import Path
           p=Path('services/fgbears-live/youtube-v3/youtube-v3-overlay.py')
@@ -112,10 +123,7 @@ jobs:
                       "presentation":{"adBreak":ad,"trivia":trivia,"routing":{"rumble":{"rendersRealQuestion":True},"youtube":{"differenceLayer":diff}},"overlay":{},"crawl":{},"news":{},"schedule":{},"mask":{"region":region}}}
           pres,key=m.validate(payload()); assert m.should_cover(pres,key)
           assert len(m.build_frame('yt_rumble_trivia_redirect')) == 798*470*4
-          cases=[
-            payload(trivia_phase='revealed'), payload(trivia_stale=True), payload(trivia_gameVisible=False),
-            payload(trivia_youtubeRedirectRequired=False), payload(ad_active=True), payload(enabled=False),
-            payload(creativeKey='unknown_creative')]
+          cases=[payload(trivia_phase='revealed'),payload(trivia_stale=True),payload(trivia_gameVisible=False),payload(trivia_youtubeRedirectRequired=False),payload(ad_active=True),payload(enabled=False),payload(creativeKey='unknown_creative')]
           for x in cases:
               try:
                   pres,key=m.validate(x)
@@ -132,7 +140,7 @@ jobs:
         run: |
           set -Eeuo pipefail
           python3 - <<'PY'
-          import importlib.util, sys, time
+          import importlib.util, sys
           from datetime import datetime, timezone, timedelta
           from pathlib import Path
           p=Path('services/fgbears-live/youtube-v3/lovable-state-cache.py')
