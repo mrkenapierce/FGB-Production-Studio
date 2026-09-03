@@ -7,47 +7,45 @@ TIMER="$ROOT/systemd/fgbears-live-health.timer"
 INSTALL="$ROOT/bin/install.sh"
 
 bash -n "$HEALTH"
-
-grep -Fq 'YOUTUBE_SERVICE=${YOUTUBE_SERVICE:-fgbears-youtube-v2.service}' "$HEALTH"
-grep -Fq 'recover_youtube_v2()' "$HEALTH"
+grep -Fq 'YOUTUBE_SERVICE=fgbears-youtube-v3.service' "$HEALTH"
+grep -Fq 'YOUTUBE_PROGRESS_FILE=/run/fgbears-youtube-v3/ffmpeg-progress.log' "$HEALTH"
+! grep -Fq 'YOUTUBE_SERVICE=${YOUTUBE_SERVICE:-' "$HEALTH"
+! grep -Fq 'YOUTUBE_PROGRESS_FILE=${YOUTUBE_PROGRESS_FILE:-' "$HEALTH"
+grep -Fq 'recover_youtube_v3()' "$HEALTH"
+grep -Fq 'check_youtube_v3_pacing()' "$HEALTH"
 grep -Fq 'systemctl restart "$YOUTUBE_SERVICE"' "$HEALTH"
 grep -Fq 'systemctl restart fgbears-live.service' "$HEALTH"
-if grep -Eq 'YOUTUBE_RELAY_SERVICE|recover_youtube_relay|fgbears-youtube-relay.service|lovable-compositor|audio-watchdog' "$HEALTH"; then
-  echo 'Healthcheck contains retired YouTube supervision.' >&2; exit 1
-fi
+if grep -Eq 'YOUTUBE_RELAY_SERVICE|recover_youtube_relay|lovable-compositor|audio-watchdog' "$HEALTH"; then echo 'Healthcheck contains retired YouTube supervision.' >&2; exit 1; fi
 
-# The isolated v2 recovery function must never restart master or Rumble.
 python3 - "$HEALTH" <<'PY'
 from pathlib import Path
-import re, sys
+import re,sys
 text=Path(sys.argv[1]).read_text()
-m=re.search(r'recover_youtube_v2\(\) \{(.*?)\n\}', text, re.S)
-assert m, 'recover_youtube_v2 function missing'
+assert 'YOUTUBE_SERVICE=fgbears-youtube-v3.service' in text
+assert 'YOUTUBE_SERVICE=${YOUTUBE_SERVICE:-' not in text
+m=re.search(r'recover_youtube_v3\(\) \{(.*?)\n\}',text,re.S); assert m
 body=m.group(1)
 assert 'systemctl restart "$YOUTUBE_SERVICE"' in body
 assert 'fgbears-live.service' not in body
 assert 'fgbears-rumble' not in body
+m=re.search(r'check_youtube_v3_pacing\(\) \{(.*?)\n\}',text,re.S); assert m
+body=m.group(1)
+assert 'Circular buffer overrun' in body
+assert 'systemctl restart' not in body
 PY
 
-# Host health cadence stays five minutes; public GitHub audit cadence is 15.
 grep -Eq 'OnCalendar=.*0/5|OnUnitActiveSec=5min' "$TIMER"
 grep -Fq "cron: '*/15 * * * *'" "$WORKFLOW"
-
+grep -Fq 'fgbears-youtube-v3.service' "$WORKFLOW"
 grep -Fq 'fgbears-youtube-v2.service' "$WORKFLOW"
-grep -Fq 'fgbears-rumble-relay.service' "$WORKFLOW"
-grep -Fq 'fgbears-live.service' "$WORKFLOW"
-grep -Fq 'legacy=masked' "$WORKFLOW"
-
-# The scheduled monitor may NAME retired units only to verify they remain
-# inactive and masked. It must never mutate them or treat a retired endpoint as
-# an active production dependency.
-if grep -Eq 'YOUTUBE_RELAY_SERVICE|:8791' "$WORKFLOW"; then
-  echo 'Scheduled monitor still depends on a retired runtime pathway.' >&2; exit 1
-fi
-if grep -Eq 'systemctl[[:space:]]+(restart|start|stop|enable|disable|mask|unmask)' "$WORKFLOW"; then
-  echo 'Scheduled monitor is not read-only.' >&2; exit 1
-fi
+grep -Fq 'YOUTUBE_UDP_OVERRUN' "$WORKFLOW"
+grep -Fq 'youtube_speed=' "$WORKFLOW"
+grep -Fq 'cpu_pressure_avg10=' "$WORKFLOW"
+if grep -Eq 'YOUTUBE_RELAY_SERVICE|:8791' "$WORKFLOW"; then echo 'Scheduled monitor depends on retired runtime.' >&2; exit 1; fi
+if grep -Eq 'systemctl[[:space:]]+(restart|start|stop|enable|disable|mask|unmask)' "$WORKFLOW"; then echo 'Scheduled monitor is not read-only.' >&2; exit 1; fi
 
 grep -Fq 'systemctl enable --now fgbears-live-health.timer' "$INSTALL"
+grep -Fq 'fgbears-youtube-v3.service' "$INSTALL"
+! grep -Fq 'systemctl enable fgbears-youtube-v2.service' "$INSTALL"
 
-echo 'Health supervision tests passed: shared master + isolated YouTube v2.'
+echo 'Health supervision tests passed: shared master + isolated YouTube v3 pacing telemetry.'

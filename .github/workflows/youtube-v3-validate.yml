@@ -1,0 +1,106 @@
+name: Validate YouTube v3 Rebuild
+
+on:
+  pull_request:
+    paths:
+      - 'services/fgbears-live/youtube-v3/**'
+      - 'services/fgbears-live/quarantine/youtube-v2-retired-20260903/**'
+      - 'services/fgbears-live/bin/install.sh'
+      - 'services/fgbears-live/bin/healthcheck.sh'
+      - '.github/workflows/youtube-v3-*.yml'
+      - '.github/workflows/fgbears-live-monitor.yml'
+      - '.github/workflows/fgbears-live-deploy.yml'
+      - '.github/workflows/fgbears-youtube-key-activate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'services/fgbears-live/youtube-v3/**'
+      - 'services/fgbears-live/quarantine/youtube-v2-retired-20260903/**'
+      - 'services/fgbears-live/bin/install.sh'
+      - 'services/fgbears-live/bin/healthcheck.sh'
+      - '.github/workflows/youtube-v3-*.yml'
+      - '.github/workflows/fgbears-live-monitor.yml'
+      - '.github/workflows/fgbears-live-deploy.yml'
+      - '.github/workflows/fgbears-youtube-key-activate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pip install --user pillow qrcode
+
+      - name: Build locked local creative
+        run: |
+          set -Eeuo pipefail
+          python3 services/fgbears-live/youtube-v3/build-creatives.py
+          python3 - <<'PY'
+          from PIL import Image
+          p='services/fgbears-live/youtube-v3/creatives/yt_rumble_trivia_redirect.png'
+          im=Image.open(p); im.load(); assert im.size == (798,470)
+          print('V3_CREATIVE=PASS')
+          PY
+
+      - name: Static architecture invariants
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile services/fgbears-live/youtube-v3/youtube-v3-overlay.py
+          bash -n services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          bash -n services/fgbears-live/youtube-v3/verify-youtube-v3.sh
+          bash -n services/fgbears-live/bin/install.sh
+          bash -n services/fgbears-live/bin/healthcheck.sh
+          grep -Fq 'FPS = 5.0' services/fgbears-live/youtube-v3/youtube-v3-overlay.py
+          grep -Fq 'threading.Thread(target=control_loop' services/fgbears-live/youtube-v3/youtube-v3-overlay.py
+          grep -Fq -- '-framerate 5' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq -- '-progress pipe:3' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq 'aresample=44100:async=1000:first_pts=0' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          ! grep -Eq '^Nice=|^CPUWeight=' services/fgbears-live/youtube-v3/fgbears-youtube-v3.service
+          test ! -d services/fgbears-live/youtube-v2
+          test -d services/fgbears-live/quarantine/youtube-v2-retired-20260903
+          echo 'V3_STATIC_ARCHITECTURE=PASS'
+
+      - name: Exercise media/control isolation and routing guards
+        env:
+          YOUTUBE_V3_CREATIVE_DIR: ${{ github.workspace }}/services/fgbears-live/youtube-v3/creatives
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import importlib.util, inspect, sys
+          from pathlib import Path
+          p=Path('services/fgbears-live/youtube-v3/youtube-v3-overlay.py')
+          spec=importlib.util.spec_from_file_location('v3',p)
+          m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m)
+          source=inspect.getsource(m.stream)
+          assert 'fetch(' not in source, source
+          assert 'control_loop' in source, source
+          region={"x":462,"y":104,"width":798,"height":470,"coordinateSpace":"pixels","referenceWidth":1280,"referenceHeight":720}
+          def payload(**overrides):
+              t={"stale":False,"phase":"question","adsVisible":False,"isAdBreak":False,"adBreakActive":False,
+                 "youtubeMaskActive":True,"youtubeCreativeKey":"yt_rumble_trivia_redirect","maskRegion":region,
+                 "presentation":{"rumble":{"rendersRealQuestion":True},"youtube":{"rendersRealQuestion":False,
+                   "maskedRegion":{"x":462,"y":104,"width":798,"height":470},
+                   "creativeKey":"yt_rumble_trivia_redirect","sourceTemplateKey":"yt_rumble_trivia_redirect","presentationMode":"full_creative_scaled"}}}
+              t.update(overrides); return {"trivia":t}
+          t=m.validate(payload()); assert m.should_cover(t)
+          assert len(m.build_frame('yt_rumble_trivia_redirect')) == 798*470*4
+          for change in ({"phase":"revealed"},{"stale":True},{"adsVisible":True},{"isAdBreak":True},{"adBreakActive":True},{"youtubeMaskActive":False}):
+              assert not m.should_cover(m.validate(payload(**change)))
+          print('V3_CONTROL_DECOUPLING=PASS')
+          print('V3_ROUTING_GUARDS=PASS')
+          PY
+
+      - name: Quarantine and deployment boundary
+        run: |
+          set -Eeuo pipefail
+          if find services/fgbears-live/quarantine/youtube-v2-retired-20260903 -type f -perm /111 -print -quit | grep -q .; then
+            echo 'Executable file found in v2 quarantine' >&2; exit 1
+          fi
+          ! grep -Fq 'systemctl restart fgbears-live.service' .github/workflows/youtube-v3-deploy.yml
+          ! grep -Fq 'systemctl restart fgbears-rumble-relay.service' .github/workflows/youtube-v3-deploy.yml
+          grep -Fq 'fgbears-youtube-v3.service' services/fgbears-live/bin/install.sh
+          ! grep -Fq 'systemctl enable fgbears-youtube-v2.service' services/fgbears-live/bin/install.sh
+          grep -Fq "!services/fgbears-live/youtube-v3/**" .github/workflows/fgbears-live-deploy.yml
+          echo 'V3_QUARANTINE_BOUNDARY=PASS'

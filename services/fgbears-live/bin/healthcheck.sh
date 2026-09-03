@@ -19,7 +19,11 @@ NEWS_REFRESH_BIN=${BEARS_NEWS_REFRESH_BIN:-/opt/fgbears-live/bin/refresh-bears-n
 NEWS_REFRESH_INTERVAL_SECONDS=${BEARS_NEWS_REFRESH_INTERVAL_SECONDS:-900}
 NEWS_LOCAL_FEED=${BEARS_NEWS_LOCAL_FEED_FILE:-/srv/fgbears-live/runtime/fgb-bears-news.xml}
 NEWS_REFRESH_STATUS=${BEARS_NEWS_REFRESH_STATUS_FILE:-/srv/fgbears-live/runtime/bears-news-refresh-status.env}
-YOUTUBE_SERVICE=${YOUTUBE_SERVICE:-fgbears-youtube-v2.service}
+# These two values are intentionally not environment-overridable. YouTube v2
+# is quarantined, so stale stream.env values must never be able to reactivate it.
+YOUTUBE_SERVICE=fgbears-youtube-v3.service
+YOUTUBE_PROGRESS_FILE=/run/fgbears-youtube-v3/ffmpeg-progress.log
+YOUTUBE_WARNING_FILE=${YOUTUBE_WARNING_FILE:-$HEALTH_STATE_DIR/youtube-v3-warning}
 AUDIO_HEALTH_BIN=${FGB_AUDIO_HEALTH_BIN:-/usr/local/bin/fgbears-audio-health}
 AUDIO_HEALTH_INTERVAL_SECONDS=${FGB_AUDIO_HEALTH_INTERVAL_SECONDS:-300}
 AUDIO_HEALTH_SAMPLE_SECONDS=${FGB_AUDIO_HEALTH_SAMPLE_SECONDS:-20}
@@ -61,29 +65,50 @@ guarded_restart() {
   systemctl restart fgbears-live.service
 }
 
-# YouTube v2 is the sole authorized destination-specific process. Its systemd
-# unit already restarts on failure; this timer provides a secondary recovery if
-# the unit becomes inactive. Lovable/routing failures are deliberately NOT a
-# restart condition because the v2 worker fails transparent by design.
-recover_youtube_v2() {
+recover_youtube_v3() {
   if systemctl is-active --quiet "$YOUTUBE_SERVICE"; then
     return 0
   fi
-
-  logger -t fgbears-live-health "YouTube v2 is inactive; restarting only the destination process."
+  logger -t fgbears-live-health "YouTube v3 is inactive; restarting only the destination process."
   systemctl reset-failed "$YOUTUBE_SERVICE" || true
   systemctl restart "$YOUTUBE_SERVICE" || true
-
   for _ in {1..20}; do
     if systemctl is-active --quiet "$YOUTUBE_SERVICE"; then
-      logger -t fgbears-live-health "YOUTUBE_V2_RECOVERY=RECOVERED service=$YOUTUBE_SERVICE"
+      logger -t fgbears-live-health "YOUTUBE_V3_RECOVERY=RECOVERED service=$YOUTUBE_SERVICE"
       return 0
     fi
     sleep 0.25
   done
-
-  logger -t fgbears-live-health "YOUTUBE_V2_RECOVERY=FAILED service=$YOUTUBE_SERVICE"
+  logger -t fgbears-live-health "YOUTUBE_V3_RECOVERY=FAILED service=$YOUTUBE_SERVICE"
   return 1
+}
+
+check_youtube_v3_pacing() {
+  local now updated age speed pressure warning=""
+  systemctl is-active --quiet "$YOUTUBE_SERVICE" || return 0
+  if [[ ! -s "$YOUTUBE_PROGRESS_FILE" ]]; then
+    warning="PROGRESS_MISSING"
+  else
+    now=$(date +%s)
+    updated=$(stat -c %Y "$YOUTUBE_PROGRESS_FILE" 2>/dev/null || echo 0)
+    age=$((now - updated))
+    speed=$(sed -n 's/^speed=\([0-9.]*\)x$/\1/p' "$YOUTUBE_PROGRESS_FILE" | tail -n1)
+    if (( age > 20 )); then
+      warning="PROGRESS_STALE_${age}S"
+    elif [[ -n "$speed" ]] && ! python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$speed"; then
+      warning="BELOW_REALTIME_${speed}X"
+    fi
+  fi
+  if journalctl -u "$YOUTUBE_SERVICE" --since '-10 minutes' --no-pager 2>/dev/null | grep -Fq 'Circular buffer overrun'; then
+    warning="${warning:+${warning}_}UDP_OVERRUN"
+  fi
+  pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"=");print a[2]}}' /proc/pressure/cpu 2>/dev/null || true)
+  if [[ -n "$warning" ]]; then
+    printf '%s warning=%s cpu_pressure_avg10=%s\n' "$(date +%s)" "$warning" "${pressure:-NA}" > "$YOUTUBE_WARNING_FILE"
+    logger -t fgbears-live-health "YouTube v3 pacing warning: $warning cpu_pressure_avg10=${pressure:-NA}. Destination left running; master and Rumble are never restarted for a YouTube pacing warning."
+  else
+    rm -f "$YOUTUBE_WARNING_FILE"
+  fi
 }
 
 run_lag_check() {
@@ -93,15 +118,12 @@ run_lag_check() {
     logger -t fgbears-live-health "Lag sampler failed: ${output//$'\n'/; }"
     return 0
   fi
-
   temporary="${LAG_STATUS_FILE}.partial"
   printf '%s\n' "$output" > "$temporary"
   mv -f "$temporary" "$LAG_STATUS_FILE"
-
   status=$(printf '%s\n' "$output" | sed -n 's/^OVERALL_STATUS=//p' | tail -n 1)
   reason=$(printf '%s\n' "$output" | sed -n 's/^REASON=//p' | tail -n 1)
   speed=$(printf '%s\n' "$output" | sed -n 's/^INTERVAL_SPEED=//p' | tail -n 1)
-
   if [[ "$reason" == "ENCODER_BELOW_REALTIME" ]]; then
     printf '%s speed=%s threshold=%s\n' "$(date +%s)" "${speed:-NA}" "$LAG_WARN_SPEED" > "$LAG_WARNING_FILE"
     logger -t fgbears-live-health "Encoder lag warning: interval_speed=${speed:-NA}x threshold=${LAG_WARN_SPEED}x. Stream left running to avoid a restart loop."
@@ -114,25 +136,13 @@ run_audio_check() {
   local now last=0 output rc temporary
   [[ -x "$AUDIO_HEALTH_BIN" ]] || return 0
   now=$(date +%s)
-  if [[ -s "$AUDIO_HEALTH_EPOCH_FILE" ]]; then
-    last=$(cat "$AUDIO_HEALTH_EPOCH_FILE" 2>/dev/null || printf '0')
-  fi
+  if [[ -s "$AUDIO_HEALTH_EPOCH_FILE" ]]; then last=$(cat "$AUDIO_HEALTH_EPOCH_FILE" 2>/dev/null || printf '0'); fi
   [[ "$last" =~ ^[0-9]+$ ]] || last=0
-  if (( now - last < AUDIO_HEALTH_INTERVAL_SECONDS )); then
-    return 0
-  fi
-
-  if output=$("$AUDIO_HEALTH_BIN" --capture-seconds "$AUDIO_HEALTH_SAMPLE_SECONDS" 2>&1); then
-    rc=0
-  else
-    rc=$?
-  fi
+  if (( now - last < AUDIO_HEALTH_INTERVAL_SECONDS )); then return 0; fi
+  if output=$("$AUDIO_HEALTH_BIN" --capture-seconds "$AUDIO_HEALTH_SAMPLE_SECONDS" 2>&1); then rc=0; else rc=$?; fi
   temporary="${AUDIO_HEALTH_STATUS_FILE}.partial"
-  printf '%s\n' "$output" > "$temporary"
-  mv -f "$temporary" "$AUDIO_HEALTH_STATUS_FILE"
-  printf '%s\n' "$now" > "${AUDIO_HEALTH_EPOCH_FILE}.partial"
-  mv -f "${AUDIO_HEALTH_EPOCH_FILE}.partial" "$AUDIO_HEALTH_EPOCH_FILE"
-
+  printf '%s\n' "$output" > "$temporary"; mv -f "$temporary" "$AUDIO_HEALTH_STATUS_FILE"
+  printf '%s\n' "$now" > "${AUDIO_HEALTH_EPOCH_FILE}.partial"; mv -f "${AUDIO_HEALTH_EPOCH_FILE}.partial" "$AUDIO_HEALTH_EPOCH_FILE"
   if (( rc != 0 )); then
     printf '%s rc=%s %s\n' "$now" "$rc" "$(printf '%s\n' "$output" | grep -E '^(AUDIO_WARNINGS|REASON)=' | tr '\n' ' ' || true)" > "$AUDIO_HEALTH_WARNING_FILE"
     logger -t fgbears-live-health "Audio quality warning: $(printf '%s\n' "$output" | grep -E '^(AUDIO_WARNINGS|REASON)=' | tr '\n' ' ' || true)"
@@ -141,27 +151,18 @@ run_audio_check() {
   rm -f "$AUDIO_HEALTH_WARNING_FILE"
 }
 
-# News refresh remains independent from transport recovery. The host timer calls
-# this script every five minutes; the news refresher enforces its own 15-minute
-# refresh bucket.
 run_news_refresh
-
 [[ -r "$ENV_FILE" && -s "$PLAYLIST_FILE" ]] || exit 0
-if grep -q '^YOUTUBE_STREAM_KEY=REPLACE_WITH_YOUTUBE_STREAM_KEY$' "$ENV_FILE"; then
-  exit 0
-fi
+if grep -q '^YOUTUBE_STREAM_KEY=REPLACE_WITH_YOUTUBE_STREAM_KEY$' "$ENV_FILE"; then exit 0; fi
 
-# Destination recovery is isolated. It never restarts the shared program or
-# Rumble and never reacts to a Lovable/routing outage.
-recover_youtube_v2 || true
+# Destination recovery and pacing checks are isolated from the shared program.
+recover_youtube_v3 || true
+check_youtube_v3_pacing
 
 if ! systemctl is-active --quiet fgbears-live.service; then
   guarded_restart "SERVICE_NOT_ACTIVE"
   exit 0
 fi
-
-# Restart the shared program only if its own FFmpeg progress stops advancing.
-# Slow-but-advancing encoding is logged and left running to avoid restart loops.
 if [[ ! -s "$PROGRESS_FILE" ]]; then
   guarded_restart "PROGRESS_MISSING"
   exit 0
@@ -170,13 +171,11 @@ now=$(date +%s)
 updated=$(stat -c %Y "$PROGRESS_FILE")
 age=$((now - updated))
 out_time_us=$(sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$PROGRESS_FILE" | tail -n 1)
-
 if (( age > 90 )); then
   guarded_restart "PROGRESS_STALE_${age}S"
   rm -f "$HEALTH_SAMPLE_FILE"
   exit 0
 fi
-
 [[ -n "$out_time_us" ]] || exit 0
 run_lag_check
 run_audio_check
