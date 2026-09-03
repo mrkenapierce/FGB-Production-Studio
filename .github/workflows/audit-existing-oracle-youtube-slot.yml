@@ -1,0 +1,73 @@
+name: Audit Existing Oracle YouTube Slot
+
+on:
+  push:
+    branches: [lovable-routing-bridge-clean-20260903]
+    paths: ['.github/workflows/audit-existing-oracle-youtube-slot.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Configure SSH
+        run: |
+          set -Eeuo pipefail
+          [[ -n "${ORACLE_HOST:-}" && -n "${ORACLE_SSH_KEY:-}" ]]
+          install -d -m700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Audit current slot without mutation
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          restarts(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
+          conn(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+
+          units=(fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-v2.service)
+          : > /tmp/oracle-youtube-slot-before
+          for u in "${units[@]}"; do
+            p=$(pid "$u")
+            printf '%s active=%s pid=%s restarts=%s\n' "$u" "$(systemctl is-active "$u")" "$p" "$(restarts "$u")" | tee -a /tmp/oracle-youtube-slot-before
+            if [[ "$p" =~ ^[1-9][0-9]*$ ]]; then
+              ps -p "$p" -o pid=,ppid=,etimes=,%cpu=,%mem=,rss=,stat=,comm=,args= | sed -E 's#(rtmps?://[^/[:space:]]+/)[^[:space:]]+#\1[redacted]#g'
+              for c in $(pgrep -P "$p" 2>/dev/null || true); do
+                ps -p "$c" -o pid=,ppid=,etimes=,%cpu=,%mem=,rss=,stat=,comm=,args= | sed -E 's#(rtmps?://[^/[:space:]]+/)[^[:space:]]+#\1[redacted]#g'
+              done
+            fi
+          done
+          echo "YOUTUBE_443=$(conn "$(pid fgbears-youtube-v2.service)" 443 && echo yes || echo no)"
+          echo "RUMBLE_1935=$(conn "$(pid fgbears-rumble-relay.service)" 1935 && echo yes || echo no)"
+          echo "LOAD=$(cut -d' ' -f1-3 /proc/loadavg)"
+          awk '/MemTotal|MemAvailable|SwapTotal|SwapFree/{printf "%s=%sKB ",$1,$2} END{print ""}' /proc/meminfo
+          mpstat 1 3 2>/dev/null | awk '/Average:/ && $2=="all"{print "CPU_IDLE="$NF"%"}' || true
+          echo '--- effective YouTube v2 unit ---'
+          systemctl cat fgbears-youtube-v2.service 2>/dev/null | sed -E 's#(rtmps?://[^/[:space:]]+/)[^[:space:]]+#\1[redacted]#g' || true
+          echo '--- current advancing-media health ---'
+          journalctl -u fgbears-youtube-v2-health.service --since '-20 minutes' --no-pager -o cat 2>/dev/null | tail -80 || true
+          echo '--- current v2 transport faults ---'
+          journalctl -u fgbears-youtube-v2.service --since '-20 minutes' --no-pager -o cat 2>/dev/null |
+            grep -E 'non-existing PPS|decode_slice_header|no frame|Packet corrupt|timestamp discontinuity|Broken pipe|Error|Failed' | tail -80 || true
+
+          sleep 20
+          : > /tmp/oracle-youtube-slot-after
+          for u in "${units[@]}"; do
+            printf '%s active=%s pid=%s restarts=%s\n' "$u" "$(systemctl is-active "$u")" "$(pid "$u")" "$(restarts "$u")" >> /tmp/oracle-youtube-slot-after
+          done
+          diff -u /tmp/oracle-youtube-slot-before /tmp/oracle-youtube-slot-after
+          conn "$(pid fgbears-youtube-v2.service)" 443
+          conn "$(pid fgbears-rumble-relay.service)" 1935
+          echo 'EXISTING_ORACLE_SLOT_AUDIT=PASS topology_stable_20s=yes'
+          REMOTE
