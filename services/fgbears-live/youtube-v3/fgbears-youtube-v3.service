@@ -1,7 +1,7 @@
 [Unit]
 Description=FGBears YouTube v3 isolated output
-After=network-online.target fgbears-live.service
-Wants=network-online.target
+After=network-online.target fgbears-live.service fgbears-lovable-state-cache.service
+Wants=network-online.target fgbears-lovable-state-cache.service
 StartLimitIntervalSec=60
 StartLimitBurst=4
 
@@ -10,7 +10,7 @@ Type=simple
 User=fgbears
 Group=fgbears
 EnvironmentFile=/etc/fgbears-live/stream.env
-Environment=YOUTUBE_V3_STATE_FILE=/run/fgbears-youtube-v3/overlay-state.json
+Environment=FGB_CONTROL_STATE_FILE=/run/fgbears-control-plane/stream-state.json
 Environment=YOUTUBE_V3_CREATIVE_DIR=/opt/fgbears-live/youtube-v3/creatives
 ExecStart=/opt/fgbears-live/youtube-v3/run-youtube-v3.sh
 Restart=on-failure
@@ -23,7 +23,7 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectHome=true
 ProtectSystem=strict
-ReadOnlyPaths=/opt/fgbears-live /etc/fgbears-live
+ReadOnlyPaths=/opt/fgbears-live /etc/fgbears-live /run/fgbears-control-plane
 ReadWritePaths=/run/fgbears-youtube-v3
 
 [Install]
