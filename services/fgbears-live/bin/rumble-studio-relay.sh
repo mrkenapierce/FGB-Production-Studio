@@ -78,14 +78,16 @@ if [[ "$RUMBLE_STUDIO_MODE" == studio-only ]]; then
 fi
 
 TEE_FIFO_OPTIONS='attempt_recovery=1:recover_any_error=1:recovery_wait_time=5'
-TEE_TARGETS="[f=flv:flvflags=no_duration_filesize:onfail=ignore]${RUMBLE_TARGET}|[f=flv:flvflags=no_duration_filesize:onfail=ignore]${STUDIO_TARGET}"
+TEE_TARGETS="[f=flv:onfail=ignore]${RUMBLE_TARGET}|[f=flv:onfail=ignore]${STUDIO_TARGET}"
 
-# Shadow pilot: one decode-free input, two copy/remux outputs. Rumble direct stays
-# canonical while Studio is evaluated. No video or audio re-encode occurs here.
+# Shadow pilot: one decode-free input, two copy/remux outputs. The MPEG-TS
+# source carries its own H.264 codec tag; clear that inherited tag so each FLV
+# child muxer selects FLV's native AVC/H.264 tag. This changes container
+# metadata only; video and audio packets remain stream-copied with no encode.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -fflags +genpts -probesize 10000000 -analyzeduration 10000000 \
   -i "$LOCAL_INPUT" \
-  -map 0:v:0 -map 0:a:0 -c copy \
+  -map 0:v:0 -map 0:a:0 -c copy -tag:v 0 \
   -f tee -use_fifo 1 -fifo_options "$TEE_FIFO_OPTIONS" \
   "$TEE_TARGETS"
