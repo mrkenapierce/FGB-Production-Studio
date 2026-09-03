@@ -33,12 +33,11 @@ progress_sink() {
   done
 }
 
-# A late UDP listener can enter the master MPEG-TS stream between H.264
-# parameter sets and the next IDR.  The ingest normalizer is a copy/remux only
-# stage: it does not decode, render, or re-encode.  FFmpeg stream-copy drops
-# leading non-key video packets by default, then dump_extra + MPEG-TS header
-# resend make the first downstream decodable GOP self-contained.  This keeps
-# the master/Rumble path untouched and costs only a lightweight local remux.
+# The only acquisition/probe phase lives here. A late UDP listener may enter
+# the already-running MPEG-TS stream between H.264 parameter sets and the next
+# IDR, so this lightweight copy/remux stage waits for a usable stream boundary,
+# drops corrupt leading material, and re-emits PAT/PMT + H.264 extra data at
+# keyframes. It never decodes, renders, or re-encodes the master program.
 ingest_normalizer() {
   ffmpeg \
     -hide_banner -nostdin -loglevel warning \
@@ -54,15 +53,17 @@ ingest_normalizer() {
     2> >(sed -u 's/^/[v3-ingest] /' >&2)
 }
 
-# The compositor receives only the normalized MPEG-TS stream.  Both outgoing
-# clocks are rebuilt from decoded frame/sample counts, preserving the proven
-# YouTube A/V stabilization while Lovable remains isolated in the 5 fps worker.
+# The compositor receives a normalized MPEG-TS stream whose program map and
+# codec headers have already been established. Do not perform a second multi-
+# second analysis phase here: that delay is startup acquisition time, not media
+# throughput, and would be charged against FFmpeg's cumulative speed metric.
+# A small probe is retained only to parse the immediately available PAT/PMT.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
   -progress pipe:3 -stats_period 2 \
   -fflags +genpts+discardcorrupt \
   -err_detect ignore_err \
-  -probesize 2000000 -analyzeduration 3000000 \
+  -probesize 131072 -analyzeduration 0 \
   -thread_queue_size 2048 -i <(ingest_normalizer) \
   -thread_queue_size 64 \
   -f rawvideo -pixel_format rgba -video_size 798x470 -framerate 5 \
