@@ -1,0 +1,28 @@
+[Unit]
+Description=FGBears YouTube v3.6 decoder-safe source ring
+After=network-online.target fgbears-live.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=fgbears
+Group=fgbears
+EnvironmentFile=/etc/fgbears-live/stream.env
+ExecStart=/opt/fgbears-live/youtube-v3/run-youtube-v3-source.sh
+Restart=no
+TimeoutStopSec=8
+KillSignal=SIGINT
+Nice=12
+CPUWeight=10
+RuntimeDirectory=fgbears-youtube-v3
+RuntimeDirectoryMode=0750
+RuntimeDirectoryPreserve=yes
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/opt/fgbears-live /etc/fgbears-live
+ReadWritePaths=/run/fgbears-youtube-v3
+
+[Install]
+WantedBy=multi-user.target
