@@ -98,7 +98,7 @@ def load_routing() -> dict[str, Any]:
             "Accept": "application/json",
             "Cache-Control": "no-cache",
             "Pragma": "no-cache",
-            "User-Agent": "FGBears-Lovable-Routing-Bridge/5.1",
+            "User-Agent": "FGBears-Lovable-Routing-Bridge/5.2",
         },
     )
     with urllib.request.urlopen(req, timeout=6) as response:
@@ -255,13 +255,11 @@ class State:
             )
         trivia = payload.get("trivia") if isinstance(payload.get("trivia"), dict) else {}
         phase = str(trivia.get("phase") or "") or None
-        ads_visible = trivia.get("adsVisible") is True
-        ad_break = trivia.get("isAdBreak") is True or trivia.get("adBreakActive") is True
         with self.lock:
-            # The actual trivia phase is the concealment authority. Do not wait
-            # for a secondary youtubeMaskActive flag after the real question has
-            # already appeared. Ads and non-question phases remain transparent.
-            self.active = bool(phase == "question" and not ads_visible and not ad_break)
+            # The actual trivia phase is the sole concealment authority. A
+            # question can never be exposed because of a secondary ad/mask flag
+            # changing late or briefly disagreeing with the phase state.
+            self.active = phase == "question"
             self.phase = phase
             self.last_good = time.time()
             self.last_error = None
@@ -298,7 +296,7 @@ def frame() -> bytes:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "FGBearsLovableRoutingBridge/5.1"
+    server_version = "FGBearsLovableRoutingBridge/5.2"
 
     def log_message(self, *_args: Any) -> None:
         return
