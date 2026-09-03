@@ -35,19 +35,25 @@ jobs:
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-          echo "MASTER active=$(systemctl is-active fgbears-live.service) pid=$(pid fgbears-live.service)"
+          M=$(pid fgbears-live.service)
+          echo "MASTER active=$(systemctl is-active fgbears-live.service) pid=$M"
           grep -E '^(frame|fps|drop_frames|speed|progress)=' /srv/fgbears-live/logs/ffmpeg-progress.log | tail -5 || true
           echo "RUMBLE active=$(systemctl is-active fgbears-rumble-relay.service) pid=$(pid fgbears-rumble-relay.service)"
           echo "V2 active=$(systemctl is-active fgbears-youtube-v2.service) pid=$(pid fgbears-youtube-v2.service)"
           echo "SOURCE active=$(systemctl is-active fgbears-youtube-v3-source.service 2>/dev/null || true) result=$(systemctl show -p Result --value fgbears-youtube-v3-source.service 2>/dev/null || true) status=$(systemctl show -p ExecMainStatus --value fgbears-youtube-v3-source.service 2>/dev/null || true)"
-          echo '--- master command contract, secrets omitted ---'
-          grep -E 'YOUTUBE_V3_LOCAL_UDP_URL|TEE_TARGETS' /opt/fgbears-live/bin/start-stream.sh | sed -E 's/(YOUTUBE_STREAM_KEY[^}]*)/[redacted]/g' || true
-          echo '--- UDP listeners/sockets ---'
-          ss -uanp | grep -E ':(1939|1940|1950)\b' || true
-          echo '--- v3 source journal ---'
-          journalctl -u fgbears-youtube-v3-source.service --since '-10 minutes' --no-pager -o short-iso | tail -n 160 || true
-          echo '--- runtime tree ---'
+          echo '--- master unit and process tree ---'
+          systemctl show fgbears-live.service -p ExecStart -p MainPID -p EnvironmentFiles --no-pager || true
+          ps -eo pid,ppid,etimes,stat,comm,args --forest | awk -v m="$M" '$1==m || $2==m || $3==m {print}' | sed -E 's#(rtmps?://[^/[:space:]]+/)[^[:space:]]+#\1[redacted]#g' || true
+          echo '--- effective non-secret v3 environment ---'
+          tr '\0' '\n' < "/proc/$M/environ" 2>/dev/null | grep '^YOUTUBE_V3_LOCAL_UDP_URL=' || echo 'YOUTUBE_V3_LOCAL_UDP_URL not explicitly exported in service process'
+          echo '--- master launcher contract ---'
+          grep -E 'YOUTUBE_V3_LOCAL_UDP_URL|TEE_TARGETS' /opt/fgbears-live/bin/start-stream.sh || true
+          echo '--- all UDP sockets for ffmpeg/master ---'
+          ss -uanp || true
+          echo '--- recent v3 source journal ---'
+          journalctl -u fgbears-youtube-v3-source.service --since '-6 minutes' --no-pager -o short-iso | tail -n 200 || true
+          echo '--- master tee/errors since retry 3 ---'
+          journalctl -u fgbears-live.service --since '2026-09-03 04:13:40 UTC' --no-pager -o short-iso | grep -E 'tee|Slave|1950|udp|error|Error|failed|Failed|output|Output|frame|duplicate' | tail -n 180 || true
+          echo '--- current runtime tree ---'
           find /run/fgbears-youtube-v3 -maxdepth 2 -type f -printf '%p %s %TY-%Tm-%TdT%TH:%TM:%TS\n' 2>/dev/null | sort || true
-          echo '--- master recent warnings ---'
-          journalctl -u fgbears-live.service --since '-10 minutes' --no-pager -o short-iso | tail -n 80 || true
           REMOTE
