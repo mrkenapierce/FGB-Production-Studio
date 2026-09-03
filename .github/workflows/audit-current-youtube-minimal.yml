@@ -1,0 +1,77 @@
+name: Audit Current Minimal YouTube Output
+
+on:
+  push:
+    branches: [lovable-routing-bridge-20260902]
+    paths: ['.github/workflows/audit-current-youtube-minimal.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Audit active topology and YouTube restart cause
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          prop(){ systemctl show -p "$2" --value "$1" 2>/dev/null || true; }
+          conn(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+
+          MASTER=fgbears-live.service; RUMBLE=fgbears-rumble-relay.service; YOUTUBE=fgbears-youtube-output.service
+          RETIRED=(fgbears-youtube-relay.service fgbears-youtube-router.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service fgbears-youtube-audio-watchdog.service fgbears-youtube-audio-watchdog.timer)
+
+          M=$(pid "$MASTER"); R=$(pid "$RUMBLE"); Y=$(pid "$YOUTUBE")
+          echo "MASTER active=$(systemctl is-active "$MASTER") pid=$M restarts=$(prop "$MASTER" NRestarts)"
+          echo "RUMBLE active=$(systemctl is-active "$RUMBLE") pid=$R restarts=$(prop "$RUMBLE" NRestarts) rtmp1935=$(conn "$R" 1935 && echo yes || echo no)"
+          echo "YOUTUBE active=$(systemctl is-active "$YOUTUBE") pid=$Y restarts=$(prop "$YOUTUBE" NRestarts) result=$(prop "$YOUTUBE" Result) exec_status=$(prop "$YOUTUBE" ExecMainStatus) started=$(prop "$YOUTUBE" ActiveEnterTimestamp) 443=$(conn "$Y" 443 && echo yes || echo no)"
+          echo "YOUTUBE unit_file=$(prop "$YOUTUBE" FragmentPath) enabled=$(systemctl is-enabled "$YOUTUBE" 2>/dev/null || true)"
+
+          for u in "${RETIRED[@]}"; do
+            echo "RETIRED unit=$u active=$(systemctl is-active "$u" 2>/dev/null || true) enabled=$(systemctl is-enabled "$u" 2>/dev/null || true) pid=$(pid "$u") link=$(readlink "/etc/systemd/system/$u" 2>/dev/null || true)"
+          done
+
+          echo '--- current YouTube process resource snapshot ---'
+          if [[ "$Y" =~ ^[1-9][0-9]*$ ]]; then
+            ps -p "$Y" -o pid=,ppid=,etimes=,%cpu=,%mem=,rss=,stat=,comm=
+            for c in $(pgrep -P "$Y" 2>/dev/null || true); do ps -p "$c" -o pid=,ppid=,etimes=,%cpu=,%mem=,rss=,stat=,comm=; done
+          fi
+          echo "load=$(cut -d' ' -f1-3 /proc/loadavg)"
+
+          echo '--- recent YouTube journal (stream key redacted) ---'
+          set +u
+          source /etc/fgbears-live/stream.env
+          export REDACT_KEY="${YOUTUBE_STREAM_KEY:-}"
+          set -u
+          journalctl -u "$YOUTUBE" --since '-15 minutes' --no-pager -o short-iso 2>/dev/null | tail -n 160 | python3 -c 'import os,sys; k=os.environ.get("REDACT_KEY",""); s=sys.stdin.read(); print(s.replace(k,"[STREAM_KEY_REDACTED]") if k else s, end="")'
+
+          echo '--- restart observation 20s ---'
+          Y0=$(pid "$YOUTUBE"); N0=$(prop "$YOUTUBE" NRestarts)
+          sleep 20
+          Y1=$(pid "$YOUTUBE"); N1=$(prop "$YOUTUBE" NRestarts)
+          echo "YOUTUBE_20S before_pid=$Y0 after_pid=$Y1 before_restarts=$N0 after_restarts=$N1 active=$(systemctl is-active "$YOUTUBE") 443=$(conn "$Y1" 443 && echo yes || echo no)"
+          echo "MASTER_20S pid=$(pid "$MASTER") same=$([[ $(pid "$MASTER") == "$M" ]] && echo yes || echo no)"
+          echo "RUMBLE_20S pid=$(pid "$RUMBLE") same=$([[ $(pid "$RUMBLE") == "$R" ]] && echo yes || echo no) rtmp1935=$(conn "$(pid "$RUMBLE")" 1935 && echo yes || echo no)"
+          REMOTE
