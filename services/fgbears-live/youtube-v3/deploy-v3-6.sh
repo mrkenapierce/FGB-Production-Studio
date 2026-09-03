@@ -78,6 +78,22 @@ done
 speed=$(grep '^speed=' /srv/fgbears-live/logs/ffmpeg-progress.log | tail -1 | cut -d= -f2 | tr -d x)
 python3 -c 'import sys; assert float(sys.argv[1] or 0)>=.985' "$speed"
 
+# Bind the v3 receiver BEFORE the master opens its UDP sender. A loopback UDP
+# sender started without a listener can receive ICMP port-unreachable and the
+# tee muxer may permanently abandon that slave. Keep this receiver alive for
+# the entire master generation.
+systemctl stop "$SUP" "$V3" "$SOURCE" 2>/dev/null || true
+systemctl reset-failed "$SOURCE" "$V3" "$SUP" 2>/dev/null || true
+systemctl start "$SOURCE"
+for _ in $(seq 1 20); do
+  ss -uanp > /tmp/v3-udp-sockets.txt 2>/dev/null || true
+  grep -q ':1950' /tmp/v3-udp-sockets.txt && break
+  sleep 0.25
+done
+systemctl is-active --quiet "$SOURCE" || fail source_not_active_before_master_restart
+grep -q ':1950' /tmp/v3-udp-sockets.txt || fail source_not_bound_1950_before_master_restart
+echo "V3_6_SOURCE_PREBIND=PASS pid=$(pid "$SOURCE") port=1950"
+
 stamp=$(date -u +%Y%m%dT%H%M%SZ)
 q="/opt/fgbears-live/quarantine/v3-6-$stamp"
 install -d -m755 "$q"
@@ -92,15 +108,15 @@ speed=$(grep '^speed=' /srv/fgbears-live/logs/ffmpeg-progress.log | tail -1 | cu
 python3 -c 'import sys; assert float(sys.argv[1] or 0)>=.985' "$speed"
 systemctl is-active --quiet "$RUMBLE" || fail rumble_inactive_after_master_restart
 systemctl is-active --quiet "$V2" || fail v2_inactive_after_master_restart
+systemctl is-active --quiet "$SOURCE" || fail source_inactive_after_master_restart
 conn "$(pid "$RUMBLE")" 1935 || fail rumble_socket_lost_after_master_restart
 conn "$(pid "$V2")" 443 || fail v2_socket_lost_after_master_restart
 [[ "$(pid "$RUMBLE")" == "$R0" && "$(nr "$RUMBLE")" == "$RN0" ]] || fail rumble_process_changed_during_master_export
 [[ "$(pid "$V2")" == "$V20" && "$(nr "$V2")" == "$V2N0" ]] || fail v2_process_changed_during_master_export
-echo "V3_6_MASTER_EXPORT=PASS old_master=$M0 new_master=$M1 rumble=$R0 v2=$V20 speed=${speed}x"
+echo "V3_6_MASTER_EXPORT=PASS old_master=$M0 new_master=$M1 rumble=$R0 v2=$V20 source=$(pid "$SOURCE") speed=${speed}x"
 
-systemctl stop "$SUP" "$V3" "$SOURCE" 2>/dev/null || true
-systemctl reset-failed "$SOURCE" "$V3" "$SUP" 2>/dev/null || true
-systemctl start "$SOURCE"
+# The already-bound source must now publish decoder-safe segments. Do NOT
+# restart it here; doing so can cause the active master UDP tee slave to fail.
 for _ in $(seq 1 50); do
   [[ -s "$ROOT/source/live.m3u8" ]] && grep -q '^#EXT-X-PROGRAM-DATE-TIME:' "$ROOT/source/live.m3u8" && break
   sleep 0.5
@@ -176,7 +192,7 @@ F2=$(progress frame); T2=$(progress out_time_us)
 [[ "$(pid "$RUMBLE")" == "$R0" && "$(nr "$RUMBLE")" == "$RN0" ]] || fail rumble_changed_after_hold
 conn "$R0" 1935 || fail rumble_socket_missing_after_hold
 journalctl -u "$SUP" --since '-40 seconds' --no-pager > /tmp/v3-supervisor-acceptance.log
- grep -q 'V3_HEALTH' /tmp/v3-supervisor-acceptance.log || fail supervisor_no_health_sample
+grep -q 'V3_HEALTH' /tmp/v3-supervisor-acceptance.log || fail supervisor_no_health_sample
 ! grep -q 'V3_RECOVERY' /tmp/v3-supervisor-acceptance.log || fail supervisor_recovered_during_acceptance
 
 CUTOVER=0
