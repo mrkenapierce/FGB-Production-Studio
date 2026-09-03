@@ -1,0 +1,167 @@
+name: Fix Overlay Motion And Concealment
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-overlay-motion-and-concealment.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fgbears-overlay-motion-recovery
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  patch-deploy-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Patch source for uncompressed local moving-overlay transport
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          start = Path('services/fgbears-live/bin/start-stream.sh')
+          s = start.read_text()
+          old_crawl='''  -thread_queue_size 64 -fflags +genpts -r "$CRAWL_OVERLAY_FPS" -f mpjpeg -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.mjpg" \\\n'''
+          new_crawl='''  -thread_queue_size 256 -f rawvideo -pixel_format rgba -video_size 1280x139 -framerate "$CRAWL_OVERLAY_FPS" -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.rgba" \\\n'''
+          old_news='''  -thread_queue_size 64 -fflags +genpts -r "$BEARS_NEWS_OVERLAY_FPS" -f mpjpeg -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.mjpg" \\\n'''
+          new_news='''  -thread_queue_size 256 -f rawvideo -pixel_format rgba -video_size 1280x104 -framerate "$BEARS_NEWS_OVERLAY_FPS" -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.rgba" \\\n'''
+          if old_crawl not in s or old_news not in s:
+              raise SystemExit('start-stream moving-overlay input pattern changed; aborting')
+          s=s.replace(old_crawl,new_crawl).replace(old_news,new_news)
+          s=s.replace('''# crawl arrive as sharp image overlays, so FFmpeg only composites pixels and\n# cannot clip or reshape individual headline glyphs. The slow-changing ad\n# overlay remains 15 fps; both moving news and crawl overlays are 30 fps,\n# cadence-matched to the final encoded program for fluid horizontal motion.\n''','''# crawl arrive as sharp RGBA image overlays. Moving layers stay uncompressed\n# over loopback so there is no per-frame JPEG encode/decode burst in the media\n# clock. The slow-changing ad overlay remains MJPEG at 15 fps; both moving news\n# and crawl overlays are cadence-matched to the 30 fps final program.\n''')
+          start.write_text(s)
+
+          crawl=Path('services/fgbears-live/bin/crawl-overlay.py')
+          s=crawl.read_text()
+          marker='''                    "messageCount": int(value.get("messageCount") or 0),\n'''
+          if marker not in s:
+              raise SystemExit('crawl health marker changed; aborting')
+          s=s.replace(marker, marker + '''                    "fps": FPS,\n                    "transport": "rgba-loopback",\n''',1)
+          crawl.write_text(s)
+
+          news=Path('services/fgbears-live/bin/bears-news-feed.py')
+          s=news.read_text()
+          marker='''        if not self.path.startswith("/overlay.mjpg"):\n            self.send_error(404)\n            return\n'''
+          rgba='''        if self.path.startswith("/overlay.rgba"):\n            self.send_response(200)\n            self.send_header("Cache-Control", "no-store")\n            self.send_header("Content-Type", "application/octet-stream")\n            self.end_headers()\n            interval = 1.0 / FPS\n            next_frame_at = time.monotonic()\n            try:\n                while True:\n                    self.wfile.write(frame().tobytes())\n                    self.wfile.flush()\n                    next_frame_at += interval\n                    delay = next_frame_at - time.monotonic()\n                    if delay > 0:\n                        time.sleep(delay)\n                    elif delay < -interval:\n                        next_frame_at = time.monotonic()\n            except (BrokenPipeError, ConnectionResetError):\n                return\n            return\n        if not self.path.startswith("/overlay.mjpg"):\n            self.send_error(404)\n            return\n'''
+          if marker not in s:
+              raise SystemExit('news overlay route marker changed; aborting')
+          s=s.replace(marker,rgba,1)
+          s=s.replace('''                    "fps": FPS,\n''','''                    "fps": FPS,\n                    "transport": "rgba-loopback",\n''',1)
+          news.write_text(s)
+
+          inv=Path('services/fgbears-live/tests/test-production-invariants.sh')
+          s=inv.read_text()
+          old='''grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.mjpg"' "$START" || fail 'FFmpeg must consume the dedicated Bears news MJPEG overlay.'\n'''
+          if old not in s:
+              raise SystemExit('production invariant MJPEG assertion changed; aborting')
+          s=s.replace(old,'''grep -Fq -- '-f rawvideo -pixel_format rgba -video_size 1280x139 -framerate "$CRAWL_OVERLAY_FPS" -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.rgba"' "$START" || fail 'Crawl must use uncompressed loopback RGBA at source cadence.'\ngrep -Fq -- '-f rawvideo -pixel_format rgba -video_size 1280x104 -framerate "$BEARS_NEWS_OVERLAY_FPS" -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.rgba"' "$START" || fail 'Bears news must use uncompressed loopback RGBA at source cadence.'\n''')
+          old2='''if grep -Fq -- '-f rawvideo' "$START"; then\n  fail 'RSS/news must use MJPEG rather than the retired rawvideo transport.'\nfi\n'''
+          if old2 in s:
+              s=s.replace(old2,'')
+          inv.write_text(s)
+          PY
+
+          bash -n services/fgbears-live/bin/start-stream.sh
+          python3 -m py_compile services/fgbears-live/bin/crawl-overlay.py services/fgbears-live/bin/bears-news-feed.py
+          bash services/fgbears-live/tests/test-production-invariants.sh
+
+      - name: Commit permanent source fix
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'mrkenapierce'
+          git config user.email 'mrkenapierce@gmail.com'
+          git add services/fgbears-live/bin/start-stream.sh \
+                  services/fgbears-live/bin/crawl-overlay.py \
+                  services/fgbears-live/bin/bears-news-feed.py \
+                  services/fgbears-live/tests/test-production-invariants.sh
+          git diff --cached --quiet && { echo 'No source changes needed'; exit 0; }
+          git commit -m 'Use uncompressed loopback transport for moving overlays'
+          git push origin HEAD:main
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy shared master safely and verify both destinations
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          connected(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          YOUTUBE=fgbears-youtube-v3.service
+          CACHE=fgbears-lovable-state-cache.service
+          rumble_before=$(pid "$RUMBLE")
+          [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]] || { echo 'Rumble inactive before deploy'; exit 1; }
+          connected "$rumble_before" 1935 || { echo 'Rumble socket missing before deploy'; exit 1; }
+          systemctl is-active --quiet "$CACHE" || { echo 'Lovable cache inactive'; exit 1; }
+
+          rm -rf /tmp/fgbears-motion-fix
+          git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-motion-fix
+          sudo bash /tmp/fgbears-motion-fix/services/fgbears-live/bin/install.sh
+          sudo systemctl reset-failed "$MASTER" 2>/dev/null || true
+          sudo systemctl restart "$MASTER"
+
+          healthy=no
+          for _ in $(seq 1 35); do
+            if systemctl is-active --quiet "$MASTER" && \
+               curl -fsS --max-time 2 http://127.0.0.1:8788/healthz >/tmp/crawl-health.json && \
+               curl -fsS --max-time 2 http://127.0.0.1:8789/healthz >/tmp/news-health.json; then
+              healthy=yes; break
+            fi
+            sleep 1
+          done
+          [[ "$healthy" == yes ]] || { sudo journalctl -u "$MASTER" -n 160 --no-pager; exit 1; }
+
+          python3 - <<'PY'
+          import json
+          for path in ('/tmp/crawl-health.json','/tmp/news-health.json'):
+              p=json.load(open(path))
+              assert p.get('ok') is True, p
+              assert int(p.get('fps') or 0)==30, p
+              assert p.get('transport')=='rgba-loopback', p
+          PY
+
+          test "$(pid "$RUMBLE")" = "$rumble_before" || { echo 'Rumble relay PID changed'; exit 1; }
+          connected "$rumble_before" 1935 || { echo 'Rumble socket lost'; exit 1; }
+
+          ypid=$(pid "$YOUTUBE")
+          if ! connected "$ypid" 443; then
+            sudo systemctl reset-failed "$YOUTUBE" 2>/dev/null || true
+            sudo systemctl restart "$YOUTUBE"
+            for _ in $(seq 1 45); do
+              ypid=$(pid "$YOUTUBE")
+              if systemctl is-active --quiet "$YOUTUBE" && connected "$ypid" 443; then break; fi
+              sleep 1
+            done
+          fi
+          connected "$ypid" 443 || { sudo journalctl -u "$YOUTUBE" -n 120 --no-pager; exit 1; }
+
+          sleep 8
+          systemctl is-active --quiet "$MASTER"
+          connected "$rumble_before" 1935
+          connected "$ypid" 443
+          echo "OVERLAY_MOTION_DEPLOY=PASS master=$(pid "$MASTER") rumble=$rumble_before youtube=$ypid crawl=rgba30 news=rgba30"
+          REMOTE
