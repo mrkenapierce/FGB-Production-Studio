@@ -61,6 +61,16 @@ jobs:
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
           active(){ systemctl is-active --quiet "$1"; }
           socket(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v port=":$port" 'index($0,q)&&index($0,port){ok=1} END{exit(ok?0:1)}'; }
+          progress_field(){ local key=$1; sed -n "s/^${key}=//p" "$YT_PROGRESS" 2>/dev/null | tail -n1; }
+          wait_progress_advance(){
+            local previous=$1 current deadline=$(( $(date +%s) + 6 ))
+            while (( $(date +%s) <= deadline )); do
+              current=$(progress_field out_time_us)
+              if [[ "$current" =~ ^[0-9]+$ ]] && (( current > previous )); then printf '%s\n' "$current"; return 0; fi
+              sleep 0.2
+            done
+            return 1
+          }
           fail(){ echo 'OVERALL_STATUS=FAIL'; echo "REASON=$1"; exit 1; }
 
           active "$MASTER" || fail MASTER_INACTIVE
@@ -100,8 +110,6 @@ jobs:
           pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"=");print a[2]}}' /proc/pressure/cpu 2>/dev/null || true)
           idle=$(vmstat 1 2 | tail -n1 | awk '{print $15}')
 
-          # During a controlled candidate interval only destination recovery is
-          # deferred; master, Rumble, news, crawl and legacy checks still pass.
           if [[ "$generation" == v2 && -e "$CUTOVER_MARKER" ]]; then
             echo 'OVERALL_STATUS=OK'
             echo 'REASON=CONTROLLED_YOUTUBE_CUTOVER_IN_PROGRESS'
@@ -132,7 +140,6 @@ jobs:
             exit 0
           fi
 
-          # Generation v3 is committed state; silent fallback to v2 is forbidden.
           active "$V3" || fail YOUTUBE_V3_INACTIVE
           if active "$V2"; then fail RETIRED_YOUTUBE_V2_ACTIVE; fi
           v2state=$(systemctl is-enabled "$V2" 2>/dev/null || true)
@@ -144,6 +151,7 @@ jobs:
           grep -Fq 'recover_youtube_destination' "$HEALTHCHECK" || fail V3_HEALTH_SUPERVISION_NOT_GENERATION_AWARE
           grep -Fq 'YOUTUBE_GENERATION_FILE=' "$HEALTHCHECK" || fail V3_HEALTH_GENERATION_MARKER_MISSING
           grep -Fq 'YOUTUBE_CUTOVER_MARKER=' "$HEALTHCHECK" || fail V3_HEALTH_CUTOVER_GUARD_MISSING
+          grep -Fq 'YOUTUBE_V3_SAMPLE_FILE=' "$HEALTHCHECK" || fail V3_HEALTH_INTERVAL_SAMPLE_MISSING
 
           YPID=$(pid "$V3")
           [[ "$YPID" =~ ^[1-9][0-9]*$ ]] || fail YOUTUBE_V3_PID_INVALID
@@ -152,12 +160,31 @@ jobs:
           [[ -s "$YT_PROGRESS" ]] || fail YOUTUBE_PROGRESS_MISSING
           yt_age=$(( $(date +%s) - $(stat -c %Y "$YT_PROGRESS") ))
           (( yt_age < 20 )) || fail YOUTUBE_PROGRESS_STALE
-          yt_speed=$(sed -n 's/^speed=\([0-9.]*\)x$/\1/p' "$YT_PROGRESS" | tail -n1)
-          yt_fps=$(sed -n 's/^fps=\([0-9.]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
-          yt_drop=$(sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
-          yt_dup=$(sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
-          [[ -n "$yt_speed" ]] || fail YOUTUBE_SPEED_MISSING
-          python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$yt_speed" || fail YOUTUBE_BELOW_REALTIME
+          yt_reported_speed=$(progress_field speed)
+          yt_fps=$(progress_field fps)
+          yt_drop=$(progress_field drop_frames)
+          yt_dup=$(progress_field dup_frames)
+          baseline=$(progress_field out_time_us)
+          [[ "$baseline" =~ ^[0-9]+$ ]] || fail YOUTUBE_OUT_TIME_MISSING
+          first=$(wait_progress_advance "$baseline") || fail YOUTUBE_INTERVAL_START_TIMEOUT
+          t1=$(date +%s%N)
+          sleep 6
+          middle=$(progress_field out_time_us)
+          [[ "$middle" =~ ^[0-9]+$ ]] || fail YOUTUBE_OUT_TIME_MISSING_MID_SAMPLE
+          second=$(wait_progress_advance "$middle") || fail YOUTUBE_INTERVAL_END_TIMEOUT
+          t2=$(date +%s%N)
+          YPID_AFTER=$(pid "$V3")
+          test "$YPID_AFTER" = "$YPID" || fail YOUTUBE_PID_CHANGED_DURING_INTERVAL_SAMPLE
+          yt_interval_speed=$(python3 - "$first" "$second" "$t1" "$t2" <<'PY'
+          import sys
+          m1,m2,t1,t2=map(int,sys.argv[1:])
+          media=(m2-m1)/1_000_000.0; wall=(t2-t1)/1_000_000_000.0
+          assert media > 0 and wall > 0
+          print(f'{media/wall:.4f}')
+          PY
+          ) || fail YOUTUBE_INTERVAL_CALCULATION_FAILED
+          python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$yt_interval_speed" || fail YOUTUBE_BELOW_REALTIME
+
           invocation=$(systemctl show -p InvocationID --value "$V3" 2>/dev/null || true)
           if [[ -n "$invocation" ]]; then journal=$(sudo journalctl _SYSTEMD_INVOCATION_ID="$invocation" --no-pager 2>/dev/null || true); else journal=$(sudo journalctl -u "$V3" --since '-20 minutes' --no-pager 2>/dev/null || true); fi
           grep -Fq 'Circular buffer overrun' <<<"$journal" && fail YOUTUBE_UDP_OVERRUN
@@ -181,7 +208,7 @@ jobs:
 
           echo 'OVERALL_STATUS=OK'
           echo 'REASON=PRODUCTION_HEALTHY'
-          echo "TOPOLOGY generation=v3 source=$generation_source supervision=generation_aware master=$MPID rumble=$RPID youtube_v3=$YPID retired=masked master_speed=${master_speed:-unknown}x youtube_speed=${yt_speed}x youtube_fps=${yt_fps:-NA} drop=${yt_drop:-NA} dup=${yt_dup:-NA} cpu_idle=${idle:-NA}% cpu_pressure_avg10=${pressure:-NA}"
+          echo "TOPOLOGY generation=v3 source=$generation_source supervision=generation_aware master=$MPID rumble=$RPID youtube_v3=$YPID retired=masked master_speed=${master_speed:-unknown}x youtube_interval_speed=${yt_interval_speed}x youtube_reported_speed=${yt_reported_speed:-NA} youtube_fps=${yt_fps:-NA} drop=${yt_drop:-NA} dup=${yt_dup:-NA} cpu_idle=${idle:-NA}% cpu_pressure_avg10=${pressure:-NA}"
           echo "OVERLAY_ROUTING $overlay_report"
           REMOTE
           rc=$?
