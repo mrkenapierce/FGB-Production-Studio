@@ -23,7 +23,7 @@ jobs:
           set -Eeuo pipefail
           bash -n services/fgbears-live/youtube-v3/run-youtube-v3.sh
           grep -Fq 'overlay=462:104:format=auto' services/fgbears-live/youtube-v3/run-youtube-v3.sh
-          grep -Fq 'scale=1024:576:flags=fast_bilinear' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq 'scale=854:480:flags=fast_bilinear' services/fgbears-live/youtube-v3/run-youtube-v3.sh
           grep -Fq -- '-r 24 -fps_mode cfr' services/fgbears-live/youtube-v3/run-youtube-v3.sh
           grep -Fq 'aresample=44100:async=1000:first_pts=0' services/fgbears-live/youtube-v3/run-youtube-v3.sh
       - name: Configure Oracle SSH
