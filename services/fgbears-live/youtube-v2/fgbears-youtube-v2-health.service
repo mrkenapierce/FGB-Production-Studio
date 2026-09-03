@@ -1,0 +1,15 @@
+[Unit]
+Description=FGBears YouTube v2 passive health check
+After=fgbears-youtube-v2.service
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/opt/fgbears-live/youtube-v2/verify-youtube-v2.sh
+Nice=19
+CPUWeight=1
+IOSchedulingClass=idle
+NoNewPrivileges=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/opt/fgbears-live /etc/fgbears-live /run/fgbears-youtube-v2 /proc /sys
