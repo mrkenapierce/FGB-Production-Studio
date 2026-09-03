@@ -1,0 +1,94 @@
+name: YouTube v3 Live Diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/youtube-v3-live-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Sample live YouTube transport and concealment state
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          STATE=/run/fgbears-control-plane/stream-state.json
+          HEALTH=/run/fgbears-control-plane/cache-health.json
+          PROGRESS=/run/fgbears-youtube-v3/ffmpeg-progress.log
+          OVERLAY=/opt/fgbears-live/youtube-v3/youtube-v3-overlay.py
+          YOUTUBE=fgbears-youtube-v3.service
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          ypid=$(pid "$YOUTUBE")
+          mpid=$(pid "$MASTER")
+          rpid=$(pid "$RUMBLE")
+          echo "PIDS master=$mpid rumble=$rpid youtube=$ypid"
+          echo "YOUTUBE_CMDLINE=$(tr '\0' ' ' </proc/$ypid/cmdline 2>/dev/null || true)"
+          echo "OVERLAY_SELF_TEST_BEGIN"
+          sudo -u fgbears env FGB_CONTROL_STATE_FILE="$STATE" YOUTUBE_V3_CREATIVE_DIR=/opt/fgbears-live/youtube-v3/creatives python3 "$OVERLAY" --self-test || true
+          echo "OVERLAY_SELF_TEST_END"
+          echo "SAMPLES_BEGIN"
+          for i in $(seq 1 45); do
+            now=$(date -u +%H:%M:%S)
+            state=$(sudo python3 - "$STATE" <<'PY'
+          import json,sys
+          try:
+              s=json.load(open(sys.argv[1],encoding='utf-8'))
+              p=s.get('presentation') or {}; t=p.get('trivia') or {}; y=((p.get('routing') or {}).get('youtube') or {}); d=y.get('differenceLayer') or {}
+              print('phase=%s active=%s visible=%s stale=%s game=%s diff=%s reason=%s req=%s rev=%s' % (
+                  t.get('phase'),t.get('active'),t.get('questionVisible'),t.get('stale'),t.get('gameVisible'),d.get('enabled'),d.get('reason'),t.get('youtubeRedirectRequired'),s.get('revision')))
+          except Exception as e:
+              print('state_error=%r' % (e,))
+          PY
+            )
+            prog=$(sudo python3 - "$PROGRESS" <<'PY'
+          import sys
+          vals={}
+          try:
+              for line in open(sys.argv[1],encoding='utf-8',errors='ignore'):
+                  if '=' in line:
+                      k,v=line.strip().split('=',1); vals[k]=v
+              print('fps=%s speed=%s drop=%s dup=%s out_ms=%s' % (vals.get('fps'),vals.get('speed'),vals.get('drop_frames'),vals.get('dup_frames'),vals.get('out_time_ms')))
+          except Exception as e:
+              print('progress_error=%r' % (e,))
+          PY
+            )
+            echo "$now $state $prog"
+            sleep 1
+          done
+          echo "SAMPLES_END"
+          echo "CPU_PRESSURE=$(cat /proc/pressure/cpu 2>/dev/null | tr '\n' ';' || true)"
+          echo "YOUTUBE_STATUS_BEGIN"
+          sudo systemctl status "$YOUTUBE" --no-pager -l || true
+          echo "YOUTUBE_JOURNAL_BEGIN"
+          sudo journalctl -u "$YOUTUBE" --since '-2 minutes' --no-pager || true
+          echo "MASTER_JOURNAL_ERRORS_BEGIN"
+          sudo journalctl -u "$MASTER" --since '-2 minutes' --no-pager | grep -Ei 'error|drop|overrun|buffer|non-monoton|broken|fail' || true
+          echo "SOCKETS_BEGIN"
+          sudo ss -ntpH state established | grep -E "pid=($ypid|$rpid)" || true
+          REMOTE
