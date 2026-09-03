@@ -64,6 +64,18 @@ jobs:
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          dump_master_diagnostics(){
+            echo '=== FGBEARS MASTER STATUS ===' >&2
+            sudo systemctl status fgbears-live.service --no-pager -l >&2 || true
+            echo '=== FGBEARS MASTER JOURNAL ===' >&2
+            sudo journalctl -u fgbears-live.service -n 160 --no-pager >&2 || true
+            echo '=== OVERLAY HEALTH ===' >&2
+            for port in 8787 8788 8789; do
+              printf 'port_%s=' "$port" >&2
+              curl --silent --show-error --max-time 2 "http://127.0.0.1:${port}/healthz" >&2 || true
+              printf '\n' >&2
+            done
+          }
 
           youtube_before=$(pid fgbears-youtube-v3.service)
           rumble_before=$(pid fgbears-rumble-relay.service)
@@ -77,19 +89,25 @@ jobs:
           # Only the shared master needs a restart. Destination relays remain
           # connected and consume the resumed local UDP program immediately.
           sudo systemctl reset-failed fgbears-live.service
-          sudo systemctl restart fgbears-live.service
+          if ! sudo systemctl restart fgbears-live.service; then
+            dump_master_diagnostics
+            exit 1
+          fi
 
+          healthy=0
           for _ in $(seq 1 30); do
             if systemctl is-active --quiet fgbears-live.service &&
                systemctl is-active --quiet fgbears-rumble-relay.service &&
                systemctl is-active --quiet fgbears-youtube-v3.service; then
+              healthy=1
               break
             fi
             sleep 1
           done
-          systemctl is-active --quiet fgbears-live.service
-          systemctl is-active --quiet fgbears-rumble-relay.service
-          systemctl is-active --quiet fgbears-youtube-v3.service
+          if [[ "$healthy" != 1 ]]; then
+            dump_master_diagnostics
+            exit 1
+          fi
 
           youtube_after=$(pid fgbears-youtube-v3.service)
           rumble_after=$(pid fgbears-rumble-relay.service)
