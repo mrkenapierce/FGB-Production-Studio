@@ -6,6 +6,7 @@ START="$ROOT/bin/start-stream.sh"
 NEWS="$ROOT/bin/bears-news-feed.py"
 ENV_EXAMPLE="$ROOT/config/stream.env.example"
 INSTALL="$ROOT/bin/install.sh"
+MASTER_UNIT="$ROOT/systemd/fgbears-live.service"
 TRIVIA_CARD_BUILDER="$ROOT/tools/build-youtube-rumble-trivia-card.py"
 
 fail() { echo "PRODUCTION INVARIANT FAILED: $*" >&2; exit 1; }
@@ -49,7 +50,11 @@ if grep -Fq -- '-af ' "$START"; then
   fail 'Live audio filters are forbidden in the primary encoder.'
 fi
 
-# RULE 3 — Retired X and Instagram transport targets stay removed.
+# RULE 3 — The shared master is a 24/7 service. A clean FFmpeg exit is still an
+# outage, so systemd must restart it regardless of exit status.
+grep -Fxq 'Restart=always' "$MASTER_UNIT" || fail 'Shared 24/7 master must restart after every process exit.'
+
+# RULE 4 — Retired X and Instagram transport targets stay removed.
 if grep -Fq 'X local mirror' "$START" || grep -Fq 'Instagram local mirror' "$START"; then
   fail 'Social sidecar tee outputs are forbidden in the primary encoder.'
 fi
