@@ -1,0 +1,62 @@
+name: Audit Failed YouTube v2 Cutover
+
+on:
+  push:
+    branches: [lovable-routing-bridge-20260902]
+    paths: ['.github/workflows/audit-youtube-v2-failed-cutover.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Read failed v2 journal and current topology
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          nr(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
+          conn(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+
+          echo "MASTER active=$(systemctl is-active fgbears-live.service) pid=$(pid fgbears-live.service) restarts=$(nr fgbears-live.service)"
+          R=$(pid fgbears-rumble-relay.service)
+          echo "RUMBLE active=$(systemctl is-active fgbears-rumble-relay.service) pid=$R restarts=$(nr fgbears-rumble-relay.service) socket1935=$(conn "$R" 1935 && echo yes || echo no)"
+          O=$(pid fgbears-youtube-output.service)
+          echo "OLD_YOUTUBE active=$(systemctl is-active fgbears-youtube-output.service 2>/dev/null || true) enabled=$(systemctl is-enabled fgbears-youtube-output.service 2>/dev/null || true) pid=$O restarts=$(nr fgbears-youtube-output.service) socket443=$(conn "$O" 443 && echo yes || echo no)"
+          V=$(pid fgbears-youtube-v2.service)
+          echo "V2 active=$(systemctl is-active fgbears-youtube-v2.service 2>/dev/null || true) enabled=$(systemctl is-enabled fgbears-youtube-v2.service 2>/dev/null || true) pid=$V restarts=$(nr fgbears-youtube-v2.service) result=$(systemctl show -p Result --value fgbears-youtube-v2.service 2>/dev/null || true) exec_status=$(systemctl show -p ExecMainStatus --value fgbears-youtube-v2.service 2>/dev/null || true)"
+
+          echo '--- v2 journal ---'
+          set +u
+          source /etc/fgbears-live/stream.env
+          export REDACT_KEY="${YOUTUBE_STREAM_KEY:-}"
+          set -u
+          journalctl -u fgbears-youtube-v2.service --since '-15 minutes' --no-pager -o short-iso 2>/dev/null | tail -n 220 | python3 -c 'import os,sys;k=os.environ.get("REDACT_KEY","");s=sys.stdin.read();print(s.replace(k,"[STREAM_KEY_REDACTED]") if k else s,end="")'
+
+          echo '--- source UDP ownership ---'
+          ss -lunpH 2>/dev/null | grep -E ':1939\b|:1940\b' || true
+          echo '--- local files ---'
+          ls -l /opt/fgbears-live/youtube-v2 /etc/systemd/system/fgbears-youtube-v2.service 2>/dev/null || true
+          REMOTE
