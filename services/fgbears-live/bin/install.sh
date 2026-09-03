@@ -73,10 +73,12 @@ install -m 0755 /opt/fgbears-live/bin/youtube-relay.sh /usr/local/bin/fgbears-yo
 install -m 0755 /opt/fgbears-live/bin/rumble-relay.sh /usr/local/bin/fgbears-rumble-relay
 install -m 0755 /opt/fgbears-live/bin/configure-rumble.sh /usr/local/bin/fgbears-configure-rumble
 
-# The owner-aware watchdog is authoritative. The old relay watchdog remains only
-# as the fallback implementation it invokes if the exact-box compositor fails.
-install -m 0755 /opt/fgbears-live/bin/youtube-audio-watchdog.sh /usr/local/libexec/fgbears-youtube-audio-watchdog-legacy
+# The owner-aware compositor watchdog is the only installed YouTube recovery
+# implementation. It may restart the compositor after persistent faults but it
+# never changes the shared master/Rumble lifecycle and never falls back to the
+# direct relay.
 install -m 0755 /opt/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh /usr/local/bin/fgbears-youtube-audio-watchdog
+rm -f /usr/local/libexec/fgbears-youtube-audio-watchdog-legacy
 
 # Library/media administration.
 install -m 0755 /opt/fgbears-live/bin/normalize-library.sh /usr/local/bin/fgbears-normalize
@@ -88,10 +90,10 @@ install -m 0755 /opt/fgbears-live/bin/audio-health.py /usr/local/bin/fgbears-aud
 install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-stream-status
 
 # Systemd units. The master has no destination-specific Wants/Requires. Rumble
-# is independent copy/remux. YouTube primary ownership is routing + exact-box
-# compositor; the legacy relay is installed but disabled as failover only.
+# is independent copy/remux. YouTube normal ownership is routing + exact-box
+# compositor. The direct relay unit is deliberately masked below so a stale
+# recovery path cannot bypass trivia concealment.
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
-install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-relay.service /etc/systemd/system/fgbears-youtube-relay.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-rumble-relay.service /etc/systemd/system/fgbears-rumble-relay.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-lovable-routing.service /etc/systemd/system/fgbears-youtube-lovable-routing.service
 install -m 0644 /opt/fgbears-live/systemd/fgbears-youtube-lovable-compositor.service /etc/systemd/system/fgbears-youtube-lovable-compositor.service
@@ -108,7 +110,7 @@ fi
 # Preserve credentials/endpoints while normalizing only true shared/runtime
 # settings. YouTube audio/video quality constants are owned by the destination
 # scripts, not stream.env, so stale environment files cannot change production
-# behavior during failover.
+# behavior during recovery.
 python3 - "$ENV_PATH" <<'PY'
 from pathlib import Path
 import sys
@@ -155,8 +157,6 @@ retired_exact = {
     "FGB_YOUTUBE_TRIVIA_CARD_H264",
     "PODCAST_AUDIO_FILTER",
     "YOUTUBE_RTMP_BASE",
-    # Old environment-owned video tuning is intentionally removed. The exact-box
-    # compositor hard-locks its qualified 2.2 Mbps profile; fallback copies video.
     "YOUTUBE_VIDEO_BITRATE",
     "YOUTUBE_VIDEO_MAXRATE",
     "YOUTUBE_VIDEO_BUFSIZE",
@@ -184,16 +184,20 @@ PY
 chown root:fgbears "$ENV_PATH"
 chmod 0640 "$ENV_PATH"
 
+# Establish exact-box YouTube as the only permitted owner. Remove any old unit
+# file and replace it with a hard mask so service-manager recovery cannot start a
+# bypass path later. This intentionally favors a visible YouTube outage over
+# exposing a live trivia question.
+systemctl stop fgbears-youtube-relay.service >/dev/null 2>&1 || true
+systemctl disable fgbears-youtube-relay.service >/dev/null 2>&1 || true
+rm -f /etc/systemd/system/fgbears-youtube-relay.service
+ln -s /dev/null /etc/systemd/system/fgbears-youtube-relay.service
 systemctl daemon-reload
-
-# Establish exact-box YouTube as the only normal owner. Do not touch the shared
-# master or Rumble lifecycle. If this is an upgrade on a running host, refresh
-# only the YouTube-side routing/compositor services.
 systemctl enable fgbears-youtube-lovable-routing.service
 systemctl enable fgbears-youtube-lovable-compositor.service
-systemctl disable fgbears-youtube-relay.service >/dev/null 2>&1 || true
-systemctl stop fgbears-youtube-relay.service >/dev/null 2>&1 || true
 
+# Do not touch the shared master or Rumble lifecycle. If this is an upgrade on a
+# running host, refresh only the YouTube routing/compositor chain.
 if systemctl is-active --quiet fgbears-live.service; then
   systemctl restart fgbears-youtube-lovable-routing.service
   systemctl reset-failed fgbears-youtube-lovable-compositor.service || true
@@ -203,4 +207,4 @@ fi
 systemctl enable --now fgbears-live-health.timer
 systemctl enable --now fgbears-youtube-audio-watchdog.timer
 
-echo "Installed FGBears Live: destination-independent master, unchanged Rumble copy/remux, exact-box YouTube primary, native-48k owner-aware fallback."
+echo "Installed FGBears Live: destination-independent master, unchanged Rumble copy/remux, exact-box YouTube owner, fail-closed recovery, native 48 kHz audio watchdog."
