@@ -1,109 +1,110 @@
 #!/usr/bin/env python3
-"""Lovable-authoritative overlay worker for the existing YouTube v2 slot.
+"""Local-state-only difference-layer renderer for the existing YouTube v2 slot.
 
-This worker changes only the 798x470 RGBA cover consumed by the already-running
-YouTube v2 encoder. It never owns or modifies the master or Rumble streams.
-The full locked QR creative is scaled as one asset. Missing, malformed, stale,
-ad-break, or unreachable routing state always fails transparent.
+No network I/O is permitted here. The independent Lovable state-cache service
+owns HTTP. This process reads only its atomic local cache, pre-renders the
+approved static creative once, and emits either that frame or transparent RGBA.
+Any missing, malformed, expired, ambiguous, ad-break, or unknown-creative state
+fails transparent. It never owns or modifies the master or Rumble streams.
 """
 from __future__ import annotations
 
 import argparse
+from datetime import datetime
 import importlib.util
 import json
 import os
 from pathlib import Path
 import sys
-import tempfile
 import time
-import urllib.parse
-import urllib.request
 
 from PIL import Image
 
 WIDTH = 798
 HEIGHT = 470
 FPS = 10.0
-POLL_SECONDS = 0.20
-ROUTING_URL = os.getenv(
-    "FGB_STREAM_ROUTING_URL",
-    "https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing",
-)
-STATE_FILE = Path(os.getenv("YOUTUBE_V2_STATE_FILE", "/run/fgbears-youtube-v2/overlay-state.json"))
+CACHE_FILE = Path(os.getenv(
+    "FGB_CONTROL_STATE_FILE", "/run/fgbears-control-plane/stream-state.json"
+))
 CARD_BUILDER = Path(os.getenv(
     "YOUTUBE_REDIRECT_CARD_BUILDER",
     "/opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py",
 ))
+EXPECTED_SCHEMA = "fgb-stream-state/v1"
+EXPECTED_CREATIVE = "yt_rumble_trivia_redirect"
 EXPECTED_REGION = {
     "x": 462, "y": 104, "width": WIDTH, "height": HEIGHT,
     "coordinateSpace": "pixels", "referenceWidth": 1280, "referenceHeight": 720,
 }
-EXPECTED_CREATIVE = "yt_rumble_trivia_redirect"
 
 
-def fetch() -> dict:
-    parsed = urllib.parse.urlsplit(ROUTING_URL)
-    query = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
-    query.append(("_ts", str(time.time_ns())))
-    url = urllib.parse.urlunsplit(
-        (parsed.scheme, parsed.netloc, parsed.path, urllib.parse.urlencode(query), parsed.fragment)
-    )
-    req = urllib.request.Request(url, headers={
-        "Accept": "application/json",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-        "User-Agent": "FGBears-YouTube-v2-Lovable/2.0",
-    })
-    with urllib.request.urlopen(req, timeout=1.5) as response:
-        payload = json.loads(response.read().decode("utf-8"))
+def parse_time(value: object) -> float:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError("missing timestamp")
+    dt = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        raise ValueError("timestamp must include timezone")
+    return dt.timestamp()
+
+
+def load_local() -> dict:
+    with CACHE_FILE.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
     if not isinstance(payload, dict):
-        raise ValueError("routing payload is not an object")
+        raise ValueError("local state is not an object")
     return payload
 
 
-def validate(payload: dict) -> dict:
-    trivia = payload.get("trivia")
-    if not isinstance(trivia, dict):
-        raise ValueError("missing trivia object")
-    region = trivia.get("maskRegion")
+def validate_local(payload: dict, *, now: float | None = None) -> dict:
+    now = time.time() if now is None else now
+    if payload.get("schemaVersion") != EXPECTED_SCHEMA:
+        raise ValueError("unsupported schemaVersion")
+    if parse_time(payload.get("validUntil")) <= now:
+        raise ValueError("local state expired")
+    p = payload.get("presentation")
+    if not isinstance(p, dict):
+        raise ValueError("missing presentation")
+    ad_break = p.get("adBreak")
+    trivia = p.get("trivia")
+    routing = p.get("routing")
+    overlay = p.get("overlay")
+    if not all(isinstance(x, dict) for x in (ad_break, trivia, routing, overlay)):
+        raise ValueError("incomplete presentation")
+    rumble = routing.get("rumble")
+    youtube = routing.get("youtube")
+    if not isinstance(rumble, dict) or not isinstance(youtube, dict):
+        raise ValueError("missing destination routing")
+    if rumble.get("rendersRealQuestion") is not True:
+        raise ValueError("Rumble invariant mismatch")
+    difference = youtube.get("differenceLayer")
+    if not isinstance(difference, dict) or type(difference.get("enabled")) is not bool:
+        raise ValueError("missing differenceLayer decision")
+    region = difference.get("region") or overlay.get("maskRegion")
     if not isinstance(region, dict):
-        raise ValueError("missing maskRegion")
+        raise ValueError("missing difference-layer region")
     for key, expected in EXPECTED_REGION.items():
         if region.get(key) != expected:
             raise ValueError(f"mask contract mismatch: {key}")
-
-    creative = trivia.get("youtubeCreativeKey")
-    presentation = trivia.get("presentation")
-    if creative != EXPECTED_CREATIVE or not isinstance(presentation, dict):
-        raise ValueError("unexpected creative or missing presentation")
-    youtube = presentation.get("youtube")
-    rumble = presentation.get("rumble")
-    if not isinstance(youtube, dict) or not isinstance(rumble, dict):
-        raise ValueError("missing platform presentation")
-    if youtube.get("creativeKey") != creative or youtube.get("sourceTemplateKey") != creative:
-        raise ValueError("YouTube creative mismatch")
-    if youtube.get("presentationMode") != "full_creative_scaled":
-        raise ValueError("invalid YouTube presentation mode")
-    if youtube.get("rendersRealQuestion") is not False or rumble.get("rendersRealQuestion") is not True:
-        raise ValueError("platform question visibility contract mismatch")
-    masked = youtube.get("maskedRegion")
-    if not isinstance(masked, dict):
-        raise ValueError("missing YouTube maskedRegion")
-    for key in ("x", "y", "width", "height"):
-        if masked.get(key) != EXPECTED_REGION[key]:
-            raise ValueError("YouTube maskedRegion mismatch")
-    return trivia
+    return p
 
 
-def should_cover(trivia: dict) -> bool:
-    return (
-        trivia.get("youtubeMaskActive") is True
-        and str(trivia.get("phase") or "").strip().lower() == "question"
-        and trivia.get("stale") is not True
-        and trivia.get("adsVisible") is not True
-        and trivia.get("isAdBreak") is not True
-        and trivia.get("adBreakActive") is not True
-    )
+def should_cover(presentation: dict) -> bool:
+    try:
+        ad_break = presentation["adBreak"]
+        trivia = presentation["trivia"]
+        difference = presentation["routing"]["youtube"]["differenceLayer"]
+        return (
+            difference.get("enabled") is True
+            and difference.get("creativeKey") == EXPECTED_CREATIVE
+            and ad_break.get("active") is False
+            and str(trivia.get("phase") or "").strip().lower() == "question"
+            and trivia.get("stale") is not True
+            and trivia.get("fresh") is not False
+            and trivia.get("gameVisible") is True
+            and trivia.get("youtubeRedirectRequired") is True
+        )
+    except (KeyError, TypeError):
+        return False
 
 
 def load_builder():
@@ -121,6 +122,7 @@ def load_builder():
 
 
 def build_active_frame() -> bytes:
+    # Static creative is rasterized exactly once per renderer process.
     source = load_builder().build().convert("RGBA")
     source.thumbnail((WIDTH, HEIGHT), Image.Resampling.LANCZOS)
     out = Image.new("RGBA", (WIDTH, HEIGHT), (11, 22, 42, 255))
@@ -128,43 +130,25 @@ def build_active_frame() -> bytes:
     return out.tobytes()
 
 
-def write_state(*, ok: bool, phase: str, active: bool, last_good: float, error: str | None = None) -> None:
+def read_decision() -> bool:
     try:
-        STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
-        body = {
-            "ok": ok,
-            "phase": phase,
-            "active": active,
-            "lastGoodEpoch": last_good,
-            "lastGoodAgeSeconds": max(0.0, time.time() - last_good) if last_good else None,
-            "maskRegion": EXPECTED_REGION,
-            "frameSize": [WIDTH, HEIGHT],
-            "creativeKey": EXPECTED_CREATIVE,
-            "presentationMode": "full_creative_scaled",
-            "routingAuthority": "lovable_public_stream_routing",
-            "fps": FPS,
-            "error": error,
-        }
-        fd, name = tempfile.mkstemp(prefix="overlay-state-", suffix=".json", dir=str(STATE_FILE.parent))
-        with os.fdopen(fd, "w", encoding="utf-8") as handle:
-            json.dump(body, handle, separators=(",", ":"))
-            handle.write("\n")
-        os.replace(name, STATE_FILE)
+        return should_cover(validate_local(load_local()))
     except Exception as exc:
-        print(f"state write warning: {exc}", file=sys.stderr)
+        print(f"local control-state warning: {exc}", file=sys.stderr)
+        return False
 
 
 def self_test() -> int:
     active = build_active_frame()
     assert len(active) == WIDTH * HEIGHT * 4
     assert min(active[3::4]) == 255 and max(active[3::4]) == 255
-    trivia = validate(fetch())
     print(json.dumps({
         "ok": True,
-        "activeNow": should_cover(trivia),
+        "activeNow": read_decision(),
         "maskRegion": EXPECTED_REGION,
         "frameSize": [WIDTH, HEIGHT],
         "creativeKey": EXPECTED_CREATIVE,
+        "networkInRenderer": False,
     }, separators=(",", ":")))
     return 0
 
@@ -173,26 +157,25 @@ def stream() -> int:
     active_frame = build_active_frame()
     transparent = bytes(WIDTH * HEIGHT * 4)
     active = False
-    phase = "unknown"
-    last_good = 0.0
-    last_poll = 0.0
+    last_mtime_ns: int | None = None
     deadline = time.monotonic()
     interval = 1.0 / FPS
 
     while True:
-        now = time.monotonic()
-        if now - last_poll >= POLL_SECONDS:
-            try:
-                trivia = validate(fetch())
-                phase = str(trivia.get("phase") or "")
-                active = should_cover(trivia)
-                last_good = time.time()
-                write_state(ok=True, phase=phase, active=active, last_good=last_good)
-            except Exception as exc:
-                active = False
-                write_state(ok=False, phase=phase, active=False, last_good=last_good, error=str(exc))
-                print(f"routing poll warning: {exc}", file=sys.stderr)
-            last_poll = now
+        # Local filesystem only. Re-parse state only when the atomic cache file
+        # changes; expiration is still checked every frame below.
+        try:
+            stat = CACHE_FILE.stat()
+            if stat.st_mtime_ns != last_mtime_ns:
+                active = read_decision()
+                last_mtime_ns = stat.st_mtime_ns
+            elif active:
+                # A formerly active LKG must turn transparent when validUntil
+                # expires even if the cache daemon has stopped updating it.
+                active = read_decision()
+        except OSError:
+            active = False
+            last_mtime_ns = None
 
         try:
             sys.stdout.buffer.write(active_frame if active else transparent)
