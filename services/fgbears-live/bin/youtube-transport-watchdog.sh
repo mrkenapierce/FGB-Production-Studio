@@ -23,11 +23,18 @@ latest_seg(){
   find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %s %p\n' 2>/dev/null | sort -nr | head -n1
 }
 monitor_advancing(){
-  local a b
+  local a b c
   a=$(latest_seg || true)
   sleep 5
   b=$(latest_seg || true)
-  [[ -n "$a" && -n "$b" && "$a" != "$b" ]]
+  # A freshly restarted compositor may not have written its first segment at
+  # the first sample. A new non-empty second sample is valid advancement.
+  if [[ -n "$b" && "$a" != "$b" ]]; then
+    return 0
+  fi
+  sleep 3
+  c=$(latest_seg || true)
+  [[ -n "$c" && "$b" != "$c" ]]
 }
 
 # Never use this watchdog to disturb the shared production source or Rumble.
