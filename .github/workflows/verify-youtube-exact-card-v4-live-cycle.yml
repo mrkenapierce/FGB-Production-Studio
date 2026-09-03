@@ -1,7 +1,9 @@
-name: Verify YouTube Exact Card V4 Live Cycle
+name: Certify Current YouTube Exact-Box Trivia Cycle
 
 on:
   push:
+    branches:
+      - lovable-routing-bridge-20260902
     paths:
       - '.github/workflows/verify-youtube-exact-card-v4-live-cycle.yml'
   workflow_dispatch:
@@ -9,10 +11,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: fgbears-youtube-live-cycle-certification
+  cancel-in-progress: true
+
 jobs:
-  verify:
+  certify:
     runs-on: ubuntu-latest
-    timeout-minutes: 22
+    timeout-minutes: 18
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
@@ -27,72 +33,188 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Observe one post-v4 question cycle read-only
+      - name: Observe one complete live trivia question cycle read-only
         shell: bash
         run: |
           set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          status_file=/var/lib/fgbears-live/youtube-freeze-card.status
-          status=$(sudo cat "$status_file")
-          echo "freeze_card_status=$status"
-          grep -F 'result=updated ' <<<"$status" >/dev/null
-          grep -F 'panel=462,104,798,470' <<<"$status" >/dev/null
-          grep -F 'card=462,114,798,449' <<<"$status" >/dev/null
-          grep -F 'source=locked-yt_rumble_trivia_redirect' <<<"$status" >/dev/null
-          grep -F 'mode=exact-card-v4' <<<"$status" >/dev/null
-          published=$(sed -n 's/.* at=\([^ ]*\) .*/\1/p' <<<"$status")
-          test -n "$published"
-          echo "V4_PUBLISHED_AT=$published"
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          ROUTING=fgbears-youtube-lovable-routing.service
+          COMP=fgbears-youtube-lovable-compositor.service
+          LEGACY=fgbears-youtube-relay.service
+          MASK=/opt/fgbears-live/bin/youtube-question-mask.py
+          MONDIR=/run/fgbears-youtube-lovable-compositor
+          STATUS=/srv/fgbears-live/health/youtube-audio/status.env
 
-          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
-          rumble_before=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
-          router_before=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
-          [[ "$master_before" =~ ^[1-9][0-9]*$ && "$rumble_before" =~ ^[1-9][0-9]*$ && "$router_before" =~ ^[1-9][0-9]*$ ]]
-          systemctl is-active --quiet fgbears-live.service
-          systemctl is-active --quiet fgbears-rumble-relay.service
-          systemctl is-active --quiet fgbears-youtube-router.service
-          systemctl is-active --quiet fgbears-youtube-freeze-card-refresh.timer
-          systemctl is-enabled --quiet fgbears-youtube-freeze-card-refresh.timer
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          restarts(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
+          active(){ systemctl is-active --quiet "$1"; }
+          connected(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+          fail(){ echo "LIVE_CYCLE_FAIL=$1" >&2; exit 1; }
+          health(){ curl -fsS --max-time 3 http://127.0.0.1:8791/healthz; }
+          phase(){ health | python3 -c 'import json,sys; print(json.load(sys.stdin).get("phase") or "none")'; }
+          cover(){ health | python3 -c 'import json,sys; print(str(json.load(sys.stdin).get("active")).lower())'; }
+          check_alpha(){
+            python3 - "$1" <<'PY'
+import sys, urllib.request
+expected = int(sys.argv[1])
+w, h = 399, 235
+n = w * h * 4
+with urllib.request.urlopen('http://127.0.0.1:8791/overlay.rgba', timeout=4) as r:
+    data = r.read(n)
+assert len(data) == n, (len(data), n)
+a = data[3::4]
+assert min(a) == expected and max(a) == expected, (min(a), max(a), expected)
+print(f'OVERLAY_ALPHA=PASS expected={expected} pixels={len(a)}')
+PY
+          }
+          stable_shared(){
+            [[ "$(pid "$MASTER")" == "$M0" ]] || fail MASTER_PID_CHANGED
+            [[ "$(pid "$RUMBLE")" == "$R0" ]] || fail RUMBLE_PID_CHANGED
+            [[ "$(restarts "$MASTER")" == "$MN0" ]] || fail MASTER_RESTARTED
+            [[ "$(restarts "$RUMBLE")" == "$RN0" ]] || fail RUMBLE_RESTARTED
+            active "$MASTER" || fail MASTER_INACTIVE
+            active "$RUMBLE" || fail RUMBLE_INACTIVE
+            active "$ROUTING" || fail ROUTING_INACTIVE
+            active "$COMP" || fail COMPOSITOR_INACTIVE
+            ! active "$LEGACY" || fail LEGACY_RELAY_ACTIVE
+            [[ "$(pid "$ROUTING")" == "$Q0" ]] || fail ROUTING_RESTARTED
+            [[ "$(pid "$COMP")" == "$C0" ]] || fail COMPOSITOR_RESTARTED
+            connected "$R0" 1935 || fail RUMBLE_SOCKET_LOST
+            connected "$C0" 443 || fail YOUTUBE_SOCKET_LOST
+          }
 
-          # Wait for a complete route cycle after this exact v4 card publication.
-          verified=0
-          deadline=$(( $(date +%s) + 1250 ))
-          while (( $(date +%s) < deadline )); do
-            logs=$(sudo journalctl -u fgbears-youtube-router.service --since "$published" --no-pager 2>/dev/null || true)
-            hot=0; to_card=0; to_live=0
-            grep -F 'hot-reloaded freeze-box card' <<<"$logs" >/dev/null && hot=1 || true
-            grep -F 'video route switched: live -> card' <<<"$logs" >/dev/null && to_card=1 || true
-            grep -F 'video route switched: card -> live' <<<"$logs" >/dev/null && to_live=1 || true
-            if (( hot == 1 && to_card == 1 && to_live == 1 )); then
-              verified=1
-              echo 'LIVE_V4_QUESTION_CYCLE=live_to_exact_card_to_live'
+          # Wait until the just-authorized renderer has actually reached Oracle.
+          deployed=0
+          for _ in $(seq 1 90); do
+            if grep -Fq 'self.active = phase == "question"' "$MASK" 2>/dev/null && active "$ROUTING" && active "$COMP"; then
+              cp=$(pid "$COMP")
+              if connected "$cp" 443; then deployed=1; break; fi
+            fi
+            sleep 2
+          done
+          (( deployed == 1 )) || fail PHASE_AUTHORITATIVE_RENDERER_NOT_DEPLOYED
+          sleep 10
+
+          active "$MASTER" || fail MASTER_INACTIVE_PRE
+          active "$RUMBLE" || fail RUMBLE_INACTIVE_PRE
+          active "$ROUTING" || fail ROUTING_INACTIVE_PRE
+          active "$COMP" || fail COMPOSITOR_INACTIVE_PRE
+          ! active "$LEGACY" || fail LEGACY_RELAY_ACTIVE_PRE
+
+          M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE"); Q0=$(pid "$ROUTING"); C0=$(pid "$COMP")
+          MN0=$(restarts "$MASTER"); RN0=$(restarts "$RUMBLE")
+          [[ "$M0" =~ ^[1-9][0-9]*$ && "$R0" =~ ^[1-9][0-9]*$ && "$Q0" =~ ^[1-9][0-9]*$ && "$C0" =~ ^[1-9][0-9]*$ ]] || fail INVALID_BASELINE_PID
+          stable_shared
+
+          h=$(health) || fail MASK_HEALTH_UNAVAILABLE
+          printf '%s' "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert p.get("sourceCanvas")==[1280,720];assert p.get("canvas")==[640,360];assert p.get("sourceMaskRegion")=={"x":462,"y":104,"width":798,"height":470};assert p.get("maskRegion")=={"x":231,"y":52,"width":399,"height":235};assert p.get("frameSize")==[399,235];assert p.get("fps")==30;assert p.get("failClosedDuringQuestion") is True'
+
+          news=$(curl -fsS --max-time 3 http://127.0.0.1:8789/healthz) || fail RSS_HEALTH_UNAVAILABLE
+          crawl=$(curl -fsS --max-time 3 http://127.0.0.1:8788/healthz) || fail CRAWL_HEALTH_UNAVAILABLE
+          printf '%s' "$news" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert int(p.get("scrollPps",0))==76;assert p.get("payloadSwap")=="next-cycle-boundary"'
+          printf '%s' "$crawl" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("ok") is True;assert int(p.get("fps",0))==30;assert p.get("payloadSwap")=="next-segment-boundary"'
+          echo 'TICKERS=PASS rss=30fps/76pps crawl=30fps boundary-swaps'
+
+          # Establish a non-question baseline. If certification starts during a
+          # question, wait for it to end and certify the next full question.
+          baseline_deadline=$(( $(date +%s) + 360 ))
+          while (( $(date +%s) < baseline_deadline )); do
+            stable_shared
+            p=$(phase)
+            if [[ "$p" != question ]]; then
+              a=$(cover)
+              [[ "$a" == false ]] || fail COVER_ACTIVE_OUTSIDE_QUESTION
+              check_alpha 0
+              echo "PRE_QUESTION=PASS phase=$p transparent=yes"
               break
             fi
-            sleep 3
+            sleep 1
           done
-          test "$verified" = 1
+          [[ "${p:-question}" != question ]] || fail NO_NONQUESTION_BASELINE
 
-          # Status must still identify the exact locked-card implementation.
-          current=$(sudo cat "$status_file")
-          grep -F 'mode=exact-card-v4' <<<"$current" >/dev/null
-          grep -F 'source=locked-yt_rumble_trivia_redirect' <<<"$current" >/dev/null
+          # Wait for the next real question.
+          question_deadline=$(( $(date +%s) + 900 ))
+          started=0
+          while (( $(date +%s) < question_deadline )); do
+            stable_shared
+            h=$(health) || fail MASK_HEALTH_LOST_BEFORE_QUESTION
+            p=$(printf '%s' "$h" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("phase") or "none")')
+            a=$(printf '%s' "$h" | python3 -c 'import json,sys; print(str(json.load(sys.stdin).get("active")).lower())')
+            if [[ "$p" == question ]]; then
+              [[ "$a" == true ]] || fail QUESTION_STARTED_UNCONCEALED
+              started=1
+              q_start=$(date +%s)
+              q_start_iso=$(date -Iseconds)
+              echo "QUESTION_START=PASS epoch=$q_start active=$a"
+              break
+            fi
+            sleep 1
+          done
+          (( started == 1 )) || fail QUESTION_NOT_OBSERVED
 
-          master_after=$(systemctl show -p MainPID --value fgbears-live.service)
-          rumble_after=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
-          router_after=$(systemctl show -p MainPID --value fgbears-youtube-router.service)
-          test "$master_after" = "$master_before"
-          test "$rumble_after" = "$rumble_before"
-          test "$router_after" = "$router_before"
+          # Every second of phase=question must report active=true. Every third
+          # sample also reads a real RGBA frame and requires complete opacity.
+          samples=0
+          alpha_samples=0
+          while true; do
+            stable_shared
+            h=$(health) || fail MASK_HEALTH_LOST_DURING_QUESTION
+            p=$(printf '%s' "$h" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("phase") or "none")')
+            a=$(printf '%s' "$h" | python3 -c 'import json,sys; print(str(json.load(sys.stdin).get("active")).lower())')
+            age=$(printf '%s' "$h" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("lastGoodAgeSeconds") or 0)')
+            if [[ "$p" != question ]]; then
+              break
+            fi
+            [[ "$a" == true ]] || fail QUESTION_COVER_DROPPED
+            python3 -c 'import sys; assert float(sys.argv[1]) < 8' "$age" || fail ROUTING_STATE_STALE_DURING_QUESTION
+            samples=$((samples+1))
+            if (( samples % 3 == 1 )); then
+              check_alpha 255
+              alpha_samples=$((alpha_samples+1))
+            fi
+            sleep 1
+          done
+          (( samples >= 3 )) || fail QUESTION_TOO_SHORT_TO_CERTIFY
+          q_end=$(date +%s)
+          duration=$((q_end-q_start))
+          echo "QUESTION_DURATION_CONCEALMENT=PASS samples=$samples opaque_frames=$alpha_samples duration=${duration}s exit_phase=$p"
 
-          child=$(pgrep -P "$router_after" ffmpeg | head -n1 || true)
-          [[ "$child" =~ ^[1-9][0-9]*$ ]]
-          sudo ss -ntpH state established 2>/dev/null | grep -F "pid=$child" | grep -E ':443([[:space:]]|$)' >/dev/null
+          sleep 2
+          stable_shared
+          h=$(health) || fail MASK_HEALTH_LOST_AFTER_QUESTION
+          p2=$(printf '%s' "$h" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("phase") or "none")')
+          a2=$(printf '%s' "$h" | python3 -c 'import json,sys; print(str(json.load(sys.stdin).get("active")).lower())')
+          [[ "$p2" != question && "$a2" == false ]] || fail COVER_DID_NOT_CLEAR_AFTER_QUESTION
+          check_alpha 0
+          echo "POST_QUESTION=PASS phase=$p2 transparent=yes"
 
-          echo "MASTER_PID_UNCHANGED=$master_after"
-          echo "RUMBLE_PID_UNCHANGED=$rumble_after"
-          echo "YOUTUBE_ROUTER_PID_UNCHANGED=$router_after"
-          echo 'YOUTUBE_RTMPS_ESTABLISHED=yes'
-          echo 'FREEZE_REFRESH_TIMER=enabled_active'
-          echo 'EXACT_CARD_V4_LIVE_VERIFICATION=PASS'
+          # Verify actual encoded YouTube monitor output after the cycle.
+          SEG=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
+          [[ -n "$SEG" && -s "$SEG" ]] || fail MONITOR_SEGMENT_MISSING
+          ffprobe -v fatal -show_entries stream=codec_type,codec_name,sample_rate,channels,width,height,r_frame_rate -of json "$SEG" \
+            | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p.get("streams",[]);a=next(x for x in s if x.get("codec_type")=="audio");v=next(x for x in s if x.get("codec_type")=="video");assert a.get("codec_name")=="aac";assert str(a.get("sample_rate"))=="48000";assert int(a.get("channels") or 0)==2;assert (int(v.get("width",0)),int(v.get("height",0)))==(640,360);assert v.get("r_frame_rate") in {"30/1","60/2"}'
+          echo 'YOUTUBE_AV=PASS 640x360/30 AAC48k-stereo'
+
+          faults=$(journalctl -u "$COMP" --since "$q_start_iso" --no-pager 2>/dev/null | grep -Eic 'circular buffer overrun|non-monotonous dts|timestamp discontinuity|broken pipe|connection reset by peer' || true)
+          [[ "$faults" == 0 ]] || fail "YOUTUBE_TRANSPORT_FAULTS_$faults"
+          echo 'YOUTUBE_TRANSPORT=PASS faults=0'
+
+          if [[ -s "$STATUS" ]]; then
+            owner=$(sed -n 's/^owner=\([^[:space:]]*\)$/\1/p' "$STATUS" | tail -n1)
+            rate=$(sed -n 's/^youtube_audio_rate=\([0-9][0-9]*\)$/\1/p' "$STATUS" | tail -n1)
+            sfaults=$(sed -n 's/^recent_transport_faults=\([0-9][0-9]*\)$/\1/p' "$STATUS" | tail -n1)
+            [[ "$owner" == exact_box_compositor ]] || fail WATCHDOG_OWNER_INVALID
+            [[ "$rate" == 48000 ]] || fail WATCHDOG_AUDIO_RATE_INVALID
+            [[ "$sfaults" == 0 ]] || fail WATCHDOG_REPORTS_TRANSPORT_FAULTS
+            echo "WATCHDOG=PASS owner=$owner rate=$rate faults=$sfaults"
+          fi
+
+          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v); if(v!="") print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
+          if [[ -n "$speed" ]]; then python3 -c 'import sys; assert float(sys.argv[1]) >= 0.985' "$speed" || fail MASTER_BELOW_REALTIME; fi
+          stable_shared
+
+          echo "FULL_TRIVIA_CYCLE_CERTIFICATION=PASS master=$M0 rumble=$R0 routing=$Q0 compositor=$C0 samples=$samples opaque_frames=$alpha_samples duration=${duration}s master_speed=${speed:-unknown}x"
           REMOTE
