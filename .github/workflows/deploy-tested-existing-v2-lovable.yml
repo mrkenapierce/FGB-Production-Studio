@@ -49,6 +49,7 @@ jobs:
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
+          chmod 755 /tmp/youtube-v2-overlay.py /tmp/build-youtube-rumble-trivia-card.py
           python3 -m py_compile /tmp/youtube-v2-overlay.py /tmp/build-youtube-rumble-trivia-card.py
           PYTHONPATH=/opt/fgbears-live/exact-card-pylib             YOUTUBE_REDIRECT_CARD_BUILDER=/tmp/build-youtube-rumble-trivia-card.py             YOUTUBE_V2_STATE_FILE=/tmp/youtube-v2-lovable-preflight.json             /tmp/youtube-v2-overlay.py --self-test > /tmp/youtube-v2-lovable-self-test.json
           python3 - <<'PY'
