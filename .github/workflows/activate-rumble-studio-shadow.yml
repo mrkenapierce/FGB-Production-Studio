@@ -1,0 +1,149 @@
+name: Activate Rumble Studio Shadow Uplink
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/activate-rumble-studio-shadow.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-rumble-studio-shadow-activation
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate copy-only relay
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/rumble-studio-relay.sh
+          grep -Fq 'RUMBLE_STUDIO_MODE:=shadow' services/fgbears-live/bin/rumble-studio-relay.sh
+          grep -Fq -- '-c copy' services/fgbears-live/bin/rumble-studio-relay.sh
+          ! grep -Eq 'libx264|libx265|h264_nvenc|hevc_nvenc' services/fgbears-live/bin/rumble-studio-relay.sh
+          echo 'SHADOW_CODE_GATE=PASS'
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stage relay and Studio credential
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          STUDIO_KEY: ${{ secrets.RUMBLE_STUDIO_STREAM_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$STUDIO_KEY"
+          install -m 600 /dev/null /tmp/rumble-studio-shadow.credentials
+          printf '%s\n%s\n' 'rtmp://studio-rtmp.rumble.com/live' "$STUDIO_KEY" > /tmp/rumble-studio-shadow.credentials
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/rumble-studio-relay.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/rumble-studio-relay.sh"
+          scp -i ~/.ssh/oracle_key /tmp/rumble-studio-shadow.credentials "$ORACLE_USER@$ORACLE_HOST:/tmp/rumble-studio-shadow.credentials"
+          rm -f /tmp/rumble-studio-shadow.credentials
+
+      - name: Activate shadow uplink with rollback
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          env_file=/etc/fgbears-live/stream.env
+          relay=/usr/local/bin/fgbears-rumble-relay
+          staged=/tmp/rumble-studio-relay.sh
+          credentials=/tmp/rumble-studio-shadow.credentials
+          backup_relay=/usr/local/bin/fgbears-rumble-relay.pre-shadow
+          backup_env=/etc/fgbears-live/stream.env.pre-shadow
+
+          pid(){ systemctl show -p MainPID --value "$1"; }
+          master_before=$(pid fgbears-live.service)
+          youtube_before=$(pid fgbears-youtube-v3.service)
+          rumble_before=$(pid fgbears-rumble-relay.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]]
+
+          rollback(){
+            echo 'SHADOW_ACTIVATION=ROLLBACK' >&2
+            sudo cp -a "$backup_env" "$env_file" 2>/dev/null || true
+            sudo cp -a "$backup_relay" "$relay" 2>/dev/null || true
+            sudo systemctl restart fgbears-rumble-relay.service || true
+            sudo rm -f "$staged" "$credentials"
+          }
+          trap rollback ERR
+          trap 'sudo rm -f "$staged" "$credentials"' EXIT
+
+          sudo test -r "$env_file"
+          sudo test -s "$credentials"
+          bash -n "$staged"
+          sudo cp -a "$relay" "$backup_relay"
+          sudo cp -a "$env_file" "$backup_env"
+          sudo install -m 0755 "$staged" "$relay"
+
+          sudo python3 - "$env_file" "$credentials" <<'PY'
+          from pathlib import Path
+          import os, sys
+          env_path=Path(sys.argv[1]); cred=Path(sys.argv[2]).read_text().splitlines()
+          base=(cred[0].strip() if cred else '')
+          key=(cred[1].strip() if len(cred)>1 else '')
+          if base != 'rtmp://studio-rtmp.rumble.com/live' or not key or '\n' in key or '\r' in key:
+              raise SystemExit('invalid Studio credential')
+          updates={
+              'RUMBLE_STUDIO_ENABLE':'1',
+              'RUMBLE_STUDIO_MODE':'shadow',
+              'RUMBLE_STUDIO_RTMP_BASE':base,
+              'RUMBLE_STUDIO_STREAM_KEY':key,
+          }
+          out=[]; seen=set()
+          for line in env_path.read_text().splitlines():
+              if '=' in line and not line.lstrip().startswith('#'):
+                  name=line.split('=',1)[0]
+                  if name in updates:
+                      if name not in seen: out.append(f'{name}={updates[name]}'); seen.add(name)
+                      continue
+              out.append(line)
+          for name,value in updates.items():
+              if name not in seen: out.append(f'{name}={value}')
+          tmp=env_path.with_name(env_path.name+'.shadow.tmp')
+          tmp.write_text('\n'.join(out)+'\n'); os.chmod(tmp,0o640); tmp.replace(env_path)
+          PY
+          sudo chown root:fgbears "$env_file"; sudo chmod 0640 "$env_file"
+          sudo rm -f "$credentials"
+          sudo systemctl restart fgbears-rumble-relay.service
+          sleep 8
+          systemctl is-active --quiet fgbears-rumble-relay.service
+
+          master_after=$(pid fgbears-live.service)
+          youtube_after=$(pid fgbears-youtube-v3.service)
+          rumble_after=$(pid fgbears-rumble-relay.service)
+          test "$master_after" = "$master_before"
+          test "$youtube_after" = "$youtube_before"
+          [[ "$rumble_after" =~ ^[1-9][0-9]*$ ]]
+          test "$rumble_after" != "$rumble_before"
+          test "$(sudo awk -F= '$1==\"RUMBLE_STUDIO_ENABLE\"{print $2}' "$env_file"|tail -n1)" = 1
+          test "$(sudo awk -F= '$1==\"RUMBLE_STUDIO_MODE\"{print $2}' "$env_file"|tail -n1)" = shadow
+
+          sockets=$(sudo ss -ntpH state established | awk -v q="pid=$rumble_after" 'index($0,q)&&index($0,":1935"){n++} END{print n+0}')
+          test "$sockets" -ge 2
+          cpu=$(ps -p "$rumble_after" -o pcpu= | xargs)
+          restarts=$(systemctl show -p NRestarts --value fgbears-rumble-relay.service)
+          trap - ERR
+          echo "RUMBLE_STUDIO_SHADOW=PASS master_pid_unchanged=$master_after youtube_v3_pid_unchanged=$youtube_after relay_pid=$rumble_after rtmp_sockets=$sockets relay_cpu_pct=$cpu restarts=$restarts"
+          REMOTE
