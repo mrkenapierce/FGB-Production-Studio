@@ -66,4 +66,4 @@ jobs:
             "$ORACLE_USER@$ORACLE_HOST:/tmp/"
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "sudo env RELEASE_SHA='$RELEASE_SHA' bash /tmp/deploy-v3-6.sh"
 
-      # Retry 2: host-preflight and pipefail false-positive fixes applied.
+      # Retry 3: v3 source is pre-bound before the master opens UDP port 1950.
