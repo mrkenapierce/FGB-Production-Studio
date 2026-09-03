@@ -1,23 +1,25 @@
 #!/usr/bin/env python3
-"""YouTube-only partial trivia mask renderer.
+"""Lovable-driven YouTube-only trivia presentation renderer.
 
-This service never owns the source stream. It polls the authoritative public
-stream-routing control plane and emits a transparent RGBA stream unless
-`trivia.youtubeMaskActive` is explicitly true during a fresh `question` phase.
+Lovable's public stream-routing endpoint is the control plane. This worker does
+not own platform routing decisions or geometry: it consumes `trivia.maskRegion`,
+`trivia.youtubeCreativeKey`, and `trivia.presentation` and emits exactly that
+question-panel-sized RGBA layer.
 
-Critically, this renderer emits ONLY the question/answer rectangle, not a
-1280x720 canvas. The off-host compositor anchors this 640x360 RGBA stream at
-x=480, y=200 on the 1280x720 program. That physical size constraint prevents a
-renderer failure from covering the full YouTube frame. The title, prize/countdown,
-play QR, upper-third news, crawl, and ad regions remain outside this input.
-
-Any routing error, stale state, malformed response, or missing explicit mask
-signal fails transparent.
+The approved creative is not recreated here. For creative key
+`yt_rumble_trivia_redirect`, this worker invokes the repository's locked
+1280x720 card builder, then scales that complete card as one asset into the
+Lovable-published mask region. Any routing/contract error fails transparent.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
 import threading
 import time
 import urllib.parse
@@ -25,61 +27,172 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 
 CANVAS_WIDTH = 1280
 CANVAS_HEIGHT = 720
-MASK_X = int(os.getenv("YOUTUBE_QUESTION_MASK_X", "480"))
-MASK_Y = int(os.getenv("YOUTUBE_QUESTION_MASK_Y", "200"))
-MASK_WIDTH = int(os.getenv("YOUTUBE_QUESTION_MASK_WIDTH", "640"))
-MASK_HEIGHT = int(os.getenv("YOUTUBE_QUESTION_MASK_HEIGHT", "360"))
+NEWS_BOTTOM = 104          # news occupies y=0..103
+CRAWL_TOP = 574            # crawl begins at y=574
+EXPECTED_CREATIVE = "yt_rumble_trivia_redirect"
 PORT = int(os.getenv("YOUTUBE_QUESTION_MASK_PORT", "8791"))
 FPS = max(1, min(30, int(os.getenv("YOUTUBE_QUESTION_MASK_FPS", "30"))))
 POLL_SECONDS = max(1, int(os.getenv("YOUTUBE_QUESTION_MASK_POLL_SECONDS", "1")))
 STALE_SECONDS = max(3, int(os.getenv("YOUTUBE_QUESTION_MASK_STALE_SECONDS", "8")))
+INITIAL_CONTRACT_RETRIES = max(1, int(os.getenv("YOUTUBE_QUESTION_MASK_CONTRACT_RETRIES", "30")))
 ROUTING_URL = os.getenv(
     "FGB_STREAM_ROUTING_URL",
     "https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing",
 )
-
-if MASK_WIDTH <= 0 or MASK_HEIGHT <= 0:
-    raise ValueError("question mask dimensions must be positive")
-if MASK_X < 0 or MASK_Y < 0 or MASK_X + MASK_WIDTH > CANVAS_WIDTH or MASK_Y + MASK_HEIGHT > CANVAS_HEIGHT:
-    raise ValueError("question mask must stay inside the 1280x720 program canvas")
-
-BEARS_BLUE = "#0B162A"
-DEEP_BLUE = "#07101F"
-BEARS_ORANGE = "#C83803"
-WHITE = "#FFFFFF"
-MUTED = "#D5D9E2"
-GOLD = "#F2B134"
-FONT_REGULAR = os.getenv("YOUTUBE_QUESTION_MASK_FONT_REGULAR", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
-FONT_BOLD = os.getenv("YOUTUBE_QUESTION_MASK_FONT_BOLD", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf")
+CARD_BUILDER = Path(
+    os.getenv(
+        "YOUTUBE_REDIRECT_CARD_BUILDER",
+        "/opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py",
+    )
+)
 
 
-def font(size: int, bold: bool = False) -> ImageFont.ImageFont:
-    try:
-        return ImageFont.truetype(FONT_BOLD if bold else FONT_REGULAR, size=size)
-    except OSError:
-        return ImageFont.load_default()
+@dataclass(frozen=True)
+class Contract:
+    x: int
+    y: int
+    width: int
+    height: int
+    creative_key: str
+
+    def region(self) -> dict[str, int]:
+        return {"x": self.x, "y": self.y, "width": self.width, "height": self.height}
 
 
 def load_routing() -> dict[str, Any]:
     parsed = urllib.parse.urlsplit(ROUTING_URL)
     query = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
     query.append(("_ts", str(time.time_ns())))
-    url = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urllib.parse.urlencode(query), parsed.fragment))
-    req = urllib.request.Request(url, headers={
-        "Accept": "application/json",
-        "Cache-Control": "no-cache",
-        "Pragma": "no-cache",
-        "User-Agent": "FGBears-YouTube-Question-Mask/2.0",
-    })
+    url = urllib.parse.urlunsplit(
+        (parsed.scheme, parsed.netloc, parsed.path, urllib.parse.urlencode(query), parsed.fragment)
+    )
+    req = urllib.request.Request(
+        url,
+        headers={
+            "Accept": "application/json",
+            "Cache-Control": "no-cache",
+            "Pragma": "no-cache",
+            "User-Agent": "FGBears-Lovable-Routing-Bridge/3.0",
+        },
+    )
     with urllib.request.urlopen(req, timeout=6) as response:
         payload = json.loads(response.read().decode("utf-8"))
     if not isinstance(payload, dict):
         raise ValueError("routing response is not an object")
     return payload
+
+
+def parse_contract(payload: dict[str, Any]) -> Contract:
+    trivia = payload.get("trivia")
+    if not isinstance(trivia, dict):
+        raise ValueError("missing trivia routing object")
+
+    region = trivia.get("maskRegion")
+    if not isinstance(region, dict):
+        raise ValueError("missing trivia.maskRegion")
+    if region.get("coordinateSpace") != "pixels":
+        raise ValueError("maskRegion coordinateSpace must be pixels")
+    if region.get("referenceWidth") != CANVAS_WIDTH or region.get("referenceHeight") != CANVAS_HEIGHT:
+        raise ValueError("maskRegion reference canvas must be 1280x720")
+
+    try:
+        x = int(region["x"])
+        y = int(region["y"])
+        width = int(region["width"])
+        height = int(region["height"])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError("maskRegion has invalid numeric geometry") from exc
+
+    if width <= 0 or height <= 0 or x < 0 or y < 0:
+        raise ValueError("maskRegion must be positive and inside the canvas")
+    if x + width > CANVAS_WIDTH or y + height > CANVAS_HEIGHT:
+        raise ValueError("maskRegion exceeds the 1280x720 canvas")
+    if y < NEWS_BOTTOM or y + height > CRAWL_TOP:
+        raise ValueError("maskRegion would overlap the always-live news or crawl bands")
+
+    creative = trivia.get("youtubeCreativeKey")
+    presentation = trivia.get("presentation")
+    if not isinstance(presentation, dict):
+        raise ValueError("missing trivia.presentation")
+    youtube = presentation.get("youtube")
+    rumble = presentation.get("rumble")
+    if not isinstance(youtube, dict) or not isinstance(rumble, dict):
+        raise ValueError("missing platform presentation contract")
+
+    if creative != EXPECTED_CREATIVE:
+        raise ValueError(f"unsupported YouTube creative key: {creative!r}")
+    if youtube.get("creativeKey") != creative or youtube.get("sourceTemplateKey") != creative:
+        raise ValueError("YouTube presentation creative does not match youtubeCreativeKey")
+    if youtube.get("presentationMode") != "full_creative_scaled":
+        raise ValueError("YouTube presentationMode must be full_creative_scaled")
+    if youtube.get("rendersRealQuestion") is not False:
+        raise ValueError("YouTube presentation must not render the real question")
+    if rumble.get("rendersRealQuestion") is not True:
+        raise ValueError("Rumble presentation must retain the real question")
+
+    masked = youtube.get("maskedRegion")
+    if not isinstance(masked, dict) or any(masked.get(k) != v for k, v in {
+        "x": x, "y": y, "width": width, "height": height
+    }.items()):
+        raise ValueError("YouTube presentation maskedRegion differs from trivia.maskRegion")
+
+    return Contract(x=x, y=y, width=width, height=height, creative_key=str(creative))
+
+
+def load_initial_contract() -> tuple[Contract, dict[str, Any]]:
+    last_error: Exception | None = None
+    for attempt in range(1, INITIAL_CONTRACT_RETRIES + 1):
+        try:
+            payload = load_routing()
+            return parse_contract(payload), payload
+        except Exception as exc:  # service startup retries are intentional
+            last_error = exc
+            print(f"Lovable routing contract unavailable ({attempt}/{INITIAL_CONTRACT_RETRIES}): {exc}", file=sys.stderr)
+            if attempt < INITIAL_CONTRACT_RETRIES:
+                time.sleep(1)
+    raise RuntimeError(f"unable to obtain valid Lovable routing contract: {last_error}")
+
+
+def build_locked_creative(contract: Contract) -> bytes:
+    if contract.creative_key != EXPECTED_CREATIVE:
+        raise ValueError("unsupported creative")
+    if not CARD_BUILDER.is_file():
+        raise FileNotFoundError(f"locked creative builder not found: {CARD_BUILDER}")
+
+    with tempfile.TemporaryDirectory(prefix="fgb-youtube-card-") as tmp:
+        source_path = Path(tmp) / "locked-card.png"
+        subprocess.run(
+            [sys.executable, str(CARD_BUILDER), str(source_path)],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        with Image.open(source_path) as raw:
+            if raw.size != (CANVAS_WIDTH, CANVAS_HEIGHT):
+                raise ValueError(f"locked creative must be 1280x720, got {raw.size}")
+            source = raw.convert("RGBA")
+
+    # Scale the approved 1280x720 creative exactly once as a complete asset.
+    scaled = source.copy()
+    scaled.thumbnail((contract.width, contract.height), Image.Resampling.LANCZOS)
+
+    # The entire question panel must be opaque so no question pixels can leak
+    # through the aspect-ratio letterbox. Use the locked card's navy background.
+    result = Image.new("RGBA", (contract.width, contract.height), (11, 22, 42, 255))
+    px = (contract.width - scaled.width) // 2
+    py = (contract.height - scaled.height) // 2
+    result.paste(scaled, (px, py), scaled)
+    return result.tobytes()
+
+
+CONTRACT, INITIAL_PAYLOAD = load_initial_contract()
+TRANSPARENT = Image.new("RGBA", (CONTRACT.width, CONTRACT.height), (0, 0, 0, 0)).tobytes()
+ACTIVE = build_locked_creative(CONTRACT)
 
 
 class State:
@@ -91,10 +204,23 @@ class State:
         self.last_error: str | None = None
 
     def update(self, payload: dict[str, Any]) -> None:
+        current = parse_contract(payload)
+        if current != CONTRACT:
+            raise ValueError(
+                f"Lovable presentation contract changed from {CONTRACT} to {current}; renderer restart required"
+            )
         trivia = payload.get("trivia") if isinstance(payload.get("trivia"), dict) else {}
         phase = str(trivia.get("phase") or "") or None
         remote_stale = trivia.get("stale") is True
-        active = trivia.get("youtubeMaskActive") is True and phase == "question" and not remote_stale
+        ads_visible = trivia.get("adsVisible") is True
+        ad_break = trivia.get("isAdBreak") is True or trivia.get("adBreakActive") is True
+        active = (
+            trivia.get("youtubeMaskActive") is True
+            and phase == "question"
+            and not remote_stale
+            and not ads_visible
+            and not ad_break
+        )
         with self.lock:
             self.active = active
             self.phase = phase
@@ -113,6 +239,7 @@ class State:
 
 
 STATE = State()
+STATE.update(INITIAL_PAYLOAD)
 
 
 def poll() -> None:
@@ -124,46 +251,13 @@ def poll() -> None:
         time.sleep(POLL_SECONDS)
 
 
-def centered_x(draw: ImageDraw.ImageDraw, text: str, text_font: ImageFont.ImageFont) -> int:
-    box = draw.textbbox((0, 0), text, font=text_font)
-    return max(8, (MASK_WIDTH - (box[2] - box[0])) // 2)
-
-
-def build_active_frame() -> bytes:
-    image = Image.new("RGBA", (MASK_WIDTH, MASK_HEIGHT), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle(
-        (2, 2, MASK_WIDTH - 3, MASK_HEIGHT - 3),
-        radius=16,
-        fill=DEEP_BLUE,
-        outline=BEARS_ORANGE,
-        width=5,
-    )
-    title = "PLAY THIS QUESTION ON RUMBLE"
-    title_font = font(31, bold=True)
-    draw.text((centered_x(draw, title, title_font), 104), title, font=title_font, fill=WHITE)
-
-    sub = "The live question and answer are available on Rumble."
-    sub_font = font(21)
-    draw.text((centered_x(draw, sub, sub_font), 164), sub, font=sub_font, fill=MUTED)
-
-    note = "News, prizes and the crawl remain visible on YouTube."
-    note_font = font(17)
-    draw.text((centered_x(draw, note, note_font), 212), note, font=note_font, fill=GOLD)
-    return image.tobytes()
-
-
-TRANSPARENT = Image.new("RGBA", (MASK_WIDTH, MASK_HEIGHT), (0, 0, 0, 0)).tobytes()
-ACTIVE = build_active_frame()
-
-
 def frame() -> bytes:
     active, _phase, _age, _error = STATE.snapshot()
     return ACTIVE if active else TRANSPARENT
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "FGBearsYouTubeQuestionMask/2.0"
+    server_version = "FGBearsLovableRoutingBridge/3.0"
 
     def log_message(self, *_args: Any) -> None:
         return
@@ -178,8 +272,11 @@ class Handler(BaseHTTPRequestHandler):
                 "lastGoodAgeSeconds": None if age == float("inf") else round(age, 3),
                 "lastError": error,
                 "canvas": [CANVAS_WIDTH, CANVAS_HEIGHT],
-                "maskRegion": {"x": MASK_X, "y": MASK_Y, "width": MASK_WIDTH, "height": MASK_HEIGHT},
-                "frameSize": [MASK_WIDTH, MASK_HEIGHT],
+                "maskRegion": CONTRACT.region(),
+                "frameSize": [CONTRACT.width, CONTRACT.height],
+                "creativeKey": CONTRACT.creative_key,
+                "presentationMode": "full_creative_scaled",
+                "routingAuthority": "lovable_public_stream_routing",
                 "fps": FPS,
             }).encode()
             self.send_response(200)
@@ -214,11 +311,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    try:
-        STATE.update(load_routing())
-    except Exception as exc:
-        STATE.error(exc)
-    threading.Thread(target=poll, daemon=True, name="routing-poller").start()
+    threading.Thread(target=poll, daemon=True, name="lovable-routing-poller").start()
     ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
 
 

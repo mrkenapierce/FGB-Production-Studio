@@ -1,0 +1,130 @@
+name: Read-Only Compositor Readiness Gate
+
+on:
+  push:
+    branches: [lovable-routing-bridge-clean-20260903]
+    paths:
+      - '.github/workflows/read-only-compositor-readiness.yml'
+      - 'services/fgbears-live/bin/youtube-question-mask.py'
+      - 'services/fgbears-live/bin/youtube-offhost-compositor.sh'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: read-only-compositor-readiness
+  cancel-in-progress: false
+
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+      COMPOSITOR_HOST: ${{ secrets.COMPOSITOR_HOST }}
+      ORACLE_COMPOSITOR_HOST: ${{ secrets.ORACLE_COMPOSITOR_HOST }}
+      FGB_COMPOSITOR_HOST: ${{ secrets.FGB_COMPOSITOR_HOST }}
+      COMPOSITOR_SSH_KEY: ${{ secrets.COMPOSITOR_SSH_KEY }}
+      ORACLE_COMPOSITOR_SSH_KEY: ${{ secrets.ORACLE_COMPOSITOR_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate candidate and public Lovable contract
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/youtube-offhost-compositor.sh
+          python3 -m py_compile services/fgbears-live/bin/youtube-question-mask.py
+          curl --fail --silent --show-error --max-time 10             -H 'Accept: application/json' -H 'Cache-Control: no-cache'             'https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing' > /tmp/routing.json
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/routing.json'))
+          t=p.get('trivia')
+          assert isinstance(t,dict)
+          assert isinstance(t.get('maskRegion'),dict)
+          for k in ('x','y','width','height'):
+              assert isinstance(t['maskRegion'].get(k),int)
+          assert t.get('youtubeCreativeKey') == 'yt_rumble_trivia_redirect'
+          assert isinstance(t.get('presentation'),dict)
+          print('LOVABLE_PUBLIC_CONTRACT=PASS')
+          PY
+
+      - name: Require dedicated compositor credentials
+        run: |
+          set -Eeuo pipefail
+          C_HOST="${COMPOSITOR_HOST:-${ORACLE_COMPOSITOR_HOST:-${FGB_COMPOSITOR_HOST:-}}}"
+          C_KEY="${COMPOSITOR_SSH_KEY:-${ORACLE_COMPOSITOR_SSH_KEY:-}}"
+          [[ -n "${ORACLE_HOST:-}" && -n "${ORACLE_SSH_KEY:-}" ]] || { echo 'READINESS=BLOCKED oracle_credentials_missing'; exit 78; }
+          [[ -n "$C_HOST" && -n "$C_KEY" ]] || { echo 'READINESS=BLOCKED dedicated_compositor_credentials_missing'; exit 78; }
+          [[ "$C_HOST" != "$ORACLE_HOST" ]] || { echo 'READINESS=BLOCKED compositor_must_be_off_source_host'; exit 78; }
+          echo "COMPOSITOR_CREDENTIALS=PASS host_is_dedicated=yes"
+
+      - name: Configure SSH
+        run: |
+          set -Eeuo pipefail
+          C_HOST="${COMPOSITOR_HOST:-${ORACLE_COMPOSITOR_HOST:-${FGB_COMPOSITOR_HOST:-}}}"
+          C_KEY="${COMPOSITOR_SSH_KEY:-${ORACLE_COMPOSITOR_SSH_KEY:-}}"
+          install -d -m700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/source_key
+          printf '%s\n' "$C_KEY" > ~/.ssh/compositor_key
+          chmod 600 ~/.ssh/source_key ~/.ssh/compositor_key
+          ssh-keyscan -H "$ORACLE_HOST" "$C_HOST" >> ~/.ssh/known_hosts
+
+      - name: Snapshot protected live services
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/source_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' > /tmp/before <<'REMOTE'
+          set -Eeuo pipefail
+          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-v2.service; do
+            printf '%s active=%s pid=%s restarts=%s\n' "$u" "$(systemctl is-active "$u")" "$(systemctl show -p MainPID --value "$u")" "$(systemctl show -p NRestarts --value "$u")"
+          done
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          systemctl is-active --quiet fgbears-youtube-v2.service
+          REMOTE
+          cat /tmp/before
+
+      - name: Probe dedicated compositor without mutation
+        run: |
+          set -Eeuo pipefail
+          C_HOST="${COMPOSITOR_HOST:-${ORACLE_COMPOSITOR_HOST:-${FGB_COMPOSITOR_HOST:-}}}"
+          C_USER="${COMPOSITOR_USER:-ubuntu}"
+          ssh -i ~/.ssh/compositor_key "$C_USER@$C_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          test "$(nproc)" -ge 2
+          awk '/MemTotal/{exit !($2 >= 2097152)}' /proc/meminfo
+          test "$(df -Pk / | awk 'NR==2{print $4}')" -ge 5242880
+          command -v ffmpeg >/dev/null
+          ffmpeg -hide_banner -filters 2>/dev/null | grep -Eq '(^| )overlay( |$)'
+          ffmpeg -hide_banner -encoders 2>/dev/null | grep -q libx264
+          ffmpeg -hide_banner -protocols 2>/dev/null | grep -qx '  srt'
+          echo "COMPOSITOR_HOST=PASS cpu=$(nproc) memory_kb=$(awk '/MemTotal/{print $2}' /proc/meminfo)"
+          REMOTE
+
+      - name: Verify source relay readiness without mutation
+        run: |
+          set -Eeuo pipefail
+          C_HOST="${COMPOSITOR_HOST:-${ORACLE_COMPOSITOR_HOST:-${FGB_COMPOSITOR_HOST:-}}}"
+          ssh -i ~/.ssh/source_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" "C_EXPECTED='$C_HOST' bash -s" <<'REMOTE'
+          set -Eeuo pipefail
+          systemctl cat fgbears-youtube-compositor-source-relay.service >/dev/null
+          sudo grep -Eq '^FGB_COMPOSITOR_HOST=.+$' /etc/fgbears-live/stream.env
+          actual=$(sudo sed -n 's/^FGB_COMPOSITOR_HOST=//p' /etc/fgbears-live/stream.env | tail -1)
+          [[ "$actual" == "$C_EXPECTED" ]]
+          echo 'SOURCE_RELAY_CONFIGURATION=PASS'
+          REMOTE
+
+      - name: Prove probe left live topology unchanged
+        run: |
+          set -Eeuo pipefail
+          sleep 15
+          ssh -i ~/.ssh/source_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'bash -s' > /tmp/after <<'REMOTE'
+          set -Eeuo pipefail
+          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-v2.service; do
+            printf '%s active=%s pid=%s restarts=%s\n' "$u" "$(systemctl is-active "$u")" "$(systemctl show -p MainPID --value "$u")" "$(systemctl show -p NRestarts --value "$u")"
+          done
+          REMOTE
+          diff -u /tmp/before /tmp/after
+          echo 'READ_ONLY_COMPOSITOR_READINESS=PASS protected_topology_unchanged=yes'

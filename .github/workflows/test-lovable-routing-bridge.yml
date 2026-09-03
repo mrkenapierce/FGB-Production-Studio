@@ -1,0 +1,168 @@
+name: Test Lovable Routing Bridge
+
+on:
+  push:
+    branches: [lovable-routing-bridge-clean-20260903]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bridge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install test dependencies
+        run: python3 -m pip install --user pillow qrcode
+
+      - name: Validate syntax
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile services/fgbears-live/bin/youtube-question-mask.py
+          bash -n services/fgbears-live/bin/youtube-offhost-compositor.sh
+          ! grep -Eq 'MASK_X=.*480|MASK_Y=.*200|MASK_WIDTH=.*640|MASK_HEIGHT=.*360' services/fgbears-live/bin/youtube-offhost-compositor.sh
+          ! grep -Eq 'PLAY THIS QUESTION ON RUMBLE|ImageDraw|draw\.text' services/fgbears-live/bin/youtube-question-mask.py
+
+      - name: Start mocked Lovable public routing endpoint
+        run: |
+          cat >/tmp/routing.json <<'JSON'
+          {
+            "trivia": {
+              "stale": false,
+              "phase": "question",
+              "adsVisible": false,
+              "isAdBreak": false,
+              "adBreakActive": false,
+              "youtubeMaskActive": true,
+              "youtubeCreativeKey": "yt_rumble_trivia_redirect",
+              "maskRegion": {
+                "x": 462, "y": 104, "width": 798, "height": 470,
+                "coordinateSpace": "pixels", "referenceWidth": 1280, "referenceHeight": 720
+              },
+              "presentation": {
+                "rumble": {
+                  "questionPhaseBehavior": "live_question",
+                  "rendersRealQuestion": true,
+                  "maskedRegion": null,
+                  "creativeKey": null
+                },
+                "youtube": {
+                  "questionPhaseBehavior": "redirect_panel",
+                  "rendersRealQuestion": false,
+                  "maskedRegion": {"x": 462, "y": 104, "width": 798, "height": 470},
+                  "creativeKey": "yt_rumble_trivia_redirect",
+                  "sourceTemplateKey": "yt_rumble_trivia_redirect",
+                  "presentationMode": "full_creative_scaled",
+                  "diagnosticBrowserSource": "/fgb-stream/youtube-overlay"
+                }
+              }
+            }
+          }
+          JSON
+          cat >/tmp/mock-routing.py <<'PY'
+          from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+          class H(BaseHTTPRequestHandler):
+              def log_message(self,*a): pass
+              def do_GET(self):
+                  body=open('/tmp/routing.json','rb').read()
+                  self.send_response(200); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(body))); self.end_headers(); self.wfile.write(body)
+          ThreadingHTTPServer(('127.0.0.1',18080),H).serve_forever()
+          PY
+          nohup python3 /tmp/mock-routing.py >/tmp/mock-routing.log 2>&1 &
+
+      - name: Start Lovable-driven mask worker
+        env:
+          FGB_STREAM_ROUTING_URL: http://127.0.0.1:18080/api/public/fgbears/stream-routing
+          YOUTUBE_QUESTION_MASK_PORT: '18791'
+          YOUTUBE_REDIRECT_CARD_BUILDER: ${{ github.workspace }}/services/fgbears-live/tools/build-youtube-rumble-trivia-card.py
+        run: |
+          nohup python3 services/fgbears-live/bin/youtube-question-mask.py >/tmp/mask.log 2>&1 &
+          for _ in $(seq 1 30); do
+            curl -sf http://127.0.0.1:18791/healthz >/tmp/health.json && break
+            sleep 1
+          done
+          cat /tmp/health.json
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/health.json'))
+          assert p['ok'] is True
+          assert p['maskRegion']=={'x':462,'y':104,'width':798,'height':470}
+          assert p['frameSize']==[798,470]
+          assert p['creativeKey']=='yt_rumble_trivia_redirect'
+          assert p['presentationMode']=='full_creative_scaled'
+          assert p['routingAuthority']=='lovable_public_stream_routing'
+          assert p['active'] is True
+          print('LOVABLE_CONTRACT_CONSUMED=PASS')
+          PY
+
+      - name: Prove active frame is exact whole locked card scaled into panel
+        run: |
+          python3 - <<'PY'
+          import subprocess, sys, urllib.request
+          from pathlib import Path
+          from PIL import Image
+
+          n=798*470*4
+          with urllib.request.urlopen('http://127.0.0.1:18791/overlay.rgba',timeout=5) as r:
+              raw=r.read(n)
+          assert len(raw)==n
+          actual=Image.frombytes('RGBA',(798,470),raw)
+
+          source_path=Path('/tmp/source.png')
+          subprocess.run([sys.executable,'services/fgbears-live/tools/build-youtube-rumble-trivia-card.py',str(source_path)],check=True,stdout=subprocess.DEVNULL)
+          source=Image.open(source_path).convert('RGBA')
+          scaled=source.copy(); scaled.thumbnail((798,470),Image.Resampling.LANCZOS)
+          expected=Image.new('RGBA',(798,470),(11,22,42,255))
+          x=(798-scaled.width)//2; y=(470-scaled.height)//2
+          expected.paste(scaled,(x,y),scaled)
+          assert actual.tobytes()==expected.tobytes()
+          assert scaled.size==(798,449)
+          print('EXACT_WHOLE_CARD_SCALE=PASS')
+          PY
+
+      - name: Prove non-question state fails transparent
+        run: |
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/routing.json'))
+          p['trivia']['phase']='reveal'
+          p['trivia']['youtubeMaskActive']=False
+          open('/tmp/routing.json','w').write(json.dumps(p))
+          PY
+          sleep 2
+          python3 - <<'PY'
+          import urllib.request
+          n=798*470*4
+          with urllib.request.urlopen('http://127.0.0.1:18791/overlay.rgba',timeout=5) as r:
+              raw=r.read(n)
+          assert len(raw)==n
+          assert not any(raw), 'non-question frame was not fully transparent'
+          print('FAIL_TRANSPARENT=PASS')
+          PY
+
+      - name: Prove compositor derives geometry from mask health
+        env:
+          YOUTUBE_STREAM_KEY: test-key-not-real
+          YOUTUBE_QUESTION_MASK_PORT: '18791'
+        run: |
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/routing.json'))
+          p['trivia']['phase']='question'; p['trivia']['youtubeMaskActive']=True
+          open('/tmp/routing.json','w').write(json.dumps(p))
+          PY
+          mkdir -p /tmp/fakebin
+          cat >/tmp/fakebin/ffmpeg <<'SH'
+          #!/usr/bin/env bash
+          printf '%s\n' "$@" >/tmp/ffmpeg-args.txt
+          exit 0
+          SH
+          chmod +x /tmp/fakebin/ffmpeg
+          PATH="/tmp/fakebin:$PATH" bash services/fgbears-live/bin/youtube-offhost-compositor.sh
+          cat /tmp/ffmpeg-args.txt
+          grep -Fxq '798x470' /tmp/ffmpeg-args.txt
+          grep -Fq 'overlay=462:104:format=auto:shortest=1[v]' /tmp/ffmpeg-args.txt
+          echo 'COMPOSITOR_LOVABLE_GEOMETRY=PASS'
