@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import argparse
+import io
+import subprocess
 from pathlib import Path
 
-import qrcode
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 WIDTH, HEIGHT = 1280, 720
 BACKGROUND = "#0B162A"
@@ -23,6 +24,19 @@ FONT_BOLD = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 
 def font(size: int, bold: bool = False) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(FONT_BOLD if bold else FONT_REGULAR, size=size)
+
+
+def qr_image(url: str, size: int) -> Image.Image:
+    """Generate the QR with the already-required qrencode binary, not a Python package."""
+    encoded = subprocess.run(
+        ["qrencode", "-t", "PNG", "-o", "-", "-l", "M", "-s", "10", "-m", "0", url],
+        check=True,
+        capture_output=True,
+        timeout=10,
+    ).stdout
+    mono = Image.open(io.BytesIO(encoded)).convert("L")
+    branded = ImageOps.colorize(mono, black=BACKGROUND, white=WHITE).convert("RGB")
+    return branded.resize((size, size), Image.Resampling.NEAREST)
 
 
 def build() -> Image.Image:
@@ -48,11 +62,7 @@ def build() -> Image.Image:
     qr_card = (864, 122, 1204, 514)
     draw.rounded_rectangle(qr_card, radius=18, fill=WHITE, outline=TOP_BAR, width=5)
 
-    qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=10, border=0)
-    qr.add_data(RUMBLE_URL)
-    qr.make(fit=True)
-    qr_img = qr.make_image(fill_color=BACKGROUND, back_color=WHITE).convert("RGB")
-    qr_img = qr_img.resize((300, 300), Image.Resampling.NEAREST)
+    qr_img = qr_image(RUMBLE_URL, 300)
     image.paste(qr_img, (884, 142))
 
     label = "SCAN TO PLAY"

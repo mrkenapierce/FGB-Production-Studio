@@ -6,6 +6,7 @@ START="$ROOT/bin/start-stream.sh"
 NEWS="$ROOT/bin/bears-news-feed.py"
 ENV_EXAMPLE="$ROOT/config/stream.env.example"
 INSTALL="$ROOT/bin/install.sh"
+TRIVIA_CARD_BUILDER="$ROOT/tools/build-youtube-rumble-trivia-card.py"
 
 fail() { echo "PRODUCTION INVARIANT FAILED: $*" >&2; exit 1; }
 
@@ -19,8 +20,12 @@ grep -Fq 'BEARS_NEWS_OVERLAY_PORT=8789' "$ENV_EXAMPLE" || fail 'RSS/news overlay
 grep -Fq 'BEARS_NEWS_OVERLAY_FPS=30' "$ENV_EXAMPLE" || fail 'RSS/news overlay FPS must default to 30.'
 grep -Fq "'BEARS_NEWS_OVERLAY_FPS':'30'" "$INSTALL" || fail 'Installer must preserve the 30 fps news overlay setting.'
 if grep -Fqw 'python3-qrcode' "$INSTALL"; then
-  fail 'Installer must not require unused python3-qrcode; QR rendering uses qrencode.'
+  fail 'Installer must not require python3-qrcode; QR rendering uses qrencode.'
 fi
+if grep -Eq '^(import qrcode|from qrcode)' "$TRIVIA_CARD_BUILDER"; then
+  fail 'YouTube trivia creative builder must not depend on the Python qrcode package.'
+fi
+grep -Fq 'qrencode' "$TRIVIA_CARD_BUILDER" || fail 'YouTube trivia creative builder must use the installed qrencode binary.'
 grep -Fq 'apt_get_with_retry' "$INSTALL" || fail 'Installer must retain bounded apt retry handling.'
 # shellcheck disable=SC2016
 grep -Fq -- '-f mpjpeg -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.mjpg"' "$START" || fail 'FFmpeg must consume the dedicated Bears news MJPEG overlay.'
