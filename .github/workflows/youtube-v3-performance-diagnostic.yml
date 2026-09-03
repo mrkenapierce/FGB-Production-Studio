@@ -1,0 +1,73 @@
+name: Measure YouTube v3 Steady State
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/youtube-v3-performance-diagnostic.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Measure current v3 without mutations
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          Y=fgbears-youtube-v3.service
+          P=/run/fgbears-youtube-v3/ffmpeg-progress.log
+          pid(){ systemctl show -p MainPID --value "$1"; }
+          media_us(){ sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$P" | tail -n1; }
+          sample(){
+            local seconds=$1 m0 m1 t0 t1
+            m0=$(media_us); t0=$(date +%s%N); sleep "$seconds"; m1=$(media_us); t1=$(date +%s%N)
+            python3 - "$m0" "$m1" "$t0" "$t1" <<'PY'
+          import sys
+          m0,m1,t0,t1=map(int,sys.argv[1:])
+          print(f'{((m1-m0)/1e6)/((t1-t0)/1e9):.4f}')
+          PY
+          }
+          echo "generation=$(sudo cat /etc/fgbears-live/youtube-generation)"
+          echo "master_pid=$(pid fgbears-live.service)"
+          echo "rumble_pid=$(pid fgbears-rumble-relay.service)"
+          echo "youtube_pid=$(pid "$Y")"
+          echo "youtube_restarts=$(systemctl show -p NRestarts --value "$Y")"
+          echo "cache_pid=$(pid fgbears-lovable-state-cache.service)"
+          echo "rate_5s_1=$(sample 5)"
+          echo "rate_5s_2=$(sample 5)"
+          echo "rate_10s=$(sample 10)"
+          echo "fps=$(sudo sed -n 's/^fps=\([0-9.]*\)$/\1/p' "$P" | tail -n1)"
+          echo "drop=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$P" | tail -n1)"
+          echo "dup=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$P" | tail -n1)"
+          echo "progress_age=$(( $(date +%s)-$(sudo stat -c %Y "$P") ))"
+          echo "cpu_pressure=$(awk '/^some/{for(i=1;i<=NF;i++)if($i~/^avg10=/){split($i,a,"=");print a[2]}}' /proc/pressure/cpu)"
+          echo "cpu_idle=$(vmstat 1 2|tail -n1|awk '{print $15}')"
+          sudo ss -ntpH state established | awk -v q="pid=$(pid "$Y")" 'index($0,q)&&index($0,":443"){print "youtube_443=yes"; ok=1} END{if(!ok)print "youtube_443=no"}'
+          sudo ss -ntpH state established | awk -v q="pid=$(pid fgbears-rumble-relay.service)" 'index($0,q)&&index($0,":1935"){print "rumble_1935=yes"; ok=1} END{if(!ok)print "rumble_1935=no"}'
+          sudo python3 - <<'PY'
+          import json,time
+          h=json.load(open('/run/fgbears-control-plane/cache-health.json'))
+          print('cache_ok='+str(h.get('ok')).lower())
+          print('cache_age=%.2f'%(time.time()-float(h.get('lastGoodEpoch') or 0)))
+          print('cache_latency_ms='+str(h.get('routingLatencyMs')))
+          PY
+          REMOTE
