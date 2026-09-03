@@ -50,6 +50,10 @@ assert p.get('maskRegion') == {
     'coordinateSpace':'pixels','referenceWidth':1280,'referenceHeight':720,
 }, p.get('maskRegion')
 assert p.get('frameSize') == [798,470], p.get('frameSize')
+assert p.get('ok') is True, p
+assert p.get('creativeKey') == 'yt_rumble_trivia_redirect', p.get('creativeKey')
+assert p.get('presentationMode') == 'full_creative_scaled', p.get('presentationMode')
+assert p.get('routingAuthority') == 'lovable_public_stream_routing', p.get('routingAuthority')
 assert float(p.get('fps') or 0) == 10.0, p.get('fps')
 last=float(p.get('lastGoodEpoch') or 0)
 assert last > 0 and time.time()-last < 10, (last, time.time()-last if last else None)
