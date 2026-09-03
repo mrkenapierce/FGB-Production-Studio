@@ -1,0 +1,28 @@
+name: Release YouTube v3 Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/v3-cutover-trigger'
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-v3-release-once
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch audited v3 deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -Eeuo pipefail
+          gh workflow run youtube-v3-deploy.yml --ref main
+          echo 'YOUTUBE_V3_RELEASE_DISPATCH=PASS'
