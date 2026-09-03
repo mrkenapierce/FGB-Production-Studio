@@ -84,6 +84,7 @@ jobs:
           HEALTH=/usr/local/bin/fgbears-healthcheck
           HEALTH_BACKUP=/tmp/fgbears-healthcheck-pre-v3
           GENERATION=/etc/fgbears-live/youtube-generation
+          CUTOVER_MARKER=/run/fgbears-youtube-v3/cutover-in-progress
           CUTOVER=0
 
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
@@ -96,6 +97,7 @@ jobs:
             echo 'YOUTUBE_V3_ROLLBACK=BEGIN'
             sudo systemctl stop "$V3" 2>/dev/null || true
             sudo systemctl disable "$V3" 2>/dev/null || true
+            sudo rm -f "$CUTOVER_MARKER"
             sudo rm -f /etc/systemd/system/fgbears-youtube-v3.service
 
             if [[ -d "$V2QUAR" && ! -e "$V2DIR" ]]; then
@@ -159,6 +161,10 @@ jobs:
 
           # Candidate phase: stop only v2. Keep its runtime, unit, supervisor,
           # and rollback material intact until v3 has proven transport health.
+          # The marker lets the read-only monitor distinguish this controlled
+          # interval from an unplanned YouTube outage.
+          sudo install -d -m 0750 -o fgbears -g fgbears /run/fgbears-youtube-v3
+          sudo touch "$CUTOVER_MARKER"
           CUTOVER=1
           sudo systemctl stop "$V2"
           sudo systemctl reset-failed "$V3" 2>/dev/null || true
@@ -237,6 +243,7 @@ jobs:
           test "$final2_m" = "$master_before" || fail master_pid_changed_from_baseline
           test "$final2_r" = "$rumble_before" || fail rumble_pid_changed_from_baseline
 
+          sudo rm -f "$CUTOVER_MARKER"
           CUTOVER=0
           trap - ERR
           sudo rm -f "$HEALTH_BACKUP" /tmp/fgb-youtube-v3-runtime.tgz /tmp/fgbears-healthcheck-v3
