@@ -2,8 +2,9 @@
 """FGBears YouTube v3 destination-only overlay worker.
 
 The media frame clock and Lovable control clock are independent. The media pipe
-uses the same 10 fps compositor cadence proven by YouTube v2; routing requests
-run in a background thread and can never stall frame delivery.
+uses a 5 fps static-overlay cadence to minimize single-CPU load; FFmpeg holds
+the last approved frame between updates, while routing requests run in a
+background thread and can never stall frame delivery.
 """
 from __future__ import annotations
 
@@ -23,7 +24,7 @@ from PIL import Image
 
 WIDTH = 798
 HEIGHT = 470
-FPS = 10.0
+FPS = 5.0
 POLL_SECONDS = 0.25
 ROUTING_TIMEOUT_SECONDS = 1.5
 ROUTING_URL = os.getenv(
