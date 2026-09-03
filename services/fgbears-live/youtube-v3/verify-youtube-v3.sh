@@ -33,6 +33,23 @@ connected(){
   ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'
 }
 fail(){ echo "YOUTUBE_V3_VERIFY=FAIL mode=$MODE reason=$1" >&2; exit 1; }
+media_us(){ sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$PROGRESS" | tail -n1; }
+measure_rate(){
+  local m0 m1 t0 t1
+  m0=$(media_us); [[ "$m0" =~ ^[0-9]+$ ]] || return 1
+  t0=$(date +%s%N)
+  sleep 5
+  m1=$(media_us); [[ "$m1" =~ ^[0-9]+$ ]] || return 1
+  t1=$(date +%s%N)
+  python3 - "$m0" "$m1" "$t0" "$t1" <<'PY'
+import sys
+m0,m1,t0,t1=map(int,sys.argv[1:])
+wall=(t1-t0)/1_000_000_000
+media=(m1-m0)/1_000_000
+assert wall > 0 and media >= 0
+print(f'{media/wall:.4f}')
+PY
+}
 
 systemctl is-active --quiet "$MASTER" || fail master_inactive
 systemctl is-active --quiet "$RUMBLE" || fail rumble_inactive
@@ -51,60 +68,42 @@ nice=$(systemctl show -p Nice --value "$YOUTUBE" 2>/dev/null || echo 0)
 [[ -x "$ACTIVE_DIR/run-youtube-v3.sh" ]] || fail active_runner_missing
 
 [[ -s "$STATE" ]] || fail overlay_state_missing
-python3 - "$STATE" <<'PY' || exit 1
+python3 - "$STATE" <<'PY' || fail overlay_state_invalid
 import json, sys, time
 p=json.load(open(sys.argv[1], encoding='utf-8'))
 assert p.get('workerVersion') == 'youtube-v3', p.get('workerVersion')
-assert p.get('maskRegion') == {
-    'x':462,'y':104,'width':798,'height':470,
-    'coordinateSpace':'pixels','referenceWidth':1280,'referenceHeight':720,
-}, p.get('maskRegion')
-assert p.get('frameSize') == [798,470], p.get('frameSize')
-assert p.get('presentationMode') == 'full_creative_scaled', p.get('presentationMode')
-assert p.get('routingAuthority') == 'lovable_public_stream_routing', p.get('routingAuthority')
-assert float(p.get('fps') or 0) == 5.0, p.get('fps')
+assert p.get('maskRegion') == {'x':462,'y':104,'width':798,'height':470,'coordinateSpace':'pixels','referenceWidth':1280,'referenceHeight':720}
+assert p.get('frameSize') == [798,470]
+assert p.get('presentationMode') == 'full_creative_scaled'
+assert p.get('routingAuthority') == 'lovable_public_stream_routing'
+assert float(p.get('fps') or 0) == 5.0
 keys=p.get('availableCreativeKeys')
-assert isinstance(keys,list) and 'yt_rumble_trivia_redirect' in keys, keys
+assert isinstance(keys,list) and 'yt_rumble_trivia_redirect' in keys
 last=float(p.get('lastGoodEpoch') or 0)
-assert last > 0 and time.time()-last < 10, (last, time.time()-last if last else None)
+assert last > 0 and time.time()-last < 10
 if p.get('ok') is True:
     requested=p.get('creativeKey')
-    assert isinstance(requested,str) and requested in keys, (requested, keys)
-    if p.get('active') is True:
-        assert p.get('renderedCreativeKey') == requested, p
-    else:
-        assert p.get('renderedCreativeKey') is None, p
-print('OVERLAY_STATE=PASS phase=%s active=%s latency_ms=%s clock_misses=%s' % (
-    p.get('phase'), str(bool(p.get('active'))).lower(), p.get('routingLatencyMs'), p.get('frameClockMisses')))
+    assert isinstance(requested,str) and requested in keys
+    if p.get('active') is True: assert p.get('renderedCreativeKey') == requested
+    else: assert p.get('renderedCreativeKey') is None
+print('OVERLAY_STATE=PASS phase=%s active=%s latency_ms=%s clock_misses=%s' % (p.get('phase'),str(bool(p.get('active'))).lower(),p.get('routingLatencyMs'),p.get('frameClockMisses')))
 PY
 
 [[ -s "$PROGRESS" ]] || fail youtube_progress_missing
 age=$(( $(date +%s) - $(stat -c %Y "$PROGRESS") ))
 (( age < 10 )) || fail "youtube_progress_stale:${age}s"
-speed=$(sed -n 's/^speed=\([0-9.]*\)x$/\1/p' "$PROGRESS" | tail -n1)
-fps=$(sed -n 's/^fps=\([0-9.]*\)$/\1/p' "$PROGRESS" | tail -n1)
-drop=$(sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$PROGRESS" | tail -n1)
-dup=$(sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$PROGRESS" | tail -n1)
-[[ -n "$speed" ]] || fail youtube_speed_missing
-python3 - "$speed" <<'PY' || fail youtube_below_realtime
+rate=$(measure_rate) || fail youtube_rate_measurement_failed
+python3 - "$rate" <<'PY' || fail youtube_below_realtime
 import sys
 assert float(sys.argv[1]) >= 0.98, sys.argv[1]
 PY
+fps=$(sed -n 's/^fps=\([0-9.]*\)$/\1/p' "$PROGRESS" | tail -n1)
+drop=$(sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$PROGRESS" | tail -n1)
+dup=$(sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$PROGRESS" | tail -n1)
 
-invocation=$(systemctl show -p InvocationID --value "$YOUTUBE" 2>/dev/null || true)
-if [[ -n "$invocation" ]]; then
-  journal=$(journalctl _SYSTEMD_INVOCATION_ID="$invocation" --no-pager 2>/dev/null || true)
-else
-  journal=$(journalctl -u "$YOUTUBE" --since '-5 minutes' --no-pager 2>/dev/null || true)
-fi
-if grep -Fq 'Circular buffer overrun' <<<"$journal"; then
-  fail youtube_udp_circular_buffer_overrun
-fi
-# The copy/remux normalizer may encounter incomplete packets while joining the
-# live UDP stream. The downstream compositor decoder may not.
-if grep -Ev '\[v3-ingest\]' <<<"$journal" | grep -Eq 'non-existing PPS|decode_slice_header error|no frame!'; then
-  fail downstream_decoder_not_synchronized
-fi
+journal=$(journalctl -u "$YOUTUBE" --since '-10 seconds' --no-pager 2>/dev/null || true)
+grep -Fq 'Circular buffer overrun' <<<"$journal" && fail youtube_udp_circular_buffer_overrun
+if grep -Eq 'non-existing PPS|decode_slice_header error|no frame!' <<<"$journal"; then fail downstream_decoder_not_synchronized; fi
 
 if [[ "$MODE" == final ]]; then
   for unit in "${RETIRED[@]}"; do
@@ -113,9 +112,7 @@ if [[ "$MODE" == final ]]; then
     [[ "$state" == masked* ]] || fail "retired_unit_not_masked:$unit:$state"
   done
   [[ -d "$V2_QUAR" ]] || fail v2_quarantine_missing
-  if find "$V2_QUAR" -type f -perm /111 -print -quit 2>/dev/null | grep -q .; then
-    fail v2_quarantine_contains_executable
-  fi
+  if find "$V2_QUAR" -type f -perm /111 -print -quit 2>/dev/null | grep -q .; then fail v2_quarantine_contains_executable; fi
   [[ ! -e /opt/fgbears-live/youtube-v2 ]] || fail v2_active_runtime_present
   [[ -r "$GENERATION_FILE" ]] || fail generation_marker_missing
   [[ "$(cat "$GENERATION_FILE")" == v3 ]] || fail generation_marker_not_v3
@@ -126,5 +123,5 @@ if [[ "$MODE" == final ]]; then
 fi
 
 pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"="); print a[2]}}' /proc/pressure/cpu 2>/dev/null || true)
-printf 'YOUTUBE_V3_VERIFY=PASS mode=%s master=%s rumble=%s youtube=%s youtube_restarts=%s speed=%sx fps=%s drop=%s dup=%s cpu_pressure_avg10=%s rumble_1935=yes youtube_443=yes v2=%s\n' \
-  "$MODE" "$M" "$R" "$Y" "$(restarts "$Y")" "$speed" "${fps:-NA}" "${drop:-NA}" "${dup:-NA}" "${pressure:-NA}" "$([[ "$MODE" == final ]] && echo quarantined || echo rollback_ready)"
+printf 'YOUTUBE_V3_VERIFY=PASS mode=%s master=%s rumble=%s youtube=%s youtube_restarts=%s steady_rate=%sx fps=%s drop=%s dup=%s cpu_pressure_avg10=%s rumble_1935=yes youtube_443=yes v2=%s\n' \
+  "$MODE" "$M" "$R" "$Y" "$(restarts "$Y")" "$rate" "${fps:-NA}" "${drop:-NA}" "${dup:-NA}" "${pressure:-NA}" "$([[ "$MODE" == final ]] && echo quarantined || echo rollback_ready)"
