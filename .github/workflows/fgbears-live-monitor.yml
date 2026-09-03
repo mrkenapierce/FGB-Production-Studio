@@ -110,7 +110,7 @@ jobs:
           p=json.load(open(path,encoding='utf-8')); age=time.time()-os.path.getmtime(path)
           assert p.get('workerVersion') == 'youtube-v3'
           assert p.get('maskRegion') == {'x':462,'y':104,'width':798,'height':470,'coordinateSpace':'pixels','referenceWidth':1280,'referenceHeight':720}
-          assert p.get('frameSize') == [798,470]; assert p.get('routingAuthority') == 'lovable_public_stream_routing'; assert float(p.get('fps') or 0) == 5.0; assert 0 <= age < 120
+          assert p.get('frameSize') == [798,470]; assert p.get('routingAuthority') == 'lovable_public_stream_routing'; assert float(p.get('fps') or 0) == 10.0; assert 0 <= age < 120
           status='OK' if p.get('ok') is True else 'DEGRADED_FAIL_TRANSPARENT'
           print(f'{status} age={age:.1f}s active={str(bool(p.get("active"))).lower()} creative={p.get("creativeKey")} latency_ms={p.get("routingLatencyMs")} clock_misses={p.get("frameClockMisses")}')
           PY
