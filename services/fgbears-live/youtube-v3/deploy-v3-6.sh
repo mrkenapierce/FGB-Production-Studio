@@ -109,7 +109,7 @@ PLAY="$ROOT/source/live.m3u8"
 [[ -s "$PLAY" ]] || fail source_playlist_missing
 grep -q '^#EXT-X-INDEPENDENT-SEGMENTS' "$PLAY" || fail independent_segment_contract_missing
 grep -q '^#EXT-X-PROGRAM-DATE-TIME:' "$PLAY" || fail program_date_time_missing
-latest=$(ls -1t "$ROOT"/source/seg-*.ts 2>/dev/null | head -1)
+latest=$(python3 -c 'from pathlib import Path; p=list(Path("/run/fgbears-youtube-v3/source").glob("seg-*.ts")); print(max(p,key=lambda x:x.stat().st_mtime) if p else "")')
 [[ -n "$latest" && -s "$latest" ]] || fail no_source_segment
 ffmpeg -hide_banner -nostdin -loglevel error -i "$latest" -t 1 -f null - || fail source_segment_decode_failed
 dims=$(ffprobe -v error -select_streams v:0 -show_entries stream=width,height,avg_frame_rate -of csv=p=0 "$latest")
@@ -175,8 +175,9 @@ F2=$(progress frame); T2=$(progress out_time_us)
 [[ "$(pid "$MASTER")" == "$M1" ]] || fail master_changed_after_hold
 [[ "$(pid "$RUMBLE")" == "$R0" && "$(nr "$RUMBLE")" == "$RN0" ]] || fail rumble_changed_after_hold
 conn "$R0" 1935 || fail rumble_socket_missing_after_hold
-journalctl -u "$SUP" --since '-40 seconds' --no-pager | grep -q 'V3_HEALTH' || fail supervisor_no_health_sample
-! journalctl -u "$SUP" --since '-40 seconds' --no-pager | grep -q 'V3_RECOVERY' || fail supervisor_recovered_during_acceptance
+journalctl -u "$SUP" --since '-40 seconds' --no-pager > /tmp/v3-supervisor-acceptance.log
+ grep -q 'V3_HEALTH' /tmp/v3-supervisor-acceptance.log || fail supervisor_no_health_sample
+! grep -q 'V3_RECOVERY' /tmp/v3-supervisor-acceptance.log || fail supervisor_recovered_during_acceptance
 
 CUTOVER=0
 trap - EXIT
