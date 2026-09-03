@@ -350,7 +350,7 @@ def draw_epic_media_qr(image: Image.Image, draw: ImageDraw.ImageDraw) -> None:
         image.paste(qr, (qr_x, qr_y))
         cta_font = font(20, bold=True)
         cta_lines = (
-            ("Place Your Ad", qr_y + qr_size + 17),
+            ("Place EPIC Ads", qr_y + qr_size + 17),
             ("Share EPIC Prizes", qr_y + qr_size + 43),
         )
         for cta, cta_y in cta_lines:
