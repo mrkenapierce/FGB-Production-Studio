@@ -5,9 +5,39 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 03 Sep 2026 04:20:49 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 03 Sep 2026 13:33:10 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Which Chicago Bears Practice Squad Player Will Make the Biggest Impact?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Which Chicago Bears Practice Squad Player Will Make the Biggest Impact?</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-practice-squad-player-130000283.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5dce7302cbc6efe01191</guid>
+      <pubDate>Thu, 03 Sep 2026 13:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>The Bear’s Den: Chicago is hot, and so are the Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: Chicago is hot, and so are the Bears</description>
+      <link>https://sports.yahoo.com/articles/bear-den-chicago-hot-bears-100000423.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-708975a06ce923d31db3</guid>
+      <pubDate>Thu, 03 Sep 2026 10:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>After taking the NFC North, the Chicago Bears are on a mission to ‘never give it back’</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: After taking the NFC North, the Chicago Bears are on a mission to ‘never give it back’</description>
+      <link>https://www.nytimes.com/athletic/7556500/2026/09/03/bears-nfc-north-champions-ryan-poles/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-df056b0d8da43e5c9427</guid>
+      <pubDate>Thu, 03 Sep 2026 04:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
 
     <item>
       <title>Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Bears-Panthers, Vikings-Packers markets</title>
@@ -17,16 +47,6 @@
       <pubDate>Thu, 03 Sep 2026 02:09:20 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears Over Beers Happy Hour and Open Thread: Bears Trade Incoming?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Over Beers Happy Hour and Open Thread: Bears Trade Incoming?</description>
-      <link>https://sports.yahoo.com/articles/bears-over-beers-happy-hour-000000487.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e30b8a6c4e8f412e5ed5</guid>
-      <pubDate>Thu, 03 Sep 2026 00:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -40,16 +60,6 @@
     </item>
 
     <item>
-      <title>You’re not crazy: The refs really do hate the Chicago Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: You’re not crazy: The refs really do hate the Chicago Bears</description>
-      <link>https://sports.yahoo.com/articles/not-crazy-refs-really-hate-220000002.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ae7f2ea3d8c0043409ac</guid>
-      <pubDate>Wed, 02 Sep 2026 22:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Bears DC Dennis Allen sees line as defense&apos;s deepest position group</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears DC Dennis Allen sees line as defense&apos;s deepest position group</description>
       <link>https://www.chicagobears.com/news/bears-dc-dennis-allen-sees-line-as-defense-s-deepest-position-group</link>
@@ -57,26 +67,6 @@
       <pubDate>Wed, 02 Sep 2026 20:34:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>The Bears’ Kyler Gordon Conundrum Looks Eerily Similar to Another Situation From 2016</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Bears’ Kyler Gordon Conundrum Looks Eerily Similar to Another Situation From 2016</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-bears-kyler-gordon-conundrum-looks-eerily-similar-to-another-situation-from-2016</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a23348435f0d8be5fd78</guid>
-      <pubDate>Wed, 02 Sep 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Offense Boldly Predicted to Make NFL History During 2026 Season</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Offense Boldly Predicted to Make NFL History During 2026 Season</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-offense-boldly-predicted-to-make-nfl-history-during-2026-season</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-de318f407c1b2d922df9</guid>
-      <pubDate>Wed, 02 Sep 2026 15:20:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
