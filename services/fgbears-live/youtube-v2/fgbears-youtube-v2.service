@@ -1,0 +1,31 @@
+[Unit]
+Description=FGBears YouTube v2 isolated output
+After=network-online.target fgbears-live.service
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=fgbears
+Group=fgbears
+EnvironmentFile=/etc/fgbears-live/stream.env
+Environment=PYTHONPATH=/opt/fgbears-live/exact-card-pylib
+Environment=YOUTUBE_V2_STATE_FILE=/run/fgbears-youtube-v2/overlay-state.json
+ExecStart=/opt/fgbears-live/youtube-v2/run-youtube-v2.sh
+Restart=always
+RestartSec=5
+TimeoutStopSec=8
+KillSignal=SIGINT
+Nice=10
+CPUWeight=20
+RuntimeDirectory=fgbears-youtube-v2
+RuntimeDirectoryMode=0750
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadOnlyPaths=/opt/fgbears-live /etc/fgbears-live
+ReadWritePaths=/run/fgbears-youtube-v2
+
+[Install]
+WantedBy=multi-user.target
