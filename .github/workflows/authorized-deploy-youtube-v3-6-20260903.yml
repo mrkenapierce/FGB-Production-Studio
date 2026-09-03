@@ -65,3 +65,5 @@ jobs:
             services/fgbears-live/youtube-v3/deploy-v3-6.sh \
             "$ORACLE_USER@$ORACLE_HOST:/tmp/"
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "sudo env RELEASE_SHA='$RELEASE_SHA' bash /tmp/deploy-v3-6.sh"
+
+      # Retry 2: host-preflight and pipefail false-positive fixes applied.
