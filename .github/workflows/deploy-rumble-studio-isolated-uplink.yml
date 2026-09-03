@@ -1,0 +1,181 @@
+name: Deploy Isolated Rumble Studio Uplink Pilot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-rumble-studio-isolated-uplink.yml'
+      - 'pilots/rumble-studio/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-rumble-studio-isolated-uplink
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate isolated copy-only pilot
+        run: |
+          set -Eeuo pipefail
+          bash -n pilots/rumble-studio/rumble-studio-uplink.sh
+          bash -n pilots/rumble-studio/start-stream-studio-pilot.sh
+          grep -Fq -- '-c copy' pilots/rumble-studio/rumble-studio-uplink.sh
+          ! grep -Eq 'libx264|libx265|h264_nvenc|hevc_nvenc' pilots/rumble-studio/rumble-studio-uplink.sh
+          grep -Fq '127.0.0.1:1942' pilots/rumble-studio/start-stream-studio-pilot.sh
+          grep -Fq 'RUMBLE_LOCAL_UDP_URL' pilots/rumble-studio/start-stream-studio-pilot.sh
+          grep -Fq 'YOUTUBE_LOCAL_UDP_URL' pilots/rumble-studio/start-stream-studio-pilot.sh
+          echo 'ISOLATED_STUDIO_CODE_GATE=PASS'
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stage pilot files
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key pilots/rumble-studio/rumble-studio-uplink.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/rumble-studio-uplink.sh"
+          scp -i ~/.ssh/oracle_key pilots/rumble-studio/start-stream-studio-pilot.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/start-stream-studio-pilot.sh"
+          scp -i ~/.ssh/oracle_key pilots/rumble-studio/fgbears-rumble-studio-uplink.service "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-rumble-studio-uplink.service"
+
+      - name: Activate isolated Studio uplink with master-only rollback
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          env_file=/etc/fgbears-live/stream.env
+          master_bin=/usr/local/bin/fgbears-start-stream
+          backup_master=/usr/local/bin/fgbears-start-stream.pre-studio-isolated
+          backup_env=/etc/fgbears-live/stream.env.pre-studio-isolated
+          studio_unit=fgbears-rumble-studio-uplink.service
+
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          master_before=$(pid fgbears-live.service)
+          rumble_before=$(pid fgbears-rumble-relay.service)
+          youtube_before=$(pid fgbears-youtube-v3.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]]
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          systemctl is-active --quiet fgbears-youtube-v3.service
+          sudo grep -q '^RUMBLE_STUDIO_STREAM_KEY=.' "$env_file"
+          ! sudo grep -q '^RUMBLE_STUDIO_STREAM_KEY=REPLACE_' "$env_file"
+
+          rollback(){
+            trap - ERR
+            echo 'ISOLATED_STUDIO_PILOT=ROLLBACK' >&2
+            sudo systemctl disable --now "$studio_unit" >/dev/null 2>&1 || true
+            if sudo test -f "$backup_master"; then sudo cp -a "$backup_master" "$master_bin"; fi
+            if sudo test -f "$backup_env"; then sudo cp -a "$backup_env" "$env_file"; fi
+            sudo systemctl reset-failed fgbears-live.service >/dev/null 2>&1 || true
+            sudo systemctl restart fgbears-live.service >/dev/null 2>&1 || true
+            sudo rm -f /tmp/rumble-studio-uplink.sh /tmp/start-stream-studio-pilot.sh /tmp/fgbears-rumble-studio-uplink.service || true
+          }
+          cleanup(){ sudo rm -f /tmp/rumble-studio-uplink.sh /tmp/start-stream-studio-pilot.sh /tmp/fgbears-rumble-studio-uplink.service || true; }
+          trap rollback ERR
+          trap cleanup EXIT
+
+          sudo cp -a "$master_bin" "$backup_master"
+          sudo cp -a "$env_file" "$backup_env"
+          sudo install -m 0755 /tmp/rumble-studio-uplink.sh /usr/local/bin/fgbears-rumble-studio-uplink
+          sudo install -m 0644 /tmp/fgbears-rumble-studio-uplink.service /etc/systemd/system/fgbears-rumble-studio-uplink.service
+          sudo install -m 0755 /tmp/start-stream-studio-pilot.sh "$master_bin"
+
+          sudo python3 - "$env_file" <<'PY'
+          from pathlib import Path
+          import os, sys
+          p=Path(sys.argv[1]); lines=p.read_text().splitlines()
+          updates={
+              'RUMBLE_STUDIO_RTMP_BASE':'rtmp://studio-rtmp.rumble.com/live',
+              'RUMBLE_STUDIO_LOCAL_UDP_URL':'udp://127.0.0.1:1942?pkt_size=1316',
+          }
+          out=[]; seen=set()
+          for line in lines:
+              if '=' in line and not line.lstrip().startswith('#'):
+                  name=line.split('=',1)[0]
+                  if name in updates:
+                      if name not in seen:
+                          out.append(f'{name}={updates[name]}'); seen.add(name)
+                      continue
+              out.append(line)
+          for name,value in updates.items():
+              if name not in seen: out.append(f'{name}={value}')
+          t=p.with_name(p.name+'.studio-isolated.tmp')
+          t.write_text('\n'.join(out)+'\n'); os.chmod(t,0o640); t.replace(p)
+          PY
+          sudo chown root:fgbears "$env_file"; sudo chmod 0640 "$env_file"
+          sudo systemctl daemon-reload
+          sudo systemctl reset-failed "$studio_unit" || true
+          sudo systemctl enable --now "$studio_unit"
+          systemctl is-active --quiet "$studio_unit"
+
+          # This is the only existing live media process intentionally restarted.
+          # The direct Rumble and YouTube-v3 destination services stay connected.
+          sudo systemctl reset-failed fgbears-live.service
+          sudo systemctl restart fgbears-live.service
+
+          healthy=0
+          for _ in $(seq 1 30); do
+            if systemctl is-active --quiet fgbears-live.service &&
+               systemctl is-active --quiet fgbears-rumble-relay.service &&
+               systemctl is-active --quiet fgbears-youtube-v3.service &&
+               systemctl is-active --quiet "$studio_unit"; then
+              healthy=1; break
+            fi
+            sleep 1
+          done
+          test "$healthy" = 1
+
+          master_after=$(pid fgbears-live.service)
+          rumble_after=$(pid fgbears-rumble-relay.service)
+          youtube_after=$(pid fgbears-youtube-v3.service)
+          studio_pid=$(pid "$studio_unit")
+          [[ "$master_after" =~ ^[1-9][0-9]*$ ]]
+          [[ "$studio_pid" =~ ^[1-9][0-9]*$ ]]
+          test "$master_after" != "$master_before"
+          test "$rumble_after" = "$rumble_before"
+          test "$youtube_after" = "$youtube_before"
+
+          studio_socket=0
+          for _ in $(seq 1 30); do
+            studio_socket=$(sudo ss -ntpH state established | awk -v q="pid=$studio_pid" 'index($0,q)&&index($0,":1935"){n++} END{print n+0}')
+            if [[ "$studio_socket" -ge 1 ]]; then break; fi
+            sleep 1
+          done
+          test "$studio_socket" -ge 1
+
+          rumble_socket=$(sudo ss -ntpH state established | awk -v q="pid=$rumble_after" 'index($0,q)&&index($0,":1935"){n++} END{print n+0}')
+          youtube_socket=$(sudo ss -ntpH state established | awk -v q="pid=$youtube_after" 'index($0,q)&&index($0,":443"){n++} END{print n+0}')
+          test "$rumble_socket" -ge 1
+          test "$youtube_socket" -ge 1
+
+          studio_cpu=$(ps -p "$studio_pid" -o pcpu= | xargs)
+          master_cpu=$(ps --ppid "$master_after" -o pcpu= --sort=-pcpu | head -n1 | xargs || true)
+          cpu_idle=$(vmstat 1 2 | tail -n1 | awk '{print $15}')
+          cpu_pressure=$(awk '/^some/{for(i=1;i<=NF;i++)if($i~/^avg10=/){split($i,a,"=");print a[2]}}' /proc/pressure/cpu)
+          studio_restarts=$(systemctl show -p NRestarts --value "$studio_unit")
+
+          trap - ERR
+          echo "ISOLATED_STUDIO_PILOT=PASS master_pid=$master_after rumble_pid_unchanged=$rumble_after youtube_v3_pid_unchanged=$youtube_after studio_pid=$studio_pid studio_rtmp_socket=$studio_socket rumble_rtmp_socket=$rumble_socket youtube_socket=$youtube_socket studio_cpu_pct=$studio_cpu master_cpu_pct=${master_cpu:-unknown} cpu_idle_pct=$cpu_idle cpu_pressure_avg10=$cpu_pressure studio_restarts=$studio_restarts"
+          REMOTE
