@@ -32,6 +32,42 @@ connected(){
   [[ "$p" =~ ^[1-9][0-9]*$ ]] || return 1
   ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'
 }
+progress_field(){
+  local key=$1
+  sed -n "s/^${key}=//p" "$PROGRESS" 2>/dev/null | tail -n1
+}
+wait_progress_advance(){
+  local previous=$1 current deadline=$(( $(date +%s) + 6 ))
+  while (( $(date +%s) <= deadline )); do
+    current=$(progress_field out_time_us)
+    if [[ "$current" =~ ^[0-9]+$ ]] && (( current > previous )); then
+      printf '%s\n' "$current"
+      return 0
+    fi
+    sleep 0.2
+  done
+  return 1
+}
+measure_interval_speed(){
+  local baseline first middle second t1 t2
+  baseline=$(progress_field out_time_us)
+  [[ "$baseline" =~ ^[0-9]+$ ]] || return 1
+  first=$(wait_progress_advance "$baseline") || return 1
+  t1=$(date +%s%N)
+  sleep 6
+  middle=$(progress_field out_time_us)
+  [[ "$middle" =~ ^[0-9]+$ ]] || return 1
+  second=$(wait_progress_advance "$middle") || return 1
+  t2=$(date +%s%N)
+  python3 - "$first" "$second" "$t1" "$t2" <<'PY'
+import sys
+m1,m2,t1,t2=map(int,sys.argv[1:])
+media=(m2-m1)/1_000_000.0
+wall=(t2-t1)/1_000_000_000.0
+assert media > 0 and wall > 0, (media,wall)
+print(f'{media/wall:.4f}')
+PY
+}
 fail(){ echo "YOUTUBE_V3_VERIFY=FAIL mode=$MODE reason=$1" >&2; exit 1; }
 
 systemctl is-active --quiet "$MASTER" || fail master_inactive
@@ -81,12 +117,17 @@ PY
 [[ -s "$PROGRESS" ]] || fail youtube_progress_missing
 age=$(( $(date +%s) - $(stat -c %Y "$PROGRESS") ))
 (( age < 10 )) || fail "youtube_progress_stale:${age}s"
-speed=$(sed -n 's/^speed=\([0-9.]*\)x$/\1/p' "$PROGRESS" | tail -n1)
-fps=$(sed -n 's/^fps=\([0-9.]*\)$/\1/p' "$PROGRESS" | tail -n1)
-drop=$(sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$PROGRESS" | tail -n1)
-dup=$(sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$PROGRESS" | tail -n1)
-[[ -n "$speed" ]] || fail youtube_speed_missing
-python3 - "$speed" <<'PY' || fail youtube_below_realtime
+reported_speed=$(progress_field speed)
+fps=$(progress_field fps)
+drop=$(progress_field drop_frames)
+dup=$(progress_field dup_frames)
+Y_BEFORE_SAMPLE=$(pid "$YOUTUBE")
+interval_speed=$(measure_interval_speed) || fail youtube_interval_measurement_failed
+Y_AFTER_SAMPLE=$(pid "$YOUTUBE")
+test "$Y_AFTER_SAMPLE" = "$Y_BEFORE_SAMPLE" || fail youtube_pid_changed_during_interval_sample
+age=$(( $(date +%s) - $(stat -c %Y "$PROGRESS") ))
+(( age < 10 )) || fail "youtube_progress_stale_after_sample:${age}s"
+python3 - "$interval_speed" <<'PY' || fail youtube_below_realtime
 import sys
 assert float(sys.argv[1]) >= 0.98, sys.argv[1]
 PY
@@ -100,8 +141,8 @@ fi
 if grep -Fq 'Circular buffer overrun' <<<"$journal"; then
   fail youtube_udp_circular_buffer_overrun
 fi
-# The copy/remux normalizer may encounter incomplete packets while joining the
-# live UDP stream. The downstream compositor decoder may not.
+# Acquisition errors are isolated behind the [v3-ingest] prefix. Once the
+# normalizer emits its clean program, the compositor decoder must remain clean.
 if grep -Ev '\[v3-ingest\]' <<<"$journal" | grep -Eq 'non-existing PPS|decode_slice_header error|no frame!'; then
   fail downstream_decoder_not_synchronized
 fi
@@ -123,8 +164,9 @@ if [[ "$MODE" == final ]]; then
   grep -Fq 'recover_youtube_destination' "$HEALTHCHECK" || fail healthcheck_not_generation_aware
   grep -Fq 'YOUTUBE_GENERATION_FILE=' "$HEALTHCHECK" || fail healthcheck_generation_marker_missing
   grep -Fq 'YOUTUBE_CUTOVER_MARKER=' "$HEALTHCHECK" || fail healthcheck_cutover_guard_missing
+  grep -Fq 'YOUTUBE_V3_SAMPLE_FILE=' "$HEALTHCHECK" || fail healthcheck_interval_sample_missing
 fi
 
 pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"="); print a[2]}}' /proc/pressure/cpu 2>/dev/null || true)
-printf 'YOUTUBE_V3_VERIFY=PASS mode=%s master=%s rumble=%s youtube=%s youtube_restarts=%s speed=%sx fps=%s drop=%s dup=%s cpu_pressure_avg10=%s rumble_1935=yes youtube_443=yes v2=%s\n' \
-  "$MODE" "$M" "$R" "$Y" "$(restarts "$Y")" "$speed" "${fps:-NA}" "${drop:-NA}" "${dup:-NA}" "${pressure:-NA}" "$([[ "$MODE" == final ]] && echo quarantined || echo rollback_ready)"
+printf 'YOUTUBE_V3_VERIFY=PASS mode=%s master=%s rumble=%s youtube=%s youtube_restarts=%s interval_speed=%sx reported_speed=%s fps=%s drop=%s dup=%s cpu_pressure_avg10=%s rumble_1935=yes youtube_443=yes v2=%s\n' \
+  "$MODE" "$M" "$R" "$Y_AFTER_SAMPLE" "$(restarts "$YOUTUBE")" "$interval_speed" "${reported_speed:-NA}" "${fps:-NA}" "${drop:-NA}" "${dup:-NA}" "${pressure:-NA}" "$([[ "$MODE" == final ]] && echo quarantined || echo rollback_ready)"
