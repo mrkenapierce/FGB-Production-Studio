@@ -9,7 +9,7 @@ source "$ENV_FILE"
 : "${YOUTUBE_STREAM_KEY:?YOUTUBE_STREAM_KEY is required}"
 : "${YOUTUBE_LOCAL_UDP_URL:=udp://127.0.0.1:1939?pkt_size=1316}"
 : "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"
-: "${YOUTUBE_V3_STARTUP_DELAY_SECONDS:=10}"
+: "${YOUTUBE_V3_STARTUP_DELAY_SECONDS:=1}"
 
 [[ "$YOUTUBE_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || { echo "YouTube input must be loopback UDP" >&2; exit 78; }
 [[ "$YOUTUBE_V3_STARTUP_DELAY_SECONDS" =~ ^[0-9]+$ ]] || { echo "YOUTUBE_V3_STARTUP_DELAY_SECONDS must be a nonnegative integer" >&2; exit 78; }
