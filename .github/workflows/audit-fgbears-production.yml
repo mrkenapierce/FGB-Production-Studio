@@ -1,4 +1,4 @@
-name: Deploy YouTube Direct Master Audio
+name: Deploy Minimal Rumble + YouTube Topology
 
 on:
   push:
@@ -12,13 +12,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: fgbears-youtube-audio-repair
+  group: fgbears-minimal-output-cutover
   cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
@@ -27,14 +27,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: lovable-routing-bridge-20260902
-      - name: Validate direct-audio source
+      - name: Validate minimal topology
         run: |
           set -Eeuo pipefail
-          bash -n services/fgbears-live/bin/youtube-lovable-compositor.sh
-          grep -Fq -- '-c:a copy' services/fgbears-live/bin/youtube-lovable-compositor.sh
-          ! grep -Fq -- '-af ' services/fgbears-live/bin/youtube-lovable-compositor.sh
-          ! grep -Fq -- '-ar ' services/fgbears-live/bin/youtube-lovable-compositor.sh
-      - name: Configure SSH and stage
+          bash -n services/fgbears-live/bin/youtube-output-minimal.sh
+          python3 -m py_compile services/fgbears-live/bin/youtube-overlay-stream.py
+          grep -Fq -- '-c:a copy' services/fgbears-live/bin/youtube-output-minimal.sh
+          grep -Fq -- 'overlay=462:104' services/fgbears-live/bin/youtube-output-minimal.sh
+          grep -Fq -- 'video_size 798x470' services/fgbears-live/bin/youtube-output-minimal.sh
+          grep -Fq -- '-c copy' services/fgbears-live/bin/rumble-relay.sh
+      - name: Stage minimal YouTube branch
         run: |
           set -Eeuo pipefail
           install -d -m700 ~/.ssh
@@ -42,63 +44,75 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
           target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
-          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-lovable-compositor.sh "$target:/tmp/youtube-lovable-compositor.sh.audio"
-      - name: Install and certify YouTube audio passthrough
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-output-minimal.sh "$target:/tmp/youtube-output-minimal.sh"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-overlay-stream.py "$target:/tmp/youtube-overlay-stream.py"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/systemd/fgbears-youtube-output.service "$target:/tmp/fgbears-youtube-output.service"
+      - name: Cut over YouTube only
         shell: bash
         run: |
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          M=fgbears-live.service; R=fgbears-rumble-relay.service; C=fgbears-youtube-lovable-compositor.service; Q=fgbears-youtube-lovable-routing.service; T=fgbears-youtube-audio-watchdog.timer; L=fgbears-youtube-relay.service
-          SCRIPT=/opt/fgbears-live/bin/youtube-lovable-compositor.sh
-          MON=/run/fgbears-youtube-lovable-compositor
+          M=fgbears-live.service
+          R=fgbears-rumble-relay.service
+          N=fgbears-youtube-output.service
+          OLD=(fgbears-youtube-audio-watchdog.timer fgbears-youtube-audio-watchdog.service fgbears-youtube-lovable-compositor.service fgbears-youtube-lovable-routing.service fgbears-youtube-relay.service fgbears-youtube-router.service)
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
           nr(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
           conn(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
-          latest_complete(){ find "$MON" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}'; }
 
-          systemctl is-active --quiet "$M"; systemctl is-active --quiet "$R"; systemctl is-active --quiet "$Q"
+          systemctl is-active --quiet "$M"
+          systemctl is-active --quiet "$R"
           M0=$(pid "$M"); R0=$(pid "$R"); MN0=$(nr "$M"); RN0=$(nr "$R")
           conn "$R0" 1935
-          ! systemctl is-active --quiet "$L"
+          echo "PRE master=$M0 rumble=$R0"
 
-          backup=$(mktemp /tmp/yt-comp-audio.XXXXXX)
-          cp -a "$SCRIPT" "$backup"
-          ok=0
-          rollback(){ rc=$?; if ((ok==0)); then echo "ROLLBACK_YOUTUBE_AUDIO rc=$rc" >&2; install -m0755 "$backup" "$SCRIPT"; systemctl reset-failed "$C" || true; systemctl restart "$C" || true; systemctl start "$T" || true; fi; rm -f "$backup" /tmp/youtube-lovable-compositor.sh.audio; exit "$rc"; }
-          trap rollback EXIT
+          install -m0755 /tmp/youtube-output-minimal.sh /opt/fgbears-live/bin/youtube-output-minimal.sh
+          install -m0755 /tmp/youtube-overlay-stream.py /opt/fgbears-live/bin/youtube-overlay-stream.py
+          install -m0644 /tmp/fgbears-youtube-output.service /etc/systemd/system/fgbears-youtube-output.service
 
-          systemctl stop "$T" 2>/dev/null || true
-          install -m0755 /tmp/youtube-lovable-compositor.sh.audio "$SCRIPT"
-          systemctl reset-failed "$C" || true
-          systemctl restart "$C"
-          for _ in $(seq 1 30); do
-            CP=$(pid "$C")
-            systemctl is-active --quiet "$C" && conn "$CP" 443 && break
+          # Stop only destination-specific legacy machinery. Shared master and
+          # Rumble are never stopped or restarted in this cutover.
+          for u in "${OLD[@]}"; do systemctl stop "$u" 2>/dev/null || true; done
+          systemctl daemon-reload
+          systemctl enable "$N"
+          systemctl reset-failed "$N" || true
+          systemctl restart "$N"
+
+          for _ in $(seq 1 35); do
+            NP=$(pid "$N")
+            if systemctl is-active --quiet "$N" && conn "$NP" 443; then break; fi
             sleep 1
           done
-          CP=$(pid "$C"); systemctl is-active --quiet "$C"; conn "$CP" 443
+          NP=$(pid "$N")
+          systemctl is-active --quiet "$N"
+          conn "$NP" 443
+
+          # Exactly one YouTube sender may own an established 443 connection.
+          owners=$(ss -ntpH state established 2>/dev/null | awk '/:443/ && /ffmpeg/{n++} END{print n+0}')
+          [[ "$owners" -eq 1 ]]
+
           [[ "$(pid "$M")" == "$M0" && "$(pid "$R")" == "$R0" ]]
           [[ "$(nr "$M")" == "$MN0" && "$(nr "$R")" == "$RN0" ]]
           conn "$R0" 1935
 
-          seg=''
-          for _ in $(seq 1 20); do seg=$(latest_complete || true); [[ -n "$seg" && -s "$seg" ]] && break; sleep 1; done
-          test -s "$seg"
-          probe=$(ffprobe -v fatal -count_packets -show_entries stream=codec_type,codec_name,width,height,r_frame_rate,sample_rate,channels,nb_read_packets -of json "$seg")
-          printf '%s' "$probe" | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p["streams"];v=next(x for x in s if x.get("codec_type")=="video");a=next(x for x in s if x.get("codec_type")=="audio");assert (v["width"],v["height"],v["r_frame_rate"])==(1280,720,"30/1");assert a["codec_name"]=="aac";assert str(a["sample_rate"])=="48000";assert a["channels"]==2;assert int(a.get("nb_read_packets") or 0)>20'
-          vol=$(ffmpeg -nostdin -hide_banner -i "$seg" -vn -af volumedetect -f null - 2>&1 | awk -F': ' '/max_volume:/{print $2}' | tail -n1 || true)
-          echo "YOUTUBE_AUDIO_MONITOR max_volume=${vol:-unknown}"
+          # Prove the single YouTube service stays up and connected through a
+          # short sustained hold instead of accepting a momentary connection.
+          for _ in $(seq 1 12); do
+            [[ "$(pid "$N")" == "$NP" ]]
+            systemctl is-active --quiet "$N"
+            conn "$NP" 443
+            [[ "$(pid "$M")" == "$M0" && "$(pid "$R")" == "$R0" ]]
+            sleep 2
+          done
 
-          mkdir -p /run/fgbears-youtube-transport-watchdog
-          echo "$CP" > /run/fgbears-youtube-transport-watchdog/last-compositor-pid
-          systemctl start "$T"
-          sleep 2
-          systemctl is-active --quiet "$T"
-          ! systemctl is-active --quiet "$L"
+          # Permanently remove competing automatic owners from the live host.
+          for u in "${OLD[@]}"; do
+            systemctl disable "$u" >/dev/null 2>&1 || true
+            systemctl mask --runtime "$u" >/dev/null 2>&1 || true
+          done
+
+          cpu=$(ps -p "$NP" -o %cpu= | awk '{print $1+0}')
           speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
-          echo "YOUTUBE_DIRECT_AUDIO=PASS master=$M0 rumble=$R0 compositor=$CP audio=AAC/48000/2 passthrough=copy speed=${speed:-unknown}x"
-          ok=1
-          trap - EXIT
-          rm -f "$backup" /tmp/youtube-lovable-compositor.sh.audio
+          echo "MINIMAL_TOPOLOGY=PASS master=$M0 rumble=$R0 youtube=$NP cpu=${cpu}% speed=${speed:-unknown}x audio=master-copy overlay=inline"
           REMOTE
