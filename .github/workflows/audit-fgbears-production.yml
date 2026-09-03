@@ -1,4 +1,4 @@
-name: Deploy YouTube Timing Fix
+name: Inspect Public YouTube Playback Sizing
 
 on:
   push:
@@ -11,119 +11,41 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: fgbears-youtube-timing-fix
-  cancel-in-progress: false
-
 jobs:
-  deploy:
+  inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 7
-    env:
-      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-      ORACLE_USER: ${{ secrets.ORACLE_USER }}
-      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
-      - name: Validate source
+      - name: Install playback inspection tools
         shell: bash
         run: |
           set -Eeuo pipefail
-          python3 -m py_compile services/fgbears-live/bin/youtube-question-mask.py
-          bash -n services/fgbears-live/bin/youtube-lovable-compositor.sh
-          grep -Fq 'POLL_SECONDS = max(0.10' services/fgbears-live/bin/youtube-question-mask.py
-          grep -Fq 'question_active or mask_active or prearmed' services/fgbears-live/bin/youtube-question-mask.py
-          grep -Fq 'YOUTUBE_OVERLAY_FPS=15' services/fgbears-live/bin/youtube-lovable-compositor.sh
-          grep -Fq 'YOUTUBE_QUESTION_MASK_POLL_SECONDS=0.20' services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service
-      - name: Configure SSH and stage
+          python3 -m pip install --quiet --disable-pip-version-check yt-dlp
+          if ! command -v ffprobe >/dev/null || ! command -v ffmpeg >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ffmpeg
+          fi
+      - name: Inspect public live rendition
         shell: bash
         run: |
           set -Eeuo pipefail
-          install -d -m700 ~/.ssh
-          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
-          chmod 600 ~/.ssh/oracle_key
-          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-          target="${ORACLE_USER:-ubuntu}@$ORACLE_HOST"
-          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-question-mask.py "$target:/tmp/youtube-question-mask.py.new"
-          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-lovable-compositor.sh "$target:/tmp/youtube-lovable-compositor.sh.new"
-          scp -i ~/.ssh/oracle_key services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service "$target:/tmp/fgbears-youtube-lovable-routing.service.new"
-      - name: Install YouTube-only timing fix
-        shell: bash
-        run: |
-          set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          MASTER=fgbears-live.service
-          RUMBLE=fgbears-rumble-relay.service
-          ROUTING=fgbears-youtube-lovable-routing.service
-          COMP=fgbears-youtube-lovable-compositor.service
-          LEGACY=fgbears-youtube-relay.service
-          WT=fgbears-youtube-audio-watchdog.timer
-          MASK=/opt/fgbears-live/bin/youtube-question-mask.py
-          COMPSH=/opt/fgbears-live/bin/youtube-lovable-compositor.sh
-          UNIT=/etc/systemd/system/fgbears-youtube-lovable-routing.service
-          MONDIR=/run/fgbears-youtube-lovable-compositor
-          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-          nr(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
-          conn(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
-          M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE"); MN0=$(nr "$MASTER"); RN0=$(nr "$RUMBLE")
-          systemctl is-active --quiet "$MASTER"
-          systemctl is-active --quiet "$RUMBLE"
-          ! systemctl is-active --quiet "$LEGACY"
-          conn "$R0" 1935
-          BACK=$(mktemp -d /tmp/fgb-yt-timing.XXXXXX)
-          cp -a "$MASK" "$BACK/mask"
-          cp -a "$COMPSH" "$BACK/comp"
-          cp -a "$UNIT" "$BACK/unit"
-          ok=0
-          rollback(){ rc=$?; if ((ok==0)); then echo "ROLLBACK_YOUTUBE_TIMING rc=$rc" >&2; systemctl stop "$WT" 2>/dev/null || true; install -m0755 "$BACK/mask" "$MASK"; install -m0755 "$BACK/comp" "$COMPSH"; install -m0644 "$BACK/unit" "$UNIT"; systemctl daemon-reload; systemctl reset-failed "$ROUTING" "$COMP" || true; systemctl restart "$ROUTING" || true; systemctl restart "$COMP" || true; systemctl start "$WT" || true; fi; rm -rf "$BACK"; exit "$rc"; }
-          trap rollback EXIT
-          systemctl stop "$WT" 2>/dev/null || true
-          install -m0755 /tmp/youtube-question-mask.py.new "$MASK"
-          install -m0755 /tmp/youtube-lovable-compositor.sh.new "$COMPSH"
-          install -m0644 /tmp/fgbears-youtube-lovable-routing.service.new "$UNIT"
-          systemctl daemon-reload
-          systemctl reset-failed "$ROUTING" "$COMP" || true
-          systemctl restart "$ROUTING"
-          systemctl restart "$COMP"
-          C=0
-          for _ in $(seq 1 40); do
-            [[ "$(pid "$MASTER")" == "$M0" && "$(pid "$RUMBLE")" == "$R0" ]] || exit 41
-            [[ "$(nr "$MASTER")" == "$MN0" && "$(nr "$RUMBLE")" == "$RN0" ]] || exit 42
-            C=$(pid "$COMP")
-            h=$(curl -fsS --max-time 2 http://127.0.0.1:8791/healthz 2>/dev/null || true)
-            if conn "$C" 443 && printf '%s' "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("canvas")==[1280,720];assert p.get("fps")==15;assert abs(float(p.get("pollSeconds"))-0.2)<.01;assert p.get("maskRegion")=={"x":462,"y":104,"width":798,"height":470}' 2>/dev/null; then break; fi
-            sleep 1
-          done
-          conn "$C" 443
-          ! systemctl is-active --quiet "$LEGACY"
-          seg=''
-          for _ in $(seq 1 20); do seg=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}'); [[ -n "$seg" && -s "$seg" ]] && break; sleep 1; done
-          test -s "$seg"
-          ffprobe -v fatal -show_entries stream=codec_type,width,height,r_frame_rate,sample_rate,channels -of json "$seg" | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p["streams"];v=next(x for x in s if x.get("codec_type")=="video");a=next(x for x in s if x.get("codec_type")=="audio");assert (v["width"],v["height"])==(1280,720);assert v["r_frame_rate"]=="30/1";assert str(a["sample_rate"])=="48000";assert a["channels"]==2'
-          ffprobe -v error -select_streams v:0 -show_entries frame=best_effort_timestamp_time -of csv=p=0 "$seg" >/tmp/pts
-          python3 -c 'from pathlib import Path;x=[float(s.split(",")[0]) for s in Path("/tmp/pts").read_text().splitlines() if s.strip()];d=[b-a for a,b in zip(x,x[1:])];assert d and max(abs(z-1/30) for z in d)<.004'
-          seen=0; misses=0; deadline=$(( $(date +%s)+180 ))
-          while (( $(date +%s)<deadline )); do
-            remote=$(curl -fsS --max-time 1.5 'https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing?_verify=1' 2>/dev/null || echo '{}')
-            localh=$(curl -fsS --max-time 1 http://127.0.0.1:8791/healthz 2>/dev/null || echo '{}')
-            vals=$(python3 -c 'import json,sys;r=json.loads(sys.argv[1]);t=r.get("trivia") or {};l=json.loads(sys.argv[2]);direct=int(t.get("phase")=="question" or t.get("questionActive") is True or t.get("youtubeMaskActive") is True);pre=int(t.get("active") is True and t.get("phase")=="transition" and not (t.get("adsVisible") is True or t.get("isAdBreak") is True or t.get("adBreakActive") is True));print(direct,pre,int(l.get("active") is True))' "$remote" "$localh")
-            read -r direct pre localactive <<<"$vals"
-            if ((direct==1 || pre==1)); then seen=$((seen+1)); if ((localactive!=1)); then sleep .35; localh=$(curl -fsS --max-time 1 http://127.0.0.1:8791/healthz || echo '{}'); localactive=$(python3 -c 'import json,sys;print(int(json.loads(sys.argv[1]).get("active") is True))' "$localh"); ((localactive==1)) || misses=$((misses+1)); fi; fi
-            ((seen>=10)) && break
-            sleep .2
-          done
-          echo "QUESTION_SIGNAL_CHECK seen=$seen misses=$misses"
-          ((seen>0 && misses==0))
-          maxcpu=0
-          for _ in $(seq 1 10); do [[ "$(pid "$MASTER")" == "$M0" && "$(pid "$RUMBLE")" == "$R0" ]] || exit 43; [[ "$(pid "$COMP")" == "$C" ]] || exit 44; conn "$C" 443 || exit 45; cpu=$(ps -p "$C" -o %cpu= | awk '{print $1+0}'); maxcpu=$(python3 -c 'import sys;print(max(float(sys.argv[1]),float(sys.argv[2])))' "$maxcpu" "$cpu"); sleep 2; done
-          systemctl start "$WT"
-          sleep 2
-          ! systemctl is-active --quiet "$LEGACY"
-          [[ "$(pid "$MASTER")" == "$M0" && "$(pid "$RUMBLE")" == "$R0" ]]
-          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
-          echo "YOUTUBE_TIMING_FIX=PASS master=$M0 rumble=$R0 compositor=$C poll=0.20s overlay=15fps base=30fps live_signals=$seen misses=$misses max_cpu=${maxcpu}% speed=${speed:-unknown}x"
-          ok=1
-          trap - EXIT
-          rm -rf "$BACK" /tmp/youtube-question-mask.py.new /tmp/youtube-lovable-compositor.sh.new /tmp/fgbears-youtube-lovable-routing.service.new
-          REMOTE
+          Y='https://www.youtube.com/watch?v=QxmLpaargj0'
+          echo 'FORMATS_BEGIN'
+          yt-dlp --no-warnings -F "$Y" | tail -n 35
+          echo 'FORMATS_END'
+          url=$(yt-dlp --no-warnings -g -f 'best[protocol^=m3u8][height<=720]/best[height<=720]/best' "$Y" | head -n1)
+          test -n "$url"
+          ffprobe -v error -show_entries stream=codec_type,width,height,r_frame_rate,avg_frame_rate,sample_aspect_ratio,display_aspect_ratio -of json "$url" | tee public-probe.json
+          ffmpeg -nostdin -hide_banner -loglevel error -i "$url" -frames:v 1 -y youtube-public-frame.png
+          test -s youtube-public-frame.png
+          crop=$(ffmpeg -nostdin -hide_banner -loglevel info -i "$url" -vf 'cropdetect=24:2:0' -frames:v 45 -an -f null - 2>&1 | grep -oE 'crop=[0-9]+:[0-9]+:[0-9]+:[0-9]+' | tail -n1 || true)
+          echo "PUBLIC_CROP=${crop:-none}"
+      - name: Upload public playback evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-public-playback-frame
+          path: |
+            youtube-public-frame.png
+            public-probe.json
+          if-no-files-found: error
+          retention-days: 1
