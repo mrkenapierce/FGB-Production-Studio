@@ -1,0 +1,99 @@
+name: Audit YouTube v2 Current Failure
+
+on:
+  push:
+    branches: [lovable-routing-bridge-20260902]
+    paths: ['.github/workflows/audit-youtube-v2-current.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Read-only live audit
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          prop(){ systemctl show -p "$2" --value "$1" 2>/dev/null || true; }
+          conn(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          YOUTUBE=fgbears-youtube-v2.service
+          HEALTH=fgbears-youtube-v2-health.service
+          TIMER=fgbears-youtube-v2-health.timer
+          STATE=/run/fgbears-youtube-v2/overlay-state.json
+          RETIRED=(fgbears-youtube-output.service fgbears-youtube-relay.service fgbears-youtube-router.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service fgbears-youtube-audio-watchdog.service fgbears-youtube-audio-watchdog.timer)
+
+          M=$(pid "$MASTER"); R=$(pid "$RUMBLE"); Y=$(pid "$YOUTUBE")
+          echo "MASTER active=$(systemctl is-active "$MASTER" 2>/dev/null || true) pid=$M restarts=$(prop "$MASTER" NRestarts)"
+          if [[ -s /srv/fgbears-live/logs/ffmpeg-progress.log ]]; then
+            echo "MASTER_PROGRESS $(grep -E '^(frame|fps|drop_frames|speed|progress)=' /srv/fgbears-live/logs/ffmpeg-progress.log | tr '\n' ' ')"
+          fi
+          echo "RUMBLE active=$(systemctl is-active "$RUMBLE" 2>/dev/null || true) pid=$R restarts=$(prop "$RUMBLE" NRestarts) socket1935=$(conn "$R" 1935 && echo yes || echo no)"
+          echo "YOUTUBE active=$(systemctl is-active "$YOUTUBE" 2>/dev/null || true) enabled=$(systemctl is-enabled "$YOUTUBE" 2>/dev/null || true) pid=$Y restarts=$(prop "$YOUTUBE" NRestarts) result=$(prop "$YOUTUBE" Result) exec_status=$(prop "$YOUTUBE" ExecMainStatus) socket443=$(conn "$Y" 443 && echo yes || echo no) started='$(prop "$YOUTUBE" ActiveEnterTimestamp)'"
+          echo "HEALTH timer=$(systemctl is-active "$TIMER" 2>/dev/null || true) last_result=$(prop "$HEALTH" Result) last_status=$(prop "$HEALTH" ExecMainStatus) last_run='$(prop "$HEALTH" InactiveEnterTimestamp)'"
+
+          echo '--- overlay state ---'
+          if [[ -s "$STATE" ]]; then
+            python3 - "$STATE" <<'PY'
+import json,sys,time
+p=json.load(open(sys.argv[1],encoding='utf-8'))
+last=float(p.get('lastGoodEpoch') or 0)
+print('OVERLAY', 'phase='+str(p.get('phase')), 'active='+str(bool(p.get('active'))).lower(), 'age='+('%.2fs'%(time.time()-last) if last else 'unknown'), 'region='+str(p.get('maskRegion')), 'frameSize='+str(p.get('frameSize')))
+PY
+          else
+            echo 'OVERLAY missing'
+          fi
+
+          echo '--- resource and socket snapshot ---'
+          if [[ "$Y" =~ ^[1-9][0-9]*$ ]]; then
+            ps -p "$Y" -o pid=,ppid=,etimes=,%cpu=,%mem=,rss=,stat=,comm=
+            ss -tinp state established 2>/dev/null | awk -v q="pid=$Y" 'index($0,q){print; getline; print}' || true
+          fi
+          echo "LOAD $(cut -d' ' -f1-3 /proc/loadavg)"
+
+          echo '--- retired unit quarantine ---'
+          for u in "${RETIRED[@]}"; do
+            echo "RETIRED unit=$u active=$(systemctl is-active "$u" 2>/dev/null || true) enabled=$(systemctl is-enabled "$u" 2>/dev/null || true) pid=$(pid "$u") link=$(readlink "/etc/systemd/system/$u" 2>/dev/null || true)"
+          done
+
+          echo '--- recent v2 journal (stream key redacted) ---'
+          set +u
+          source /etc/fgbears-live/stream.env
+          export REDACT_KEY="${YOUTUBE_STREAM_KEY:-}"
+          set -u
+          journalctl -u "$YOUTUBE" --since '-20 minutes' --no-pager -o short-iso 2>/dev/null | tail -n 220 | python3 -c 'import os,sys;k=os.environ.get("REDACT_KEY","");s=sys.stdin.read();print(s.replace(k,"[STREAM_KEY_REDACTED]") if k else s,end="")'
+
+          echo '--- passive health journal ---'
+          journalctl -u "$HEALTH" --since '-30 minutes' --no-pager -o short-iso 2>/dev/null | tail -n 80 || true
+
+          echo '--- 30 second stability observation ---'
+          Y0=$(pid "$YOUTUBE"); YN0=$(prop "$YOUTUBE" NRestarts); M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE")
+          sleep 30
+          Y1=$(pid "$YOUTUBE"); YN1=$(prop "$YOUTUBE" NRestarts)
+          echo "OBSERVE youtube_pid_before=$Y0 youtube_pid_after=$Y1 restarts_before=$YN0 restarts_after=$YN1 socket443=$(conn "$Y1" 443 && echo yes || echo no) master_same=$([[ $(pid "$MASTER") == "$M0" ]] && echo yes || echo no) rumble_same=$([[ $(pid "$RUMBLE") == "$R0" ]] && echo yes || echo no) rumble1935=$(conn "$(pid "$RUMBLE")" 1935 && echo yes || echo no)"
+          REMOTE
