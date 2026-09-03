@@ -1,3 +1,4 @@
+# Activation revision 3: test normalized FLV codec-tag handling.
 name: Activate Rumble Studio Shadow Uplink
 
 on:
