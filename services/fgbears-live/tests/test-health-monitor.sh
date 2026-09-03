@@ -7,8 +7,10 @@ TIMER="$ROOT/systemd/fgbears-live-health.timer"
 INSTALL="$ROOT/bin/install.sh"
 
 bash -n "$HEALTH"
-grep -Fq 'YOUTUBE_SERVICE=${YOUTUBE_SERVICE:-fgbears-youtube-v3.service}' "$HEALTH"
-grep -Fq 'YOUTUBE_PROGRESS_FILE=${YOUTUBE_PROGRESS_FILE:-/run/fgbears-youtube-v3/ffmpeg-progress.log}' "$HEALTH"
+grep -Fq 'YOUTUBE_SERVICE=fgbears-youtube-v3.service' "$HEALTH"
+grep -Fq 'YOUTUBE_PROGRESS_FILE=/run/fgbears-youtube-v3/ffmpeg-progress.log' "$HEALTH"
+! grep -Fq 'YOUTUBE_SERVICE=${YOUTUBE_SERVICE:-' "$HEALTH"
+! grep -Fq 'YOUTUBE_PROGRESS_FILE=${YOUTUBE_PROGRESS_FILE:-' "$HEALTH"
 grep -Fq 'recover_youtube_v3()' "$HEALTH"
 grep -Fq 'check_youtube_v3_pacing()' "$HEALTH"
 grep -Fq 'systemctl restart "$YOUTUBE_SERVICE"' "$HEALTH"
@@ -19,6 +21,8 @@ python3 - "$HEALTH" <<'PY'
 from pathlib import Path
 import re,sys
 text=Path(sys.argv[1]).read_text()
+assert 'YOUTUBE_SERVICE=fgbears-youtube-v3.service' in text
+assert 'YOUTUBE_SERVICE=${YOUTUBE_SERVICE:-' not in text
 m=re.search(r'recover_youtube_v3\(\) \{(.*?)\n\}',text,re.S); assert m
 body=m.group(1)
 assert 'systemctl restart "$YOUTUBE_SERVICE"' in body
