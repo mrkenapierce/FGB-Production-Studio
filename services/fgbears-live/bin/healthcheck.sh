@@ -26,6 +26,7 @@ YOUTUBE_CUTOVER_MARKER=/run/fgbears-youtube-v3/cutover-in-progress
 YOUTUBE_V2_SERVICE=fgbears-youtube-v2.service
 YOUTUBE_V3_SERVICE=fgbears-youtube-v3.service
 YOUTUBE_V3_PROGRESS_FILE=/run/fgbears-youtube-v3/ffmpeg-progress.log
+YOUTUBE_V3_SAMPLE_FILE=${YOUTUBE_V3_SAMPLE_FILE:-$HEALTH_STATE_DIR/youtube-v3-progress.sample}
 YOUTUBE_WARNING_FILE=${YOUTUBE_WARNING_FILE:-$HEALTH_STATE_DIR/youtube-v3-warning}
 AUDIO_HEALTH_BIN=${FGB_AUDIO_HEALTH_BIN:-/usr/local/bin/fgbears-audio-health}
 AUDIO_HEALTH_INTERVAL_SECONDS=${FGB_AUDIO_HEALTH_INTERVAL_SECONDS:-300}
@@ -76,8 +77,6 @@ youtube_generation() {
   case "$generation" in
     v2|v3) printf '%s\n' "$generation" ;;
     *)
-      # Bootstrap only. Deployment writes an explicit marker before changing
-      # either destination, so steady state never depends on inference.
       if systemctl is-active --quiet "$YOUTUBE_V3_SERVICE"; then printf 'v3\n'; else printf 'v2\n'; fi
       ;;
   esac
@@ -112,24 +111,50 @@ recover_youtube_destination() {
 }
 
 check_youtube_v3_pacing() {
-  local now updated age speed pressure warning="" generation
+  local now updated age pressure warning="" generation current_out current_pid
+  local previous_pid previous_epoch previous_out interval_speed temporary
   [[ ! -e "$YOUTUBE_CUTOVER_MARKER" ]] || return 0
   generation=$(youtube_generation)
-  [[ "$generation" == v3 ]] || { rm -f "$YOUTUBE_WARNING_FILE"; return 0; }
+  if [[ "$generation" != v3 ]]; then
+    rm -f "$YOUTUBE_WARNING_FILE" "$YOUTUBE_V3_SAMPLE_FILE"
+    return 0
+  fi
   systemctl is-active --quiet "$YOUTUBE_V3_SERVICE" || return 0
+
+  now=$(date +%s)
+  current_pid=$(systemctl show -p MainPID --value "$YOUTUBE_V3_SERVICE" 2>/dev/null || echo 0)
   if [[ ! -s "$YOUTUBE_V3_PROGRESS_FILE" ]]; then
     warning="PROGRESS_MISSING"
   else
-    now=$(date +%s)
     updated=$(stat -c %Y "$YOUTUBE_V3_PROGRESS_FILE" 2>/dev/null || echo 0)
     age=$((now - updated))
-    speed=$(sed -n 's/^speed=\([0-9.]*\)x$/\1/p' "$YOUTUBE_V3_PROGRESS_FILE" | tail -n1)
+    current_out=$(sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$YOUTUBE_V3_PROGRESS_FILE" | tail -n1)
     if (( age > 20 )); then
       warning="PROGRESS_STALE_${age}S"
-    elif [[ -n "$speed" ]] && ! python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$speed"; then
-      warning="BELOW_REALTIME_${speed}X"
+    elif [[ ! "$current_out" =~ ^[0-9]+$ ]]; then
+      warning="OUT_TIME_MISSING"
+    elif [[ "$current_pid" =~ ^[1-9][0-9]*$ && -s "$YOUTUBE_V3_SAMPLE_FILE" ]]; then
+      read -r previous_pid previous_epoch previous_out < "$YOUTUBE_V3_SAMPLE_FILE" || true
+      if [[ "$previous_pid" == "$current_pid" && "$previous_epoch" =~ ^[0-9]+$ && "$previous_out" =~ ^[0-9]+$ ]] \
+          && (( now > previous_epoch && current_out > previous_out )); then
+        interval_speed=$(python3 - "$previous_out" "$current_out" "$previous_epoch" "$now" <<'PY'
+import sys
+m1,m2,t1,t2=map(int,sys.argv[1:])
+print(f'{((m2-m1)/1_000_000.0)/(t2-t1):.4f}')
+PY
+        )
+        if ! python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$interval_speed"; then
+          warning="BELOW_REALTIME_INTERVAL_${interval_speed}X"
+        fi
+      fi
+    fi
+    if [[ "$current_pid" =~ ^[1-9][0-9]*$ && "$current_out" =~ ^[0-9]+$ ]]; then
+      temporary="${YOUTUBE_V3_SAMPLE_FILE}.partial"
+      printf '%s %s %s\n' "$current_pid" "$now" "$current_out" > "$temporary"
+      mv -f "$temporary" "$YOUTUBE_V3_SAMPLE_FILE"
     fi
   fi
+
   if journalctl -u "$YOUTUBE_V3_SERVICE" --since '-10 minutes' --no-pager 2>/dev/null | grep -Fq 'Circular buffer overrun'; then
     warning="${warning:+${warning}_}UDP_OVERRUN"
   fi
@@ -186,8 +211,6 @@ run_news_refresh
 [[ -r "$ENV_FILE" && -s "$PLAYLIST_FILE" ]] || exit 0
 if grep -q '^YOUTUBE_STREAM_KEY=REPLACE_WITH_YOUTUBE_STREAM_KEY$' "$ENV_FILE"; then exit 0; fi
 
-# Only destination recovery changes with the YouTube generation. Master, news,
-# crawl-independent lag sampling, and audio health remain continuously active.
 recover_youtube_destination || true
 check_youtube_v3_pacing
 
