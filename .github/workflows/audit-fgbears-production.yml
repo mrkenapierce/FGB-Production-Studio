@@ -1,51 +1,46 @@
-name: Inspect Public YouTube Playback Sizing
+name: Audit FGBears Production
 
 on:
-  push:
-    branches:
-      - lovable-routing-bridge-20260902
-    paths:
-      - '.github/workflows/audit-fgbears-production.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: fgbears-production-audit
+  cancel-in-progress: true
+
 jobs:
-  inspect:
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 4
+    env:
+      ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+      ORACLE_USER: ${{ secrets.ORACLE_USER }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
-      - name: Install playback inspection tools
+      - name: Configure SSH
+        run: |
+          set -Eeuo pipefail
+          install -d -m700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read-only current architecture audit
         shell: bash
         run: |
           set -Eeuo pipefail
-          python3 -m pip install --quiet --disable-pip-version-check yt-dlp
-          if ! command -v ffprobe >/dev/null || ! command -v ffmpeg >/dev/null; then
-            sudo apt-get update -qq
-            sudo apt-get install -y -qq ffmpeg
-          fi
-      - name: Inspect public live rendition
-        shell: bash
-        run: |
+          ssh -i ~/.ssh/oracle_key "${ORACLE_USER:-ubuntu}@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          Y='https://www.youtube.com/watch?v=QxmLpaargj0'
-          echo 'FORMATS_BEGIN'
-          yt-dlp --no-warnings -F "$Y" | tail -n 35
-          echo 'FORMATS_END'
-          url=$(yt-dlp --no-warnings -g -f 'best[protocol^=m3u8][height<=720]/best[height<=720]/best' "$Y" | head -n1)
-          test -n "$url"
-          ffprobe -v error -show_entries stream=codec_type,width,height,r_frame_rate,avg_frame_rate,sample_aspect_ratio,display_aspect_ratio -of json "$url" | tee public-probe.json
-          ffmpeg -nostdin -hide_banner -loglevel error -i "$url" -frames:v 1 -y youtube-public-frame.png
-          test -s youtube-public-frame.png
-          crop=$(ffmpeg -nostdin -hide_banner -loglevel info -i "$url" -vf 'cropdetect=24:2:0' -frames:v 45 -an -f null - 2>&1 | grep -oE 'crop=[0-9]+:[0-9]+:[0-9]+:[0-9]+' | tail -n1 || true)
-          echo "PUBLIC_CROP=${crop:-none}"
-      - name: Upload public playback evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: youtube-public-playback-frame
-          path: |
-            youtube-public-frame.png
-            public-probe.json
-          if-no-files-found: error
-          retention-days: 1
+          M=fgbears-live.service; R=fgbears-rumble-relay.service; Q=fgbears-youtube-lovable-routing.service; C=fgbears-youtube-lovable-compositor.service; L=fgbears-youtube-relay.service
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          conn(){ local p=$1 port=$2; ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
+          systemctl is-active --quiet "$M"; systemctl is-active --quiet "$R"; systemctl is-active --quiet "$Q"; systemctl is-active --quiet "$C"; ! systemctl is-active --quiet "$L"
+          RP=$(pid "$R"); CP=$(pid "$C"); conn "$RP" 1935; conn "$CP" 443
+          h=$(curl -fsS --max-time 2 http://127.0.0.1:8791/healthz)
+          printf '%s' "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("canvas")==[1280,720];assert p.get("maskRegion")=={"x":462,"y":104,"width":798,"height":470};assert p.get("fps")==15;assert abs(float(p.get("pollSeconds"))-0.20)<.01;assert p.get("failClosedDuringQuestion") is True'
+          seg=$(find /run/fgbears-youtube-lovable-compositor -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
+          ffprobe -v fatal -show_entries stream=codec_type,width,height,r_frame_rate,sample_rate,channels -of json "$seg" | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p["streams"];v=next(x for x in s if x.get("codec_type")=="video");a=next(x for x in s if x.get("codec_type")=="audio");assert (v["width"],v["height"])==(1280,720);assert v["r_frame_rate"]=="30/1";assert str(a["sample_rate"])=="48000";assert a["channels"]==2'
+          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
+          echo "PRODUCTION_AUDIT=PASS master=$(pid "$M") rumble=$RP routing=$(pid "$Q") compositor=$CP speed=${speed:-unknown}x poll=0.20s overlay=15fps output=1280x720/30"
+          REMOTE
