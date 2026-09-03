@@ -54,17 +54,12 @@ jobs:
             echo "MASTER_PROGRESS $(grep -E '^(frame|fps|drop_frames|speed|progress)=' /srv/fgbears-live/logs/ffmpeg-progress.log | tr '\n' ' ')"
           fi
           echo "RUMBLE active=$(systemctl is-active "$RUMBLE" 2>/dev/null || true) pid=$R restarts=$(prop "$RUMBLE" NRestarts) socket1935=$(conn "$R" 1935 && echo yes || echo no)"
-          echo "YOUTUBE active=$(systemctl is-active "$YOUTUBE" 2>/dev/null || true) enabled=$(systemctl is-enabled "$YOUTUBE" 2>/dev/null || true) pid=$Y restarts=$(prop "$YOUTUBE" NRestarts) result=$(prop "$YOUTUBE" Result) exec_status=$(prop "$YOUTUBE" ExecMainStatus) socket443=$(conn "$Y" 443 && echo yes || echo no) started='$(prop "$YOUTUBE" ActiveEnterTimestamp)'"
-          echo "HEALTH timer=$(systemctl is-active "$TIMER" 2>/dev/null || true) last_result=$(prop "$HEALTH" Result) last_status=$(prop "$HEALTH" ExecMainStatus) last_run='$(prop "$HEALTH" InactiveEnterTimestamp)'"
+          echo "YOUTUBE active=$(systemctl is-active "$YOUTUBE" 2>/dev/null || true) enabled=$(systemctl is-enabled "$YOUTUBE" 2>/dev/null || true) pid=$Y restarts=$(prop "$YOUTUBE" NRestarts) result=$(prop "$YOUTUBE" Result) exec_status=$(prop "$YOUTUBE" ExecMainStatus) socket443=$(conn "$Y" 443 && echo yes || echo no) started=$(prop "$YOUTUBE" ActiveEnterTimestamp | tr ' ' '_')"
+          echo "HEALTH timer=$(systemctl is-active "$TIMER" 2>/dev/null || true) last_result=$(prop "$HEALTH" Result) last_status=$(prop "$HEALTH" ExecMainStatus) last_run=$(prop "$HEALTH" InactiveEnterTimestamp | tr ' ' '_')"
 
           echo '--- overlay state ---'
           if [[ -s "$STATE" ]]; then
-            python3 - "$STATE" <<'PY'
-import json,sys,time
-p=json.load(open(sys.argv[1],encoding='utf-8'))
-last=float(p.get('lastGoodEpoch') or 0)
-print('OVERLAY', 'phase='+str(p.get('phase')), 'active='+str(bool(p.get('active'))).lower(), 'age='+('%.2fs'%(time.time()-last) if last else 'unknown'), 'region='+str(p.get('maskRegion')), 'frameSize='+str(p.get('frameSize')))
-PY
+            python3 -c 'import json,time; p=json.load(open("/run/fgbears-youtube-v2/overlay-state.json",encoding="utf-8")); last=float(p.get("lastGoodEpoch") or 0); print("OVERLAY phase=%s active=%s age=%s region=%s frameSize=%s"%(p.get("phase"),str(bool(p.get("active"))).lower(),("%.2fs"%(time.time()-last) if last else "unknown"),p.get("maskRegion"),p.get("frameSize")))'
           else
             echo 'OVERLAY missing'
           fi
