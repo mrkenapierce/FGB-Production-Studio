@@ -19,6 +19,7 @@ ROOT="$YOUTUBE_V3_RUNTIME_DIR/source"
 PLAYLIST="$ROOT/live.m3u8"
 COVER=/opt/fgbears-live/youtube-v3/youtube-trivia-cover.png
 PROGRESS="$YOUTUBE_V3_RUNTIME_DIR/output.progress"
+START_FILE="$YOUTUBE_V3_RUNTIME_DIR/output.start_epoch"
 [[ -r "$COVER" ]] || { echo "Missing cover: $COVER" >&2; exit 66; }
 
 for _ in $(seq 1 60); do
@@ -42,6 +43,7 @@ try: print(f'{vals[pos]:.6f}')
 except IndexError: print(f'{vals[-1]:.6f}')
 PY
 )
+printf '%s\n' "$START_EPOCH" > "$START_FILE"
 OFFSET=$(python3 - "$START_EPOCH" "$YOUTUBE_V3_PERIOD_SECONDS" <<'PY'
 import sys
 print(f'{float(sys.argv[1]) % float(sys.argv[2]):.6f}')
