@@ -1,0 +1,64 @@
+name: Restore Canonical Rumble Direct Relay
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/restore-rumble-direct.yml
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Restore direct Rumble without touching master or YouTube
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/rumble-relay.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/rumble-relay.restore.sh"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          env_file=/etc/fgbears-live/stream.env
+          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
+          youtube_before=$(systemctl show -p MainPID --value fgbears-youtube-v3.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]]
+          sudo test -r "$env_file"
+          sudo install -m 0755 /tmp/rumble-relay.restore.sh /usr/local/bin/fgbears-rumble-relay
+          sudo sed -i 's/^RUMBLE_STUDIO_ENABLE=.*/RUMBLE_STUDIO_ENABLE=0/' "$env_file"
+          sudo chown root:fgbears "$env_file"; sudo chmod 0640 "$env_file"
+          sudo systemctl reset-failed fgbears-rumble-relay.service
+          sudo systemctl restart fgbears-rumble-relay.service
+          sleep 8
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          rumble_pid=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          [[ "$rumble_pid" =~ ^[1-9][0-9]*$ ]]
+          test "$(systemctl show -p NRestarts --value fgbears-rumble-relay.service)" = 0
+          master_after=$(systemctl show -p MainPID --value fgbears-live.service)
+          youtube_after=$(systemctl show -p MainPID --value fgbears-youtube-v3.service)
+          test "$master_after" = "$master_before"
+          test "$youtube_after" = "$youtube_before"
+          sockets=$(sudo ss -ntpH state established | awk -v q="pid=$rumble_pid" 'index($0,q)&&index($0,":1935"){n++} END{print n+0}')
+          test "$sockets" -ge 1
+          sudo rm -f /tmp/rumble-relay.restore.sh
+          echo "RUMBLE_DIRECT_RESTORE=PASS master_pid_unchanged=$master_after youtube_v3_pid_unchanged=$youtube_after rumble_pid=$rumble_pid rtmp_sockets=$sockets"
+          REMOTE
