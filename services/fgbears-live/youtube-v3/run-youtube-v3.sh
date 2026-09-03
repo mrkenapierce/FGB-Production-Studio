@@ -33,37 +33,20 @@ progress_sink() {
   done
 }
 
-# A late UDP listener can enter the master MPEG-TS stream between H.264
-# parameter sets and the next IDR.  The ingest normalizer is a copy/remux only
-# stage: it does not decode, render, or re-encode.  FFmpeg stream-copy drops
-# leading non-key video packets by default, then dump_extra + MPEG-TS header
-# resend make the first downstream decodable GOP self-contained.  This keeps
-# the master/Rumble path untouched and costs only a lightweight local remux.
-ingest_normalizer() {
-  ffmpeg \
-    -hide_banner -nostdin -loglevel warning \
-    -fflags +genpts+discardcorrupt \
-    -err_detect ignore_err \
-    -probesize 2000000 -analyzeduration 3000000 \
-    -thread_queue_size 2048 -i "$LOCAL_INPUT" \
-    -map 0:v:0 -map 0:a:0 \
-    -c copy \
-    -bsf:v dump_extra=freq=keyframe \
-    -mpegts_flags +resend_headers+pat_pmt_at_frames \
-    -f mpegts pipe:1 \
-    2> >(sed -u 's/^/[v3-ingest] /' >&2)
-}
-
-# The compositor receives only the normalized MPEG-TS stream.  Both outgoing
-# clocks are rebuilt from decoded frame/sample counts, preserving the proven
-# YouTube A/V stabilization while Lovable remains isolated in the 5 fps worker.
+# v3 intentionally uses the exact proven v2 media path. The shared master
+# already emits MPEG-TS with resend_headers plus dump_extra on every keyframe,
+# so a late listener receives fresh PAT/PMT and H.264 SPS/PPS at the next IDR.
+# Keeping the destination to one FFmpeg process avoids the CPU and scheduling
+# penalty introduced by the rejected nested remux normalizer. Initial partial
+# GOP packets are discarded until the next self-contained keyframe; the master
+# and Rumble branches are never touched.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
   -progress pipe:3 -stats_period 2 \
   -fflags +genpts+discardcorrupt \
   -err_detect ignore_err \
-  -probesize 2000000 -analyzeduration 3000000 \
-  -thread_queue_size 2048 -i <(ingest_normalizer) \
+  -probesize 10000000 -analyzeduration 10000000 \
+  -thread_queue_size 2048 -i "$LOCAL_INPUT" \
   -thread_queue_size 64 \
   -f rawvideo -pixel_format rgba -video_size 798x470 -framerate 5 \
   -i <("$OVERLAY") \
