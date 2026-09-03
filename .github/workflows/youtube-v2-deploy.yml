@@ -2,6 +2,15 @@ name: Deploy YouTube v2 Difference Layer
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'services/fgbears-live/youtube-v2/**'
+      - 'services/fgbears-live/tools/build-youtube-rumble-trivia-card.py'
+      - 'services/fgbears-live/bin/healthcheck.sh'
+      - 'services/fgbears-live/systemd/fgbears-live.service'
+      - 'services/fgbears-live/quarantine/youtube-legacy/**'
+      - '.github/workflows/youtube-v2-deploy.yml'
 
 permissions:
   contents: read
