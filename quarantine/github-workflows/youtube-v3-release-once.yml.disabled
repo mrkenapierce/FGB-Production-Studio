@@ -1,0 +1,33 @@
+# QUARANTINED 2026-09-03
+# Original path: .github/workflows/youtube-v3-release-once.yml
+# Original blob: 04683caa643850c3178ed2ef0c54f029030811f5
+# Reason: dispatches the retired youtube-v3-deploy.yml cutover workflow.
+
+name: Release YouTube v3 Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/v3-cutover-trigger'
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-v3-release-once
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch audited v3 deployment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -Eeuo pipefail
+          gh workflow run youtube-v3-deploy.yml --ref main
+          echo 'YOUTUBE_V3_RELEASE_DISPATCH=PASS'
