@@ -37,38 +37,54 @@ jobs:
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           python3 - <<'PY'
-          import re, urllib.request
+          import json, re, time, urllib.request, urllib.parse
           video_id='QxmLpaargj0'
-          url=f'https://www.youtube.com/watch?v={video_id}&hl=en'
-          req=urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
-          try:
-              with urllib.request.urlopen(req, timeout=12) as r:
-                  body=r.read().decode('utf-8','replace')
-                  code=r.status
-          except Exception as e:
-              print(f'YOUTUBE_PUBLIC_PROBE=FAIL fetch={type(e).__name__}')
-              raise SystemExit(1)
-          print(f'watch_http={code}')
-          print(f'watch_bytes={len(body)}')
-          print(f'video_id_present={str(video_id in body).lower()}')
+          ua='Mozilla/5.0'
+          def fetch(url, data=None, headers=None, timeout=12):
+              h={'User-Agent':ua}
+              if headers: h.update(headers)
+              req=urllib.request.Request(url, data=data, headers=h)
+              with urllib.request.urlopen(req, timeout=timeout) as r:
+                  return r.status, r.read()
+          code, raw=fetch(f'https://www.youtube.com/watch?v={video_id}&hl=en')
+          body=raw.decode('utf-8','replace')
           live_now='"isLiveNow":true' in body or '"isLive":true' in body
-          offline='"isLiveNow":false' in body and 'LIVE_STREAM_OFFLINE' in body
+          print(f'watch_http={code}')
+          print(f'video_id_present={str(video_id in body).lower()}')
           print(f'live_marker={str(live_now).lower()}')
-          print(f'offline_marker={str(offline).lower()}')
-          m=re.search(r'"hlsManifestUrl":"([^"]+)"', body)
-          hls_ok=False
-          if m:
-              manifest=m.group(1).replace('\\u0026','&').replace('\\/','/')
+          key=re.search(r'"INNERTUBE_API_KEY":"([^"]+)"', body)
+          ver=re.search(r'"INNERTUBE_CLIENT_VERSION":"([^"]+)"', body)
+          hls=None
+          if key and ver:
+              payload=json.dumps({'context':{'client':{'clientName':'WEB','clientVersion':ver.group(1)}},'videoId':video_id,'contentCheckOk':True,'racyCheckOk':True}).encode()
+              pcode,praw=fetch('https://www.youtube.com/youtubei/v1/player?key='+key.group(1), payload, {'Content-Type':'application/json'})
+              player=json.loads(praw)
+              hls=(player.get('streamingData') or {}).get('hlsManifestUrl')
+              print(f'player_http={pcode}')
+              print(f'player_status={(player.get("playabilityStatus") or {}).get("status","unknown")}')
+          print(f'hls_manifest_present={str(bool(hls)).lower()}')
+          advancing=False
+          if hls:
+              def latest_token():
+                  _, mraw=fetch(hls)
+                  master=mraw.decode('utf-8','replace')
+                  variants=[x.strip() for x in master.splitlines() if x.strip() and not x.startswith('#')]
+                  media_url=urllib.parse.urljoin(hls, variants[0]) if variants else hls
+                  _, vraw=fetch(media_url)
+                  media=vraw.decode('utf-8','replace')
+                  seq=re.search(r'#EXT-X-MEDIA-SEQUENCE:(\d+)', media)
+                  segments=[x.strip() for x in media.splitlines() if x.strip() and not x.startswith('#')]
+                  token=(seq.group(1) if seq else '')+'|'+(segments[-1] if segments else '')
+                  return token
               try:
-                  hreq=urllib.request.Request(manifest, headers={'User-Agent':'Mozilla/5.0'})
-                  with urllib.request.urlopen(hreq, timeout=12) as hr:
-                      sample=hr.read(512)
-                      hls_ok=hr.status==200 and b'#EXTM3U' in sample
-              except Exception:
-                  hls_ok=False
-          print(f'hls_manifest_present={str(bool(m)).lower()}')
-          print(f'hls_fetch_ok={str(hls_ok).lower()}')
-          if code==200 and video_id in body and (live_now or hls_ok):
+                  first=latest_token()
+                  time.sleep(8)
+                  second=latest_token()
+                  advancing=bool(first and second and first != second)
+              except Exception as e:
+                  print(f'hls_probe_error={type(e).__name__}')
+          print(f'hls_advancing={str(advancing).lower()}')
+          if code==200 and video_id in body and live_now and advancing:
               print('YOUTUBE_PUBLIC_PROBE=PASS')
           else:
               print('YOUTUBE_PUBLIC_PROBE=INCONCLUSIVE')
