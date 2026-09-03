@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """FGBears YouTube v3 destination-only overlay worker.
 
-Media and control clocks are deliberately independent. The main thread emits a
-fixed local RGBA frame clock. A background control thread polls Lovable and only
-updates cached presentation state. Slow or failed routing requests therefore
-cannot stall the media pipe.
+The media frame clock and Lovable control clock are independent. The media pipe
+uses the same 10 fps compositor cadence proven by YouTube v2; routing requests
+run in a background thread and can never stall frame delivery.
 """
 from __future__ import annotations
 
@@ -24,7 +23,7 @@ from PIL import Image
 
 WIDTH = 798
 HEIGHT = 470
-FPS = 5.0
+FPS = 10.0
 POLL_SECONDS = 0.25
 ROUTING_TIMEOUT_SECONDS = 1.5
 ROUTING_URL = os.getenv(
@@ -61,7 +60,7 @@ def fetch() -> tuple[dict, float]:
             "Accept": "application/json",
             "Cache-Control": "no-cache",
             "Pragma": "no-cache",
-            "User-Agent": "FGBears-YouTube-v3-Control/1.0",
+            "User-Agent": "FGBears-YouTube-v3-Control/2.0",
         },
     )
     started = time.monotonic()
