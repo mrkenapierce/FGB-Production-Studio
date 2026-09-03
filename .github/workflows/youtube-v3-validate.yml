@@ -5,23 +5,17 @@ on:
     paths:
       - 'services/fgbears-live/youtube-v3/**'
       - 'services/fgbears-live/quarantine/youtube-v2-retired-20260903/**'
-      - 'services/fgbears-live/bin/install.sh'
       - 'services/fgbears-live/bin/healthcheck.sh'
       - '.github/workflows/youtube-v3-*.yml'
       - '.github/workflows/fgbears-live-monitor.yml'
-      - '.github/workflows/fgbears-live-deploy.yml'
-      - '.github/workflows/fgbears-youtube-key-activate.yml'
   push:
     branches: [main]
     paths:
       - 'services/fgbears-live/youtube-v3/**'
       - 'services/fgbears-live/quarantine/youtube-v2-retired-20260903/**'
-      - 'services/fgbears-live/bin/install.sh'
       - 'services/fgbears-live/bin/healthcheck.sh'
       - '.github/workflows/youtube-v3-*.yml'
       - '.github/workflows/fgbears-live-monitor.yml'
-      - '.github/workflows/fgbears-live-deploy.yml'
-      - '.github/workflows/fgbears-youtube-key-activate.yml'
 
 permissions:
   contents: read
@@ -47,20 +41,58 @@ jobs:
       - name: Static architecture invariants
         run: |
           set -Eeuo pipefail
+          runner=services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          verify=services/fgbears-live/youtube-v3/verify-youtube-v3.sh
+          deploy=.github/workflows/youtube-v3-deploy.yml
+          monitor=.github/workflows/fgbears-live-monitor.yml
           python3 -m py_compile services/fgbears-live/youtube-v3/youtube-v3-overlay.py
-          bash -n services/fgbears-live/youtube-v3/run-youtube-v3.sh
-          bash -n services/fgbears-live/youtube-v3/verify-youtube-v3.sh
-          bash -n services/fgbears-live/bin/install.sh
+          bash -n "$runner"
+          bash -n "$verify"
           bash -n services/fgbears-live/bin/healthcheck.sh
           grep -Fq 'FPS = 5.0' services/fgbears-live/youtube-v3/youtube-v3-overlay.py
           grep -Fq 'threading.Thread(target=control_loop' services/fgbears-live/youtube-v3/youtube-v3-overlay.py
-          grep -Fq -- '-framerate 5' services/fgbears-live/youtube-v3/run-youtube-v3.sh
-          grep -Fq -- '-progress pipe:3' services/fgbears-live/youtube-v3/run-youtube-v3.sh
-          grep -Fq 'aresample=44100:async=1000:first_pts=0' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq 'ingest_normalizer' "$runner"
+          grep -Fq -- '-c copy' "$runner"
+          grep -Fq 'dump_extra=freq=keyframe' "$runner"
+          grep -Fq 'resend_headers+pat_pmt_at_frames' "$runner"
+          grep -Fq '[v3-ingest]' "$runner"
+          grep -Fq -- '-framerate 5' "$runner"
+          grep -Fq -- '-progress pipe:3' "$runner"
+          grep -Fq 'aresample=44100:async=1000:first_pts=0' "$runner"
+          grep -Fq -- '--transport-only' "$verify"
+          grep -Fq 'downstream_decoder_not_synchronized' "$verify"
+          grep -Fq 'youtube-generation' "$verify"
           ! grep -Eq '^Nice=|^CPUWeight=' services/fgbears-live/youtube-v3/fgbears-youtube-v3.service
           test ! -d services/fgbears-live/youtube-v2
           test -d services/fgbears-live/quarantine/youtube-v2-retired-20260903
+          ! grep -Fq 'systemctl restart fgbears-live.service' "$deploy"
+          ! grep -Fq 'systemctl restart fgbears-rumble-relay.service' "$deploy"
+          ! grep -Fq 'git clone' "$deploy"
+          grep -Fq 'fgb-youtube-v3-runtime.tgz' "$deploy"
+          grep -Fq 'SAFE_V2_ROLLBACK_ACTIVE' "$monitor"
+          grep -Fq 'youtube-generation' "$monitor"
           echo 'V3_STATIC_ARCHITECTURE=PASS'
+
+      - name: Prove two-phase cutover ordering
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('.github/workflows/youtube-v3-deploy.yml').read_text()
+          stop=s.index('sudo systemctl stop "$V2"')
+          start=s.index('sudo systemctl start "$V3"')
+          passes=[i for i in range(len(s)) if s.startswith('sudo "$V3DIR/verify-youtube-v3.sh" --transport-only', i)]
+          retire=s.index('sudo mv "$V2DIR" "$V2QUAR"')
+          health=s.index('sudo install -m 0755 /tmp/fgbears-healthcheck-v3 "$HEALTH"')
+          marker=s.index("printf 'v3\\n' | sudo tee \"$GENERATION\"")
+          assert stop < start < passes[0], (stop,start,passes)
+          assert len(passes) >= 3, passes
+          assert passes[1] < retire and passes[2] < retire, (passes,retire)
+          assert retire < health < marker, (retire,health,marker)
+          assert 'sudo cp "$HEALTH" "$HEALTH_BACKUP"' in s
+          assert 'sudo install -m 0755 "$HEALTH_BACKUP" "$HEALTH"' in s
+          print('V3_TWO_PHASE_CUTOVER=PASS transport_proof_before_retirement=yes')
+          PY
 
       - name: Exercise media/control isolation and routing guards
         env:
@@ -92,15 +124,13 @@ jobs:
           print('V3_ROUTING_GUARDS=PASS')
           PY
 
-      - name: Quarantine and deployment boundary
+      - name: Quarantine boundary
         run: |
           set -Eeuo pipefail
           if find services/fgbears-live/quarantine/youtube-v2-retired-20260903 -type f -perm /111 -print -quit | grep -q .; then
-            echo 'Executable file found in v2 quarantine' >&2; exit 1
+            echo 'Executable file found in v2 repository quarantine' >&2; exit 1
           fi
-          ! grep -Fq 'systemctl restart fgbears-live.service' .github/workflows/youtube-v3-deploy.yml
-          ! grep -Fq 'systemctl restart fgbears-rumble-relay.service' .github/workflows/youtube-v3-deploy.yml
-          grep -Fq 'fgbears-youtube-v3.service' services/fgbears-live/bin/install.sh
-          ! grep -Fq 'systemctl enable fgbears-youtube-v2.service' services/fgbears-live/bin/install.sh
-          grep -Fq "!services/fgbears-live/youtube-v3/**" .github/workflows/fgbears-live-deploy.yml
+          # The ingest normalizer is internal to the v3 service; no extra
+          # systemd unit or platform media pipeline is introduced.
+          test "$(find services/fgbears-live/youtube-v3 -maxdepth 1 -name '*.service' | wc -l)" -eq 1
           echo 'V3_QUARANTINE_BOUNDARY=PASS'
