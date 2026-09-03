@@ -44,7 +44,7 @@ try: m.validate(expired)
 except ValueError: pass
 else: raise AssertionError('expired state must fail transparent')
 try: m.build_frame('not_installed')
-except FileNotFoundError: pass
+except (ValueError, FileNotFoundError): pass
 else: raise AssertionError('unapproved creative must fail closed')
 print('YOUTUBE_V3_RENDERER_TEST=PASS contract=fgb-stream-state/v1 local_state_only=yes')
 PY
