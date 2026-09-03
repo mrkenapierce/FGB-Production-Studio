@@ -12,7 +12,8 @@ Environment=FGB_STREAM_ROUTING_URL=https://epiccontentcreatorgrants.org/api/publ
 Environment=YOUTUBE_QUESTION_MASK_PORT=8791
 Environment=YOUTUBE_OUTPUT_CANVAS_WIDTH=1280
 Environment=YOUTUBE_OUTPUT_CANVAS_HEIGHT=720
-Environment=YOUTUBE_QUESTION_MASK_STALE_SECONDS=30
+Environment=YOUTUBE_QUESTION_MASK_FPS=15
+Environment=YOUTUBE_QUESTION_MASK_POLL_SECONDS=0.20
 Environment=YOUTUBE_REDIRECT_CARD_BUILDER=/opt/fgbears-live/tools/build-youtube-rumble-trivia-card.py
 ExecStart=/usr/bin/python3 /opt/fgbears-live/bin/youtube-question-mask.py
 Restart=on-failure
