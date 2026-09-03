@@ -1,0 +1,76 @@
+name: Diagnose Lovable Cache Service
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/lovable-cache-systemd-diagnostic.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Stage cache candidate only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key services/fgbears-live/youtube-v3/lovable-state-cache.py services/fgbears-live/youtube-v3/fgbears-lovable-state-cache.service "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+      - name: Exercise cache under systemd sandbox only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          CACHE=fgbears-lovable-state-cache.service
+          TESTDIR=/opt/fgbears-live/.cache-systemd-diagnostic
+          cleanup(){
+            set +e
+            sudo systemctl stop "$CACHE" 2>/dev/null || true
+            sudo systemctl disable "$CACHE" 2>/dev/null || true
+            sudo rm -f /etc/systemd/system/fgbears-lovable-state-cache.service
+            sudo rm -rf "$TESTDIR" /run/fgbears-control-plane
+            sudo systemctl daemon-reload
+          }
+          trap cleanup EXIT
+          echo 'MEDIA_BEFORE'
+          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-v2.service; do printf '%s pid=' "$u"; systemctl show -p MainPID --value "$u"; done
+          sudo install -d -m 0755 "$TESTDIR"
+          sudo install -m 0755 /tmp/lovable-state-cache.py "$TESTDIR/lovable-state-cache.py"
+          sudo sed "s#/opt/fgbears-live/youtube-v3/lovable-state-cache.py#$TESTDIR/lovable-state-cache.py#" /tmp/fgbears-lovable-state-cache.service | sudo tee /etc/systemd/system/fgbears-lovable-state-cache.service >/dev/null
+          sudo systemctl daemon-reload
+          sudo systemctl reset-failed "$CACHE" 2>/dev/null || true
+          sudo systemctl start "$CACHE" || true
+          sleep 5
+          echo 'SERVICE_SHOW'
+          systemctl show "$CACHE" -p LoadState -p ActiveState -p SubState -p Result -p MainPID -p ExecMainCode -p ExecMainStatus -p NRestarts --no-pager || true
+          echo 'RUNTIME_DIR'
+          sudo ls -la /run/fgbears-control-plane 2>&1 || true
+          echo 'STATE'
+          sudo cat /run/fgbears-control-plane/stream-state.json 2>&1 | head -c 1800 || true; echo
+          echo 'HEALTH'
+          sudo cat /run/fgbears-control-plane/cache-health.json 2>&1 | head -c 1800 || true; echo
+          echo 'JOURNAL'
+          sudo journalctl -u "$CACHE" --since '-2 minutes' --no-pager -n 80 || true
+          echo 'MEDIA_AFTER'
+          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-v2.service; do printf '%s pid=' "$u"; systemctl show -p MainPID --value "$u"; done
+          REMOTE
