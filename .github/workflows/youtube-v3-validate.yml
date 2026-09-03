@@ -49,14 +49,14 @@ jobs:
           overlay=services/fgbears-live/youtube-v3/youtube-v3-overlay.py
           python3 -m py_compile "$overlay"
           bash -n "$runner"; bash -n "$verify"; bash -n "$health"
-          grep -Fq 'FPS = 10.0' "$overlay"
+          grep -Fq 'FPS = 5.0' "$overlay"
           grep -Fq 'threading.Thread(target=control_loop' "$overlay"
           grep -Fq 'fifo_size=2000000&overrun_nonfatal=1&reuse=1' "$runner"
           grep -Fq -- '-probesize 10000000 -analyzeduration 10000000' "$runner"
           grep -Fq 'fps=24:start_time=0' "$runner"
           grep -Fq 'N/(24*TB)' "$runner"
-          grep -Fq -- '-framerate 10' "$runner"
-          grep -Fq 'N/(10*TB)' "$runner"
+          grep -Fq -- '-framerate 5' "$runner"
+          grep -Fq 'N/(5*TB)' "$runner"
           grep -Fq -- '-r 24 -fps_mode cfr -g 48 -keyint_min 48 -sc_threshold 0' "$runner"
           grep -Fq -- '-progress pipe:3' "$runner"
           grep -Fq 'aresample=44100:async=1000:first_pts=0' "$runner"
@@ -69,7 +69,7 @@ jobs:
           grep -Fq 'measure_rate' "$verify"
           grep -Fq 'out_time_us=' "$verify"
           grep -Fq '>= 0.98' "$verify"
-          grep -Fq '== 10.0' "$verify"
+          grep -Fq '== 5.0' "$verify"
           grep -Fq -- '--transport-only' "$verify"
           grep -Fq 'downstream_decoder_not_synchronized' "$verify"
           grep -Fq 'recover_youtube_destination' "$health"
@@ -86,8 +86,8 @@ jobs:
           grep -Fq 'CONTROLLED_YOUTUBE_CUTOVER_IN_PROGRESS' "$monitor"
           grep -Fq 'youtube-generation' "$monitor"
           grep -Fq 'measure_rate' "$monitor"
-          grep -Fq '== 10.0' "$monitor"
-          echo 'V3_STATIC_ARCHITECTURE=PASS video=1280x720@24 overlay=10fps path=direct-udp-single-process'
+          grep -Fq '== 5.0' "$monitor"
+          echo 'V3_STATIC_ARCHITECTURE=PASS video=1280x720@24 overlay=5fps path=direct-udp-single-process'
 
       - name: Prove two-phase cutover ordering
         run: |
@@ -123,7 +123,7 @@ jobs:
           p=Path('services/fgbears-live/youtube-v3/youtube-v3-overlay.py')
           spec=importlib.util.spec_from_file_location('v3',p)
           m=importlib.util.module_from_spec(spec); sys.modules[spec.name]=m; spec.loader.exec_module(m)
-          assert m.FPS == 10.0
+          assert m.FPS == 5.0
           source=inspect.getsource(m.stream)
           assert 'fetch(' not in source, source
           assert 'control_loop' in source, source
@@ -139,7 +139,7 @@ jobs:
           assert len(m.build_frame('yt_rumble_trivia_redirect')) == 798*470*4
           for change in ({"phase":"revealed"},{"stale":True},{"adsVisible":True},{"isAdBreak":True},{"adBreakActive":True},{"youtubeMaskActive":False}):
               assert not m.should_cover(m.validate(payload(**change)))
-          print('V3_CONTROL_DECOUPLING=PASS cadence=10fps')
+          print('V3_CONTROL_DECOUPLING=PASS cadence=5fps')
           print('V3_ROUTING_GUARDS=PASS')
           PY
 
