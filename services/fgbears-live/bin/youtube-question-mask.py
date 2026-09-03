@@ -98,7 +98,7 @@ def load_routing() -> dict[str, Any]:
             "Accept": "application/json",
             "Cache-Control": "no-cache",
             "Pragma": "no-cache",
-            "User-Agent": "FGBears-Lovable-Routing-Bridge/5.0",
+            "User-Agent": "FGBears-Lovable-Routing-Bridge/5.1",
         },
     )
     with urllib.request.urlopen(req, timeout=6) as response:
@@ -166,9 +166,6 @@ def parse_contract(payload: dict[str, Any]) -> Contract:
     if not isinstance(masked, dict) or any(masked.get(k) != v for k, v in expected_source.items()):
         raise ValueError("YouTube presentation maskedRegion differs from trivia.maskRegion")
 
-    # Execute exactly the Lovable-authoritative question rectangle. The news
-    # above and crawl below remain live and unrelated middle-panel pixels remain
-    # untouched. Geometry is proportionally mapped to the YouTube canvas.
     x = scaled(source_x, SOURCE_CANVAS_WIDTH, OUTPUT_CANVAS_WIDTH)
     y = scaled(source_y, SOURCE_CANVAS_HEIGHT, OUTPUT_CANVAS_HEIGHT)
     width = scaled(source_width, SOURCE_CANVAS_WIDTH, OUTPUT_CANVAS_WIDTH)
@@ -227,8 +224,6 @@ def build_locked_creative(contract: Contract) -> bytes:
                 raise ValueError(f"locked creative must be 1280x720, got {raw.size}")
             source = raw.convert("RGBA")
 
-    # Fit the approved full card inside the exact protected question box without
-    # changing its internal layout. The remainder of the box is opaque navy.
     scaled_card = source.copy()
     scaled_card.thumbnail((contract.width, contract.height), Image.Resampling.LANCZOS)
 
@@ -260,39 +255,28 @@ class State:
             )
         trivia = payload.get("trivia") if isinstance(payload.get("trivia"), dict) else {}
         phase = str(trivia.get("phase") or "") or None
-        remote_stale = trivia.get("stale") is True
         ads_visible = trivia.get("adsVisible") is True
         ad_break = trivia.get("isAdBreak") is True or trivia.get("adBreakActive") is True
-        requested_active = (
-            trivia.get("youtubeMaskActive") is True
-            and phase == "question"
-            and not remote_stale
-            and not ads_visible
-            and not ad_break
-        )
         with self.lock:
-            if ads_visible or ad_break or phase != "question":
-                self.active = False
-            elif requested_active:
-                self.active = True
-            elif self.active and phase == "question":
-                # Once the cover appears, keep it latched through transient
-                # routing-flag/staleness changes for the full question phase.
-                self.active = True
+            # The actual trivia phase is the concealment authority. Do not wait
+            # for a secondary youtubeMaskActive flag after the real question has
+            # already appeared. Ads and non-question phases remain transparent.
+            self.active = bool(phase == "question" and not ads_visible and not ad_break)
             self.phase = phase
             self.last_good = time.time()
             self.last_error = None
 
     def error(self, exc: Exception) -> None:
         with self.lock:
-            # Do not flash the cover off on a transient API/network error.
-            # snapshot() still applies the finite stale-age safety bound.
+            # Fail closed during a live question: a routing/API timeout must not
+            # expose question pixels. The last valid phase remains authoritative
+            # until a subsequent valid payload explicitly ends the question.
             self.last_error = str(exc)
 
     def snapshot(self) -> tuple[bool, str | None, float, str | None]:
         with self.lock:
             age = time.time() - self.last_good if self.last_good else float("inf")
-            return bool(self.active and age <= STALE_SECONDS), self.phase, age, self.last_error
+            return self.active, self.phase, age, self.last_error
 
 
 STATE = State()
@@ -314,7 +298,7 @@ def frame() -> bytes:
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "FGBearsLovableRoutingBridge/5.0"
+    server_version = "FGBearsLovableRoutingBridge/5.1"
 
     def log_message(self, *_args: Any) -> None:
         return
@@ -337,6 +321,7 @@ class Handler(BaseHTTPRequestHandler):
                 "presentationMode": "full_creative_scaled",
                 "routingAuthority": "lovable_public_stream_routing",
                 "executionScaling": "proportional_downstream",
+                "failClosedDuringQuestion": True,
                 "fps": FPS,
             }).encode()
             self.send_response(200)
