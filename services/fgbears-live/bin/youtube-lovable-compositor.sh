@@ -3,7 +3,9 @@ set -Eeuo pipefail
 
 # Native-size YouTube-only compositor. The 1280x720/30 master is never scaled;
 # only the exact Lovable trivia question rectangle is replaced on YouTube.
-# Rumble remains on the untouched shared master.
+# The static RGBA cover runs at 15fps and FFmpeg repeats its most recent frame
+# over the 30fps base. This cuts unnecessary overlay IPC roughly in half without
+# reducing the program frame rate. Rumble remains on the untouched master.
 
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 [[ -r "$ENV_FILE" ]] || { echo "Missing environment file: $ENV_FILE" >&2; exit 78; }
@@ -17,6 +19,7 @@ YOUTUBE_QUESTION_MASK_PORT=8791
 YOUTUBE_OUTPUT_WIDTH=1280
 YOUTUBE_OUTPUT_HEIGHT=720
 YOUTUBE_OUTPUT_FPS=30
+YOUTUBE_OVERLAY_FPS=15
 YOUTUBE_VIDEO_BITRATE=3500k
 YOUTUBE_VIDEO_MAXRATE=4000k
 YOUTUBE_VIDEO_BUFSIZE=7000k
@@ -26,9 +29,13 @@ YOUTUBE_AUDIO_CHANNELS=2
 YOUTUBE_MONITOR_DIR=${YOUTUBE_MONITOR_DIR:-/run/fgbears-youtube-lovable-compositor}
 YOUTUBE_UDP_FIFO_SIZE=1000000
 YOUTUBE_MASTER_THREAD_QUEUE=512
-YOUTUBE_OVERLAY_THREAD_QUEUE=32
+YOUTUBE_OVERLAY_THREAD_QUEUE=16
 
-[[ -d "$YOUTUBE_MONITOR_DIR" && -w "$YOUTUBE_MONITOR_DIR" ]] || { echo "Monitor runtime directory unavailable" >&2; exit 78; }
+[[ -d "$YOUTUBE_MONITOR_DIR" && -w "$YOUTUBE_MONITOR_DIR" ]] || {
+  echo "Monitor runtime directory unavailable: $YOUTUBE_MONITOR_DIR" >&2
+  exit 78
+}
+
 LOCAL_BASE=${YOUTUBE_LOCAL_UDP_URL%%\?*}
 LOCAL_INPUT="${LOCAL_BASE}?fifo_size=${YOUTUBE_UDP_FIFO_SIZE}&overrun_nonfatal=1&reuse=1"
 HEALTH_URL="http://127.0.0.1:${YOUTUBE_QUESTION_MASK_PORT}/healthz"
@@ -55,14 +62,15 @@ print(r["x"],r["y"],r["width"],r["height"])
 ')
 EOF
 
-echo "Starting native 1280x720/30 YouTube compositor; exact trivia box=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}; video=3500k; AAC 48k stereo." >&2
+echo "Starting 1280x720/30 YouTube compositor; exact trivia box=${MASK_X},${MASK_Y} ${MASK_WIDTH}x${MASK_HEIGHT}; overlay=${YOUTUBE_OVERLAY_FPS}fps; video=3500k; AAC 48k stereo." >&2
 
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
   -fflags +genpts+discardcorrupt -probesize 10000000 -analyzeduration 10000000 \
   -thread_queue_size "$YOUTUBE_MASTER_THREAD_QUEUE" -i "$LOCAL_INPUT" \
-  -thread_queue_size "$YOUTUBE_OVERLAY_THREAD_QUEUE" -f rawvideo -pixel_format rgba -video_size "${MASK_WIDTH}x${MASK_HEIGHT}" -framerate "$YOUTUBE_OUTPUT_FPS" -i "$OVERLAY_URL" \
-  -filter_complex "[0:v:0]setsar=1[base];[base][1:v:0]overlay=${MASK_X}:${MASK_Y}:format=auto:shortest=1[v]" \
+  -thread_queue_size "$YOUTUBE_OVERLAY_THREAD_QUEUE" \
+  -f rawvideo -pixel_format rgba -video_size "${MASK_WIDTH}x${MASK_HEIGHT}" -framerate "$YOUTUBE_OVERLAY_FPS" -i "$OVERLAY_URL" \
+  -filter_complex "[0:v:0]setsar=1[base];[base][1:v:0]overlay=${MASK_X}:${MASK_Y}:format=auto:shortest=0:repeatlast=1:eof_action=repeat[v]" \
   -map '[v]' -map 0:a:0 \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high -pix_fmt yuv420p \
   -r "$YOUTUBE_OUTPUT_FPS" -g 60 -keyint_min 60 -sc_threshold 0 \
