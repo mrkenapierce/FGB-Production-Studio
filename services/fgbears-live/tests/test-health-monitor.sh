@@ -37,8 +37,15 @@ grep -Fq 'fgbears-youtube-v2.service' "$WORKFLOW"
 grep -Fq 'fgbears-rumble-relay.service' "$WORKFLOW"
 grep -Fq 'fgbears-live.service' "$WORKFLOW"
 grep -Fq 'legacy=masked' "$WORKFLOW"
-if grep -Eq 'fgbears-youtube-lovable-compositor.service|fgbears-youtube-lovable-routing.service.*is-active|YOUTUBE_RELAY_SERVICE|fgbears-youtube-audio-watchdog.timer.*is-active|:8791' "$WORKFLOW"; then
-  echo 'Scheduled monitor still supervises a retired runtime pathway.' >&2; exit 1
+
+# The scheduled monitor may NAME retired units only to verify they remain
+# inactive and masked. It must never mutate them or treat a retired endpoint as
+# an active production dependency.
+if grep -Eq 'YOUTUBE_RELAY_SERVICE|:8791' "$WORKFLOW"; then
+  echo 'Scheduled monitor still depends on a retired runtime pathway.' >&2; exit 1
+fi
+if grep -Eq 'systemctl[[:space:]]+(restart|start|stop|enable|disable|mask|unmask)' "$WORKFLOW"; then
+  echo 'Scheduled monitor is not read-only.' >&2; exit 1
 fi
 
 grep -Fq 'systemctl enable --now fgbears-live-health.timer' "$INSTALL"
