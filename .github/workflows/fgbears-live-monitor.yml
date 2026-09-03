@@ -1,5 +1,7 @@
 name: Monitor FGBears Live
 
+# Read-only production probe. Touching this workflow is the safe manual trigger
+# when a post-recovery verification is needed without restarting any service.
 on:
   schedule:
     - cron: '*/15 * * * *'
