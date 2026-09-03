@@ -125,16 +125,14 @@ def should_cover(presentation: dict, key: str) -> bool:
         ad_break = presentation["adBreak"]
         trivia = presentation["trivia"]
         difference = presentation["routing"]["youtube"]["differenceLayer"]
-        phase = str(trivia.get("phase") or "").strip().lower()
+        # Lovable is authoritative: this one boolean already mirrors the exact
+        # shared/Rumble question-visible state. Oracle only verifies the locked
+        # creative and compatibility mirror; it does not infer phase/timing.
         return (
             difference.get("enabled") is True
             and key == BUILTIN_REDIRECT_KEY
             and difference.get("creativeKey") == BUILTIN_REDIRECT_KEY
-            and ad_break.get("active") is False
-            and phase in VISIBLE_QUESTION_PHASES
             and trivia.get("questionVisible") is True
-            and trivia.get("stale") is not True
-            and trivia.get("gameVisible") is True
             and trivia.get("youtubeRedirectRequired") is True
         )
     except (KeyError, TypeError):

@@ -126,17 +126,10 @@ def validate(payload: dict, *, now: float | None = None) -> dict:
     if difference.get("enabled") is True:
         if difference.get("creativeKey") != EXPECTED_CREATIVE:
             raise ValueError("unknown active creative")
-        if ad_break.get("active") is not False:
-            raise ValueError("difference layer active during ad break")
-        phase = str(trivia.get("phase") or "").strip().lower()
-        if phase not in VISIBLE_QUESTION_PHASES:
-            raise ValueError("difference layer active outside visible question phase")
+        # Lovable's authoritative decision mirrors the real shared/Rumble
+        # question visibility. Do not add independent phase, age, or ad timing.
         if trivia.get("questionVisible") is not True:
             raise ValueError("difference layer active while question is not visible")
-        if trivia.get("stale") is True:
-            raise ValueError("difference layer active on stale trivia")
-        if trivia.get("gameVisible") is not True:
-            raise ValueError("difference layer active while game is hidden")
         if trivia.get("youtubeRedirectRequired") is not True:
             raise ValueError("difference layer lacks explicit Lovable requirement")
 

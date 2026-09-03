@@ -58,7 +58,7 @@ exec ffmpeg \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high -pix_fmt yuv420p \
   -r 30 -fps_mode cfr -g 60 -keyint_min 60 -sc_threshold 0 \
   -b:v 2200k -maxrate 2700k -bufsize 4500k \
-  -threads 1 -x264-params 'repeat-headers=1:keyint=60:min-keyint=60:scenecut=0' \
+  -threads 2 -x264-params 'repeat-headers=1:keyint=60:min-keyint=60:scenecut=0' \
   -c:a aac -profile:a aac_low -b:a 128k -ar 44100 -ac 2 \
   -max_muxing_queue_size 2048 \
   -rw_timeout 15000000 \
