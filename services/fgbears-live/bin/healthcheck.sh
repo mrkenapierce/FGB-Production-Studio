@@ -19,8 +19,10 @@ NEWS_REFRESH_BIN=${BEARS_NEWS_REFRESH_BIN:-/opt/fgbears-live/bin/refresh-bears-n
 NEWS_REFRESH_INTERVAL_SECONDS=${BEARS_NEWS_REFRESH_INTERVAL_SECONDS:-900}
 NEWS_LOCAL_FEED=${BEARS_NEWS_LOCAL_FEED_FILE:-/srv/fgbears-live/runtime/fgb-bears-news.xml}
 NEWS_REFRESH_STATUS=${BEARS_NEWS_REFRESH_STATUS_FILE:-/srv/fgbears-live/runtime/bears-news-refresh-status.env}
-YOUTUBE_SERVICE=${YOUTUBE_SERVICE:-fgbears-youtube-v3.service}
-YOUTUBE_PROGRESS_FILE=${YOUTUBE_PROGRESS_FILE:-/run/fgbears-youtube-v3/ffmpeg-progress.log}
+# These two values are intentionally not environment-overridable. YouTube v2
+# is quarantined, so stale stream.env values must never be able to reactivate it.
+YOUTUBE_SERVICE=fgbears-youtube-v3.service
+YOUTUBE_PROGRESS_FILE=/run/fgbears-youtube-v3/ffmpeg-progress.log
 YOUTUBE_WARNING_FILE=${YOUTUBE_WARNING_FILE:-$HEALTH_STATE_DIR/youtube-v3-warning}
 AUDIO_HEALTH_BIN=${FGB_AUDIO_HEALTH_BIN:-/usr/local/bin/fgbears-audio-health}
 AUDIO_HEALTH_INTERVAL_SECONDS=${FGB_AUDIO_HEALTH_INTERVAL_SECONDS:-300}
