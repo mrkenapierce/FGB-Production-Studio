@@ -39,16 +39,16 @@ jobs:
           YOUTUBE_V3_CREATIVE_DIR="$PWD/services/fgbears-live/youtube-v3/creatives" \
             python3 services/fgbears-live/youtube-v3/youtube-v3-overlay.py --self-test --offline
           grep -Fq 'proven v2 media path' services/fgbears-live/youtube-v3/run-youtube-v3.sh
-          grep -Fq 'fifo_size=2000000&overrun_nonfatal=1&reuse=1' services/fgbears-live/youtube-v3/run-youtube-v3.sh
-          grep -Fq -- '-probesize 10000000 -analyzeduration 10000000' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq 'steady-state media-time' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq 'measure_rate' services/fgbears-live/youtube-v3/verify-youtube-v3.sh
+          grep -Fq 'out_time_us=' services/fgbears-live/youtube-v3/verify-youtube-v3.sh
           ! grep -Fq 'ingest_normalizer' services/fgbears-live/youtube-v3/run-youtube-v3.sh
-          grep -Fq -- '--transport-only' services/fgbears-live/youtube-v3/verify-youtube-v3.sh
           grep -Fq 'recover_youtube_destination' services/fgbears-live/bin/healthcheck.sh
           grep -Fq 'YOUTUBE_CUTOVER_MARKER=' services/fgbears-live/bin/healthcheck.sh
           ! grep -Eq '^Nice=|^CPUWeight=' services/fgbears-live/youtube-v3/fgbears-youtube-v3.service
           tar -C services/fgbears-live -czf /tmp/fgb-youtube-v3-runtime.tgz youtube-v3
           cp services/fgbears-live/bin/healthcheck.sh /tmp/fgbears-healthcheck-v3
-          echo 'V3_LOCAL_PREFLIGHT=PASS path=single-process-proven-v2-media'
+          echo 'V3_LOCAL_PREFLIGHT=PASS throughput=steady-state-delta'
 
       - name: Configure Oracle SSH
         env:
@@ -67,8 +67,7 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           set -Eeuo pipefail
-          scp -i ~/.ssh/oracle_key /tmp/fgb-youtube-v3-runtime.tgz /tmp/fgbears-healthcheck-v3 \
-            "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+          scp -i ~/.ssh/oracle_key /tmp/fgb-youtube-v3-runtime.tgz /tmp/fgbears-healthcheck-v3 "$ORACLE_USER@$ORACLE_HOST:/tmp/"
 
       - name: Prove v3, then quarantine v2
         env:
@@ -76,29 +75,16 @@ jobs:
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          MASTER=fgbears-live.service
-          RUMBLE=fgbears-rumble-relay.service
-          V2=fgbears-youtube-v2.service
-          V3=fgbears-youtube-v3.service
-          V2DIR=/opt/fgbears-live/youtube-v2
-          V2QUAR=/opt/fgbears-live/quarantine/youtube-v2-retired-20260903
-          V3DIR=/opt/fgbears-live/youtube-v3
-          HEALTH=/usr/local/bin/fgbears-healthcheck
-          HEALTH_BACKUP=/tmp/fgbears-healthcheck-pre-v3
-          GENERATION=/etc/fgbears-live/youtube-generation
-          CUTOVER_MARKER=/run/fgbears-youtube-v3/cutover-in-progress
-          CUTOVER=0
-
+          MASTER=fgbears-live.service; RUMBLE=fgbears-rumble-relay.service; V2=fgbears-youtube-v2.service; V3=fgbears-youtube-v3.service
+          V2DIR=/opt/fgbears-live/youtube-v2; V2QUAR=/opt/fgbears-live/quarantine/youtube-v2-retired-20260903; V3DIR=/opt/fgbears-live/youtube-v3
+          HEALTH=/usr/local/bin/fgbears-healthcheck; HEALTH_BACKUP=/tmp/fgbears-healthcheck-pre-v3
+          GENERATION=/etc/fgbears-live/youtube-generation; CUTOVER_MARKER=/run/fgbears-youtube-v3/cutover-in-progress; CUTOVER=0
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
           socket(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
           fail(){ echo "YOUTUBE_V3_DEPLOY=FAIL reason=$1" >&2; return 1; }
-
-          rollback() {
-            trap - ERR
-            set +e
-            echo 'YOUTUBE_V3_ROLLBACK=BEGIN'
-            sudo systemctl stop "$V3" 2>/dev/null || true
-            sudo systemctl disable "$V3" 2>/dev/null || true
+          rollback(){
+            trap - ERR; set +e; echo 'YOUTUBE_V3_ROLLBACK=BEGIN'
+            sudo systemctl stop "$V3" 2>/dev/null || true; sudo systemctl disable "$V3" 2>/dev/null || true
             sudo rm -f "$CUTOVER_MARKER" /etc/systemd/system/fgbears-youtube-v3.service
             if [[ -d "$V2QUAR" && ! -e "$V2DIR" ]]; then sudo mv "$V2QUAR" "$V2DIR"; fi
             if [[ -d "$V2DIR" ]]; then
@@ -108,18 +94,11 @@ jobs:
               sudo systemctl unmask "$V2" 2>/dev/null || true
               sudo install -m 0644 "$V2DIR/fgbears-youtube-v2.service" /etc/systemd/system/fgbears-youtube-v2.service 2>/dev/null || true
             fi
-            if [[ -s "$HEALTH_BACKUP" ]]; then sudo install -m 0755 "$HEALTH_BACKUP" "$HEALTH"; fi
+            [[ -s "$HEALTH_BACKUP" ]] && sudo install -m 0755 "$HEALTH_BACKUP" "$HEALTH"
             printf 'v2\n' | sudo tee "$GENERATION" >/dev/null
-            sudo systemctl daemon-reload
-            sudo systemctl enable "$V2" >/dev/null 2>&1 || true
-            sudo systemctl reset-failed "$V2" 2>/dev/null || true
-            sudo systemctl restart "$V2" || true
+            sudo systemctl daemon-reload; sudo systemctl enable "$V2" >/dev/null 2>&1 || true; sudo systemctl reset-failed "$V2" 2>/dev/null || true; sudo systemctl restart "$V2" || true
             recovered=no
-            for _ in $(seq 1 30); do
-              y=$(pid "$V2")
-              if systemctl is-active --quiet "$V2" && socket "$y" 443; then recovered=yes; break; fi
-              sleep 1
-            done
+            for _ in $(seq 1 30); do y=$(pid "$V2"); if systemctl is-active --quiet "$V2" && socket "$y" 443; then recovered=yes; break; fi; sleep 1; done
             echo "YOUTUBE_V3_ROLLBACK=END v2_recovered=$recovered"
           }
           trap 'rc=$?; if (( CUTOVER )); then rollback; fi; exit $rc' ERR
@@ -128,120 +107,47 @@ jobs:
           [[ "$master_before" =~ ^[1-9][0-9]*$ ]] || fail master_not_active
           [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]] || fail rumble_not_active
           [[ "$v2_before" =~ ^[1-9][0-9]*$ ]] || fail v2_not_active
-          socket "$rumble_before" 1935 || fail rumble_not_connected
-          socket "$v2_before" 443 || fail v2_not_connected
-          [[ -d "$V2DIR" ]] || fail v2_runtime_missing
+          socket "$rumble_before" 1935 || fail rumble_not_connected; socket "$v2_before" 443 || fail v2_not_connected; [[ -d "$V2DIR" ]] || fail v2_runtime_missing
 
-          sudo cp "$HEALTH" "$HEALTH_BACKUP"
-          sudo chmod 0600 "$HEALTH_BACKUP"
-          printf 'v2\n' | sudo tee "$GENERATION" >/dev/null
-
-          sudo rm -rf "$V3DIR"
-          sudo tar -C /opt/fgbears-live -xzf /tmp/fgb-youtube-v3-runtime.tgz
+          sudo cp "$HEALTH" "$HEALTH_BACKUP"; sudo chmod 0600 "$HEALTH_BACKUP"; printf 'v2\n' | sudo tee "$GENERATION" >/dev/null
+          sudo rm -rf "$V3DIR"; sudo tar -C /opt/fgbears-live -xzf /tmp/fgb-youtube-v3-runtime.tgz
           sudo chmod 0755 "$V3DIR/youtube-v3-overlay.py" "$V3DIR/run-youtube-v3.sh" "$V3DIR/verify-youtube-v3.sh" "$V3DIR/build-creatives.py"
-          sudo install -m 0644 "$V3DIR/fgbears-youtube-v3.service" /etc/systemd/system/fgbears-youtube-v3.service
-          sudo systemctl daemon-reload
-          sudo -u fgbears env YOUTUBE_V3_CREATIVE_DIR="$V3DIR/creatives" YOUTUBE_V3_STATE_FILE=/tmp/fgb-youtube-v3-preflight-state.json \
-            "$V3DIR/youtube-v3-overlay.py" --self-test
+          sudo install -m 0644 "$V3DIR/fgbears-youtube-v3.service" /etc/systemd/system/fgbears-youtube-v3.service; sudo systemctl daemon-reload
+          sudo -u fgbears env YOUTUBE_V3_CREATIVE_DIR="$V3DIR/creatives" YOUTUBE_V3_STATE_FILE=/tmp/fgb-youtube-v3-preflight-state.json "$V3DIR/youtube-v3-overlay.py" --self-test
           sudo rm -f /tmp/fgb-youtube-v3-preflight-state.json
+          sudo install -m 0755 /tmp/fgbears-healthcheck-v3 "$HEALTH"; grep -Fq 'recover_youtube_destination' "$HEALTH"; grep -Fq 'YOUTUBE_CUTOVER_MARKER=' "$HEALTH"
+          sudo install -d -m 0750 -o fgbears -g fgbears /run/fgbears-youtube-v3; sudo touch "$CUTOVER_MARKER"
 
-          sudo install -m 0755 /tmp/fgbears-healthcheck-v3 "$HEALTH"
-          grep -Fq 'recover_youtube_destination' "$HEALTH"
-          grep -Fq 'YOUTUBE_CUTOVER_MARKER=' "$HEALTH"
-          sudo install -d -m 0750 -o fgbears -g fgbears /run/fgbears-youtube-v3
-          sudo touch "$CUTOVER_MARKER"
-
-          CUTOVER=1
-          sudo systemctl stop "$V2"
-          sudo systemctl reset-failed "$V3" 2>/dev/null || true
-          sudo systemctl start "$V3"
-
+          CUTOVER=1; sudo systemctl stop "$V2"; sudo systemctl reset-failed "$V3" 2>/dev/null || true; sudo systemctl start "$V3"
           connected=no
-          for _ in $(seq 1 45); do
-            y=$(pid "$V3")
-            if systemctl is-active --quiet "$V3" && socket "$y" 443; then connected=yes; break; fi
-            sleep 1
-          done
+          for _ in $(seq 1 45); do y=$(pid "$V3"); if systemctl is-active --quiet "$V3" && socket "$y" 443; then connected=yes; break; fi; sleep 1; done
           [[ "$connected" == yes ]] || fail v3_did_not_connect
 
-          # Do not certify a startup catch-up transient. Require three fresh
-          # progress samples at >= realtime before the formal two-pass gate.
-          warm=0
-          for _ in $(seq 1 30); do
-            p=/run/fgbears-youtube-v3/ffmpeg-progress.log
-            speed=$(sudo sed -n 's/^speed=\([0-9.]*\)x$/\1/p' "$p" 2>/dev/null | tail -n1)
-            if [[ -n "$speed" ]] && python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$speed" 2>/dev/null; then
-              warm=$((warm+1))
-              (( warm >= 3 )) && break
-            else
-              warm=0
-            fi
-            sleep 1
-          done
-          (( warm >= 3 )) || fail v3_never_reached_realtime
-
-          v3_pass1=$(pid "$V3")
+          # Ignore FFmpeg's cumulative speed= field: it includes one-time probe
+          # latency. The verifier measures media-time delta over wall-time.
+          sleep 3
+          v3_pass1=$(pid "$V3"); sudo "$V3DIR/verify-youtube-v3.sh" --transport-only
+          v3_pass2=$(pid "$V3"); test "$v3_pass2" = "$v3_pass1" || fail v3_pid_changed_between_transport_passes
           sudo "$V3DIR/verify-youtube-v3.sh" --transport-only
-          sleep 5
-          v3_pass2=$(pid "$V3")
-          test "$v3_pass2" = "$v3_pass1" || fail v3_pid_changed_between_transport_passes
-          sudo "$V3DIR/verify-youtube-v3.sh" --transport-only
+          v3_pass3=$(pid "$V3"); test "$v3_pass3" = "$v3_pass1" || fail v3_pid_changed_through_transport_gate
 
-          : > /tmp/v3-observe.txt
-          for _ in $(seq 1 20); do
-            p=/run/fgbears-youtube-v3/ffmpeg-progress.log
-            speed=$(sudo sed -n 's/^speed=\([0-9.]*\)x$/\1/p' "$p" 2>/dev/null | tail -n1)
-            idle=$(vmstat 1 2 | tail -n1 | awk '{print $15}')
-            pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"=");print a[2]}}' /proc/pressure/cpu)
-            echo "speed=${speed:-NA} idle=${idle:-NA} pressure=${pressure:-NA}" >> /tmp/v3-observe.txt
-            sleep 1
-          done
-          python3 - /tmp/v3-observe.txt <<'PY'
-          import re,sys
-          rows=open(sys.argv[1]).read().splitlines(); vals={k:[] for k in ('speed','idle','pressure')}
-          for row in rows:
-              for k in vals:
-                  m=re.search(k+r'=([^ ]+)',row)
-                  if m and m.group(1)!='NA':
-                      try: vals[k].append(float(m.group(1)))
-                      except ValueError: pass
-          for k,a in vals.items():
-              if a: print('V3_OBSERVE_%s min=%.3f avg=%.3f max=%.3f' % (k.upper(),min(a),sum(a)/len(a),max(a)))
-          assert vals['speed'] and min(vals['speed']) >= 0.98, vals['speed']
-          PY
-          sudo "$V3DIR/verify-youtube-v3.sh" --transport-only
-
-          master_candidate=$(pid "$MASTER"); rumble_candidate=$(pid "$RUMBLE"); v3_candidate=$(pid "$V3")
+          master_candidate=$(pid "$MASTER"); rumble_candidate=$(pid "$RUMBLE")
           test "$master_candidate" = "$master_before" || fail master_pid_changed
           test "$rumble_candidate" = "$rumble_before" || fail rumble_pid_changed
-          test "$v3_candidate" = "$v3_pass1" || fail v3_pid_changed_during_observation
+          echo "V3_PRECOMMIT_CAPACITY cpu_pressure=$(awk '/^some/{for(i=1;i<=NF;i++)if($i~/^avg10=/){split($i,a,"=");print a[2]}}' /proc/pressure/cpu) cpu_idle=$(vmstat 1 2|tail -n1|awk '{print $15}')"
 
-          sudo systemctl disable "$V2" >/dev/null 2>&1 || true
-          sudo rm -rf "$V2QUAR"
-          sudo install -d -m 0755 "$(dirname "$V2QUAR")"
-          sudo mv "$V2DIR" "$V2QUAR"
-          sudo find "$V2QUAR" -type d -exec chmod 0755 {} +
-          sudo find "$V2QUAR" -type f -exec chmod 0644 {} +
+          sudo systemctl disable "$V2" >/dev/null 2>&1 || true; sudo rm -rf "$V2QUAR"; sudo install -d -m 0755 "$(dirname "$V2QUAR")"; sudo mv "$V2DIR" "$V2QUAR"
+          sudo find "$V2QUAR" -type d -exec chmod 0755 {} +; sudo find "$V2QUAR" -type f -exec chmod 0644 {} +
           sudo rm -f /etc/systemd/system/fgbears-youtube-v2.service /lib/systemd/system/fgbears-youtube-v2.service /usr/lib/systemd/system/fgbears-youtube-v2.service
-          sudo systemctl daemon-reload
-          sudo systemctl mask "$V2" >/dev/null
-          sudo systemctl enable "$V3" >/dev/null
-          printf 'v3\n' | sudo tee "$GENERATION" >/dev/null
+          sudo systemctl daemon-reload; sudo systemctl mask "$V2" >/dev/null; sudo systemctl enable "$V3" >/dev/null; printf 'v3\n' | sudo tee "$GENERATION" >/dev/null
 
-          final1_m=$(pid "$MASTER"); final1_r=$(pid "$RUMBLE"); final1_y=$(pid "$V3")
-          sudo "$V3DIR/verify-youtube-v3.sh"
-          sleep 5
+          final1_m=$(pid "$MASTER"); final1_r=$(pid "$RUMBLE"); final1_y=$(pid "$V3"); sudo "$V3DIR/verify-youtube-v3.sh"
           final2_m=$(pid "$MASTER"); final2_r=$(pid "$RUMBLE"); final2_y=$(pid "$V3")
-          test "$final2_m" = "$final1_m" || fail master_pid_changed_final
-          test "$final2_r" = "$final1_r" || fail rumble_pid_changed_final
-          test "$final2_y" = "$final1_y" || fail v3_pid_changed_final
+          test "$final2_m" = "$final1_m" || fail master_pid_changed_final; test "$final2_r" = "$final1_r" || fail rumble_pid_changed_final; test "$final2_y" = "$final1_y" || fail v3_pid_changed_final
           sudo "$V3DIR/verify-youtube-v3.sh"
-          test "$final2_m" = "$master_before" || fail master_pid_changed_from_baseline
-          test "$final2_r" = "$rumble_before" || fail rumble_pid_changed_from_baseline
+          test "$(pid "$MASTER")" = "$master_before" || fail master_pid_changed_from_baseline; test "$(pid "$RUMBLE")" = "$rumble_before" || fail rumble_pid_changed_from_baseline; test "$(pid "$V3")" = "$final1_y" || fail v3_pid_changed_after_final_pass
 
-          sudo rm -f "$CUTOVER_MARKER"
-          CUTOVER=0
-          trap - ERR
+          sudo rm -f "$CUTOVER_MARKER"; CUTOVER=0; trap - ERR
           sudo rm -f "$HEALTH_BACKUP" /tmp/fgb-youtube-v3-runtime.tgz /tmp/fgbears-healthcheck-v3
-          echo "YOUTUBE_V3_DEPLOY=PASS master=$final2_m rumble=$final2_r v2_before=$v2_before youtube_v3=$final2_y v2=quarantined path=single-process-proven-v2-media"
+          echo "YOUTUBE_V3_DEPLOY=PASS master=$final1_m rumble=$final1_r v2_before=$v2_before youtube_v3=$final1_y v2=quarantined throughput=steady-state-delta"
           REMOTE
