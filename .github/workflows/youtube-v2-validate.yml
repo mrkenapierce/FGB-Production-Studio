@@ -1,0 +1,127 @@
+name: Validate YouTube v2 Difference Layer
+
+on:
+  pull_request:
+    paths:
+      - 'services/fgbears-live/youtube-v2/**'
+      - 'services/fgbears-live/tools/build-youtube-rumble-trivia-card.py'
+      - 'services/fgbears-live/bin/install.sh'
+      - '.github/workflows/youtube-v2-validate.yml'
+      - '.github/workflows/youtube-v2-deploy.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'services/fgbears-live/youtube-v2/**'
+      - 'services/fgbears-live/tools/build-youtube-rumble-trivia-card.py'
+      - 'services/fgbears-live/bin/install.sh'
+      - '.github/workflows/youtube-v2-validate.yml'
+      - '.github/workflows/youtube-v2-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pip install --user pillow qrcode
+
+      - name: Static invariants
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          bash -n services/fgbears-live/youtube-v2/run-youtube-v2.sh
+          bash -n services/fgbears-live/youtube-v2/verify-youtube-v2.sh
+          bash -n services/fgbears-live/bin/install.sh
+          grep -Fq 'overlay=462:104' services/fgbears-live/youtube-v2/run-youtube-v2.sh
+          grep -Fq 'Rumble must remain the canonical live-question presentation' services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          grep -Fq 'creative is not approved/installed' services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          ! grep -Eq 'selenium|playwright|chromium|requests\.get|https?://.*creative' services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          ! grep -Eq 'install .*youtube-relay|enable .*youtube-relay|restart .*youtube-relay' services/fgbears-live/bin/install.sh
+          ! grep -Eq 'install .*youtube-audio-watchdog|enable .*youtube-audio-watchdog|restart .*youtube-audio-watchdog' services/fgbears-live/bin/install.sh
+          echo 'STATIC_MINIMAL_ARCHITECTURE=PASS'
+
+      - name: Exercise routing and creative allowlist
+        env:
+          YOUTUBE_REDIRECT_CARD_BUILDER: ${{ github.workspace }}/services/fgbears-live/tools/build-youtube-rumble-trivia-card.py
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import importlib.util
+          import sys
+          import tempfile
+          from pathlib import Path
+          from PIL import Image
+
+          module_path=Path('services/fgbears-live/youtube-v2/youtube-v2-overlay.py')
+          spec=importlib.util.spec_from_file_location('v2overlay', module_path)
+          m=importlib.util.module_from_spec(spec)
+          sys.modules[spec.name]=m
+          spec.loader.exec_module(m)
+
+          region={"x":462,"y":104,"width":798,"height":470,
+                  "coordinateSpace":"pixels","referenceWidth":1280,"referenceHeight":720}
+
+          def payload(key='yt_rumble_trivia_redirect', **overrides):
+              t={"stale":False,"phase":"question","adsVisible":False,"isAdBreak":False,
+                 "adBreakActive":False,"youtubeMaskActive":True,"youtubeCreativeKey":key,
+                 "maskRegion":region,
+                 "presentation":{
+                   "rumble":{"rendersRealQuestion":True},
+                   "youtube":{"rendersRealQuestion":False,
+                     "maskedRegion":{"x":462,"y":104,"width":798,"height":470},
+                     "creativeKey":key,"sourceTemplateKey":key,
+                     "presentationMode":"full_creative_scaled"}}}
+              t.update(overrides)
+              return {"trivia":t}
+
+          t=m.validate(payload())
+          assert m.should_cover(t)
+          assert len(m.build_frame(t["_validatedCreativeKey"])) == 798*470*4
+
+          for change in (
+              {"phase":"revealed"},
+              {"stale":True},
+              {"adsVisible":True},
+              {"isAdBreak":True},
+              {"adBreakActive":True},
+              {"youtubeMaskActive":False},
+          ):
+              assert not m.should_cover(m.validate(payload(**change)))
+
+          with tempfile.TemporaryDirectory() as td:
+              m.CREATIVE_DIR=Path(td)
+              m._FRAME_CACHE.clear()
+              Image.new("RGBA",(798,470),(255,0,0,128)).save(Path(td)/"sponsor_a.png")
+              assert "sponsor_a" in m.available_creative_keys()
+              t=m.validate(payload("sponsor_a"))
+              assert m.should_cover(t)
+              assert len(m.build_frame("sponsor_a")) == 798*470*4
+              try:
+                  m.build_frame("not_installed")
+              except FileNotFoundError:
+                  pass
+              else:
+                  raise AssertionError("unknown creative did not fail closed")
+
+          print("ROUTING_GUARDS=PASS")
+          print("LOCAL_CREATIVE_ALLOWLIST=PASS")
+          print("RUMBLE_CANONICAL=PASS")
+          PY
+
+      - name: Quarantine boundary
+        run: |
+          set -Eeuo pipefail
+          test -d services/fgbears-live/quarantine/youtube-legacy
+          test -d .github/quarantine/youtube-legacy-workflows
+          test ! -e services/fgbears-live/bin/youtube-relay.sh
+          test ! -e services/fgbears-live/bin/youtube-stream-router.py
+          test ! -e services/fgbears-live/bin/youtube-trivia-overlay.py
+          test ! -e services/fgbears-live/systemd/fgbears-youtube-relay.service
+          test ! -e services/fgbears-live/systemd/fgbears-youtube-audio-watchdog.service
+          find services/fgbears-live/quarantine/youtube-legacy -type f -perm /111 -print -quit | grep -q . && {
+            echo 'Executable file found in quarantine' >&2; exit 1;
+          } || true
+          echo 'LEGACY_QUARANTINE=PASS'
