@@ -100,10 +100,8 @@ fi
 if grep -Fq 'Circular buffer overrun' <<<"$journal"; then
   fail youtube_udp_circular_buffer_overrun
 fi
-# The copy/remux normalizer is allowed to encounter incomplete packets while it
-# joins the live UDP stream.  The downstream compositor decoder is not.  Its
-# unprefixed journal must therefore stay free of the exact synchronization
-# errors that invalidated the first v3 cutover.
+# The copy/remux normalizer may encounter incomplete packets while joining the
+# live UDP stream. The downstream compositor decoder may not.
 if grep -Ev '\[v3-ingest\]' <<<"$journal" | grep -Eq 'non-existing PPS|decode_slice_header error|no frame!'; then
   fail downstream_decoder_not_synchronized
 fi
@@ -122,8 +120,9 @@ if [[ "$MODE" == final ]]; then
   [[ -r "$GENERATION_FILE" ]] || fail generation_marker_missing
   [[ "$(cat "$GENERATION_FILE")" == v3 ]] || fail generation_marker_not_v3
   [[ -x "$HEALTHCHECK" ]] || fail healthcheck_missing
-  grep -Fq 'recover_youtube_v3' "$HEALTHCHECK" || fail healthcheck_not_v3
-  ! grep -Fq 'recover_youtube_v2' "$HEALTHCHECK" || fail healthcheck_still_v2
+  grep -Fq 'recover_youtube_destination' "$HEALTHCHECK" || fail healthcheck_not_generation_aware
+  grep -Fq 'YOUTUBE_GENERATION_FILE=' "$HEALTHCHECK" || fail healthcheck_generation_marker_missing
+  grep -Fq 'YOUTUBE_CUTOVER_MARKER=' "$HEALTHCHECK" || fail healthcheck_cutover_guard_missing
 fi
 
 pressure=$(awk '/^some/{for(i=1;i<=NF;i++) if($i ~ /^avg10=/){split($i,a,"="); print a[2]}}' /proc/pressure/cpu 2>/dev/null || true)
