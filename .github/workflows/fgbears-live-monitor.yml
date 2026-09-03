@@ -60,7 +60,13 @@ jobs:
           socket(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
           fail(){ echo 'OVERALL_STATUS=FAIL'; echo "REASON=$1"; exit 1; }
           media_us(){ sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$YT_PROGRESS" 2>/dev/null | tail -n1; }
-          measure_rate(){ local m0 m1 t0 t1; m0=$(media_us); [[ "$m0" =~ ^[0-9]+$ ]] || return 1; t0=$(date +%s%N); sleep 5; m1=$(media_us); [[ "$m1" =~ ^[0-9]+$ ]] || return 1; t1=$(date +%s%N); python3 - "$m0" "$m1" "$t0" "$t1" <<'PY'
+          measure_rate(){
+            local seconds=$1 m0 m1 t0 t1
+            m0=$(media_us); [[ "$m0" =~ ^[0-9]+$ ]] || return 1
+            t0=$(date +%s%N); sleep "$seconds"
+            m1=$(media_us); [[ "$m1" =~ ^[0-9]+$ ]] || return 1
+            t1=$(date +%s%N)
+            python3 - "$m0" "$m1" "$t0" "$t1" <<'PY'
           import sys
           m0,m1,t0,t1=map(int,sys.argv[1:]); wall=(t1-t0)/1e9; media=(m1-m0)/1e6
           assert wall>0 and media>=0
@@ -123,8 +129,13 @@ jobs:
 
           sudo test -s "$YT_PROGRESS" || fail YOUTUBE_PROGRESS_MISSING
           yt_age=$(( $(date +%s) - $(sudo stat -c %Y "$YT_PROGRESS") )); (( yt_age < 20 )) || fail YOUTUBE_PROGRESS_STALE
-          yt_rate=$(measure_rate) || fail YOUTUBE_RATE_MEASUREMENT_FAILED
-          python3 -c 'import sys; assert float(sys.argv[1]) >= 0.98' "$yt_rate" || fail YOUTUBE_BELOW_REALTIME
+          yt_rate1=$(measure_rate 5) || fail YOUTUBE_RATE_MEASUREMENT_FAILED
+          yt_rate2=$(measure_rate 5) || fail YOUTUBE_RATE_MEASUREMENT_FAILED
+          yt_rate10=$(measure_rate 10) || fail YOUTUBE_RATE_MEASUREMENT_FAILED
+          python3 - "$yt_rate1" "$yt_rate2" "$yt_rate10" <<'PY' || fail YOUTUBE_BELOW_REALTIME
+          import statistics,sys
+          vals=list(map(float,sys.argv[1:])); assert vals[2] >= 0.98 and statistics.median(vals) >= 0.98, vals
+          PY
           yt_fps=$(sudo sed -n 's/^fps=\([0-9.]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
           yt_drop=$(sudo sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
           yt_dup=$(sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$YT_PROGRESS" | tail -n1)
@@ -134,7 +145,7 @@ jobs:
 
           echo 'OVERALL_STATUS=OK'
           echo 'REASON=PRODUCTION_HEALTHY'
-          echo "TOPOLOGY generation=v3 control=lovable cache=$CPID master=$MPID rumble=$RPID youtube_v3=$YPID youtube_steady_rate=${yt_rate}x youtube_fps=${yt_fps:-NA} drop=${yt_drop:-NA} dup=${yt_dup:-NA}"
+          echo "TOPOLOGY generation=v3 control=lovable cache=$CPID master=$MPID rumble=$RPID youtube_v3=$YPID youtube_rate_5s_1=${yt_rate1}x youtube_rate_5s_2=${yt_rate2}x youtube_rate_10s=${yt_rate10}x youtube_fps=${yt_fps:-NA} drop=${yt_drop:-NA} dup=${yt_dup:-NA}"
           echo "CONTROL_STATE $control_report"
           REMOTE
           rc=$?
