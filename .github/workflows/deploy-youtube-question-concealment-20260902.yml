@@ -1,4 +1,4 @@
-name: Deploy Native 720p YouTube Branch 20260902
+name: Diagnose Live YouTube Pacing Sizing and Trivia Timing
 
 on:
   push:
@@ -12,36 +12,27 @@ permissions:
   contents: read
 
 concurrency:
-  group: fgbears-youtube-native-720p
-  cancel-in-progress: false
+  group: fgbears-youtube-live-diagnosis
+  cancel-in-progress: true
 
 jobs:
-  deploy:
+  diagnose:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 22
     env:
       ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
       ORACLE_USER: ${{ secrets.ORACLE_USER }}
       ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
-      - uses: actions/checkout@v4
-      - name: Configure SSH and stage YouTube branch files
-        shell: bash
+      - name: Configure SSH
         run: |
           set -Eeuo pipefail
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-          for f in \
-            services/fgbears-live/bin/youtube-question-mask.py \
-            services/fgbears-live/bin/youtube-lovable-compositor.sh \
-            services/fgbears-live/bin/youtube-audio-watchdog-owner-aware.sh \
-            services/fgbears-live/systemd/fgbears-youtube-lovable-routing.service; do
-            scp -i ~/.ssh/oracle_key "$f" "${ORACLE_USER:-ubuntu}@$ORACLE_HOST:/tmp/$(basename "$f").deploy"
-          done
 
-      - name: Guarded native 720p cutover
+      - name: Measure live YouTube output and observe next trivia phase
         shell: bash
         run: |
           set -Eeuo pipefail
@@ -52,103 +43,82 @@ jobs:
           ROUTING=fgbears-youtube-lovable-routing.service
           COMP=fgbears-youtube-lovable-compositor.service
           LEGACY=fgbears-youtube-relay.service
-          WT=fgbears-youtube-audio-watchdog.timer
-          W=fgbears-youtube-audio-watchdog.service
-          MASK=/opt/fgbears-live/bin/youtube-question-mask.py
-          COMPSH=/opt/fgbears-live/bin/youtube-lovable-compositor.sh
-          WATCH=/usr/local/bin/fgbears-youtube-audio-watchdog
-          ROUTEUNIT=/etc/systemd/system/fgbears-youtube-lovable-routing.service
           MONDIR=/run/fgbears-youtube-lovable-compositor
-          BACKUP=$(mktemp -d /tmp/fgb-yt720-backup.XXXXXX)
-          SUCCESS=0
-
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
           nr(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
-          active(){ systemctl is-active --quiet "$1"; }
           connected(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
-          fail(){ echo "NATIVE_720P_FAIL=$1" >&2; exit 1; }
-          shared(){ [[ "$(pid "$MASTER")" == "$M0" ]] || fail MASTER_PID_CHANGED; [[ "$(pid "$RUMBLE")" == "$R0" ]] || fail RUMBLE_PID_CHANGED; [[ "$(nr "$MASTER")" == "$MN0" ]] || fail MASTER_RESTARTED; [[ "$(nr "$RUMBLE")" == "$RN0" ]] || fail RUMBLE_RESTARTED; active "$MASTER" || fail MASTER_INACTIVE; active "$RUMBLE" || fail RUMBLE_INACTIVE; connected "$R0" 1935 || fail RUMBLE_SOCKET_LOST; }
-          rollback(){ rc=$?; (( SUCCESS == 0 )) || return 0; echo "NATIVE_720P_ROLLBACK=BEGIN rc=$rc" >&2; systemctl stop "$WT" "$W" 2>/dev/null || true; install -m 0755 "$BACKUP/mask" "$MASK" 2>/dev/null || true; install -m 0755 "$BACKUP/compositor" "$COMPSH" 2>/dev/null || true; install -m 0755 "$BACKUP/watchdog" "$WATCH" 2>/dev/null || true; install -m 0644 "$BACKUP/routing.service" "$ROUTEUNIT" 2>/dev/null || true; systemctl daemon-reload || true; systemctl stop "$LEGACY" 2>/dev/null || true; systemctl disable "$LEGACY" >/dev/null 2>&1 || true; systemctl reset-failed "$ROUTING" "$COMP" >/dev/null 2>&1 || true; systemctl restart "$ROUTING" || true; systemctl restart "$COMP" || true; systemctl start "$WT" 2>/dev/null || true; rm -rf "$BACKUP"; exit "$rc"; }
-          trap rollback EXIT
 
-          active "$MASTER" || fail MASTER_INACTIVE_PRE
-          active "$RUMBLE" || fail RUMBLE_INACTIVE_PRE
-          active "$ROUTING" || fail ROUTING_INACTIVE_PRE
-          active "$COMP" || fail COMPOSITOR_INACTIVE_PRE
-          ! active "$LEGACY" || fail LEGACY_ACTIVE_PRE
-          M0=$(pid "$MASTER"); R0=$(pid "$RUMBLE"); MN0=$(nr "$MASTER"); RN0=$(nr "$RUMBLE")
-          connected "$R0" 1935 || fail RUMBLE_SOCKET_MISSING_PRE
+          M=$(pid "$MASTER"); R=$(pid "$RUMBLE"); Q=$(pid "$ROUTING"); C=$(pid "$COMP")
+          echo "BASELINE pids master=$M rumble=$R routing=$Q compositor=$C legacy=$(pid "$LEGACY") restarts_master=$(nr "$MASTER") restarts_rumble=$(nr "$RUMBLE") restarts_comp=$(nr "$COMP")"
+          connected "$R" 1935 && echo RUMBLE_SOCKET=PASS || echo RUMBLE_SOCKET=FAIL
+          connected "$C" 443 && echo YOUTUBE_SOCKET=PASS || echo YOUTUBE_SOCKET=FAIL
+          speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
+          echo "MASTER_SPEED=${speed:-unknown}x"
 
-          python3 -m py_compile /tmp/youtube-question-mask.py.deploy
-          bash -n /tmp/youtube-lovable-compositor.sh.deploy
-          bash -n /tmp/youtube-audio-watchdog-owner-aware.sh.deploy
-          grep -Fq 'YOUTUBE_OUTPUT_WIDTH=1280' /tmp/youtube-lovable-compositor.sh.deploy || fail COMPOSITOR_NOT_720P
-          grep -Fq 'YOUTUBE_OUTPUT_CANVAS_WIDTH=1280' /tmp/fgbears-youtube-lovable-routing.service.deploy || fail ROUTING_NOT_720P
+          h=$(curl -fsS --max-time 3 http://127.0.0.1:8791/healthz)
+          echo "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);print("MASK_HEALTH",json.dumps({k:p.get(k) for k in ["active","phase","lastGoodAgeSeconds","lastError","canvas","sourceMaskRegion","maskRegion","frameSize","fps","failClosedDuringQuestion"]},sort_keys=True))'
+          r=$(curl -fsS --max-time 5 'https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing?_audit=1')
+          echo "$r" | python3 -c 'import json,sys;p=json.load(sys.stdin);t=p.get("trivia") or {};print("ROUTING_KEYS",sorted(t.keys()));print("ROUTING_NOW",json.dumps(t,sort_keys=True,default=str)[:12000])'
 
-          cp -a "$MASK" "$BACKUP/mask"
-          cp -a "$COMPSH" "$BACKUP/compositor"
-          cp -a "$WATCH" "$BACKUP/watchdog"
-          cp -a "$ROUTEUNIT" "$BACKUP/routing.service"
-
-          systemctl stop "$WT" "$W" 2>/dev/null || true
-          install -m 0755 /tmp/youtube-question-mask.py.deploy "$MASK"
-          install -m 0755 /tmp/youtube-lovable-compositor.sh.deploy "$COMPSH"
-          install -m 0755 /tmp/youtube-audio-watchdog-owner-aware.sh.deploy "$WATCH"
-          install -m 0644 /tmp/fgbears-youtube-lovable-routing.service.deploy "$ROUTEUNIT"
-          systemctl daemon-reload
-          systemctl stop "$LEGACY" 2>/dev/null || true
-          systemctl disable "$LEGACY" >/dev/null 2>&1 || true
-          systemctl reset-failed "$ROUTING" "$COMP" >/dev/null 2>&1 || true
-          systemctl restart "$ROUTING"
-          systemctl restart "$COMP"
-          shared
-
-          ok=0
-          for _ in $(seq 1 35); do
-            shared
-            cp=$(pid "$COMP")
-            if active "$ROUTING" && active "$COMP" && connected "$cp" 443; then
-              h=$(curl -fsS --max-time 2 http://127.0.0.1:8791/healthz 2>/dev/null || true)
-              if printf '%s' "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p.get("canvas")==[1280,720];assert p.get("maskRegion")=={"x":462,"y":104,"width":798,"height":470};assert p.get("frameSize")==[798,470];assert p.get("failClosedDuringQuestion") is True' 2>/dev/null; then ok=1; C1=$cp; break; fi
-            fi
-            sleep 1
-          done
-          (( ok == 1 )) || fail YOUTUBE_720P_DID_NOT_CONNECT
-
-          # Wait for a complete monitor segment and verify actual encoded output.
-          av=0
-          for _ in $(seq 1 20); do
-            seg=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
-            if [[ -n "$seg" && -s "$seg" ]] && ffprobe -v fatal -show_entries stream=codec_type,codec_name,sample_rate,channels,width,height,r_frame_rate -of json "$seg" 2>/dev/null | python3 -c 'import json,sys;p=json.load(sys.stdin);s=p.get("streams",[]);a=next(x for x in s if x.get("codec_type")=="audio");v=next(x for x in s if x.get("codec_type")=="video");assert (int(v.get("width",0)),int(v.get("height",0)))==(1280,720);assert v.get("r_frame_rate") in {"30/1","60/2"};assert a.get("codec_name")=="aac";assert str(a.get("sample_rate"))=="48000";assert int(a.get("channels") or 0)==2' 2>/dev/null; then av=1; break; fi
-            sleep 1
-          done
-          (( av == 1 )) || fail YOUTUBE_AV_CONTRACT_FAILED
-
-          # Sustained hold: no shared restart, no second sender, stable socket, acceptable CPU/realtime.
+          SEG=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
+          [[ -n "$SEG" && -s "$SEG" ]]
+          echo "MONITOR=$SEG"
+          ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame_rate,avg_frame_rate,sample_aspect_ratio,display_aspect_ratio,sample_rate,channels,time_base -of json "$SEG" | python3 -c 'import json,sys;print("AV_PROBE",json.dumps(json.load(sys.stdin),sort_keys=True))'
+          crop=$(ffmpeg -hide_banner -loglevel info -i "$SEG" -vf 'cropdetect=24:2:0' -frames:v 55 -an -f null - 2>&1 | grep -oE 'crop=[0-9]+:[0-9]+:[0-9]+:[0-9]+' | tail -n1 || true)
+          echo "CROP_DETECT=${crop:-none}"
+          ffprobe -v error -select_streams v:0 -show_entries frame=best_effort_timestamp_time -of csv=p=0 "$SEG" >/tmp/pts.txt
+          python3 - <<'PY'
+from pathlib import Path
+xs=[]
+for s in Path('/tmp/pts.txt').read_text().splitlines():
+    try: xs.append(float(s.strip().split(',')[0]))
+    except: pass
+ds=[b-a for a,b in zip(xs,xs[1:]) if b>=a]
+if not ds: print('FRAME_PACING=unavailable')
+else:
+    d=sorted(ds); pct=lambda p:d[min(len(d)-1,int((len(d)-1)*p))]
+    bad=sum(abs(x-1/30)>0.004 for x in ds)
+    print(f'FRAME_PACING frames={len(xs)} median={pct(.5):.6f} p95={pct(.95):.6f} max={max(ds):.6f} bad={bad}/{len(ds)}')
+PY
           maxcpu=0
-          for i in $(seq 1 12); do
-            shared
-            [[ "$(pid "$COMP")" == "$C1" ]] || fail COMPOSITOR_RESTARTED
-            connected "$C1" 443 || fail YOUTUBE_SOCKET_LOST
-            ! active "$LEGACY" || fail LEGACY_ACTIVE
-            cpu=$(ps -p "$C1" -o %cpu= | awk '{print $1+0}')
-            python3 -c 'import sys;assert float(sys.argv[1]) <= 45.0' "$cpu" || fail COMPOSITOR_CPU_HIGH
+          for _ in $(seq 1 10); do
+            cpu=$(ps -p "$C" -o %cpu= 2>/dev/null | awk '{print $1+0}')
             maxcpu=$(python3 -c 'import sys;print(max(float(sys.argv[1]),float(sys.argv[2])))' "$maxcpu" "$cpu")
-            speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
-            [[ -z "$speed" ]] || python3 -c 'import sys;assert float(sys.argv[1])>=0.985' "$speed" || fail MASTER_BELOW_REALTIME
-            sleep 5
+            sleep 1
           done
+          echo "COMPOSITOR_CPU_MAX_10S=${maxcpu}%"
+          faults=$(journalctl -u "$COMP" --since '15 minutes ago' --no-pager 2>/dev/null | grep -Eci 'Circular buffer overrun|timestamp discontinuity|Packet corrupt|Non-monotonous DTS|Invalid DTS|Queue input is backward in time|Broken pipe|Connection reset by peer|dropping frame|dup=' || true)
+          echo "COMPOSITOR_FAULT_LINES_15M=$faults"
+          journalctl -u "$COMP" --since '15 minutes ago' --no-pager 2>/dev/null | grep -Ei 'Circular buffer overrun|timestamp discontinuity|Packet corrupt|Non-monotonous DTS|Invalid DTS|Queue input is backward in time|Broken pipe|Connection reset by peer|dropping frame|dup=' | tail -n 40 || true
 
-          systemctl start "$WT" || fail WATCHDOG_TIMER_FAILED
-          sleep 3
-          active "$WT" || fail WATCHDOG_TIMER_INACTIVE
-          ! active "$LEGACY" || fail WATCHDOG_STARTED_LEGACY
-          shared
-          [[ "$(pid "$COMP")" == "$C1" ]] || fail COMPOSITOR_CHANGED_AFTER_WATCHDOG
-          connected "$C1" 443 || fail YOUTUBE_SOCKET_LOST_AFTER_WATCHDOG
-
-          echo "NATIVE_720P_DEPLOY=PASS master=$M0 rumble=$R0 compositor=$C1 max_cpu=${maxcpu}% speed=${speed:-unknown}x exact_box=462,104,798,470"
-          SUCCESS=1
-          trap - EXIT
-          rm -rf "$BACKUP" /tmp/*.deploy
+          # Observe the next scheduled trivia window. Record public control-plane
+          # state and local renderer state independently every 500 ms, beginning
+          # two minutes before the next :00/:20/:40 slot and ending two minutes after.
+          now=$(date +%s)
+          minute=$(date +%M | sed 's/^0//'); minute=${minute:-0}
+          sec=$(date +%S | sed 's/^0//'); sec=${sec:-0}
+          mod=$(( minute % 20 ))
+          wait=$(( (20-mod)*60 - sec - 120 ))
+          (( wait < 0 )) && wait=0
+          echo "TIMING_OBSERVER_WAIT=${wait}s current=$(date -Iseconds)"
+          sleep "$wait"
+          end=$(( $(date +%s) + 300 ))
+          echo "TIMING_OBSERVER_START=$(date -Iseconds)"
+          while (( $(date +%s) < end )); do
+            ts=$(date +%s.%3N)
+            remote=$(curl -fsS --max-time 2 'https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing?_timing=1' 2>/dev/null || echo '{}')
+            localh=$(curl -fsS --max-time 2 http://127.0.0.1:8791/healthz 2>/dev/null || echo '{}')
+            python3 - "$ts" "$remote" "$localh" <<'PY'
+import json,sys
+try:r=json.loads(sys.argv[2]); t=r.get('trivia') or {}
+except: t={}
+try:l=json.loads(sys.argv[3])
+except:l={}
+interesting={k:t.get(k) for k in t if k in {'phase','youtubeMaskActive','adsVisible','isAdBreak','adBreakActive','questionStartedAt','questionEndsAt','phaseStartedAt','phaseEndsAt','nextPhaseAt','secondsRemaining','questionVisible','gameActive','sessionActive','status'}}
+print('TIMING',sys.argv[1],'remote='+json.dumps(interesting,sort_keys=True,default=str),'local='+json.dumps({k:l.get(k) for k in ['phase','active','lastGoodAgeSeconds','lastError']},sort_keys=True,default=str))
+PY
+            sleep 0.5
+          done
+          echo "TIMING_OBSERVER_END=$(date -Iseconds)"
+          echo DIAGNOSIS_COMPLETE=YES
           REMOTE
