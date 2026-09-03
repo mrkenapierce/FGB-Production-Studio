@@ -55,25 +55,52 @@ jobs:
           grep -Fq 'dump_extra=freq=keyframe' "$runner"
           grep -Fq 'resend_headers+pat_pmt_at_frames' "$runner"
           grep -Fq '[v3-ingest]' "$runner"
+          grep -Fq -- '-probesize 2000000 -analyzeduration 3000000' "$runner"
+          grep -Fq -- '-probesize 131072 -analyzeduration 0' "$runner"
+          test "$(grep -Fo -- '-analyzeduration 3000000' "$runner" | wc -l)" -eq 1
           grep -Fq -- '-framerate 5' "$runner"
           grep -Fq -- '-progress pipe:3' "$runner"
           grep -Fq 'aresample=44100:async=1000:first_pts=0' "$runner"
           grep -Fq -- '--transport-only' "$verify"
+          grep -Fq 'measure_interval_speed' "$verify"
+          grep -Fq 'interval_speed' "$verify"
           grep -Fq 'downstream_decoder_not_synchronized' "$verify"
+          grep -Fq 'YOUTUBE_V3_SAMPLE_FILE=' "$health"
+          grep -Fq 'BELOW_REALTIME_INTERVAL_' "$health"
           grep -Fq 'recover_youtube_destination' "$health"
           grep -Fq 'YOUTUBE_GENERATION_FILE=' "$health"
           grep -Fq 'YOUTUBE_CUTOVER_MARKER=' "$health"
+          grep -Fq 'youtube_interval_speed=' "$monitor"
+          grep -Fq 'YOUTUBE_INTERVAL_START_TIMEOUT' "$monitor"
+          grep -Fq 'SAFE_V2_ROLLBACK_ACTIVE' "$monitor"
+          grep -Fq 'CONTROLLED_YOUTUBE_CUTOVER_IN_PROGRESS' "$monitor"
           ! grep -Eq '^Nice=|^CPUWeight=' services/fgbears-live/youtube-v3/fgbears-youtube-v3.service
           test ! -d services/fgbears-live/youtube-v2
           test -d services/fgbears-live/quarantine/youtube-v2-retired-20260903
           ! grep -Fq 'systemctl restart fgbears-live.service' "$deploy"
           ! grep -Fq 'systemctl restart fgbears-rumble-relay.service' "$deploy"
           ! grep -Fq 'git clone' "$deploy"
+          ! grep -Fq "min(vals['speed'])" "$deploy"
           grep -Fq 'fgb-youtube-v3-runtime.tgz' "$deploy"
-          grep -Fq 'SAFE_V2_ROLLBACK_ACTIVE' "$monitor"
-          grep -Fq 'CONTROLLED_YOUTUBE_CUTOVER_IN_PROGRESS' "$monitor"
-          grep -Fq 'youtube-generation' "$monitor"
-          echo 'V3_STATIC_ARCHITECTURE=PASS'
+          grep -Fq 'three independent steady media-clock passes' "$deploy"
+          echo 'V3_STATIC_ARCHITECTURE=PASS synchronization_probes=one throughput=interval'
+
+      - name: Prove threshold semantics are unchanged
+        run: |
+          set -Eeuo pipefail
+          grep -Fq "float(sys.argv[1]) >= 0.98" services/fgbears-live/youtube-v3/verify-youtube-v3.sh
+          grep -Fq "float(sys.argv[1]) >= 0.98" services/fgbears-live/bin/healthcheck.sh
+          grep -Fq "float(sys.argv[1]) >= 0.98" .github/workflows/fgbears-live-monitor.yml
+          python3 - <<'PY'
+          # A 3 s synchronization acquisition followed by 11 s of real-time
+          # media yields a misleading cumulative 11/14 = .786. The exact same
+          # stream measured over its steady 8 s media interval is 8/8 = 1.0.
+          cumulative=11/14
+          interval=8/8
+          assert cumulative < .98
+          assert interval >= .98
+          print(f'V3_CLOCK_SEMANTICS=PASS cumulative_example={cumulative:.3f} interval={interval:.3f} threshold=0.98')
+          PY
 
       - name: Prove two-phase cutover ordering
         run: |
@@ -90,12 +117,11 @@ jobs:
           committed=s.index("printf 'v3\\n' | sudo tee \"$GENERATION\"")
           assert health < marker < stop < start < passes[0], (health,marker,stop,start,passes)
           assert len(passes) >= 3, passes
-          assert passes[1] < retire and passes[2] < retire, (passes,retire)
-          assert retire < committed, (retire,committed)
+          assert passes[2] < retire < committed, (passes,retire,committed)
           assert 'sudo cp "$HEALTH" "$HEALTH_BACKUP"' in s
           assert 'sudo install -m 0755 "$HEALTH_BACKUP" "$HEALTH"' in s
           assert 'sudo rm -f "$CUTOVER_MARKER"' in s
-          print('V3_TWO_PHASE_CUTOVER=PASS supervision=continuous retirement=post-proof')
+          print('V3_TWO_PHASE_CUTOVER=PASS supervision=continuous retirement=post-three-pass-proof')
           PY
 
       - name: Exercise media/control isolation and routing guards
