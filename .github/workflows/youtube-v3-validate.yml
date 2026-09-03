@@ -43,12 +43,11 @@ jobs:
           set -Eeuo pipefail
           runner=services/fgbears-live/youtube-v3/run-youtube-v3.sh
           verify=services/fgbears-live/youtube-v3/verify-youtube-v3.sh
+          health=services/fgbears-live/bin/healthcheck.sh
           deploy=.github/workflows/youtube-v3-deploy.yml
           monitor=.github/workflows/fgbears-live-monitor.yml
           python3 -m py_compile services/fgbears-live/youtube-v3/youtube-v3-overlay.py
-          bash -n "$runner"
-          bash -n "$verify"
-          bash -n services/fgbears-live/bin/healthcheck.sh
+          bash -n "$runner"; bash -n "$verify"; bash -n "$health"
           grep -Fq 'FPS = 5.0' services/fgbears-live/youtube-v3/youtube-v3-overlay.py
           grep -Fq 'threading.Thread(target=control_loop' services/fgbears-live/youtube-v3/youtube-v3-overlay.py
           grep -Fq 'ingest_normalizer' "$runner"
@@ -61,7 +60,9 @@ jobs:
           grep -Fq 'aresample=44100:async=1000:first_pts=0' "$runner"
           grep -Fq -- '--transport-only' "$verify"
           grep -Fq 'downstream_decoder_not_synchronized' "$verify"
-          grep -Fq 'youtube-generation' "$verify"
+          grep -Fq 'recover_youtube_destination' "$health"
+          grep -Fq 'YOUTUBE_GENERATION_FILE=' "$health"
+          grep -Fq 'YOUTUBE_CUTOVER_MARKER=' "$health"
           ! grep -Eq '^Nice=|^CPUWeight=' services/fgbears-live/youtube-v3/fgbears-youtube-v3.service
           test ! -d services/fgbears-live/youtube-v2
           test -d services/fgbears-live/quarantine/youtube-v2-retired-20260903
@@ -70,6 +71,7 @@ jobs:
           ! grep -Fq 'git clone' "$deploy"
           grep -Fq 'fgb-youtube-v3-runtime.tgz' "$deploy"
           grep -Fq 'SAFE_V2_ROLLBACK_ACTIVE' "$monitor"
+          grep -Fq 'CONTROLLED_YOUTUBE_CUTOVER_IN_PROGRESS' "$monitor"
           grep -Fq 'youtube-generation' "$monitor"
           echo 'V3_STATIC_ARCHITECTURE=PASS'
 
@@ -79,19 +81,21 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
           s=Path('.github/workflows/youtube-v3-deploy.yml').read_text()
+          health=s.index('sudo install -m 0755 /tmp/fgbears-healthcheck-v3 "$HEALTH"')
+          marker=s.index('sudo touch "$CUTOVER_MARKER"')
           stop=s.index('sudo systemctl stop "$V2"')
           start=s.index('sudo systemctl start "$V3"')
           passes=[i for i in range(len(s)) if s.startswith('sudo "$V3DIR/verify-youtube-v3.sh" --transport-only', i)]
           retire=s.index('sudo mv "$V2DIR" "$V2QUAR"')
-          health=s.index('sudo install -m 0755 /tmp/fgbears-healthcheck-v3 "$HEALTH"')
-          marker=s.index("printf 'v3\\n' | sudo tee \"$GENERATION\"")
-          assert stop < start < passes[0], (stop,start,passes)
+          committed=s.index("printf 'v3\\n' | sudo tee \"$GENERATION\"")
+          assert health < marker < stop < start < passes[0], (health,marker,stop,start,passes)
           assert len(passes) >= 3, passes
           assert passes[1] < retire and passes[2] < retire, (passes,retire)
-          assert retire < health < marker, (retire,health,marker)
+          assert retire < committed, (retire,committed)
           assert 'sudo cp "$HEALTH" "$HEALTH_BACKUP"' in s
           assert 'sudo install -m 0755 "$HEALTH_BACKUP" "$HEALTH"' in s
-          print('V3_TWO_PHASE_CUTOVER=PASS transport_proof_before_retirement=yes')
+          assert 'sudo rm -f "$CUTOVER_MARKER"' in s
+          print('V3_TWO_PHASE_CUTOVER=PASS supervision=continuous retirement=post-proof')
           PY
 
       - name: Exercise media/control isolation and routing guards
@@ -130,7 +134,5 @@ jobs:
           if find services/fgbears-live/quarantine/youtube-v2-retired-20260903 -type f -perm /111 -print -quit | grep -q .; then
             echo 'Executable file found in v2 repository quarantine' >&2; exit 1
           fi
-          # The ingest normalizer is internal to the v3 service; no extra
-          # systemd unit or platform media pipeline is introduced.
           test "$(find services/fgbears-live/youtube-v3 -maxdepth 1 -name '*.service' | wc -l)" -eq 1
           echo 'V3_QUARANTINE_BOUNDARY=PASS'
