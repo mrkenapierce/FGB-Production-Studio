@@ -26,7 +26,7 @@ assert 'urllib' not in path.read_text(), 'renderer must contain no HTTP client'
 region={"x":462,"y":104,"width":798,"height":470,"coordinateSpace":"pixels","referenceWidth":1280,"referenceHeight":720}
 def iso(seconds): return (datetime.now(timezone.utc)+timedelta(seconds=seconds)).isoformat().replace('+00:00','Z')
 def payload(key='yt_rumble_trivia_redirect', **change):
-    trivia={"active":True,"stale":False,"phase":"question","gameVisible":True,"youtubeRedirectRequired":True}
+    trivia={"active":True,"stale":False,"phase":"question","questionVisible":True,"gameVisible":True,"youtubeRedirectRequired":True}
     ad={"active":False,"adsVisible":False,"isAdBreak":False}
     diff={"enabled":True,"creativeKey":key,"reason":"question_phase","region":region,"presentationMode":"full_creative_scaled"}
     for k,v in change.items():
@@ -37,7 +37,8 @@ def payload(key='yt_rumble_trivia_redirect', **change):
             "presentation":{"adBreak":ad,"trivia":trivia,"routing":{"rumble":{"rendersRealQuestion":True},"youtube":{"differenceLayer":diff}},
                             "overlay":{},"crawl":{},"news":{},"schedule":{},"mask":{"region":region}}}
 pres,key=m.validate(payload()); assert m.should_cover(pres,key); assert len(m.build_frame(key)) == 798*470*4
-for changed in (payload(trivia_stale=True),payload(trivia_phase='revealed'),payload(trivia_gameVisible=False),payload(trivia_youtubeRedirectRequired=False),payload(ad_active=True),payload(enabled=False)):
+pres,key=m.validate(payload(trivia_phase='revealed')); assert m.should_cover(pres,key)
+for changed in (payload(trivia_stale=True),payload(trivia_phase='transition'),payload(trivia_phase='scoreboard'),payload(trivia_questionVisible=False),payload(trivia_gameVisible=False),payload(trivia_youtubeRedirectRequired=False),payload(ad_active=True),payload(enabled=False)):
     pres,key=m.validate(changed); assert not m.should_cover(pres,key)
 expired=payload(); expired['validUntil']=iso(-1)
 try: m.validate(expired)
@@ -46,7 +47,7 @@ else: raise AssertionError('expired state must fail transparent')
 try: m.build_frame('not_installed')
 except (ValueError, FileNotFoundError): pass
 else: raise AssertionError('unapproved creative must fail closed')
-print('YOUTUBE_V3_RENDERER_TEST=PASS contract=fgb-stream-state/v1 local_state_only=yes')
+print('YOUTUBE_V3_RENDERER_TEST=PASS contract=fgb-stream-state/v1 visible-question=question+revealed local_state_only=yes')
 PY
 
 # Shared program is still encoded once and mirrored to YouTube/Rumble loopback.
@@ -55,6 +56,8 @@ grep -Fq '${YOUTUBE_LOCAL_UDP_URL}|[f=mpegts:' "$ROOT/bin/start-stream.sh"
 grep -Fq '${RUMBLE_LOCAL_UDP_URL}' "$ROOT/bin/start-stream.sh"
 grep -Fq -- '-c:a copy' "$ROOT/bin/start-stream.sh"
 ! grep -Fq -- '-af ' "$ROOT/bin/start-stream.sh"
+grep -Fq 'CRAWL_OVERLAY_FPS:=30' "$ROOT/bin/start-stream.sh"
+grep -Fq 'BEARS_NEWS_OVERLAY_FPS:=30' "$ROOT/bin/start-stream.sh"
 
 # Rumble remains copy/remux only.
 grep -Fq -- '-c copy' "$ROOT/bin/rumble-relay.sh"
@@ -62,6 +65,9 @@ grep -Fq -- '-c copy' "$ROOT/bin/rumble-relay.sh"
 
 # Sole destination compositor is v3; control and media clocks are separated.
 grep -Fq 'overlay=462:104' "$ROOT/youtube-v3/run-youtube-v3.sh"
+grep -Fq 'fps=30:start_time=0' "$ROOT/youtube-v3/run-youtube-v3.sh"
+grep -Fq 'scale=854:480:flags=fast_bilinear' "$ROOT/youtube-v3/run-youtube-v3.sh"
+grep -Fq -- '-r 30 -fps_mode cfr -g 60 -keyint_min 60' "$ROOT/youtube-v3/run-youtube-v3.sh"
 grep -Fq -- '-framerate 5' "$ROOT/youtube-v3/run-youtube-v3.sh"
 grep -Fq -- '-progress pipe:3' "$ROOT/youtube-v3/run-youtube-v3.sh"
 grep -Fq -- '-c:v libx264' "$ROOT/youtube-v3/run-youtube-v3.sh"
@@ -109,7 +115,7 @@ kill "$OVERLAY_PID"; wait "$OVERLAY_PID" 2>/dev/null || true; OVERLAY_PID=""
 cat > "$TMP/crawl.json" <<'JSON'
 {"active":true,"label":"FGB LIVE","message":"legacy first message","messages":[{"enabled":true,"text":"MESSAGE ONE"},{"enabled":true,"text":"MESSAGE TWO"},{"enabled":true,"text":"MESSAGE THREE"}],"separator":"•","speed":"normal","updatedAt":"2026-08-25T00:00:00Z"}
 JSON
-CRAWL_FEED_FILE="$TMP/crawl.json" CRAWL_RUNTIME_DIR="$TMP/runtime" CRAWL_OVERLAY_PORT=18788 CRAWL_OVERLAY_FPS=10 python3 "$ROOT/bin/crawl-overlay.py" >"$TMP/crawl.log" 2>&1 & CRAWL_PID=$!
+CRAWL_FEED_FILE="$TMP/crawl.json" CRAWL_RUNTIME_DIR="$TMP/runtime" CRAWL_OVERLAY_PORT=18788 CRAWL_OVERLAY_FPS=30 python3 "$ROOT/bin/crawl-overlay.py" >"$TMP/crawl.log" 2>&1 & CRAWL_PID=$!
 for _ in {1..40}; do curl -sf --max-time 1 http://127.0.0.1:18788/healthz >"$TMP/crawl-health.json" && break; sleep 0.1; done
 jq -e '.ok == true and .active == true and .messageCount == 3' "$TMP/crawl-health.json" >/dev/null
 kill "$CRAWL_PID"; wait "$CRAWL_PID" 2>/dev/null || true; CRAWL_PID=""
@@ -122,4 +128,4 @@ install -m 0755 "$ROOT/bin/validate-media.sh" "$TMP/fgbears-validate"
 VALIDATOR="$TMP/fgbears-validate" MEDIA_DIR="$TMP/media" PLAYLIST_FILE="$TMP/playlist.ffconcat" bash "$ROOT/bin/rebuild-playlist.sh"
 grep -q 'episode-01.mp4' "$TMP/playlist.ffconcat"
 
-echo 'FGBears Live integration tests passed: Lovable control plane + YouTube v3 architecture.'
+echo 'FGBears Live integration tests passed: Lovable visible-question control + cadence-matched YouTube v3.'
