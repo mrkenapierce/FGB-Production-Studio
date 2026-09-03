@@ -1,0 +1,73 @@
+name: Deploy YouTube v3.6 Manual
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type DEPLOY_V3_6
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-v3-6-production
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  deploy:
+    if: ${{ inputs.confirm == 'DEPLOY_V3_6' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: lovable-routing-bridge-20260902
+
+      - name: Build and validate release inputs
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/youtube-v3/run-youtube-v3-source.sh
+          bash -n services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          bash -n services/fgbears-live/youtube-v3/deploy-v3-6.sh
+          python3 -m py_compile services/fgbears-live/youtube-v3/*.py
+          python3 services/fgbears-live/youtube-v3/make-master-v3-export.py services/fgbears-live/bin/start-stream.sh /tmp/start-stream-v3.sh
+          bash -n /tmp/start-stream-v3.sh
+          grep -Fq '127.0.0.1:1950' /tmp/start-stream-v3.sh
+          grep -Fq 'overlay=462:104' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          grep -Fq 'aresample=48000' services/fgbears-live/youtube-v3/run-youtube-v3.sh
+          echo V3_6_RELEASE_INPUTS=PASS
+
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Execute guarded v3.6 migration
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key \
+            /tmp/start-stream-v3.sh \
+            services/fgbears-live/youtube-v3/run-youtube-v3-source.sh \
+            services/fgbears-live/youtube-v3/run-youtube-v3.sh \
+            services/fgbears-live/youtube-v3/make-youtube-v3-cover.py \
+            services/fgbears-live/youtube-v3/youtube-v3-supervisor.py \
+            services/fgbears-live/youtube-v3/fgbears-youtube-v3-source.service \
+            services/fgbears-live/youtube-v3/fgbears-youtube-v3.service \
+            services/fgbears-live/youtube-v3/fgbears-youtube-v3-supervisor.service \
+            services/fgbears-live/youtube-v3/deploy-v3-6.sh \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "sudo env RELEASE_SHA='$RELEASE_SHA' bash /tmp/deploy-v3-6.sh"
