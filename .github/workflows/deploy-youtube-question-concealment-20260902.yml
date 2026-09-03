@@ -11,10 +11,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: fgbears-youtube-live-diagnosis
-  cancel-in-progress: true
-
 jobs:
   diagnose:
     runs-on: ubuntu-latest
@@ -47,19 +43,16 @@ jobs:
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
           nr(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
           connected(){ local p=$1 port=$2; [[ "$p" =~ ^[1-9][0-9]*$ ]] && ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'; }
-
           M=$(pid "$MASTER"); R=$(pid "$RUMBLE"); Q=$(pid "$ROUTING"); C=$(pid "$COMP")
           echo "BASELINE pids master=$M rumble=$R routing=$Q compositor=$C legacy=$(pid "$LEGACY") restarts_master=$(nr "$MASTER") restarts_rumble=$(nr "$RUMBLE") restarts_comp=$(nr "$COMP")"
           connected "$R" 1935 && echo RUMBLE_SOCKET=PASS || echo RUMBLE_SOCKET=FAIL
           connected "$C" 443 && echo YOUTUBE_SOCKET=PASS || echo YOUTUBE_SOCKET=FAIL
           speed=$(awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || true)
           echo "MASTER_SPEED=${speed:-unknown}x"
-
           h=$(curl -fsS --max-time 3 http://127.0.0.1:8791/healthz)
           echo "$h" | python3 -c 'import json,sys;p=json.load(sys.stdin);print("MASK_HEALTH",json.dumps({k:p.get(k) for k in ["active","phase","lastGoodAgeSeconds","lastError","canvas","sourceMaskRegion","maskRegion","frameSize","fps","failClosedDuringQuestion"]},sort_keys=True))'
           r=$(curl -fsS --max-time 5 'https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing?_audit=1')
           echo "$r" | python3 -c 'import json,sys;p=json.load(sys.stdin);t=p.get("trivia") or {};print("ROUTING_KEYS",sorted(t.keys()));print("ROUTING_NOW",json.dumps(t,sort_keys=True,default=str)[:12000])'
-
           SEG=$(find "$MONDIR" -maxdepth 1 -type f -name 'monitor-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -nr | sed -n '2{s/^[^ ]* //;p;q;}')
           [[ -n "$SEG" && -s "$SEG" ]]
           echo "MONITOR=$SEG"
@@ -67,56 +60,20 @@ jobs:
           crop=$(ffmpeg -hide_banner -loglevel info -i "$SEG" -vf 'cropdetect=24:2:0' -frames:v 55 -an -f null - 2>&1 | grep -oE 'crop=[0-9]+:[0-9]+:[0-9]+:[0-9]+' | tail -n1 || true)
           echo "CROP_DETECT=${crop:-none}"
           ffprobe -v error -select_streams v:0 -show_entries frame=best_effort_timestamp_time -of csv=p=0 "$SEG" >/tmp/pts.txt
-          python3 - <<'PY'
-from pathlib import Path
-xs=[]
-for s in Path('/tmp/pts.txt').read_text().splitlines():
-    try: xs.append(float(s.strip().split(',')[0]))
-    except: pass
-ds=[b-a for a,b in zip(xs,xs[1:]) if b>=a]
-if not ds: print('FRAME_PACING=unavailable')
-else:
-    d=sorted(ds); pct=lambda p:d[min(len(d)-1,int((len(d)-1)*p))]
-    bad=sum(abs(x-1/30)>0.004 for x in ds)
-    print(f'FRAME_PACING frames={len(xs)} median={pct(.5):.6f} p95={pct(.95):.6f} max={max(ds):.6f} bad={bad}/{len(ds)}')
-PY
+          python3 -c 'from pathlib import Path; xs=[]; [xs.append(float(s.strip().split(",")[0])) for s in Path("/tmp/pts.txt").read_text().splitlines() if s.strip()]; ds=[b-a for a,b in zip(xs,xs[1:]) if b>=a]; d=sorted(ds); print("FRAME_PACING=unavailable" if not d else f"FRAME_PACING frames={len(xs)} median={d[len(d)//2]:.6f} p95={d[min(len(d)-1,int((len(d)-1)*.95))]:.6f} max={max(d):.6f} bad={sum(abs(x-1/30)>.004 for x in d)}/{len(d)}")'
           maxcpu=0
-          for _ in $(seq 1 10); do
-            cpu=$(ps -p "$C" -o %cpu= 2>/dev/null | awk '{print $1+0}')
-            maxcpu=$(python3 -c 'import sys;print(max(float(sys.argv[1]),float(sys.argv[2])))' "$maxcpu" "$cpu")
-            sleep 1
-          done
+          for _ in $(seq 1 10); do cpu=$(ps -p "$C" -o %cpu= 2>/dev/null | awk '{print $1+0}'); maxcpu=$(python3 -c 'import sys;print(max(float(sys.argv[1]),float(sys.argv[2])))' "$maxcpu" "$cpu"); sleep 1; done
           echo "COMPOSITOR_CPU_MAX_10S=${maxcpu}%"
           faults=$(journalctl -u "$COMP" --since '15 minutes ago' --no-pager 2>/dev/null | grep -Eci 'Circular buffer overrun|timestamp discontinuity|Packet corrupt|Non-monotonous DTS|Invalid DTS|Queue input is backward in time|Broken pipe|Connection reset by peer|dropping frame|dup=' || true)
           echo "COMPOSITOR_FAULT_LINES_15M=$faults"
           journalctl -u "$COMP" --since '15 minutes ago' --no-pager 2>/dev/null | grep -Ei 'Circular buffer overrun|timestamp discontinuity|Packet corrupt|Non-monotonous DTS|Invalid DTS|Queue input is backward in time|Broken pipe|Connection reset by peer|dropping frame|dup=' | tail -n 40 || true
-
-          # Observe the next scheduled trivia window. Record public control-plane
-          # state and local renderer state independently every 500 ms, beginning
-          # two minutes before the next :00/:20/:40 slot and ending two minutes after.
-          now=$(date +%s)
-          minute=$(date +%M | sed 's/^0//'); minute=${minute:-0}
-          sec=$(date +%S | sed 's/^0//'); sec=${sec:-0}
-          mod=$(( minute % 20 ))
-          wait=$(( (20-mod)*60 - sec - 120 ))
-          (( wait < 0 )) && wait=0
+          minute=$((10#$(date +%M))); sec=$((10#$(date +%S))); mod=$((minute%20)); wait=$(((20-mod)*60-sec-120)); ((wait<0))&&wait=0
           echo "TIMING_OBSERVER_WAIT=${wait}s current=$(date -Iseconds)"
           sleep "$wait"
-          end=$(( $(date +%s) + 300 ))
-          echo "TIMING_OBSERVER_START=$(date -Iseconds)"
+          end=$(( $(date +%s) + 300 )); echo "TIMING_OBSERVER_START=$(date -Iseconds)"
           while (( $(date +%s) < end )); do
-            ts=$(date +%s.%3N)
-            remote=$(curl -fsS --max-time 2 'https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing?_timing=1' 2>/dev/null || echo '{}')
-            localh=$(curl -fsS --max-time 2 http://127.0.0.1:8791/healthz 2>/dev/null || echo '{}')
-            python3 - "$ts" "$remote" "$localh" <<'PY'
-import json,sys
-try:r=json.loads(sys.argv[2]); t=r.get('trivia') or {}
-except: t={}
-try:l=json.loads(sys.argv[3])
-except:l={}
-interesting={k:t.get(k) for k in t if k in {'phase','youtubeMaskActive','adsVisible','isAdBreak','adBreakActive','questionStartedAt','questionEndsAt','phaseStartedAt','phaseEndsAt','nextPhaseAt','secondsRemaining','questionVisible','gameActive','sessionActive','status'}}
-print('TIMING',sys.argv[1],'remote='+json.dumps(interesting,sort_keys=True,default=str),'local='+json.dumps({k:l.get(k) for k in ['phase','active','lastGoodAgeSeconds','lastError']},sort_keys=True,default=str))
-PY
+            ts=$(date +%s.%3N); remote=$(curl -fsS --max-time 2 'https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing?_timing=1' 2>/dev/null || echo '{}'); localh=$(curl -fsS --max-time 2 http://127.0.0.1:8791/healthz 2>/dev/null || echo '{}')
+            python3 -c 'import json,sys; r=json.loads(sys.argv[2]); t=r.get("trivia") or {}; l=json.loads(sys.argv[3]); ks={"phase","youtubeMaskActive","adsVisible","isAdBreak","adBreakActive","questionStartedAt","questionEndsAt","phaseStartedAt","phaseEndsAt","nextPhaseAt","secondsRemaining","questionVisible","gameActive","sessionActive","status"}; print("TIMING",sys.argv[1],"remote="+json.dumps({k:t.get(k) for k in t if k in ks},sort_keys=True,default=str),"local="+json.dumps({k:l.get(k) for k in ["phase","active","lastGoodAgeSeconds","lastError"]},sort_keys=True,default=str))' "$ts" "$remote" "$localh"
             sleep 0.5
           done
           echo "TIMING_OBSERVER_END=$(date -Iseconds)"
