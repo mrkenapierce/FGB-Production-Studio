@@ -3,12 +3,14 @@
 
 Hard boundary: this renderer performs NO network I/O. Lovable is polled by the
 independent lovable-state-cache.py process, which atomically publishes validated
-state locally. A validated positive concealment trigger is latched for at least
-15 seconds so a short phase transition cannot expose the question prematurely.
+state locally. The YouTube video path has a bounded playout reserve, so validated
+concealment state is delayed by the same amount before the 15-second minimum
+hold is applied.
 """
 from __future__ import annotations
 
 import argparse
+from collections import deque
 from datetime import datetime
 import json
 import math
@@ -36,8 +38,11 @@ WIDTH = OUTPUT_RIGHT - OUTPUT_X
 HEIGHT = OUTPUT_BOTTOM - OUTPUT_Y
 FPS = 5.0
 HOLD_SECONDS = float(os.getenv("YOUTUBE_V3_CONCEALMENT_HOLD_SECONDS", "15"))
+BUFFER_SECONDS = float(os.getenv("YOUTUBE_V3_BUFFER_SECONDS", "4"))
 if HOLD_SECONDS <= 0:
     raise ValueError("YOUTUBE_V3_CONCEALMENT_HOLD_SECONDS must be positive")
+if not 1.0 <= BUFFER_SECONDS <= 10.0:
+    raise ValueError("YOUTUBE_V3_BUFFER_SECONDS must be between 1 and 10 seconds")
 STATE_FILE = Path(os.getenv(
     "FGB_CONTROL_STATE_FILE", "/run/fgbears-control-plane/stream-state.json"
 ))
@@ -68,8 +73,28 @@ TRANSPARENT = bytes(WIDTH * HEIGHT * 4)
 _FRAME_CACHE: dict[str, bytes] = {}
 
 
+class DelayedBoolean:
+    """Apply boolean edges after the same delay as the YouTube media buffer."""
+
+    def __init__(self, delay_seconds: float = BUFFER_SECONDS) -> None:
+        self.delay_seconds = delay_seconds
+        self.pending: deque[tuple[float, bool]] = deque()
+        self.input_state = False
+        self.output_state = False
+
+    def update(self, value: bool, *, now: float | None = None) -> bool:
+        now = time.monotonic() if now is None else now
+        value = bool(value)
+        if value != self.input_state:
+            self.pending.append((now + self.delay_seconds, value))
+            self.input_state = value
+        while self.pending and self.pending[0][0] <= now:
+            _, self.output_state = self.pending.popleft()
+        return self.output_state
+
+
 class ConcealmentLatch:
-    """Minimum-duration latch driven only by validated positive triggers."""
+    """Minimum-duration latch driven only by delayed validated triggers."""
 
     def __init__(self, hold_seconds: float = HOLD_SECONDS) -> None:
         self.hold_seconds = hold_seconds
@@ -216,13 +241,20 @@ def self_test() -> int:
         raise RuntimeError("built-in redirect creative missing from local allowlist")
     frame = build_frame(BUILTIN_REDIRECT_KEY)
     assert len(frame) == WIDTH * HEIGHT * 4
+
+    delayed = DelayedBoolean(4.0)
+    assert delayed.update(True, now=100.0) is False
+    assert delayed.update(True, now=103.999) is False
+    assert delayed.update(True, now=104.001) is True
+    assert delayed.update(False, now=105.0) is True
+    assert delayed.update(False, now=108.999) is True
+    assert delayed.update(False, now=109.001) is False
+
     latch = ConcealmentLatch(15.0)
-    assert latch.update(True, now=100.0) is True
-    assert latch.update(False, now=114.999) is True
-    assert latch.update(False, now=115.001) is False
-    assert latch.update(True, now=120.0) is True
-    assert latch.update(False, now=134.999) is True
-    assert latch.update(False, now=135.001) is False
+    assert latch.update(True, now=104.001) is True
+    assert latch.update(False, now=118.999) is True
+    assert latch.update(False, now=119.002) is False
+
     active, key, error = local_decision()
     print(json.dumps({
         "ok": True,
@@ -231,6 +263,7 @@ def self_test() -> int:
         "localStateError": error,
         "availableCreativeKeys": keys,
         "fps": FPS,
+        "bufferSeconds": BUFFER_SECONDS,
         "holdSeconds": HOLD_SECONDS,
         "sourceMaskRegion": EXPECTED_REGION,
         "outputMaskRegion": OUTPUT_REGION,
@@ -245,6 +278,7 @@ def stream() -> int:
     deadline = time.monotonic()
     last_mtime_ns: int | None = None
     raw_active = False
+    delayed = DelayedBoolean()
     latch = ConcealmentLatch()
 
     while True:
@@ -260,7 +294,8 @@ def stream() -> int:
             last_mtime_ns = None
             print(f"local control-state warning: {exc}", file=sys.stderr)
 
-        active = latch.update(raw_active)
+        delayed_active = delayed.update(raw_active)
+        active = latch.update(delayed_active)
         try:
             write_all(active_frame if active else TRANSPARENT)
         except BrokenPipeError:
