@@ -76,12 +76,9 @@ jobs:
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "PILOT_ACTION='$PILOT_ACTION' bash -s" <<'REMOTE'
           set -Eeuo pipefail
-          env_file=/etc/fgbears-live-live/stream.env
           env_file=/etc/fgbears-live/stream.env
           pilot_script=/tmp/rumble-studio-relay.sh
-          credentials=/tmp/resso-studio-pilot.credentials
           credentials=/tmp/rumble-studio-pilot.credentials
-          backup_script=/usr/local/local/bin/fgbears-rumble-relay.pre-studio
           backup_script=/usr/local/bin/fgbears-rumble-relay.pre-studio
           backup_env=/etc/fgbears-live/stream.env.pre-studio
 
@@ -100,7 +97,14 @@ jobs:
           if [[ "$PILOT_ACTION" == status ]]; then
             state=$(enabled_value)
             [[ "$state" == 0 || "$state" == 1 || -z "$state" ]]
-            echo "RUMBLE_STUDIO_PILOT_STATUS=PASS enabled=${state:-0} master_pid=$master_before rumble_pid=$rumble_before youtube_v3_pid=$youtube_before"
+            restarts_before=$(systemctl show -p NRestarts --value fgbears-rumble-relay.service)
+            sleep 6
+            rumble_after_status=$(pid fgbears-rumble-relay.service)
+            restarts_after=$(systemctl show -p NRestarts --value fgbears-rumble-relay.service)
+            active_state=$(systemctl show -p ActiveState --value fgbears-rumble-relay.service)
+            sub_state=$(systemctl show -p SubState --value fgbears-rumble-relay.service)
+            result=$(systemctl show -p Result --value fgbears-rumble-relay.service)
+            echo "RUMBLE_STUDIO_PILOT_STATUS=PASS enabled=${state:-0} master_pid=$master_before rumble_pid_before=$rumble_before rumble_pid_after=$rumble_after_status restarts_before=$restarts_before restarts_after=$restarts_after active=$active_state sub=$sub_state result=$result youtube_v3_pid=$youtube_before"
             exit 0
           fi
 
