@@ -31,6 +31,7 @@ CREATIVE_DIR = Path(os.getenv(
 ))
 BUILTIN_REDIRECT_KEY = "yt_rumble_trivia_redirect"
 EXPECTED_SCHEMA = "fgb-stream-state/v1"
+VISIBLE_QUESTION_PHASES = {"question", "revealed"}
 KEY_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 EXPECTED_REGION = {
     "x": 462,
@@ -124,12 +125,14 @@ def should_cover(presentation: dict, key: str) -> bool:
         ad_break = presentation["adBreak"]
         trivia = presentation["trivia"]
         difference = presentation["routing"]["youtube"]["differenceLayer"]
+        phase = str(trivia.get("phase") or "").strip().lower()
         return (
             difference.get("enabled") is True
             and key == BUILTIN_REDIRECT_KEY
             and difference.get("creativeKey") == BUILTIN_REDIRECT_KEY
             and ad_break.get("active") is False
-            and str(trivia.get("phase") or "").strip().lower() == "question"
+            and phase in VISIBLE_QUESTION_PHASES
+            and trivia.get("questionVisible") is True
             and trivia.get("stale") is not True
             and trivia.get("gameVisible") is True
             and trivia.get("youtubeRedirectRequired") is True
