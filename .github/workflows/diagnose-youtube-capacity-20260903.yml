@@ -57,8 +57,6 @@ jobs:
           echo "nproc=$(nproc)"
           echo "load=$(cat /proc/loadavg)"
           echo "cpu_pressure=$(awk '/^some/{print}' /proc/pressure/cpu)"
-          echo "mem_pressure=$(awk '/^some/{print}' /proc/pressure/memory)"
-          echo "io_pressure=$(awk '/^some/{print}' /proc/pressure/io)"
           vmstat 1 6
           echo "HOST_END"
           echo "SOCKETS_BEGIN"
@@ -66,5 +64,11 @@ jobs:
           echo "SOCKETS_END"
           echo "MASTER_SPEED=$(sudo awk -F= '$1=="speed"{v=$2} END{gsub(/x/,"",v);if(v!="")print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null || echo NA)"
           echo "V2_HEALTH=$(sudo /opt/fgbears-live/youtube-v2/verify-youtube-v2.sh 2>&1 | tail -n 3 | tr '\n' ' ' || true)"
+          echo 'V2_RECENT_FFMPEG_BEGIN'
+          sudo journalctl -u fgbears-youtube-v2.service --since '-2 minutes' --no-pager -o cat 2>/dev/null | tr '\r' '\n' | grep -E 'frame=.*fps=.*speed=' | tail -n 20 || true
+          echo 'V2_RECENT_FFMPEG_END'
+          echo 'V2_CMDLINE_BEGIN'
+          if [[ "$V2" =~ ^[1-9][0-9]*$ ]]; then sudo tr '\0' ' ' < "/proc/$V2/cmdline"; echo; fi
+          echo 'V2_CMDLINE_END'
           echo "READ_ONLY_CAPACITY_DIAG=PASS"
           REMOTE
