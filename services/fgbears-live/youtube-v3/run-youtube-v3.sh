@@ -17,7 +17,7 @@ LOCAL_INPUT="${LOCAL_BASE}?fifo_size=2000000&overrun_nonfatal=1&reuse=1"
 TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 OVERLAY=/opt/fgbears-live/youtube-v3/youtube-v3-overlay.py
 PROGRESS=/run/fgbears-youtube-v3/ffmpeg-progress.log
-FILTER_COMPLEX='[0:v:0]fps=30:start_time=0,settb=AVTB,setpts=N/(30*TB),setsar=1[base];[1:v:0]settb=AVTB,setpts=N/(5*TB)[cover];[base][cover]overlay=462:104:format=auto:shortest=0:repeatlast=1:eof_action=repeat[v];[0:a:0]aresample=44100:async=1000:first_pts=0,asetpts=N/SR/TB[a]'
+FILTER_COMPLEX='[0:v:0]fps=30:start_time=0,settb=AVTB,setpts=N/(30*TB),setsar=1[base];[1:v:0]settb=AVTB,setpts=N/(10*TB)[cover];[base][cover]overlay=462:104:format=auto:shortest=0:repeatlast=1:eof_action=repeat[v];[0:a:0]aresample=44100:async=1000:first_pts=0,asetpts=N/SR/TB[a]'
 
 [[ -x "$OVERLAY" ]] || { echo "Missing YouTube v3 overlay renderer: $OVERLAY" >&2; exit 78; }
 
@@ -33,12 +33,9 @@ progress_sink() {
   done
 }
 
-# v3 intentionally uses the exact proven v2 media path. The shared master
-# already emits MPEG-TS with resend_headers plus dump_extra on every keyframe,
-# so a late listener receives fresh PAT/PMT and H.264 SPS/PPS at the next IDR.
-# Keeping the destination to one FFmpeg process avoids extra CPU cost. Progress
-# is emitted once per second so verification can measure steady-state media-time
-# delta instead of FFmpeg's startup-history-weighted cumulative speed field.
+# v3 keeps the proven v2 media path and exact 10 fps compositor cadence. The
+# only architectural additions are generation-safe cutover controls and v3
+# telemetry; master, Rumble, codec, bitrate and audio-clock behavior are unchanged.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel warning \
   -progress pipe:3 -stats_period 1 \
@@ -46,8 +43,8 @@ exec ffmpeg \
   -err_detect ignore_err \
   -probesize 10000000 -analyzeduration 10000000 \
   -thread_queue_size 2048 -i "$LOCAL_INPUT" \
-  -thread_queue_size 64 \
-  -f rawvideo -pixel_format rgba -video_size 798x470 -framerate 5 \
+  -thread_queue_size 128 \
+  -f rawvideo -pixel_format rgba -video_size 798x470 -framerate 10 \
   -i <("$OVERLAY") \
   -filter_complex "$FILTER_COMPLEX" \
   -map '[v]' -map '[a]' \
