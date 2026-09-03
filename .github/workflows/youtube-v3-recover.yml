@@ -1,0 +1,93 @@
+name: Recover YouTube v3 Transport
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/youtube-v3-recover.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-youtube-v3-recovery
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Restart only YouTube v3 and prove upstream connection
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          YOUTUBE=fgbears-youtube-v3.service
+          CACHE=fgbears-lovable-state-cache.service
+          PROGRESS=/run/fgbears-youtube-v3/ffmpeg-progress.log
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          connected(){
+            local p=$1 port=$2
+            [[ "$p" =~ ^[1-9][0-9]*$ ]] || return 1
+            sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" -v x=":$port" 'index($0,q)&&index($0,x){ok=1} END{exit(ok?0:1)}'
+          }
+
+          systemctl is-active --quiet "$MASTER" || { echo 'YOUTUBE_RECOVERY=FAIL reason=master_inactive'; exit 1; }
+          systemctl is-active --quiet "$RUMBLE" || { echo 'YOUTUBE_RECOVERY=FAIL reason=rumble_inactive'; exit 1; }
+          systemctl is-active --quiet "$CACHE" || { echo 'YOUTUBE_RECOVERY=FAIL reason=lovable_cache_inactive'; exit 1; }
+          master_before=$(pid "$MASTER")
+          rumble_before=$(pid "$RUMBLE")
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]] || exit 1
+          [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]] || exit 1
+          connected "$rumble_before" 1935 || { echo 'YOUTUBE_RECOVERY=FAIL reason=rumble_socket_missing'; exit 1; }
+
+          sudo systemctl reset-failed "$YOUTUBE" 2>/dev/null || true
+          sudo systemctl restart "$YOUTUBE"
+
+          connected_ok=no
+          for _ in $(seq 1 45); do
+            ypid=$(pid "$YOUTUBE")
+            if systemctl is-active --quiet "$YOUTUBE" && connected "$ypid" 443; then
+              connected_ok=yes
+              break
+            fi
+            sleep 1
+          done
+          if [[ "$connected_ok" != yes ]]; then
+            sudo systemctl status "$YOUTUBE" --no-pager -l || true
+            sudo journalctl -u "$YOUTUBE" -n 120 --no-pager || true
+            echo 'YOUTUBE_RECOVERY=FAIL reason=upstream_socket_not_restored'
+            exit 1
+          fi
+
+          sleep 5
+          ypid=$(pid "$YOUTUBE")
+          connected "$ypid" 443 || { echo 'YOUTUBE_RECOVERY=FAIL reason=socket_not_stable'; exit 1; }
+          test "$(pid "$MASTER")" = "$master_before" || { echo 'YOUTUBE_RECOVERY=FAIL reason=master_pid_changed'; exit 1; }
+          test "$(pid "$RUMBLE")" = "$rumble_before" || { echo 'YOUTUBE_RECOVERY=FAIL reason=rumble_pid_changed'; exit 1; }
+          connected "$rumble_before" 1935 || { echo 'YOUTUBE_RECOVERY=FAIL reason=rumble_socket_lost'; exit 1; }
+          sudo test -s "$PROGRESS" || { echo 'YOUTUBE_RECOVERY=FAIL reason=progress_missing'; exit 1; }
+          age=$(( $(date +%s) - $(sudo stat -c %Y "$PROGRESS") ))
+          (( age < 20 )) || { echo "YOUTUBE_RECOVERY=FAIL reason=progress_stale age=${age}s"; exit 1; }
+          echo "YOUTUBE_RECOVERY=PASS master_pid_unchanged=$master_before rumble_pid_unchanged=$rumble_before youtube_v3_pid=$ypid"
+          REMOTE
