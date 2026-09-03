@@ -39,6 +39,7 @@ jobs:
           grep -Fq 'asetpts=N/SR/TB' services/fgbears-live/youtube-v2/run-youtube-v2.sh
           grep -Fq 'setpts=N/(30*TB)' services/fgbears-live/youtube-v2/run-youtube-v2.sh
           grep -Fq 'width": WIDTH' services/fgbears-live/youtube-v2/youtube-v2-overlay.py
+          ! grep -Fq ';\' services/fgbears-live/youtube-v2/run-youtube-v2.sh
           echo 'STATIC_PREFLIGHT=PASS'
 
       - name: Configure SSH
@@ -74,13 +75,25 @@ jobs:
           install -o root -g root -m644 /tmp/fgbears-youtube-v2.service /etc/systemd/system/fgbears-youtube-v2.service
           systemctl daemon-reload
 
-          # Renderer/API contract test only. It does not open the UDP media input
-          # and therefore cannot interfere with the currently active sender.
+          # Renderer/API contract test only. It does not open the UDP media input.
           PYTHONPATH=/opt/fgbears-live/exact-card-pylib \
             YOUTUBE_V2_STATE_FILE=/tmp/youtube-v2-preflight-state.json \
             /opt/fgbears-live/youtube-v2/youtube-v2-overlay.py --self-test \
             | python3 -c 'import json,sys;p=json.load(sys.stdin);assert p["ok"] is True;assert p["maskRegion"]["x"]==462;assert p["maskRegion"]["y"]==104;assert p["maskRegion"]["width"]==798;assert p["maskRegion"]["height"]==470;assert p["frameSize"]==[798,470]'
-          echo 'HOST_PREFLIGHT=PASS'
+
+          # Parse and execute the exact rebuilt filter graph with synthetic media
+          # before the live YouTube UDP owner is stopped. Only the audio input
+          # index is substituted because the synthetic test uses a third input.
+          FILTER=$(sed -n "s/^FILTER_COMPLEX='\(.*\)'$/\1/p" /opt/fgbears-live/youtube-v2/run-youtube-v2.sh)
+          [[ -n "$FILTER" && "$FILTER" != *'\'* ]]
+          FILTER_TEST=${FILTER/'[0:a:0]'/'[2:a:0]'}
+          ffmpeg -hide_banner -nostdin -loglevel error \
+            -f lavfi -i 'testsrc2=size=1280x720:rate=30' \
+            -f lavfi -i 'color=color=black@0.0:size=798x470:rate=10,format=rgba' \
+            -f lavfi -i 'anullsrc=r=44100:cl=stereo' \
+            -filter_complex "$FILTER_TEST" \
+            -map '[v]' -map '[a]' -t 0.25 -f null -
+          echo 'HOST_PREFLIGHT=PASS renderer=yes filter_graph=yes'
           REMOTE
 
       - name: Controlled YouTube-only cutover
@@ -114,8 +127,6 @@ jobs:
           [[ "$M0" =~ ^[1-9][0-9]*$ && "$R0" =~ ^[1-9][0-9]*$ ]] || fail invalid_shared_pid
           conn "$R0" 1935 || fail rumble_socket_missing
 
-          # Every historical YouTube pathway must already be quarantined before
-          # the rebuilt sender is allowed to take ownership.
           for u in "${RETIRED[@]}"; do
             ! systemctl is-active --quiet "$u" || fail "legacy_active:$u"
             s=$(systemctl is-enabled "$u" 2>/dev/null || true)
@@ -137,13 +148,13 @@ jobs:
               cp -f "$q/$OLD" "/etc/systemd/system/$OLD"
             fi
             systemctl daemon-reload
+            systemctl reset-failed "$OLD" 2>/dev/null || true
             systemctl enable "$OLD" 2>/dev/null || true
             systemctl restart "$OLD" 2>/dev/null || true
             echo 'YOUTUBE_V2_ROLLBACK=END' >&2
           }
           trap 'rc=$?; if ((rc!=0)); then rollback; fi; exit $rc' EXIT
 
-          # Stop only the superseded YouTube owner. Do not touch master/Rumble.
           systemctl stop "$OLD" 2>/dev/null || true
           systemctl disable "$OLD" 2>/dev/null || true
           if [[ -e "/etc/systemd/system/$OLD" && ! -L "/etc/systemd/system/$OLD" ]]; then
@@ -156,6 +167,7 @@ jobs:
           ln -s /dev/null "/etc/systemd/system/$OLD"
           systemctl daemon-reload
 
+          systemctl reset-failed "$NEW" 2>/dev/null || true
           systemctl enable "$NEW"
           systemctl restart "$NEW"
 
@@ -173,8 +185,6 @@ jobs:
           [[ "$Y0" =~ ^[1-9][0-9]*$ ]] || fail invalid_youtube_v2_pid
           echo "YOUTUBE_V2_CONNECTED=PASS pid=$Y0 restarts=$YN0"
 
-          # Stability window: same process, same YouTube connection, no legacy
-          # owner, and no shared-master/Rumble movement.
           sleep 45
           systemctl is-active --quiet "$NEW" || fail youtube_v2_inactive_after_window
           [[ "$(pid "$NEW")" == "$Y0" ]] || fail youtube_v2_pid_changed
@@ -188,13 +198,12 @@ jobs:
 
           /opt/fgbears-live/youtube-v2/verify-youtube-v2.sh
 
-          # The running command line contains the stream key. Never print it.
           cpu=$(ps -p "$Y0" -o %cpu= | awk '{print $1}')
           rss=$(ps -p "$Y0" -o rss= | awk '{print $1}')
           echo "YOUTUBE_V2_RESOURCE cpu=${cpu:-unknown}% rss_kb=${rss:-unknown} load=$(cut -d' ' -f1-3 /proc/loadavg)"
 
-          faults=$(journalctl -u "$NEW" --since '-60 seconds' --no-pager 2>/dev/null | grep -Eic 'Broken pipe|Connection reset by peer|Error writing trailer|av_interleaved_write_frame|Immediate exit requested' || true)
-          [[ "$faults" == 0 ]] || fail "youtube_v2_transport_faults:$faults"
+          faults=$(journalctl -u "$NEW" --since '-60 seconds' --no-pager 2>/dev/null | grep -Eic 'Broken pipe|Connection reset by peer|Error writing trailer|av_interleaved_write_frame|Immediate exit requested|Error parsing filterchain|Invalid argument' || true)
+          [[ "$faults" == 0 ]] || fail "youtube_v2_transport_or_graph_faults:$faults"
 
           trap - EXIT
           echo "YOUTUBE_V2_REBUILD=PASS master=$M0 rumble=$R0 youtube=$Y0 old_sender=masked legacy_paths=masked transport_faults=0"
