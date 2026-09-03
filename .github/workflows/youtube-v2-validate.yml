@@ -6,16 +6,20 @@ on:
       - 'services/fgbears-live/youtube-v2/**'
       - 'services/fgbears-live/tools/build-youtube-rumble-trivia-card.py'
       - 'services/fgbears-live/bin/install.sh'
+      - '.github/workflows/fgbears-youtube-key-activate.yml'
       - '.github/workflows/youtube-v2-validate.yml'
       - '.github/workflows/youtube-v2-deploy.yml'
+      - '.github/quarantine/youtube-legacy-workflows/**'
   push:
     branches: [main]
     paths:
       - 'services/fgbears-live/youtube-v2/**'
       - 'services/fgbears-live/tools/build-youtube-rumble-trivia-card.py'
       - 'services/fgbears-live/bin/install.sh'
+      - '.github/workflows/fgbears-youtube-key-activate.yml'
       - '.github/workflows/youtube-v2-validate.yml'
       - '.github/workflows/youtube-v2-deploy.yml'
+      - '.github/quarantine/youtube-legacy-workflows/**'
   workflow_dispatch:
 
 permissions:
@@ -41,7 +45,18 @@ jobs:
           ! grep -Eq 'selenium|playwright|chromium|requests\.get|https?://.*creative' services/fgbears-live/youtube-v2/youtube-v2-overlay.py
           ! grep -Eq 'install .*youtube-relay|enable .*youtube-relay|restart .*youtube-relay' services/fgbears-live/bin/install.sh
           ! grep -Eq 'install .*youtube-audio-watchdog|enable .*youtube-audio-watchdog|restart .*youtube-audio-watchdog' services/fgbears-live/bin/install.sh
+
+          keyflow=.github/workflows/fgbears-youtube-key-activate.yml
+          grep -Fq 'YOUTUBE=fgbears-youtube-v2.service' "$keyflow"
+          grep -Fq 'master_before=$(pid "$MASTER")' "$keyflow"
+          grep -Fq 'rumble_before=$(pid "$RUMBLE")' "$keyflow"
+          grep -Fq 'test "$master_after" = "$master_before"' "$keyflow"
+          grep -Fq 'test "$rumble_after" = "$rumble_before"' "$keyflow"
+          ! grep -Fq 'systemctl restart fgbears-live.service' "$keyflow"
+          ! grep -Fq 'systemctl restart fgbears-rumble-relay.service' "$keyflow"
+          ! grep -Fq 'fgbears-youtube-relay.service' "$keyflow"
           echo 'STATIC_MINIMAL_ARCHITECTURE=PASS'
+          echo 'YOUTUBE_KEY_ISOLATION=PASS'
 
       - name: Exercise routing and creative allowlist
         env:
@@ -121,7 +136,17 @@ jobs:
           test ! -e services/fgbears-live/bin/youtube-trivia-overlay.py
           test ! -e services/fgbears-live/systemd/fgbears-youtube-relay.service
           test ! -e services/fgbears-live/systemd/fgbears-youtube-audio-watchdog.service
-          find services/fgbears-live/quarantine/youtube-legacy -type f -perm /111 -print -quit | grep -q . && {
-            echo 'Executable file found in quarantine' >&2; exit 1;
-          } || true
+
+          for archived in .github/quarantine/youtube-legacy-workflows/*.yml; do
+            name=$(basename "$archived")
+            if [[ -e ".github/workflows/$name" ]]; then
+              echo "Quarantined legacy workflow is active again: $name" >&2
+              exit 1
+            fi
+          done
+
+          if find services/fgbears-live/quarantine/youtube-legacy -type f -perm /111 -print -quit | grep -q .; then
+            echo 'Executable file found in runtime quarantine' >&2
+            exit 1
+          fi
           echo 'LEGACY_QUARANTINE=PASS'
