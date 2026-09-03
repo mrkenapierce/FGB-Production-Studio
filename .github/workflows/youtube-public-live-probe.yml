@@ -34,8 +34,10 @@ jobs:
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'python3 - <<'"'"'PY'"'"'
-          import json, re, urllib.request
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          python3 - <<'PY'
+          import re, urllib.request
           video_id='QxmLpaargj0'
           url=f'https://www.youtube.com/watch?v={video_id}&hl=en'
           req=urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0'})
@@ -72,3 +74,4 @@ jobs:
               print('YOUTUBE_PUBLIC_PROBE=INCONCLUSIVE')
               raise SystemExit(2)
           PY
+          REMOTE
