@@ -1,0 +1,59 @@
+name: Probe Playlist Audio Clock Long 2026-09-03
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-playlist-audio-clock-long-20260903.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Measure audio-only concat pacing read-only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          playlist=/srv/fgbears-live/playlist.ffconcat
+          test -s "$playlist"
+          run_probe(){
+            label=$1; shift
+            out=$(mktemp)
+            start=$(date +%s%N)
+            timeout 40 ffmpeg -hide_banner -nostdin -loglevel error -stats_period 1 "$@" -stream_loop -1 -fflags +genpts -f concat -safe 0 -i "$playlist" -map 0:a:0 -c:a copy -t 30 -progress pipe:1 -f null - >"$out" 2>/dev/null || true
+            end=$(date +%s%N)
+            final=$(sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$out" | tail -n1)
+            speed=$(sed -n 's/^speed=\(.*\)$/\1/p' "$out" | tail -n1)
+            frames=$(grep -c '^progress=' "$out" || true)
+            python3 - "$label" "$start" "$end" "${final:-0}" "${speed:-NA}" "$frames" <<'PY'
+          import sys
+          label,start,end,media,speed,blocks=sys.argv[1:]
+          wall=(int(end)-int(start))/1e9; m=int(media)/1e6
+          print(f'{label}_WALL={wall:.3f}s {label}_MEDIA={m:.3f}s {label}_RATIO={(m/wall if wall else 0):.6f}x {label}_FFMPEG_SPEED={speed} blocks={blocks}')
+          PY
+            rm -f "$out"
+          }
+          run_probe RE_DEFAULT -re
+          echo '=== LIVE MASTER SNAPSHOT ==='
+          sudo cat /srv/fgbears-live/logs/ffmpeg-progress.log
+          echo 'PLAYLIST_AUDIO_CLOCK_LONG=COMPLETE'
+          REMOTE
