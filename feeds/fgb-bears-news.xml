@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 03 Sep 2026 23:51:45 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 04 Sep 2026 01:59:48 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -50,6 +50,16 @@
     </item>
 
     <item>
+      <title>Bears Offense May Need a Reality Check After Summer of Hype</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Offense May Need a Reality Check After Summer of Hype</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-offense-may-need-a-reality-check-after-summer-of-hype</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-031c2811b6e609d04d35</guid>
+      <pubDate>Thu, 03 Sep 2026 16:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>Bears&apos; Rome Odunze: Seemingly avoids serious setback</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Rome Odunze: Seemingly avoids serious setback</description>
       <link>https://www.cbssports.com/fantasy/football/news/bears-rome-odunze-seemingly-avoids-serious-setback/</link>
@@ -70,21 +80,11 @@
     </item>
 
     <item>
-      <title>Rome Odunze, D&apos;Andre Swift Leave Chicago Bears Practice Early With Injuries</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Rome Odunze, D&apos;Andre Swift Leave Chicago Bears Practice Early With Injuries</description>
-      <link>https://www.si.com/nfl/bears/onsi/rome-odunze-d-andre-swift-chicago-bears-practice-injuries</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-da70beebce03b47b5e21</guid>
-      <pubDate>Thu, 03 Sep 2026 14:23:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Press Taylor Provides Update on State of Chicago Bears&apos; Left Tackle Competition</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Press Taylor Provides Update on State of Chicago Bears&apos; Left Tackle Competition</description>
-      <link>https://www.si.com/nfl/bears/onsi/press-taylor-provides-update-on-state-of-chicago-bears-left-tackle-competition</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-be4823af066e8812845c</guid>
-      <pubDate>Thu, 03 Sep 2026 13:30:00 GMT</pubDate>
+      <title>Bears Predicted to Continue DL Overhaul After Gervon Dexter Trade By Drafting Ole Miss Prospect</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Predicted to Continue DL Overhaul After Gervon Dexter Trade By Drafting Ole Miss Prospect</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-predicted-to-continue-dl-overhaul-after-gervon-dexter-trade-by-drafting-ole-miss-prospect</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-705b85c717ef50f82d88</guid>
+      <pubDate>Thu, 03 Sep 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
