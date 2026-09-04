@@ -5,26 +5,36 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 04 Sep 2026 16:18:20 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 04 Sep 2026 19:01:56 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears restructure Joe Thuney, Dayo Odeyingbo, T.J. Edwards contracts</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears restructure Joe Thuney, Dayo Odeyingbo, T.J. Edwards contracts</description>
-      <link>https://sports.yahoo.com/articles/bears-restructure-joe-thuney-dayo-131454982.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-72b2d45d4c2e07be9b9c</guid>
-      <pubDate>Fri, 04 Sep 2026 13:14:54 GMT</pubDate>
+      <title>Chicago Bears Restructure Multiple Contracts, Gain $17M in Cap Space</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Restructure Multiple Contracts, Gain $17M in Cap Space</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-restructure-multiple-contracts-172838833.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-21ff40d38729b45f0ea5</guid>
+      <pubDate>Fri, 04 Sep 2026 17:28:38 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Chicago Bears Question of the Day: What defines a successful 2026?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Question of the Day: What defines a successful 2026?</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-day-defines-successful-130000639.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f64cf7eb19467e08fd22</guid>
-      <pubDate>Fri, 04 Sep 2026 13:00:00 GMT</pubDate>
+      <title>Why the Bears Can Feel More Confident in Roschon Johnson for Opener</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why the Bears Can Feel More Confident in Roschon Johnson for Opener</description>
+      <link>https://www.si.com/nfl/bears/onsi/why-the-bears-can-feel-more-confident-in-roschon-johnson-for-opener</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-75d3a667bb854e8adf44</guid>
+      <pubDate>Fri, 04 Sep 2026 10:29:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears get update on injured player who left practice in ‘significant discomfort’</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears get update on injured player who left practice in ‘significant discomfort’</description>
+      <link>https://sports.yahoo.com/articles/bears-injured-player-left-practice-161601488.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6817db0b07df39ea287f</guid>
+      <pubDate>Fri, 04 Sep 2026 09:16:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -35,16 +45,6 @@
       <link>https://www.si.com/nfl/bears/onsi/bears-updated-cap-space-after-restructures-and-what-it-could-mean-for-a-big-trade</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-bd74d353eade966145d4</guid>
       <pubDate>Fri, 04 Sep 2026 07:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears and Cardinals Amount to Ideal Trade Partners After Recent Rumors</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears and Cardinals Amount to Ideal Trade Partners After Recent Rumors</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-and-cardinals-amount-to-ideal-trade-partners-after-recent-rumors</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a3331f0c0f49e7bbbbd1</guid>
-      <pubDate>Fri, 04 Sep 2026 06:59:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
