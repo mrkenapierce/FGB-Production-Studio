@@ -15,7 +15,7 @@ env:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 5
     steps:
       - name: Configure SSH
         env:
@@ -28,29 +28,54 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Inspect live Oracle routing without changes
+      - name: Measure Rumble runtime without changes
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
-          set -u
-          echo '=== ACTIVE STATES ==='
-          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-v3.service fgbears-youtube-relay.service fgbears-lovable-state-cache.service fgbears-rumble-studio-uplink.service; do
-            printf '%s=' "$u"; systemctl is-active "$u" 2>/dev/null || true
-          done
-          echo '=== MASTER CMD ==='
-          svc=$(systemctl show -p MainPID --value fgbears-live.service 2>/dev/null || true)
-          ff=$(pgrep -P "$svc" -x ffmpeg 2>/dev/null | head -n1 || true)
-          echo "service_pid=$svc ffmpeg_pid=$ff"
-          if [[ "$ff" =~ ^[1-9][0-9]*$ ]]; then sudo tr '\0' ' ' < "/proc/$ff/cmdline" | sed -E 's#(rtmp[^ ]*/live/)[^ ]+#\1[REDACTED]#g'; echo; fi
-          echo '=== RETIRED ENV KEYS ==='
-          sudo grep -E '^(YOUTUBE_|FGB_YOUTUBE_|RUMBLE_STUDIO_)' /etc/fgbears-live/stream.env 2>/dev/null | sed 's/=.*$/=[REDACTED]/' || true
-          echo '=== RUMBLE SOCKETS ==='
-          relay=$(systemctl show -p MainPID --value fgbears-rumble-relay.service 2>/dev/null || true)
-          echo "relay_pid=$relay"
-          [[ "$relay" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | grep "pid=$relay" || true
-          echo '=== PROGRESS ==='
+          set -Eeuo pipefail
+          svc=$(systemctl show -p MainPID --value fgbears-live.service)
+          ff=$(pgrep -P "$svc" -x ffmpeg | head -n1)
+          relay=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          [[ "$ff" =~ ^[1-9][0-9]*$ ]]; [[ "$relay" =~ ^[1-9][0-9]*$ ]]
+
+          echo '=== ROUTING ==='
+          cmd=$(sudo tr '\0' ' ' < "/proc/$ff/cmdline")
+          echo "$cmd" | sed -E 's#(rtmp[^ ]*/live/)[^ ]+#\1[REDACTED]#g'
+          grep -Fq '127.0.0.1:1940' <<<"$cmd"
+          ! grep -Eqi '127\.0\.0\.1:1939|127\.0\.0\.1:1941|youtube|studio-rtmp' <<<"$cmd"
+          echo 'RETIRED_ENV_COUNT='$(sudo grep -Ec '^(YOUTUBE_|FGB_YOUTUBE_|RUMBLE_STUDIO_)' /etc/fgbears-live/stream.env || true)
+
+          echo '=== SOCKET ==='
+          sudo ss -ntpH state established | grep "pid=$relay" || true
+
+          echo '=== CPU SNAPSHOT ==='
+          ps -eo pid,ppid,pcpu,pmem,etime,comm,args --sort=-pcpu | head -n 25
+          echo 'LOADAVG='$(cat /proc/loadavg)
+          echo 'NPROC='$(nproc)
+
+          echo '=== SUSTAINED PACE ==='
           p=/srv/fgbears-live/logs/ffmpeg-progress.log
-          sudo tail -n 20 "$p" 2>/dev/null || true
-          echo 'READ_ONLY_PROBE=COMPLETE'
+          media(){ sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$p" | tail -n1; }
+          m0=$(media); t0=$(date +%s%N)
+          sleep 20
+          m1=$(media); t1=$(date +%s%N)
+          python3 - "$m0" "$m1" "$t0" "$t1" <<'PY'
+          import sys
+          m0,m1,t0,t1=map(int,sys.argv[1:])
+          wall=(t1-t0)/1e9; media=(m1-m0)/1e6
+          print(f'INTERVAL_SPEED={media/wall:.4f}x MEDIA_ADVANCE={media:.3f}s WALL={wall:.3f}s')
+          PY
+          sudo tail -n 12 "$p" || true
+
+          echo '=== AUDIO ==='
+          set +e
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 8
+          audio_rc=$?
+          set -e
+          echo "AUDIO_RC=$audio_rc"
+
+          echo '=== COMPONENT CPU AFTER SAMPLE ==='
+          ps -eo pid,ppid,pcpu,pmem,etime,comm,args --sort=-pcpu | grep -E 'ffmpeg|ad-overlay|crawl-overlay|bears-news-feed' | head -n 20 || true
+          echo "READ_ONLY_PERFORMANCE_PROBE=COMPLETE master_pid=$ff relay_pid=$relay audio_rc=$audio_rc"
           REMOTE
