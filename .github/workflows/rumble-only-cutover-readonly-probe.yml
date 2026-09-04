@@ -1,0 +1,56 @@
+name: Rumble Cutover Read-Only Probe
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rumble-only-cutover-readonly-probe.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Inspect live Oracle routing without changes
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          echo '=== ACTIVE STATES ==='
+          for u in fgbears-live.service fgbears-rumble-relay.service fgbears-youtube-v3.service fgbears-youtube-relay.service fgbears-lovable-state-cache.service fgbears-rumble-studio-uplink.service; do
+            printf '%s=' "$u"; systemctl is-active "$u" 2>/dev/null || true
+          done
+          echo '=== MASTER CMD ==='
+          svc=$(systemctl show -p MainPID --value fgbears-live.service 2>/dev/null || true)
+          ff=$(pgrep -P "$svc" -x ffmpeg 2>/dev/null | head -n1 || true)
+          echo "service_pid=$svc ffmpeg_pid=$ff"
+          if [[ "$ff" =~ ^[1-9][0-9]*$ ]]; then sudo tr '\0' ' ' < "/proc/$ff/cmdline" | sed -E 's#(rtmp[^ ]*/live/)[^ ]+#\1[REDACTED]#g'; echo; fi
+          echo '=== RETIRED ENV KEYS ==='
+          sudo grep -E '^(YOUTUBE_|FGB_YOUTUBE_|RUMBLE_STUDIO_)' /etc/fgbears-live/stream.env 2>/dev/null | sed 's/=.*$/=[REDACTED]/' || true
+          echo '=== RUMBLE SOCKETS ==='
+          relay=$(systemctl show -p MainPID --value fgbears-rumble-relay.service 2>/dev/null || true)
+          echo "relay_pid=$relay"
+          [[ "$relay" =~ ^[1-9][0-9]*$ ]] && sudo ss -ntpH state established 2>/dev/null | grep "pid=$relay" || true
+          echo '=== PROGRESS ==='
+          p=/srv/fgbears-live/logs/ffmpeg-progress.log
+          sudo tail -n 20 "$p" 2>/dev/null || true
+          echo 'READ_ONLY_PROBE=COMPLETE'
+          REMOTE
