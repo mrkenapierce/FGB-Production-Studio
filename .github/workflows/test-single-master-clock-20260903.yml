@@ -1,0 +1,116 @@
+name: Test Single Master Clock 2026-09-03
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/test-single-master-clock-20260903.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Stage single-clock master
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('services/fgbears-live/bin/start-stream.sh')
+          s=p.read_text()
+          old='-thread_queue_size 64 -re -loop 1 -framerate "$AD_OVERLAY_FPS" -i "$AD_FRAME_FILE"'
+          new='-thread_queue_size 64 -loop 1 -framerate "$AD_OVERLAY_FPS" -i "$AD_FRAME_FILE"'
+          if old not in s: raise SystemExit('expected second -re not found')
+          p.write_text(s.replace(old,new))
+          PY
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/start-stream.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-start-stream.single-clock"
+      - name: Apply guarded single-clock test
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          master=/usr/local/bin/fgbears-start-stream
+          staged=/tmp/fgbears-start-stream.single-clock
+          backup=/usr/local/bin/fgbears-start-stream.pre-single-clock
+          sudo cp -a "$master" "$backup"
+          rollback(){ rc=$?; trap - ERR; echo "ROLLBACK rc=$rc" >&2; sudo cp -a "$backup" "$master" || true; sudo systemctl restart fgbears-live.service || true; exit "$rc"; }
+          trap rollback ERR
+          sudo install -m 0755 "$staged" "$master"
+          sudo systemctl reset-failed fgbears-live.service
+          sudo systemctl restart fgbears-live.service
+
+          for _ in $(seq 1 45); do
+            svc=$(systemctl show -p MainPID --value fgbears-live.service)
+            ff=$(pgrep -P "$svc" -x ffmpeg | head -n1 || true)
+            relay=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+            if [[ "$ff" =~ ^[1-9][0-9]*$ && "$relay" =~ ^[1-9][0-9]*$ ]]; then
+              cmd=$(sudo tr '\0' ' ' < "/proc/$ff/cmdline")
+              if grep -Fq -- '-thread_queue_size 64 -loop 1 -framerate 30 -i /srv/fgbears-live/runtime/ad-frame.jpg' <<<"$cmd" && ! grep -Fq -- '-thread_queue_size 64 -re -loop 1 -framerate 30 -i /srv/fgbears-live/runtime/ad-frame.jpg' <<<"$cmd" && grep -Fq 'shortest=0:repeatlast=1:eof_action=repeat' <<<"$cmd" && grep -Fq '127.0.0.1:1940' <<<"$cmd" && ! grep -Eqi '127\.0\.0\.1:1939|127\.0\.0\.1:1941|youtube|studio-rtmp' <<<"$cmd"; then break; fi
+            fi
+            sleep 1
+          done
+          [[ "$ff" =~ ^[1-9][0-9]*$ ]]; [[ "$relay" =~ ^[1-9][0-9]*$ ]]
+          for _ in $(seq 1 30); do sudo ss -ntpH state established | grep "pid=$relay" | grep -q ':1935' && break; sleep 1; done
+          sudo ss -ntpH state established | grep "pid=$relay" | grep -q ':1935'
+
+          p=/srv/fgbears-live/logs/ffmpeg-progress.log
+          tmp=$(mktemp)
+          for i in $(seq 1 60); do
+            ns=$(date +%s%N); block=$(sudo cat "$p" 2>/dev/null || true)
+            out=$(sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' <<<"$block" | tail -n1)
+            frame=$(sed -n 's/^frame=\([0-9]*\)$/\1/p' <<<"$block" | tail -n1)
+            dup=$(sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' <<<"$block" | tail -n1)
+            [[ "$out" =~ ^[0-9]+$ && "$frame" =~ ^[0-9]+$ && "$dup" =~ ^[0-9]+$ ]] && printf '%s %s %s %s\n' "$ns" "$out" "$frame" "$dup" >> "$tmp"
+            sleep 1
+          done
+          read speed fps dupdelta <<<"$(python3 - "$tmp" <<'PY'
+          import sys
+          rows=[]
+          for line in open(sys.argv[1]):
+              p=line.split()
+              if len(p)>=4: rows.append(tuple(map(int,p[:4])))
+          distinct=[]; last=None
+          for r in rows:
+              if r[1]!=last: distinct.append(r); last=r[1]
+          if len(distinct)<3: raise SystemExit('insufficient progress samples')
+          a,b=distinct[0],distinct[-1]
+          wall=(b[0]-a[0])/1e9; media=(b[1]-a[1])/1e6
+          print(f'{media/wall:.6f} {(b[2]-a[2])/wall:.3f} {b[3]-a[3]}')
+          PY
+          )"
+          rm -f "$tmp"
+          echo "SINGLE_CLOCK_SPEED=${speed}x OUTPUT_FPS_MEASURED=$fps DUP_DELTA=$dupdelta"
+          python3 - "$speed" "$fps" "$dupdelta" <<'PY'
+          import sys
+          speed=float(sys.argv[1]); fps=float(sys.argv[2]); dup=int(sys.argv[3])
+          raise SystemExit(0 if 0.990 <= speed <= 1.020 and 29.5 <= fps <= 30.5 and dup <= 2 else 1)
+          PY
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 6
+          retired=$(sudo grep -Ec '^(YOUTUBE_|FGB_YOUTUBE_|RUMBLE_STUDIO_)' /etc/fgbears-live/stream.env || true)
+          test "$retired" -eq 0
+          echo '=== CPU ==='
+          ps -p "$ff" -o pid=,etime=,pcpu=,pmem=,stat=,cmd= | cut -c1-400
+          cat /proc/pressure/cpu || true
+          trap - ERR
+          rm -f "$staged"
+          echo "SINGLE_MASTER_CLOCK=PASS master_pid=$ff relay_pid=$relay speed=${speed}x fps=$fps dup_delta=$dupdelta retired_env=$retired"
+          REMOTE
