@@ -14,10 +14,10 @@ source "$ENV_FILE"
 : "${OUTPUT_FPS:=30}"
 : "${VIDEO_GOP:=60}"
 : "${AD_OVERLAY_PORT:=8787}"
-: "${AD_OVERLAY_FPS:=15}"
+: "${AD_OVERLAY_FPS:=30}"
 : "${AD_OVERLAY_SCRIPT:=/opt/fgbears-live/bin/ad-overlay.py}"
 : "${CRAWL_OVERLAY_PORT:=8788}"
-: "${CRAWL_OVERLAY_SCRIPT:=/opt/fgbears-live/bin/crawl-overlay.py}"
+: "${CRAWL_OVERLAY_SCRIPT:=/opt/fgbears-live/bin/crawl-overlay-hq.py}"
 : "${CRAWL_OVERLAY_FPS:=30}"
 : "${BEARS_NEWS_SCRIPT:=/opt/fgbears-live/bin/bears-news-feed.py}"
 : "${BEARS_NEWS_OVERLAY_PORT:=8789}"
@@ -97,9 +97,9 @@ progress_sink() {
 
 FFMPEG_PID=""
 
-# All scrolling text is rasterized before FFmpeg. The news ribbon and lower
-# crawl stay cadence-matched to the 30 fps final program. There is exactly one
-# transport output from the master: the local Rumble relay on UDP 1940.
+# The advertising renderer is the permanent 1280x720 visual source and must be
+# ingested at 30 fps. Feeding that source at 15 fps forces CFR duplication and
+# makes the whole broadcast timeline fall behind real time.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
