@@ -7,7 +7,7 @@ on:
       - '.github/workflows/canonicalize-fgb-rumble-only.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   ORACLE_USER: ubuntu
@@ -24,10 +24,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Canonicalize repository to one Rumble transport
+      - name: Canonicalize and validate one Rumble transport
         run: |
           set -Eeuo pipefail
-          git pull --rebase origin main
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
           python3 .github/cutover/canonicalize-rumble-only.py
           bash services/fgbears-live/tests/test-multistream.sh
           bash -n services/fgbears-live/bin/start-stream.sh
@@ -36,14 +37,23 @@ jobs:
           git diff --check
           ! grep -R -nE 'YOUTUBE_LOCAL_UDP_URL|RUMBLE_STUDIO_ENABLE|studio-rtmp\.rumble\.com' services/fgbears-live/bin services/fgbears-live/config services/fgbears-live/systemd
 
-      - name: Commit authoritative Rumble-only architecture
-        run: |
-          set -Eeuo pipefail
-          git config user.name 'FGB Production Automation'
-          git config user.email 'actions@users.noreply.github.com'
-          git add -A
-          git commit -m 'Lock FGB production to Oracle to Rumble only'
-          git push origin HEAD:main
+      - name: Preserve validated canonical source
+        uses: actions/upload-artifact@v4
+        with:
+          name: fgb-rumble-only-canonical
+          path: |
+            services/fgbears-live/bin/start-stream.sh
+            services/fgbears-live/bin/rumble-relay.sh
+            services/fgbears-live/bin/configure-rumble.sh
+            services/fgbears-live/bin/audio-health.py
+            services/fgbears-live/bin/healthcheck.sh
+            services/fgbears-live/bin/install.sh
+            services/fgbears-live/config/stream.env.example
+            services/fgbears-live/tests/test-multistream.sh
+            .github/workflows/fgbears-live-deploy.yml
+            .github/workflows/activate-fgb-rumble.yml
+            .github/workflows/fgbears-live-monitor.yml
+          retention-days: 7
 
       - name: Configure Oracle SSH
         env:
@@ -150,7 +160,12 @@ jobs:
 
           progress=/srv/fgbears-live/logs/ffmpeg-progress.log
           media(){ sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1; }
-          m0=$(media); [[ "$m0" =~ ^[0-9]+$ ]]
+          for _ in $(seq 1 20); do
+            m0=$(media || true)
+            [[ "$m0" =~ ^[0-9]+$ ]] && break
+            sleep 1
+          done
+          [[ "$m0" =~ ^[0-9]+$ ]]
           t0=$(date +%s%N)
           sleep 12
           m1=$(media); [[ "$m1" =~ ^[0-9]+$ ]]
