@@ -1,0 +1,49 @@
+name: Probe Master Speed Precision 2026-09-03
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-master-speed-precision-20260903.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Inspect current master precision telemetry
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          p=/srv/fgbears-live/logs/ffmpeg-progress.log
+          echo '=== CURRENT PROGRESS BLOCK ==='
+          sudo cat "$p"
+          echo '=== RECENT MASTER JOURNAL ==='
+          sudo journalctl -u fgbears-live.service --since '-3 min' --no-pager | tail -n 120
+          echo '=== CURRENT CMDLINE ==='
+          svc=$(systemctl show -p MainPID --value fgbears-live.service)
+          ff=$(pgrep -P "$svc" -x ffmpeg | head -n1)
+          sudo tr '\0' ' ' < "/proc/$ff/cmdline" | sed -E 's#(rtmp[^ ]*/live/)[^ ]+#\1[REDACTED]#g'
+          echo
+          echo '=== PROCESS ==='
+          ps -p "$ff" -o pid=,etime=,etimes=,pcpu=,pmem=,stat=,cmd= | cut -c1-300
+          echo 'PRECISION_PROBE=COMPLETE'
+          REMOTE
