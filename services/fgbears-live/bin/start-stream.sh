@@ -8,14 +8,11 @@ ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 
-: "${YOUTUBE_STREAM_KEY:?YOUTUBE_STREAM_KEY is required}"
-: "${YOUTUBE_LOCAL_UDP_URL:=udp://127.0.0.1:1939?pkt_size=1316}"
 : "${RUMBLE_LOCAL_UDP_URL:=udp://127.0.0.1:1940?pkt_size=1316}"
 : "${PLAYLIST_FILE:=/srv/fgbears-live/playlist.ffconcat}"
 : "${FFMPEG_LOGLEVEL:=warning}"
 : "${OUTPUT_FPS:=30}"
 : "${VIDEO_GOP:=60}"
-: "${DRAWTEXT_RELOAD_FRAMES:=30}"
 : "${AD_OVERLAY_PORT:=8787}"
 : "${AD_OVERLAY_FPS:=15}"
 : "${AD_OVERLAY_SCRIPT:=/opt/fgbears-live/bin/ad-overlay.py}"
@@ -31,26 +28,17 @@ source "$ENV_FILE"
 : "${CRAWL_RUNTIME_DIR:=/srv/fgbears-live/runtime}"
 : "${TEE_FIFO_OPTIONS:=attempt_recovery=1:recover_any_error=1:recovery_wait_time=5}"
 
-[[ "$YOUTUBE_STREAM_KEY" != "REPLACE_WITH_YOUTUBE_STREAM_KEY" ]] || {
-  echo "Replace the placeholder YouTube stream key in $ENV_FILE" >&2
-  exit 78
-}
 [[ -s "$PLAYLIST_FILE" ]] || { echo "Playlist is missing or empty: $PLAYLIST_FILE" >&2; exit 66; }
 [[ -r "$AD_OVERLAY_SCRIPT" ]] || { echo "Ad overlay renderer is missing: $AD_OVERLAY_SCRIPT" >&2; exit 66; }
 [[ -r "$CRAWL_OVERLAY_SCRIPT" ]] || { echo "Crawl overlay renderer is missing: $CRAWL_OVERLAY_SCRIPT" >&2; exit 66; }
 [[ -r "$BEARS_NEWS_SCRIPT" ]] || { echo "Bears news renderer is missing: $BEARS_NEWS_SCRIPT" >&2; exit 66; }
-
-[[ "$YOUTUBE_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
-  echo "YOUTUBE_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
-  exit 78
-}
 [[ "$RUMBLE_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
   echo "RUMBLE_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
   exit 78
 }
 
-TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_LOCAL_UDP_URL}|[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${RUMBLE_LOCAL_UDP_URL}"
-printf 'FGBears Live output: isolated YouTube and Rumble local UDP mirrors.\n'
+TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${RUMBLE_LOCAL_UDP_URL}"
+printf 'FGBears Live output: Rumble-only local UDP mirror.\n'
 
 python3 "$AD_OVERLAY_SCRIPT" &
 OVERLAY_PID=$!
@@ -110,10 +98,8 @@ progress_sink() {
 FFMPEG_PID=""
 
 # All scrolling text is rasterized before FFmpeg. The news ribbon and lower
-# crawl arrive as sharp RGBA image overlays. Moving layers stay uncompressed
-# over loopback so there is no per-frame JPEG encode/decode burst in the media
-# clock. Both moving layers are cadence-matched to the 30 fps final program;
-# the upper news ticker is speed-matched to the lower crawl for visual cadence.
+# crawl stay cadence-matched to the 30 fps final program. There is exactly one
+# transport output from the master: the local Rumble relay on UDP 1940.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
