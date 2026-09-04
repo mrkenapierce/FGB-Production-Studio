@@ -1,0 +1,123 @@
+name: Repair Rumble Framesync 2026-09-03
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-rumble-framesync-20260903.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Stage master
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/start-stream.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-start-stream.framesync"
+      - name: Apply nonblocking framesync repair
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          env_file=/etc/fgbears-live/stream.env
+          master=/usr/local/bin/fgbears-start-stream
+          staged=/tmp/fgbears-start-stream.framesync
+          backup_master=/usr/local/bin/fgbears-start-stream.pre-framesync
+          backup_env=/etc/fgbears-live/stream.env.pre-framesync
+          sudo cp -a "$master" "$backup_master"
+          sudo cp -a "$env_file" "$backup_env"
+          rollback(){ rc=$?; trap - ERR; echo "ROLLBACK rc=$rc" >&2; sudo cp -a "$backup_master" "$master" || true; sudo cp -a "$backup_env" "$env_file" || true; sudo systemctl restart fgbears-live.service || true; exit "$rc"; }
+          trap rollback ERR
+
+          # Secondary overlays must never govern the master clock. Repeat the
+          # most recent overlay frame whenever a slower producer is between frames.
+          python3 - "$staged" <<'PY'
+          from pathlib import Path
+          import sys
+          p=Path(sys.argv[1]); s=p.read_text()
+          old='[1:v][3:v]overlay=x=0:y=0:shortest=1[withnews];[withnews][2:v]overlay=x=0:y=574:shortest=1,'
+          new='[1:v][3:v]overlay=x=0:y=0:shortest=0:repeatlast=1:eof_action=repeat[withnews];[withnews][2:v]overlay=x=0:y=574:shortest=0:repeatlast=1:eof_action=repeat,'
+          if old not in s: raise SystemExit('Expected filter graph not found')
+          p.write_text(s.replace(old,new))
+          PY
+          sudo install -m 0755 "$staged" "$master"
+
+          sudo python3 - "$env_file" <<'PY'
+          from pathlib import Path
+          import os,sys
+          p=Path(sys.argv[1]); out=[]
+          replace={'AD_OVERLAY_FPS':'30','CRAWL_OVERLAY_SCRIPT':'/opt/fgbears-live/bin/crawl-overlay-hq.py','CRAWL_OVERLAY_FPS':'25','BEARS_NEWS_OVERLAY_FPS':'30','CRAWL_TEXT_RENDER_SCALE':'1'}
+          seen=set()
+          for line in p.read_text().splitlines():
+              name=line.split('=',1)[0] if '=' in line and not line.lstrip().startswith('#') else ''
+              if name.startswith(('YOUTUBE_','FGB_YOUTUBE_','RUMBLE_STUDIO_')): continue
+              if name in replace:
+                  if name not in seen: out.append(f'{name}={replace[name]}'); seen.add(name)
+                  continue
+              out.append(line)
+          for k,v in replace.items():
+              if k not in seen: out.append(f'{k}={v}')
+          t=p.with_name(p.name+'.framesync.tmp'); t.write_text('\n'.join(out)+'\n'); os.chmod(t,0o640); t.replace(p)
+          PY
+          sudo chown root:fgbears "$env_file"; sudo chmod 0640 "$env_file"
+
+          while read -r unit _; do [[ -n "$unit" ]] && sudo systemctl disable --now "$unit" >/dev/null 2>&1 || true; done < <(systemctl list-unit-files 'fgbears-youtube*' --no-legend 2>/dev/null || true)
+          sudo systemctl disable --now fgbears-rumble-studio-uplink.service >/dev/null 2>&1 || true
+
+          sudo systemctl reset-failed fgbears-live.service
+          sudo systemctl restart fgbears-live.service
+          for _ in $(seq 1 45); do
+            svc=$(systemctl show -p MainPID --value fgbears-live.service)
+            ff=$(pgrep -P "$svc" -x ffmpeg | head -n1 || true)
+            relay=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+            if [[ "$ff" =~ ^[1-9][0-9]*$ && "$relay" =~ ^[1-9][0-9]*$ ]]; then
+              cmd=$(sudo tr '\0' ' ' < "/proc/$ff/cmdline")
+              if grep -Fq 'shortest=0:repeatlast=1:eof_action=repeat' <<<"$cmd" && grep -Fq '127.0.0.1:1940' <<<"$cmd" && ! grep -Eqi '127\.0\.0\.1:1939|127\.0\.0\.1:1941|youtube|studio-rtmp' <<<"$cmd"; then break; fi
+            fi
+            sleep 1
+          done
+          [[ "$ff" =~ ^[1-9][0-9]*$ ]]; [[ "$relay" =~ ^[1-9][0-9]*$ ]]
+          for _ in $(seq 1 30); do sudo ss -ntpH state established | grep "pid=$relay" | grep -q ':1935' && break; sleep 1; done
+          sudo ss -ntpH state established | grep "pid=$relay" | grep -q ':1935'
+
+          p=/srv/fgbears-live/logs/ffmpeg-progress.log
+          media(){ sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$p" | tail -n1; }
+          dup(){ sudo sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' "$p" | tail -n1; }
+          m0=$(media); d0=$(dup); t0=$(date +%s%N); sleep 25; m1=$(media); d1=$(dup); t1=$(date +%s%N)
+          speed=$(python3 - "$m0" "$m1" "$t0" "$t1" <<'PY'
+          import sys
+          m0,m1,t0,t1=map(int,sys.argv[1:]); print(f'{((m1-m0)/1e6)/((t1-t0)/1e9):.4f}')
+          PY
+          )
+          echo "FINAL_SPEED=${speed}x DUP_DELTA=$((d1-d0))"
+          python3 - "$speed" <<'PY'
+          import sys
+          raise SystemExit(0 if float(sys.argv[1]) >= 0.985 else 1)
+          PY
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 8
+          retired=$(sudo grep -Ec '^(YOUTUBE_|FGB_YOUTUBE_|RUMBLE_STUDIO_)' "$env_file" || true)
+          test "$retired" -eq 0
+          trap - ERR
+          rm -f "$staged"
+          echo "RUMBLE_FRAMESYNC_REPAIR=PASS master_pid=$ff relay_pid=$relay speed=${speed}x dup_delta=$((d1-d0)) retired_env=$retired"
+          REMOTE
