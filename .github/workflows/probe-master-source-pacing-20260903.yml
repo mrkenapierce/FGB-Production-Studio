@@ -1,0 +1,55 @@
+name: Probe Master Source Pacing 2026-09-03
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-master-source-pacing-20260903.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Probe playlist clock without changing production
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          playlist=/srv/fgbears-live/playlist.ffconcat
+          tmp=$(mktemp)
+          start=$(date +%s%N)
+          timeout 14 ffmpeg -hide_banner -nostdin -loglevel info -re -stream_loop -1 -fflags +genpts -f concat -safe 0 -i "$playlist" -map 0:a:0 -c:a copy -t 10 -f null - >"$tmp" 2>&1 || true
+          end=$(date +%s%N)
+          echo "PLAYLIST_AUDIO_WALL_NS=$((end-start))"
+          grep -E 'time=|speed=' "$tmp" | tail -n 5 || true
+          rm -f "$tmp"
+
+          # Also measure current master over the same wall-clock interval.
+          p=/srv/fgbears-live/logs/ffmpeg-progress.log
+          media(){ sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$p" | tail -n1; }
+          m0=$(media); t0=$(date +%s%N); sleep 10; m1=$(media); t1=$(date +%s%N)
+          python3 - "$m0" "$m1" "$t0" "$t1" <<'PY'
+          import sys
+          m0,m1,t0,t1=map(int,sys.argv[1:])
+          print('CURRENT_MASTER_SPEED=%.4fx' % (((m1-m0)/1e6)/((t1-t0)/1e9)))
+          PY
+          echo 'MASTER_SOURCE_PACING_PROBE=COMPLETE'
+          REMOTE
