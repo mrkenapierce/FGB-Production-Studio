@@ -1,0 +1,184 @@
+name: Canonicalize FGBears to Rumble Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/canonicalize-fgb-rumble-only.yml'
+
+permissions:
+  contents: write
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: fgbears-rumble-only-cutover
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Canonicalize repository to one Rumble transport
+        run: |
+          set -Eeuo pipefail
+          git pull --rebase origin main
+          python3 .github/cutover/canonicalize-rumble-only.py
+          bash services/fgbears-live/tests/test-multistream.sh
+          bash -n services/fgbears-live/bin/start-stream.sh
+          bash -n services/fgbears-live/bin/install.sh
+          bash -n services/fgbears-live/bin/healthcheck.sh
+          git diff --check
+          ! grep -R -nE 'YOUTUBE_LOCAL_UDP_URL|RUMBLE_STUDIO_ENABLE|studio-rtmp\.rumble\.com' services/fgbears-live/bin services/fgbears-live/config services/fgbears-live/systemd
+
+      - name: Commit authoritative Rumble-only architecture
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'FGB Production Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'Lock FGB production to Oracle to Rumble only'
+          git push origin HEAD:main
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY'; exit 1; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stage canonical Rumble-only runtime
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          tar -czf /tmp/fgb-rumble-only.tgz services/fgbears-live renderer/assets/epic-logo-for-qr.base64.txt
+          scp -i ~/.ssh/oracle_key /tmp/fgb-rumble-only.tgz "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-rumble-only.tgz"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'rm -rf /tmp/fgb-rumble-only-stage && mkdir -p /tmp/fgb-rumble-only-stage && tar -xzf /tmp/fgb-rumble-only.tgz -C /tmp/fgb-rumble-only-stage'
+
+      - name: Remove retired routes and cut master to Rumble only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          systemctl stop fgbears-live-health.timer >/dev/null 2>&1 || true
+          retired=(
+            fgbears-youtube-v3.service
+            fgbears-lovable-state-cache.service
+            fgbears-youtube-v2.service
+            fgbears-youtube-output.service
+            fgbears-youtube-relay.service
+            fgbears-youtube-router.service
+            fgbears-youtube-lovable-routing.service
+            fgbears-youtube-lovable-compositor.service
+            fgbears-youtube-audio-watchdog.service
+            fgbears-youtube-audio-watchdog.timer
+            fgbears-rumble-studio-uplink.service
+          )
+          for unit in "${retired[@]}"; do systemctl disable --now "$unit" >/dev/null 2>&1 || true; done
+          bash /tmp/fgb-rumble-only-stage/services/fgbears-live/bin/install.sh
+          systemctl restart fgbears-live.service
+          systemctl restart fgbears-rumble-relay.service
+          systemctl enable --now fgbears-live-health.timer
+          REMOTE
+
+      - name: Verify direct Rumble transport, pacing and audio
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MASTER=fgbears-live.service
+          RUMBLE=fgbears-rumble-relay.service
+          systemctl is-active --quiet "$MASTER"
+          systemctl is-active --quiet "$RUMBLE"
+          systemctl is-active --quiet fgbears-live-health.timer
+
+          master_service_pid=$(systemctl show -p MainPID --value "$MASTER")
+          ffmpeg_pid=$(pgrep -P "$master_service_pid" -x ffmpeg | head -n1)
+          [[ "$ffmpeg_pid" =~ ^[1-9][0-9]*$ ]]
+          cmd=$(sudo tr '\0' ' ' < "/proc/$ffmpeg_pid/cmdline")
+          grep -Fq 'udp://127.0.0.1:1940?pkt_size=1316' <<<"$cmd"
+          if grep -Eqi '127\.0\.0\.1:1939|127\.0\.0\.1:1941|youtube' <<<"$cmd"; then
+            echo "RETIRED_MASTER_ROUTE_PRESENT=$cmd" >&2
+            exit 1
+          fi
+          if sudo grep -Eq '^(YOUTUBE_|FGB_YOUTUBE_|RUMBLE_STUDIO_)' /etc/fgbears-live/stream.env; then
+            echo 'Retired routing variables remain in stream.env' >&2
+            sudo grep -E '^(YOUTUBE_|FGB_YOUTUBE_|RUMBLE_STUDIO_)' /etc/fgbears-live/stream.env >&2 || true
+            exit 1
+          fi
+
+          retired=(fgbears-youtube-v3.service fgbears-lovable-state-cache.service fgbears-youtube-v2.service fgbears-youtube-output.service fgbears-youtube-relay.service fgbears-youtube-router.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service fgbears-youtube-audio-watchdog.service fgbears-youtube-audio-watchdog.timer fgbears-rumble-studio-uplink.service)
+          for unit in "${retired[@]}"; do
+            if systemctl is-active --quiet "$unit"; then echo "RETIRED_UNIT_ACTIVE=$unit" >&2; exit 1; fi
+          done
+          if pgrep -af 'rumble-studio|studio-rtmp\.rumble\.com' >/tmp/retired-rumble-procs; then
+            cat /tmp/retired-rumble-procs >&2
+            exit 1
+          fi
+
+          relay_pid=$(systemctl show -p MainPID --value "$RUMBLE")
+          [[ "$relay_pid" =~ ^[1-9][0-9]*$ ]]
+          getent ahostsv4 rtmp.rumble.com | awk '{print $1}' | sort -u >/tmp/rumble-ips
+          sudo ss -ntpH state established | grep "pid=$relay_pid" >/tmp/rumble-sockets || true
+          socket_count=0
+          while IFS= read -r ip; do
+            [[ -n "$ip" ]] || continue
+            n=$(grep -Fc "$ip:1935" /tmp/rumble-sockets || true)
+            socket_count=$((socket_count+n))
+          done </tmp/rumble-ips
+          if [[ "$socket_count" -ne 1 ]]; then
+            echo "RUMBLE_RTMP_SOCKET_COUNT=$socket_count" >&2
+            cat /tmp/rumble-sockets >&2 || true
+            exit 1
+          fi
+
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          media(){ sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$progress" | tail -n1; }
+          m0=$(media); [[ "$m0" =~ ^[0-9]+$ ]]
+          t0=$(date +%s%N)
+          sleep 12
+          m1=$(media); [[ "$m1" =~ ^[0-9]+$ ]]
+          t1=$(date +%s%N)
+          rate=$(python3 - "$m0" "$m1" "$t0" "$t1" <<'PY'
+          import sys
+          m0,m1,t0,t1=map(int,sys.argv[1:])
+          wall=(t1-t0)/1e9
+          media=(m1-m0)/1e6
+          print(f'{media/wall:.4f}')
+          PY
+          )
+
+          set +e
+          audio_report=$(sudo /usr/local/bin/fgbears-audio-health --capture-seconds 8 2>&1)
+          audio_rc=$?
+          set -e
+          printf '%s\n' "$audio_report"
+          cpu=$(ps -p "$ffmpeg_pid" -o pcpu= | xargs)
+          echo "RUMBLE_ONLY_RUNTIME=PASS master_pid=$ffmpeg_pid relay_pid=$relay_pid rtmp_sockets=$socket_count interval_speed=${rate}x master_cpu_pct=${cpu:-NA} audio_rc=$audio_rc"
+
+          pace_rc=0
+          python3 - "$rate" <<'PY' || pace_rc=$?
+          import sys
+          assert float(sys.argv[1]) >= 0.95, sys.argv[1]
+          PY
+          if (( pace_rc != 0 )); then echo "GLITCH_WARNING=MASTER_BELOW_REALTIME interval_speed=${rate}x" >&2; fi
+          if (( audio_rc != 0 )); then echo 'AUDIO_WARNING=RUMBLE_BOUND_AUDIO_FAILED' >&2; fi
+          if (( pace_rc != 0 || audio_rc != 0 )); then exit 2; fi
+          echo 'RUMBLE_ONLY_CUTOVER=PASS'
+          REMOTE
