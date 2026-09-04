@@ -34,7 +34,7 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           scp -i ~/.ssh/oracle_key services/fgbears-live/bin/start-stream.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-start-stream.rumble-only"
-      - name: Apply sustainable crawl cadence
+      - name: Apply looped ad-frame pacing repair
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -42,8 +42,8 @@ jobs:
           set -Eeuo pipefail
           env_file=/etc/fgbears-live/stream.env
           master=/usr/local/bin/fgbears-start-stream
-          backup_master=/usr/local/bin/fgbears-start-stream.pre-crawl25
-          backup_env=/etc/fgbears-live/stream.env.pre-crawl25
+          backup_master=/usr/local/bin/fgbears-start-stream.pre-looped-ad-frame
+          backup_env=/etc/fgbears-live/stream.env.pre-looped-ad-frame
           sudo cp -a "$master" "$backup_master"
           sudo cp -a "$env_file" "$backup_env"
           rollback(){ rc=$?; trap - ERR; echo "ROLLBACK rc=$rc" >&2; sudo cp -a "$backup_master" "$master" || true; sudo cp -a "$backup_env" "$env_file" || true; sudo systemctl restart fgbears-live.service || true; exit "$rc"; }
@@ -71,7 +71,7 @@ jobs:
               out.append(line)
           for k,v in replace.items():
               if k not in seen: out.append(f'{k}={v}')
-          t=p.with_name(p.name+'.crawl25.tmp'); t.write_text('\n'.join(out)+'\n'); os.chmod(t,0o640); t.replace(p)
+          t=p.with_name(p.name+'.looped-ad.tmp'); t.write_text('\n'.join(out)+'\n'); os.chmod(t,0o640); t.replace(p)
           PY
           sudo chown root:fgbears "$env_file"; sudo chmod 0640 "$env_file"
 
@@ -86,7 +86,7 @@ jobs:
             relay=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
             if [[ "$ff" =~ ^[1-9][0-9]*$ && "$relay" =~ ^[1-9][0-9]*$ ]]; then
               cmd=$(sudo tr '\0' ' ' < "/proc/$ff/cmdline")
-              if grep -Fq -- '-r 30 -f mpjpeg' <<<"$cmd" && grep -Fq -- '-framerate 25 -i http://127.0.0.1:8788/overlay.rgba' <<<"$cmd" && grep -Fq '127.0.0.1:1940' <<<"$cmd" && ! grep -Eqi '127\.0\.0\.1:1939|127\.0\.0\.1:1941|youtube|studio-rtmp' <<<"$cmd"; then break; fi
+              if grep -Fq -- '-re -loop 1 -framerate 30 -i /srv/fgbears-live/runtime/ad-frame.jpg' <<<"$cmd" && grep -Fq -- '-framerate 25 -i http://127.0.0.1:8788/overlay.rgba' <<<"$cmd" && grep -Fq '127.0.0.1:1940' <<<"$cmd" && ! grep -Eqi '127\.0\.0\.1:1939|127\.0\.0\.1:1941|youtube|studio-rtmp' <<<"$cmd"; then break; fi
             fi
             sleep 1
           done
@@ -114,5 +114,5 @@ jobs:
           test "$retired" -eq 0
           trap - ERR
           rm -f /tmp/fgbears-start-stream.rumble-only
-          echo "RUMBLE_PACING_REPAIR=PASS master_pid=$ff relay_pid=$relay speed=${speed}x crawl_fps=25 retired_env=$retired"
+          echo "RUMBLE_PACING_REPAIR=PASS master_pid=$ff relay_pid=$relay speed=${speed}x ad_source=looped_file crawl_fps=25 retired_env=$retired"
           REMOTE
