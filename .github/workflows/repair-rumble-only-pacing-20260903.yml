@@ -15,10 +15,9 @@ env:
 jobs:
   repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
-
       - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -30,14 +29,12 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-
-      - name: Stage Rumble-only master script
+      - name: Stage corrected Rumble-only master
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           scp -i ~/.ssh/oracle_key services/fgbears-live/bin/start-stream.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-start-stream.rumble-only"
-
-      - name: Apply guarded Rumble-only pacing repair
+      - name: Apply corrected 30-fps source pacing
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -45,140 +42,77 @@ jobs:
           set -Eeuo pipefail
           env_file=/etc/fgbears-live/stream.env
           master=/usr/local/bin/fgbears-start-stream
-          backup_master=/usr/local/bin/fgbears-start-stream.pre-rumble-only-pacing
-          backup_env=/etc/fgbears-live/stream.env.pre-rumble-only-pacing
-
+          backup_master=/usr/local/bin/fgbears-start-stream.pre-adfps30
+          backup_env=/etc/fgbears-live/stream.env.pre-adfps30
           sudo cp -a "$master" "$backup_master"
           sudo cp -a "$env_file" "$backup_env"
-
-          rollback() {
-            rc=$?
-            trap - ERR
-            echo "ROLLBACK rc=$rc" >&2
-            sudo cp -a "$backup_master" "$master" || true
-            sudo cp -a "$backup_env" "$env_file" || true
-            sudo systemctl restart fgbears-live.service || true
-            exit "$rc"
-          }
+          rollback(){ rc=$?; trap - ERR; echo "ROLLBACK rc=$rc" >&2; sudo cp -a "$backup_master" "$master" || true; sudo cp -a "$backup_env" "$env_file" || true; sudo systemctl restart fgbears-live.service || true; exit "$rc"; }
           trap rollback ERR
 
           sudo install -m 0755 /tmp/fgbears-start-stream.rumble-only "$master"
-
-          # Remove every retired destination variable and set the least-expensive
-          # version of the current 30-fps crawl renderer first.
           sudo python3 - "$env_file" <<'PY'
           from pathlib import Path
-          import os, sys
-          p=Path(sys.argv[1])
-          lines=p.read_text().splitlines()
-          retired=("YOUTUBE_","FGB_YOUTUBE_","RUMBLE_STUDIO_")
-          keep=[]
-          for line in lines:
+          import os,sys
+          p=Path(sys.argv[1]); out=[]
+          replace={
+              'AD_OVERLAY_FPS':'30',
+              'CRAWL_OVERLAY_SCRIPT':'/opt/fgbears-live/bin/crawl-overlay-hq.py',
+              'CRAWL_OVERLAY_FPS':'30',
+              'BEARS_NEWS_OVERLAY_FPS':'30',
+              'CRAWL_TEXT_RENDER_SCALE':'1',
+          }
+          seen=set()
+          for line in p.read_text().splitlines():
               name=line.split('=',1)[0] if '=' in line and not line.lstrip().startswith('#') else ''
-              if any(name.startswith(prefix) for prefix in retired):
+              if name.startswith(('YOUTUBE_','FGB_YOUTUBE_','RUMBLE_STUDIO_')): continue
+              if name in replace:
+                  if name not in seen: out.append(f'{name}={replace[name]}'); seen.add(name)
                   continue
-              if name in {'CRAWL_TEXT_RENDER_SCALE'}:
-                  continue
-              keep.append(line)
-          keep.append('CRAWL_TEXT_RENDER_SCALE=1')
-          t=p.with_name(p.name+'.rumble-only.tmp')
-          t.write_text('\n'.join(keep)+'\n')
-          os.chmod(t,0o640)
-          t.replace(p)
+              out.append(line)
+          for k,v in replace.items():
+              if k not in seen: out.append(f'{k}={v}')
+          t=p.with_name(p.name+'.adfps30.tmp'); t.write_text('\n'.join(out)+'\n'); os.chmod(t,0o640); t.replace(p)
           PY
-          sudo chown root:fgbears "$env_file"
-          sudo chmod 0640 "$env_file"
+          sudo chown root:fgbears "$env_file"; sudo chmod 0640 "$env_file"
 
-          # Runtime quarantine: no YouTube or Studio sidecar may remain active.
-          while read -r unit _; do
-            [[ -n "$unit" ]] || continue
-            sudo systemctl disable --now "$unit" >/dev/null 2>&1 || true
-          done < <(systemctl list-unit-files 'fgbears-youtube*' --no-legend 2>/dev/null || true)
+          while read -r unit _; do [[ -n "$unit" ]] && sudo systemctl disable --now "$unit" >/dev/null 2>&1 || true; done < <(systemctl list-unit-files 'fgbears-youtube*' --no-legend 2>/dev/null || true)
           sudo systemctl disable --now fgbears-rumble-studio-uplink.service >/dev/null 2>&1 || true
 
-          restart_and_wait() {
-            sudo systemctl reset-failed fgbears-live.service
-            sudo systemctl restart fgbears-live.service
-            for _ in $(seq 1 40); do
-              svc=$(systemctl show -p MainPID --value fgbears-live.service)
-              ff=$(pgrep -P "$svc" -x ffmpeg | head -n1 || true)
-              relay=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
-              if [[ "$ff" =~ ^[1-9][0-9]*$ && "$relay" =~ ^[1-9][0-9]*$ ]]; then
-                cmd=$(sudo tr '\0' ' ' < "/proc/$ff/cmdline")
-                if grep -Fq '127.0.0.1:1940' <<<"$cmd" && ! grep -Eqi '127\.0\.0\.1:1939|127\.0\.0\.1:1941|youtube|studio-rtmp' <<<"$cmd"; then
-                  return 0
-                fi
-              fi
-              sleep 1
-            done
-            return 1
-          }
-
-          socket_ok() {
+          sudo systemctl reset-failed fgbears-live.service
+          sudo systemctl restart fgbears-live.service
+          for _ in $(seq 1 45); do
+            svc=$(systemctl show -p MainPID --value fgbears-live.service)
+            ff=$(pgrep -P "$svc" -x ffmpeg | head -n1 || true)
             relay=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
-            for _ in $(seq 1 30); do
-              if sudo ss -ntpH state established | grep "pid=$relay" | grep -q ':1935'; then return 0; fi
-              sleep 1
-            done
-            return 1
-          }
+            if [[ "$ff" =~ ^[1-9][0-9]*$ && "$relay" =~ ^[1-9][0-9]*$ ]]; then
+              cmd=$(sudo tr '\0' ' ' < "/proc/$ff/cmdline")
+              if grep -Fq -- '-r 30 -f mpjpeg' <<<"$cmd" && grep -Fq '127.0.0.1:1940' <<<"$cmd" && ! grep -Eqi '127\.0\.0\.1:1939|127\.0\.0\.1:1941|youtube|studio-rtmp' <<<"$cmd"; then break; fi
+            fi
+            sleep 1
+          done
+          [[ "$ff" =~ ^[1-9][0-9]*$ ]]; [[ "$relay" =~ ^[1-9][0-9]*$ ]]
 
-          measure_speed() {
-            p=/srv/fgbears-live/logs/ffmpeg-progress.log
-            media(){ sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$p" | tail -n1; }
-            m0=$(media); t0=$(date +%s%N); sleep 20; m1=$(media); t1=$(date +%s%N)
-            python3 - "$m0" "$m1" "$t0" "$t1" <<'PY'
+          for _ in $(seq 1 30); do sudo ss -ntpH state established | grep "pid=$relay" | grep -q ':1935' && break; sleep 1; done
+          sudo ss -ntpH state established | grep "pid=$relay" | grep -q ':1935'
+
+          p=/srv/fgbears-live/logs/ffmpeg-progress.log
+          media(){ sudo sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' "$p" | tail -n1; }
+          m0=$(media); t0=$(date +%s%N); sleep 20; m1=$(media); t1=$(date +%s%N)
+          speed=$(python3 - "$m0" "$m1" "$t0" "$t1" <<'PY'
           import sys
-          m0,m1,t0,t1=map(int,sys.argv[1:])
-          wall=(t1-t0)/1e9; media=(m1-m0)/1e6
-          print(f'{media/wall:.4f}')
+          m0,m1,t0,t1=map(int,sys.argv[1:]); print(f'{((m1-m0)/1e6)/((t1-t0)/1e9):.4f}')
           PY
-          }
-
-          restart_and_wait
-          socket_ok
-          speed1=$(measure_speed)
-          echo "PACE_STAGE1_HQ_SCALE1=${speed1}x"
-
-          # If supersampling removal alone does not restore near-real-time pace,
-          # use the already-installed base renderer while preserving 30 fps.
-          if ! python3 - "$speed1" <<'PY'
+          )
+          echo "FINAL_SPEED=${speed}x"
+          python3 - "$speed" <<'PY'
           import sys
           raise SystemExit(0 if float(sys.argv[1]) >= 0.985 else 1)
           PY
-          then
-            sudo python3 - "$env_file" <<'PY'
-          from pathlib import Path
-          import os, sys
-          p=Path(sys.argv[1]); lines=p.read_text().splitlines(); out=[]
-          for line in lines:
-              if line.startswith('CRAWL_OVERLAY_SCRIPT='): continue
-              out.append(line)
-          out.append('CRAWL_OVERLAY_SCRIPT=/opt/fgbears-live/bin/crawl-overlay.py')
-          t=p.with_name(p.name+'.base-crawl.tmp'); t.write_text('\n'.join(out)+'\n'); os.chmod(t,0o640); t.replace(p)
-          PY
-            sudo chown root:fgbears "$env_file"; sudo chmod 0640 "$env_file"
-            restart_and_wait
-            socket_ok
-            speed2=$(measure_speed)
-            echo "PACE_STAGE2_BASE=${speed2}x"
-          else
-            speed2="$speed1"
-          fi
 
           sudo /usr/local/bin/fgbears-audio-health --capture-seconds 8
-
-          svc=$(systemctl show -p MainPID --value fgbears-live.service)
-          ff=$(pgrep -P "$svc" -x ffmpeg | head -n1)
-          relay=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
-          cmd=$(sudo tr '\0' ' ' < "/proc/$ff/cmdline")
-          grep -Fq '127.0.0.1:1940' <<<"$cmd"
-          ! grep -Eqi '127\.0\.0\.1:1939|127\.0\.0\.1:1941|youtube|studio-rtmp' <<<"$cmd"
           retired=$(sudo grep -Ec '^(YOUTUBE_|FGB_YOUTUBE_|RUMBLE_STUDIO_)' "$env_file" || true)
           test "$retired" -eq 0
-          socket_ok
-
           trap - ERR
           rm -f /tmp/fgbears-start-stream.rumble-only
-          echo "RUMBLE_ONLY_REPAIR=PASS master_pid=$ff relay_pid=$relay final_speed=${speed2}x retired_env=$retired"
+          echo "RUMBLE_PACING_REPAIR=PASS master_pid=$ff relay_pid=$relay speed=${speed}x retired_env=$retired"
           REMOTE
