@@ -1,0 +1,58 @@
+name: Probe Oracle CPU Quota 2026-09-03
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-oracle-cpu-quota-20260903.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read CPU quota and throttling
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== SYSTEMD LIMITS ==='
+          systemctl show fgbears-live.service -p CPUAccounting -p CPUQuotaPerSecUSec -p CPUQuotaPeriodUSec -p AllowedCPUs -p CPUWeight -p Nice -p IOSchedulingClass -p CPUSchedulingPolicy -p CPUSchedulingPriority
+          echo '=== SERVICE CGROUP ==='
+          cg=$(systemctl show -p ControlGroup --value fgbears-live.service)
+          echo "CGROUP=$cg"
+          root=/sys/fs/cgroup${cg}
+          for f in cpu.max cpu.stat cpu.weight cpuset.cpus cpuset.cpus.effective; do echo "--- $f"; sudo cat "$root/$f" 2>/dev/null || true; done
+          echo '=== ROOT CGROUP ==='
+          for f in cpu.max cpu.stat cpu.pressure; do echo "--- $f"; cat "/sys/fs/cgroup/$f" 2>/dev/null || true; done
+          echo '=== CPU INVENTORY ==='
+          nproc
+          lscpu | grep -E '^(CPU\(s\)|On-line CPU|Thread|Core|Socket|Model name|Hypervisor vendor|Virtualization type)' || true
+          echo '=== /PROC/STAT BEFORE ==='
+          grep '^cpu ' /proc/stat
+          sleep 10
+          echo '=== /PROC/STAT AFTER ==='
+          grep '^cpu ' /proc/stat
+          echo '=== TOP ==='
+          ps -eo pid,ppid,pcpu,pmem,stat,comm,args --sort=-pcpu | head -n 25
+          echo '=== PRESSURE ==='
+          cat /proc/pressure/cpu || true
+          echo 'CPU_QUOTA_PROBE=COMPLETE'
+          REMOTE
