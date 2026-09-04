@@ -1,0 +1,63 @@
+name: Probe Overlay Cadence 2026-09-03
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-overlay-cadence-20260903.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Measure local overlay inputs read-only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== MASTER CURRENT ==='
+          svc=$(systemctl show -p MainPID --value fgbears-live.service)
+          ff=$(pgrep -P "$svc" -x ffmpeg | head -n1)
+          sudo tr '\0' ' ' < "/proc/$ff/cmdline" | sed -E 's#(rtmp[^ ]*/live/)[^ ]+#\1[REDACTED]#g'
+          echo
+
+          probe_ffmpeg() {
+            name=$1; shift
+            tmp=$(mktemp)
+            start=$(date +%s%N)
+            set +e
+            timeout 12 ffmpeg -hide_banner -nostdin -loglevel info "$@" -t 10 -f null - >"$tmp" 2>&1
+            rc=$?
+            set -e
+            end=$(date +%s%N)
+            echo "=== $name rc=$rc wall_ns=$((end-start)) ==="
+            grep -E 'frame=|fps=|speed=' "$tmp" | tail -n 3 || true
+            rm -f "$tmp"
+          }
+
+          probe_ffmpeg AD_MJPEG -r 30 -f mpjpeg -i http://127.0.0.1:8787/overlay.mjpg
+          probe_ffmpeg CRAWL_RAW -f rawvideo -pixel_format rgba -video_size 1280x139 -framerate 30 -i http://127.0.0.1:8788/overlay.rgba
+          probe_ffmpeg NEWS_RAW -f rawvideo -pixel_format rgba -video_size 1280x104 -framerate 30 -i http://127.0.0.1:8789/overlay.rgba
+
+          echo '=== CPU ==='
+          ps -eo pid,ppid,pcpu,pmem,etime,comm,args --sort=-pcpu | grep -E 'ffmpeg|ad-overlay|crawl-overlay|bears-news-feed' | head -n 20 || true
+          echo 'OVERLAY_CADENCE_PROBE=COMPLETE'
+          REMOTE
