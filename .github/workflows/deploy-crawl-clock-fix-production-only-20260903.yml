@@ -1,0 +1,121 @@
+name: Deploy Crawl Clock Fix Production Only 2026-09-03
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-crawl-clock-fix-production-only-20260903.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Stage crawl fix
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/crawl-overlay.py "$ORACLE_USER@$ORACLE_HOST:/tmp/crawl-overlay.clock-fix-production.py"
+      - name: Deploy with production-only cadence gate
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          target=/opt/fgbears-live/bin/crawl-overlay.py
+          staged=/tmp/crawl-overlay.clock-fix-production.py
+          backup=/opt/fgbears-live/bin/crawl-overlay.py.pre-production-clock-fix
+          env_file=/etc/fgbears-live/stream.env
+          relay_before=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          sudo cp -a "$target" "$backup"
+          rollback(){ rc=$?; trap - ERR; echo "ROLLBACK rc=$rc" >&2; sudo cp -a "$backup" "$target" || true; sudo systemctl restart fgbears-live.service || true; exit "$rc"; }
+          trap rollback ERR
+
+          python3 -m py_compile "$staged"
+          sudo install -m 0755 "$staged" "$target"
+          sudo python3 -m py_compile "$target"
+          test "$(sudo grep -Ec '^(YOUTUBE_|FGB_YOUTUBE_|RUMBLE_STUDIO_)' "$env_file" || true)" -eq 0
+
+          sudo systemctl reset-failed fgbears-live.service
+          sudo systemctl restart fgbears-live.service
+          for _ in $(seq 1 45); do
+            svc=$(systemctl show -p MainPID --value fgbears-live.service)
+            ff=$(pgrep -P "$svc" -x ffmpeg | head -n1 || true)
+            relay=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+            if [[ "$ff" =~ ^[1-9][0-9]*$ && "$relay" =~ ^[1-9][0-9]*$ ]]; then
+              cmd=$(sudo tr '\0' ' ' < "/proc/$ff/cmdline")
+              if grep -Fq -- '-framerate 25 -i http://127.0.0.1:8788/overlay.rgba' <<<"$cmd" && grep -Fq 'shortest=0:repeatlast=1:eof_action=repeat' <<<"$cmd" && grep -Fq '127.0.0.1:1940' <<<"$cmd" && ! grep -Eqi '127\.0\.0\.1:1939|127\.0\.0\.1:1941|youtube|studio-rtmp' <<<"$cmd"; then break; fi
+            fi
+            sleep 1
+          done
+          [[ "$ff" =~ ^[1-9][0-9]*$ ]]; [[ "$relay" =~ ^[1-9][0-9]*$ ]]
+          test "$relay" = "$relay_before"
+          for _ in $(seq 1 30); do sudo ss -ntpH state established | grep "pid=$relay" | grep -q ':1935' && break; sleep 1; done
+          sudo ss -ntpH state established | grep "pid=$relay" | grep -q ':1935'
+
+          p=/srv/fgbears-live/logs/ffmpeg-progress.log
+          tmp=$(mktemp)
+          # One consumer only: do not open the RGBA stream separately during this measurement.
+          for i in $(seq 1 75); do
+            ns=$(date +%s%N); block=$(sudo cat "$p" 2>/dev/null || true)
+            out=$(sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' <<<"$block" | tail -n1)
+            frame=$(sed -n 's/^frame=\([0-9]*\)$/\1/p' <<<"$block" | tail -n1)
+            dup=$(sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' <<<"$block" | tail -n1)
+            drop=$(sed -n 's/^drop_frames=\([0-9]*\)$/\1/p' <<<"$block" | tail -n1)
+            speedf=$(sed -n 's/^speed=\(.*\)$/\1/p' <<<"$block" | tail -n1)
+            [[ "$out" =~ ^[0-9]+$ && "$frame" =~ ^[0-9]+$ && "$dup" =~ ^[0-9]+$ && "$drop" =~ ^[0-9]+$ ]] && printf '%s %s %s %s %s %s\n' "$ns" "$out" "$frame" "$dup" "$drop" "${speedf:-NA}" >> "$tmp"
+            sleep 1
+          done
+          tail -n 15 "$tmp"
+          read speed fps dupdelta dropdelta <<<"$(python3 - "$tmp" <<'PY'
+          import sys
+          rows=[]
+          for line in open(sys.argv[1]):
+              p=line.split()
+              if len(p)>=5: rows.append(tuple(map(int,p[:5])))
+          distinct=[]; last=None
+          for r in rows:
+              if r[1]!=last: distinct.append(r); last=r[1]
+          if len(distinct)<7: raise SystemExit('insufficient progress samples')
+          # Drop first distinct block to exclude startup transients.
+          a,b=distinct[1],distinct[-1]
+          wall=(b[0]-a[0])/1e9; media=(b[1]-a[1])/1e6
+          print(f'{media/wall:.6f} {(b[2]-a[2])/wall:.3f} {b[3]-a[3]} {b[4]-a[4]}')
+          PY
+          )"
+          rm -f "$tmp"
+          echo "PRODUCTION_ONLY_SPEED=${speed}x OUTPUT_FPS_MEASURED=$fps DUP_DELTA=$dupdelta DROP_DELTA=$dropdelta"
+          python3 - "$speed" "$fps" "$dupdelta" "$dropdelta" <<'PY'
+          import sys
+          speed=float(sys.argv[1]); fps=float(sys.argv[2]); dup=int(sys.argv[3]); drop=int(sys.argv[4])
+          raise SystemExit(0 if 0.985 <= speed <= 1.020 and fps >= 29.4 and dup <= 2 and drop <= 2 else 1)
+          PY
+
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 6
+          retired=$(sudo grep -Ec '^(YOUTUBE_|FGB_YOUTUBE_|RUMBLE_STUDIO_)' "$env_file" || true)
+          test "$retired" -eq 0
+          test "$(systemctl show -p MainPID --value fgbears-rumble-relay.service)" = "$relay_before"
+          sudo ss -ntpH state established | grep "pid=$relay_before" | grep -q ':1935'
+          recent=$(sudo journalctl -u fgbears-live.service --since '-3 min' --no-pager || true)
+          ! grep -Eqi 'More than [0-9]+ frames duplicated|Thread message queue blocking|non-monoton|overrun' <<<"$recent"
+          trap - ERR
+          rm -f "$staged"
+          echo "CRAWL_CLOCK_PRODUCTION_FIX=PASS master_pid=$ff relay_pid=$relay speed=${speed}x fps=$fps dup_delta=$dupdelta drop_delta=$dropdelta retired_env=$retired"
+          REMOTE
