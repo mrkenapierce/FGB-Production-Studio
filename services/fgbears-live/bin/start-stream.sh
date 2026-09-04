@@ -18,7 +18,7 @@ source "$ENV_FILE"
 : "${AD_OVERLAY_SCRIPT:=/opt/fgbears-live/bin/ad-overlay.py}"
 : "${CRAWL_OVERLAY_PORT:=8788}"
 : "${CRAWL_OVERLAY_SCRIPT:=/opt/fgbears-live/bin/crawl-overlay-hq.py}"
-: "${CRAWL_OVERLAY_FPS:=30}"
+: "${CRAWL_OVERLAY_FPS:=25}"
 : "${BEARS_NEWS_SCRIPT:=/opt/fgbears-live/bin/bears-news-feed.py}"
 : "${BEARS_NEWS_OVERLAY_PORT:=8789}"
 : "${BEARS_NEWS_OVERLAY_FPS:=30}"
@@ -97,15 +97,18 @@ progress_sink() {
 
 FFMPEG_PID=""
 
-# The advertising renderer is the permanent 1280x720 visual source and must be
-# ingested at 30 fps. Feeding that source at 15 fps forces CFR duplication and
-# makes the whole broadcast timeline fall behind real time.
+# The ad renderer atomically publishes AD_FRAME_FILE whenever the creative
+# changes. Image2 loop mode re-opens the same filename and therefore sees those
+# replacements, so there is no reason to transport the same 1280x720 JPEG over
+# HTTP 30 times per second. The looped image is paced at 30 fps locally. The
+# crawl runs at a sustainable 25 fps and is composited into the 30-fps master;
+# news remains 30 fps. There is one transport output: Rumble on local UDP 1940.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
   -re -stream_loop -1 -fflags +genpts \
   -f concat -safe 0 -i "$PLAYLIST_FILE" \
-  -thread_queue_size 64 -fflags +genpts -r "$AD_OVERLAY_FPS" -f mpjpeg -i "http://127.0.0.1:${AD_OVERLAY_PORT}/overlay.mjpg" \
+  -thread_queue_size 64 -re -loop 1 -framerate "$AD_OVERLAY_FPS" -i "$AD_FRAME_FILE" \
   -thread_queue_size 256 -f rawvideo -pixel_format rgba -video_size 1280x139 -framerate "$CRAWL_OVERLAY_FPS" -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.rgba" \
   -thread_queue_size 256 -f rawvideo -pixel_format rgba -video_size 1280x104 -framerate "$BEARS_NEWS_OVERLAY_FPS" -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.rgba" \
   -filter_complex "[1:v][3:v]overlay=x=0:y=0:shortest=1[withnews];[withnews][2:v]overlay=x=0:y=574:shortest=1,drawbox=x=0:y=0:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=713:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=0:w=7:h=720:color=0xC83803:t=fill,drawbox=x=1273:y=0:w=7:h=720:color=0xC83803:t=fill,format=yuv420p[v]" \
