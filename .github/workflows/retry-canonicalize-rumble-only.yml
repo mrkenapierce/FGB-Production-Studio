@@ -1,0 +1,40 @@
+name: Retry Rumble-Only Cutover Preflight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/retry-canonicalize-rumble-only.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-retrigger:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch preflight dependency and self-remove
+        run: |
+          set -Eeuo pipefail
+          git pull --rebase origin main
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/canonicalize-fgb-rumble-only.yml')
+          s=p.read_text()
+          needle='          git pull --rebase origin main\n'
+          addition='          sudo apt-get update -qq\n          sudo apt-get install -y -qq ffmpeg\n'
+          if addition not in s:
+              if needle not in s:
+                  raise SystemExit('canonical cutover insertion point not found')
+              s=s.replace(needle, needle+addition, 1)
+              p.write_text(s)
+          PY
+          git rm -f .github/workflows/retry-canonicalize-rumble-only.yml
+          git config user.name 'FGB Production Automation'
+          git config user.email 'actions@users.noreply.github.com'
+          git add .github/workflows/canonicalize-fgb-rumble-only.yml
+          git commit -m 'Fix Rumble-only cutover FFmpeg preflight'
+          git push origin HEAD:main
