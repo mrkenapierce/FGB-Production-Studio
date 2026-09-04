@@ -102,7 +102,9 @@ FFMPEG_PID=""
 # replacements, so there is no reason to transport the same 1280x720 JPEG over
 # HTTP 30 times per second. The looped image is paced at 30 fps locally. The
 # crawl runs at a sustainable 25 fps and is composited into the 30-fps master;
-# news remains 30 fps. There is one transport output: Rumble on local UDP 1940.
+# news remains 30 fps. Secondary overlays repeat the last available frame so
+# they can never throttle the Rumble master clock. There is one transport
+# output: Rumble on local UDP 1940.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
@@ -111,7 +113,7 @@ ffmpeg \
   -thread_queue_size 64 -re -loop 1 -framerate "$AD_OVERLAY_FPS" -i "$AD_FRAME_FILE" \
   -thread_queue_size 256 -f rawvideo -pixel_format rgba -video_size 1280x139 -framerate "$CRAWL_OVERLAY_FPS" -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.rgba" \
   -thread_queue_size 256 -f rawvideo -pixel_format rgba -video_size 1280x104 -framerate "$BEARS_NEWS_OVERLAY_FPS" -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.rgba" \
-  -filter_complex "[1:v][3:v]overlay=x=0:y=0:shortest=1[withnews];[withnews][2:v]overlay=x=0:y=574:shortest=1,drawbox=x=0:y=0:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=713:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=0:w=7:h=720:color=0xC83803:t=fill,drawbox=x=1273:y=0:w=7:h=720:color=0xC83803:t=fill,format=yuv420p[v]" \
+  -filter_complex "[1:v][3:v]overlay=x=0:y=0:shortest=0:repeatlast=1:eof_action=repeat[withnews];[withnews][2:v]overlay=x=0:y=574:shortest=0:repeatlast=1:eof_action=repeat,drawbox=x=0:y=0:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=713:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=0:w=7:h=720:color=0xC83803:t=fill,drawbox=x=1273:y=0:w=7:h=720:color=0xC83803:t=fill,format=yuv420p[v]" \
   -map "[v]" -map 0:a:0 \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
   -b:v 5000k -maxrate 5500k -bufsize 10000k \
