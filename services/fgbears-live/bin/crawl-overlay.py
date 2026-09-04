@@ -552,11 +552,18 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Type", "application/octet-stream")
         self.end_headers()
+        interval = 1.0 / FPS
+        next_frame_at = time.monotonic()
         try:
             while True:
                 self.wfile.write(frame().tobytes())
                 self.wfile.flush()
-                time.sleep(1 / FPS)
+                next_frame_at += interval
+                delay = next_frame_at - time.monotonic()
+                if delay > 0:
+                    time.sleep(delay)
+                elif delay < -interval:
+                    next_frame_at = time.monotonic()
         except (BrokenPipeError, ConnectionResetError):
             return
 
