@@ -1,0 +1,94 @@
+name: Probe Post-Fix Rumble Precision 2026-09-03
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-postfix-rumble-precision-20260903.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Measure current post-fix master read-only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          p=/srv/fgbears-live/logs/ffmpeg-progress.log
+          svc=$(systemctl show -p MainPID --value fgbears-live.service)
+          ff=$(pgrep -P "$svc" -x ffmpeg | head -n1)
+          relay=$(systemctl show -p MainPID --value fgbears-rumble-relay.service)
+          echo "MASTER_PID=$ff RELAY_PID=$relay"
+          echo '=== CMDLINE ==='
+          sudo tr '\0' ' ' < "/proc/$ff/cmdline" | sed -E 's#(rtmp[^ ]*/live/)[^ ]+#\1[REDACTED]#g'
+          echo
+          echo '=== 60 SECOND PROGRESS SERIES ==='
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          for i in $(seq 1 60); do
+            ns=$(date +%s%N)
+            block=$(sudo cat "$p" 2>/dev/null || true)
+            out=$(sed -n 's/^out_time_us=\([0-9]*\)$/\1/p' <<<"$block" | tail -n1)
+            frame=$(sed -n 's/^frame=\([0-9]*\)$/\1/p' <<<"$block" | tail -n1)
+            dup=$(sed -n 's/^dup_frames=\([0-9]*\)$/\1/p' <<<"$block" | tail -n1)
+            speed=$(sed -n 's/^speed=\(.*\)$/\1/p' <<<"$block" | tail -n1)
+            [[ "$out" =~ ^[0-9]+$ && "$frame" =~ ^[0-9]+$ && "$dup" =~ ^[0-9]+$ ]] && printf '%s %s %s %s %s\n' "$ns" "$out" "$frame" "$dup" "${speed:-NA}" >> "$tmp"
+            sleep 1
+          done
+          cat "$tmp"
+          python3 - "$tmp" <<'PY'
+          import sys
+          rows=[]
+          for line in open(sys.argv[1]):
+              p=line.split()
+              if len(p)>=4: rows.append(tuple(map(int,p[:4])))
+          if len(rows)<2: raise SystemExit('insufficient samples')
+          # Use first/last distinct progress timestamps to avoid 5s progress sampling quantization.
+          distinct=[]
+          last=None
+          for r in rows:
+              if r[1]!=last:
+                  distinct.append(r); last=r[1]
+          a,b=distinct[0],distinct[-1]
+          wall=(b[0]-a[0])/1e9
+          media=(b[1]-a[1])/1e6
+          frames=b[2]-a[2]
+          dup=b[3]-a[3]
+          print(f'POSTFIX_MEDIA_SPEED={media/wall:.6f}x')
+          print(f'POSTFIX_OUTPUT_FPS={frames/wall:.3f}')
+          print(f'POSTFIX_DUP_DELTA={dup}')
+          print(f'DISTINCT_PROGRESS_BLOCKS={len(distinct)} WALL_SECONDS={wall:.3f} MEDIA_SECONDS={media:.3f}')
+          PY
+          echo '=== CPU / PRESSURE ==='
+          ps -p "$ff" -o pid=,etime=,pcpu=,pmem=,stat=,cmd= | cut -c1-500
+          ps -eo pid,ppid,pcpu,pmem,etime,comm,args --sort=-pcpu | grep -E 'ffmpeg|ad-overlay|crawl-overlay|bears-news-feed' | head -n 20 || true
+          uptime
+          test -r /proc/pressure/cpu && cat /proc/pressure/cpu || true
+          test -r /proc/pressure/memory && cat /proc/pressure/memory || true
+          echo '=== SOCKET ==='
+          sudo ss -ntpH state established | grep "pid=$relay" | grep ':1935' || true
+          echo '=== RECENT WARNINGS ==='
+          sudo journalctl -u fgbears-live.service --since '-3 min' --no-pager | grep -Ei 'duplicat|queue blocking|error|failed|non-monoton|drop|overrun|buffer|speed' | tail -n 80 || true
+          echo '=== AUDIO ==='
+          sudo /usr/local/bin/fgbears-audio-health --capture-seconds 6
+          echo 'POSTFIX_PRECISION_PROBE=COMPLETE'
+          REMOTE
