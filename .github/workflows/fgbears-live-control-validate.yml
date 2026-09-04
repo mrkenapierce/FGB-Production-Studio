@@ -1,0 +1,47 @@
+name: Validate FGB Live Control
+
+on:
+  pull_request:
+    paths:
+      - 'services/fgbears-live/control/**'
+      - 'services/fgbears-live/bin/validate-control.py'
+      - 'services/fgbears-live/bin/render-control-assets.sh'
+      - 'services/fgbears-live/bin/sync-control.sh'
+      - 'services/fgbears-live/bin/start-control-poc.sh'
+      - '.github/workflows/fgbears-live-control-validate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'services/fgbears-live/control/**'
+      - 'services/fgbears-live/bin/validate-control.py'
+      - 'services/fgbears-live/bin/render-control-assets.sh'
+      - 'services/fgbears-live/bin/sync-control.sh'
+      - 'services/fgbears-live/bin/start-control-poc.sh'
+      - '.github/workflows/fgbears-live-control-validate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate-control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate schedule and asset references
+        run: python3 services/fgbears-live/bin/validate-control.py services/fgbears-live/control/schedule.json .
+      - name: Shell syntax
+        run: |
+          bash -n services/fgbears-live/bin/sync-control.sh
+          bash -n services/fgbears-live/bin/render-control-assets.sh
+          bash -n services/fgbears-live/bin/start-control-poc.sh
+          bash -n services/fgbears-live/bin/install-control.sh
+      - name: Validate SVG XML
+        run: |
+          python3 - <<'PY'
+          import glob
+          import xml.etree.ElementTree as ET
+          for path in glob.glob('services/fgbears-live/control/creatives/*.svg'):
+              ET.parse(path)
+              print('valid SVG:', path)
+          PY
