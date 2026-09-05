@@ -5,16 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 05 Sep 2026 00:55:08 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 05 Sep 2026 05:03:22 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears Restructure Multiple Contracts, Gain $17M in Cap Space</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Restructure Multiple Contracts, Gain $17M in Cap Space</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-restructure-multiple-contracts-172838833.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-21ff40d38729b45f0ea5</guid>
-      <pubDate>Fri, 04 Sep 2026 17:28:38 GMT</pubDate>
+      <title>Bears GM Ryan Poles in attendance at Miami-Stanford game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears GM Ryan Poles in attendance at Miami-Stanford game</description>
+      <link>https://sports.yahoo.com/articles/bears-gm-ryan-poles-attendance-031526776.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4829dd656ec91250c20e</guid>
+      <pubDate>Sat, 05 Sep 2026 03:15:26 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Why Chicago Bears Fans Connect With Quarterback Caleb Williams</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Why Chicago Bears Fans Connect With Quarterback Caleb Williams</description>
+      <link>https://sports.yahoo.com/articles/why-chicago-bears-fans-connect-011634650.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3630db7f1e4682413874</guid>
+      <pubDate>Fri, 04 Sep 2026 17:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -37,16 +47,6 @@
       <pubDate>Fri, 04 Sep 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson has Bears free agents bought in, but one critical flaw threatens breakthrough season</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ben Johnson has Bears free agents bought in, but one critical flaw threatens breakthrough season</description>
-      <link>https://sports.yahoo.com/articles/ben-johnson-bears-free-agents-191531357.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c3baa54bdd8b6e6ce3bc</guid>
-      <pubDate>Fri, 04 Sep 2026 12:14:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
