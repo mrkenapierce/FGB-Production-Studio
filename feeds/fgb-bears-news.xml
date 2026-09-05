@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 05 Sep 2026 09:01:04 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 05 Sep 2026 12:39:41 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears Question of the Day: Who goes over 1,000 receiving yards this year?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Question of the Day: Who goes over 1,000 receiving yards this year?</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-day-goes-over-120000568.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-bc6f9f376a05771790d2</guid>
+      <pubDate>Sat, 05 Sep 2026 12:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Examining the Real Edge Bears Have in Opening Season Against Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Examining the Real Edge Bears Have in Opening Season Against Panthers</description>
+      <link>https://www.si.com/nfl/bears/onsi/examining-the-real-edge-bears-have-in-opening-season-against-panthers</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-84d17c2fe1f7015722da</guid>
+      <pubDate>Sat, 05 Sep 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
 
     <item>
       <title>Bears GM Ryan Poles in attendance at Miami-Stanford game</title>
@@ -20,16 +40,6 @@
     </item>
 
     <item>
-      <title>Why Chicago Bears Fans Connect With Quarterback Caleb Williams</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Why Chicago Bears Fans Connect With Quarterback Caleb Williams</description>
-      <link>https://sports.yahoo.com/articles/why-chicago-bears-fans-connect-011634650.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3630db7f1e4682413874</guid>
-      <pubDate>Fri, 04 Sep 2026 18:16:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Biggest Winners and Losers from Bears 2026 Offseason Includes Both Playcallers</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Biggest Winners and Losers from Bears 2026 Offseason Includes Both Playcallers</description>
       <link>https://www.si.com/nfl/bears/onsi/biggest-winners-and-losers-from-bears-2026-offseason-includes-both-playcallers</link>
@@ -37,26 +47,6 @@
       <pubDate>Fri, 04 Sep 2026 17:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>6 Bold Predictions For the Chicago Bears 2026 NFL Season</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 6 Bold Predictions For the Chicago Bears 2026 NFL Season</description>
-      <link>https://www.si.com/nfl/bears/onsi/6-bold-predictions-for-the-chicago-bears-2026-nfl-season</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-baccafa0d58bd1e651fa</guid>
-      <pubDate>Fri, 04 Sep 2026 15:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Checking in on 6 former Bears starting anew, from DJ Moore to Jaquan Brisker</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Checking in on 6 former Bears starting anew, from DJ Moore to Jaquan Brisker</description>
-      <link>https://www.nytimes.com/athletic/7559756/2026/09/04/bears-former-players-new-places-dj-moore/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dbc94f642378704d02ed</guid>
-      <pubDate>Fri, 04 Sep 2026 03:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
