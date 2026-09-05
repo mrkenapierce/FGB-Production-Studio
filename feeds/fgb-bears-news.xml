@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 05 Sep 2026 05:03:22 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 05 Sep 2026 09:01:04 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -24,7 +24,7 @@
       <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Why Chicago Bears Fans Connect With Quarterback Caleb Williams</description>
       <link>https://sports.yahoo.com/articles/why-chicago-bears-fans-connect-011634650.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-3630db7f1e4682413874</guid>
-      <pubDate>Fri, 04 Sep 2026 17:00:00 GMT</pubDate>
+      <pubDate>Fri, 04 Sep 2026 18:16:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -60,16 +60,6 @@
     </item>
 
     <item>
-      <title>Bears restructure Joe Thuney, Dayo Odeyingbo, T.J. Edwards contracts</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears restructure Joe Thuney, Dayo Odeyingbo, T.J. Edwards contracts</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-restructure-joe-thuney-dayo-odeyingbo-t-j-edwards-contracts</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5ecefc7b98ffffe5584f</guid>
-      <pubDate>Fri, 04 Sep 2026 02:14:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
       <title>Bears training camp diaries with Sam Roush, Neville Gallimore | Week 5</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears training camp diaries with Sam Roush, Neville Gallimore | Week 5</description>
       <link>https://www.chicagobears.com/news/bears-training-camp-diaries-with-sam-roush-neville-gallimore-week-5</link>
@@ -87,6 +77,16 @@
       <pubDate>Thu, 03 Sep 2026 17:11:21 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Open Applications for 2026 Community All-Pros $107,000 Grant</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears Open Applications for 2026 Community All-Pros $107,000 Grant</description>
+      <link>https://www.chicagobears.com/news/chicago-bears-open-applications-for-2026-community-all-pros-107-000-grant</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9696151b86a866db1d74</guid>
+      <pubDate>Thu, 03 Sep 2026 15:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
