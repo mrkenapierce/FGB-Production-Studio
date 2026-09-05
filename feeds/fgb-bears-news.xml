@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 05 Sep 2026 15:31:40 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 05 Sep 2026 17:36:47 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -17,6 +17,16 @@
       <pubDate>Sat, 05 Sep 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Colston Loveland&apos;s Tireless Work Ethic, Even on Off Days, Impressing Bears Teammates</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Colston Loveland&apos;s Tireless Work Ethic, Even on Off Days, Impressing Bears Teammates</description>
+      <link>https://www.si.com/nfl/bears/onsi/colston-loveland-s-tireless-work-ethic-even-on-off-days-impressing-bears-teammates</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-27822fee9b4b86ade616</guid>
+      <pubDate>Sat, 05 Sep 2026 09:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -35,16 +45,6 @@
       <link>https://www.si.com/nfl/bears/onsi/chicago-bears-rb-d-andre-swift-could-be-ready-to-explode-in-contract-year</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-f8d780bd4d47dfef3c84</guid>
       <pubDate>Sat, 05 Sep 2026 08:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Predicting 2026 NFC North Standings: Bears Face a Long Road to a Second Title</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Predicting 2026 NFC North Standings: Bears Face a Long Road to a Second Title</description>
-      <link>https://www.si.com/nfl/bears/onsi/predicting-2026-nfc-north-standings-bears-face-a-long-road-to-a-second-title</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a6f6a25b6dcdde4de3b3</guid>
-      <pubDate>Sat, 05 Sep 2026 06:29:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
