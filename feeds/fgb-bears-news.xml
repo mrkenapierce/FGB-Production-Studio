@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 05 Sep 2026 21:29:21 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 05 Sep 2026 23:08:53 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -17,6 +17,16 @@
       <pubDate>Sat, 05 Sep 2026 18:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Why Safety and Not Edge Could Be Bears Target After Restructured Deals</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why Safety and Not Edge Could Be Bears Target After Restructured Deals</description>
+      <link>https://www.si.com/nfl/bears/onsi/why-safety-and-not-edge-could-be-bears-target-after-restructured-deals</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e74fd961d720777f0344</guid>
+      <pubDate>Sat, 05 Sep 2026 15:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -37,16 +47,6 @@
       <pubDate>Sat, 05 Sep 2026 12:31:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Where Bears Rank in Average Age of Offense, Defense Going Into 2026 NFL Season</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Where Bears Rank in Average Age of Offense, Defense Going Into 2026 NFL Season</description>
-      <link>https://www.si.com/nfl/bears/onsi/where-bears-rank-in-average-age-of-offense-defense-going-into-2026-nfl-season</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-982815aa337b98273de5</guid>
-      <pubDate>Sat, 05 Sep 2026 12:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
