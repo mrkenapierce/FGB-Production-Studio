@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 05 Sep 2026 17:36:47 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 05 Sep 2026 19:28:01 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears fans optimistic about the offseason, but still concerned about the d-line</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears fans optimistic about the offseason, but still concerned about the d-line</description>
+      <link>https://sports.yahoo.com/articles/bears-fans-optimistic-offseason-still-180000224.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-fb5a45cce11b94b938f6</guid>
+      <pubDate>Sat, 05 Sep 2026 18:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Chicago Bears Question of the Day: Who goes over 1,000 receiving yards this year?</title>
@@ -20,31 +30,21 @@
     </item>
 
     <item>
-      <title>Colston Loveland&apos;s Tireless Work Ethic, Even on Off Days, Impressing Bears Teammates</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Colston Loveland&apos;s Tireless Work Ethic, Even on Off Days, Impressing Bears Teammates</description>
-      <link>https://www.si.com/nfl/bears/onsi/colston-loveland-s-tireless-work-ethic-even-on-off-days-impressing-bears-teammates</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-27822fee9b4b86ade616</guid>
-      <pubDate>Sat, 05 Sep 2026 09:30:00 GMT</pubDate>
+      <title>A Rebooted 2026 Chicago Bears Game-by-Game Prediction After Camp</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: A Rebooted 2026 Chicago Bears Game-by-Game Prediction After Camp</description>
+      <link>https://www.si.com/nfl/bears/onsi/a-rebooted-2026-chicago-bears-game-by-game-prediction-after-camp</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-08e189a8fe1e28287bbc</guid>
+      <pubDate>Sat, 05 Sep 2026 11:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>D&apos;Andre Swift shares update on injured Bears RB Kyle Monangai</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: D&apos;Andre Swift shares update on injured Bears RB Kyle Monangai</description>
-      <link>https://sports.yahoo.com/articles/dandre-swift-shares-injured-bears-151539986.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-572f9fe11f49603c48fa</guid>
-      <pubDate>Sat, 05 Sep 2026 08:16:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears RB D’Andre Swift Could Be Ready to Explode in Contract Year</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears RB D’Andre Swift Could Be Ready to Explode in Contract Year</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-rb-d-andre-swift-could-be-ready-to-explode-in-contract-year</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f8d780bd4d47dfef3c84</guid>
-      <pubDate>Sat, 05 Sep 2026 08:00:00 GMT</pubDate>
+      <title>Colston Loveland&apos;s Tireless Work Ethic, Even on Off Days, Impressing Bears Teammates</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Colston Loveland&apos;s Tireless Work Ethic, Even on Off Days, Impressing Bears Teammates</description>
+      <link>https://www.si.com/nfl/bears/onsi/colston-loveland-s-tireless-work-ethic-even-on-off-days-impressing-bears-teammates</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-27822fee9b4b86ade616</guid>
+      <pubDate>Sat, 05 Sep 2026 09:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
