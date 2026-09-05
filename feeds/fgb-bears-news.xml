@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 04 Sep 2026 23:07:30 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 05 Sep 2026 00:55:08 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -17,6 +17,16 @@
       <pubDate>Fri, 04 Sep 2026 17:28:38 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Biggest Winners and Losers from Bears 2026 Offseason Includes Both Playcallers</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Biggest Winners and Losers from Bears 2026 Offseason Includes Both Playcallers</description>
+      <link>https://www.si.com/nfl/bears/onsi/biggest-winners-and-losers-from-bears-2026-offseason-includes-both-playcallers</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-57eec9c38c0b3da5fdc6</guid>
+      <pubDate>Fri, 04 Sep 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -37,16 +47,6 @@
       <pubDate>Fri, 04 Sep 2026 12:14:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams Names Chicago Bears Teammate &apos;Who Never Shuts Up&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams Names Chicago Bears Teammate &apos;Who Never Shuts Up&apos;</description>
-      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-names-chicago-bears-teammate-who-never-shuts-up</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-02fc27ef9b7c3ff3af97</guid>
-      <pubDate>Fri, 04 Sep 2026 12:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
