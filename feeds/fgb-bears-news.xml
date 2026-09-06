@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 06 Sep 2026 00:53:49 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 06 Sep 2026 05:18:09 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -27,6 +27,16 @@
       <pubDate>Sat, 05 Sep 2026 16:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams offer telling sentiment when talking Bears future</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Caleb Williams offer telling sentiment when talking Bears future</description>
+      <link>https://sports.yahoo.com/articles/caleb-williams-offer-telling-sentiment-220002617.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7fcf88068be9decaa003</guid>
+      <pubDate>Sat, 05 Sep 2026 15:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
