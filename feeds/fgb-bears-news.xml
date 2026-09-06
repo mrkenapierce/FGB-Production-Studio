@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 06 Sep 2026 18:17:47 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 06 Sep 2026 20:34:44 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -30,6 +30,16 @@
     </item>
 
     <item>
+      <title>Predicting Superlatives For Chicago Bears 2026 NFL Season</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Predicting Superlatives For Chicago Bears 2026 NFL Season</description>
+      <link>https://www.si.com/nfl/bears/onsi/predicting-superlatives-for-chicago-bears-2026-nfl-season</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-099f4dc99b9da6ad46e4</guid>
+      <pubDate>Sun, 06 Sep 2026 11:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>Kyle Monangai, Luther Burden, D&apos;Andre Swift and More Bears Injury Updates Entering Week 1</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyle Monangai, Luther Burden, D&apos;Andre Swift and More Bears Injury Updates Entering Week 1</description>
       <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-luther-burden-d-andre-swift-and-more-bears-injury-updates-entering-week-1</link>
@@ -40,13 +50,13 @@
     </item>
 
     <item>
-      <title>Bold Bears Trade Prediction For Former Pro Bowl Edge Rusher Comes Amid Recent Rumor</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bold Bears Trade Prediction For Former Pro Bowl Edge Rusher Comes Amid Recent Rumor</description>
-      <link>https://www.si.com/nfl/bears/onsi/bold-bears-trade-prediction-for-former-pro-bowl-edge-rusher-comes-amid-recent-rumor</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-311cccfb53e3b50afa4a</guid>
-      <pubDate>Sun, 06 Sep 2026 08:00:00 GMT</pubDate>
+      <title>Bears&apos; Jonah Jackson: D&apos;Andre Swift &apos;seems to be finding another gear&apos; in Year 2 under Ben Johnson</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears&apos; Jonah Jackson: D&apos;Andre Swift &apos;seems to be finding another gear&apos; in Year 2 under Ben Johnson</description>
+      <link>https://www.nfl.com/news/bears-jonah-jackson-d-andre-swift-seems-to-be-finding-another-gear-in-year-2-under-ben-johnson</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-831ad89ff6869d58d4c6</guid>
+      <pubDate>Sun, 06 Sep 2026 04:16:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
