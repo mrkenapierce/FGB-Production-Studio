@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 05 Sep 2026 23:08:53 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 06 Sep 2026 00:53:49 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -20,6 +20,16 @@
     </item>
 
     <item>
+      <title>Figuring Out Zavion Thomas&apos; Bears Role Amid so Many Weapons</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Figuring Out Zavion Thomas&apos; Bears Role Amid so Many Weapons</description>
+      <link>https://www.si.com/nfl/bears/onsi/figuring-out-zavion-thomas-bears-role-amid-so-many-weapons</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f43ac31fad377a3d3039</guid>
+      <pubDate>Sat, 05 Sep 2026 16:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>Why Safety and Not Edge Could Be Bears Target After Restructured Deals</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why Safety and Not Edge Could Be Bears Target After Restructured Deals</description>
       <link>https://www.si.com/nfl/bears/onsi/why-safety-and-not-edge-could-be-bears-target-after-restructured-deals</link>
@@ -27,26 +37,6 @@
       <pubDate>Sat, 05 Sep 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Press Taylor Admits Hurdle For Zavion Thomas&apos; Early-Season Role With Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Press Taylor Admits Hurdle For Zavion Thomas&apos; Early-Season Role With Bears</description>
-      <link>https://www.si.com/nfl/bears/onsi/press-taylor-admits-hurdle-for-zavion-thomas-early-season-role-with-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4b044d03e8bc9c4181e7</guid>
-      <pubDate>Sat, 05 Sep 2026 13:42:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears rookie could make Ben Johnson look like a genius</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears rookie could make Ben Johnson look like a genius</description>
-      <link>https://sports.yahoo.com/articles/bears-rookie-could-ben-johnson-193108376.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d4f106602c9b178ee6ba</guid>
-      <pubDate>Sat, 05 Sep 2026 12:31:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
