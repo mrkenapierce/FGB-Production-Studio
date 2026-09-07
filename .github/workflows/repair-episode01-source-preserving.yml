@@ -146,7 +146,7 @@ jobs:
           python3 /tmp/build_ep01.py
           tmpv=$(mktemp -d)
           cp /tmp/FGBears-Episode-01.mp4 /tmp/FGBears-Episode-01.mp4.audio-profile.json "$tmpv/"
-          services/fgbears-live/bin/validate-media.sh "$tmpv"
+          bash services/fgbears-live/bin/validate-media.sh "$tmpv"
           rm -rf "$tmpv"
 
       - name: Promote Episode 01 atomically without restarting live services
