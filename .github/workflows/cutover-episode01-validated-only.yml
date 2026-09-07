@@ -62,7 +62,7 @@ jobs:
           [[ "$(jq -r '.profile // empty' "$marker")" == "fgb-clean-static-v3" ]]
           [[ "$(jq -r '.quality_verified // false' "$marker")" == "true" ]]
           [[ "$(jq -r '.processing_mode // empty' "$marker")" == "static_gain_only" ]]
-          [[ "$(jq -r '.dynamic_processing // true' "$marker")" == "false" ]]
+          [[ "$(jq -r '.dynamic_processing' "$marker")" == "false" ]]
           [[ "$(jq -r '.sample_rate_hz // 0' "$marker")" == "48000" ]]
           [[ "$(jq -r '.channels // 0' "$marker")" == "2" ]]
           [[ "$(jq -r '.audio_bitrate_kbps // 0' "$marker")" == "256" ]]
