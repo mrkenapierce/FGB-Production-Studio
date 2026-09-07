@@ -1,0 +1,221 @@
+name: Apply Full Audio Remediation v3
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-full-audio-remediation-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgb-full-audio-remediation-v3
+  cancel-in-progress: false
+
+jobs:
+  remediate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate remediation source
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile services/fgbears-live/tools/prepare-audio-track-v3.py services/fgbears-live/tools/prepare-episode-v3.py
+          bash -n services/fgbears-live/bin/validate-media.sh
+          bash -n services/fgbears-live/bin/add-episode-v3.sh
+          grep -Fq 'PROFILE="fgb-clean-static-v3"' services/fgbears-live/tools/prepare-audio-track-v3.py
+          grep -Fq 'processing_mode":"static_gain_only"' services/fgbears-live/tools/prepare-audio-track-v3.py
+          ! grep -Eq -- '-af .*equalizer|-af .*deesser|-af .*acompressor|-af .*alimiter|-af .*afftdn|-af .*arnndn' services/fgbears-live/tools/prepare-audio-track-v3.py
+          echo 'V3_SOURCE_POLICY=PASS'
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Export preferred pre-v2 audio sources from Oracle
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          export_dir=/tmp/fgb-audio-v3-export
+          rm -rf "$export_dir" /tmp/fgb-audio-v3-export.tar
+          mkdir -p "$export_dir"
+          : > "$export_dir/manifest.tsv"
+          master=$(systemctl show -p MainPID --value fgbears-live.service)
+          youtube=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          [[ "$master" =~ ^[1-9][0-9]*$ && "$youtube" =~ ^[1-9][0-9]*$ ]]
+          [[ "$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)" == masked* ]]
+          for ep in $(seq 1 31); do
+            prod="/srv/fgbears-live/media/FGBears-Episode-${ep}.mp4"
+            [[ -s "$prod" ]] || { echo "MISSING_PRODUCTION=$ep" >&2; exit 1; }
+            if (( ep <= 29 )); then
+              src="/home/ubuntu/fgbears-upload/FGBears-Episode-${ep}.mp4"
+              kind=original_master
+            else
+              src="/srv/fgbears-live/processed-pending/FGBears-Episode-${ep}.mp4"
+              kind=retained_pre_v2
+            fi
+            [[ -s "$src" ]] || { echo "MISSING_PREFERRED_SOURCE=$ep path=$src" >&2; exit 1; }
+            sha=$(sha256sum "$src" | awk '{print $1}')
+            ffmpeg -hide_banner -nostdin -loglevel error -y -i "$src" -map 0:a:0 -vn -c:a copy -map_metadata -1 "$export_dir/Episode-${ep}.m4a"
+            printf '%s\t%s\t%s\t%s\n' "$ep" "$kind" "$src" "$sha" >> "$export_dir/manifest.tsv"
+          done
+          printf 'MASTER_PID=%s\nYOUTUBE_PID=%s\n' "$master" "$youtube" > "$export_dir/live-before.env"
+          tar -C /tmp -cf /tmp/fgb-audio-v3-export.tar fgb-audio-v3-export
+          echo "EXPORT_BYTES=$(stat -c %s /tmp/fgb-audio-v3-export.tar)"
+          echo 'EXPORT_EPISODES=31'
+          REMOTE
+          scp -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-audio-v3-export.tar" /tmp/fgb-audio-v3-export.tar
+
+      - name: Build clean audio tracks off-host
+        run: |
+          set -Eeuo pipefail
+          rm -rf /tmp/fgb-audio-v3-export /tmp/fgb-audio-v3-clean
+          tar -C /tmp -xf /tmp/fgb-audio-v3-export.tar
+          mkdir -p /tmp/fgb-audio-v3-clean
+          while IFS=$'\t' read -r ep kind source_path source_sha; do
+            echo "=== BUILD_EPISODE_${ep} source_kind=${kind} ==="
+            python3 services/fgbears-live/tools/prepare-audio-track-v3.py \
+              --source "/tmp/fgb-audio-v3-export/Episode-${ep}.m4a" \
+              --output "/tmp/fgb-audio-v3-clean/Episode-${ep}.m4a" \
+              --source-kind "$kind" \
+              --source-label "$source_path" \
+              --source-file-sha256 "$source_sha"
+          done < /tmp/fgb-audio-v3-export/manifest.tsv
+          test "$(find /tmp/fgb-audio-v3-clean -maxdepth 1 -type f -name 'Episode-*.m4a' | wc -l)" -eq 31
+          test "$(find /tmp/fgb-audio-v3-clean -maxdepth 1 -type f -name '*.audio-profile.json' | wc -l)" -eq 31
+          tar -C /tmp -cf /tmp/fgb-audio-v3-clean.tar fgb-audio-v3-clean
+          echo "CLEAN_TRACK_BYTES=$(stat -c %s /tmp/fgb-audio-v3-clean.tar)"
+
+      - name: Return clean tracks and current v3 controls to Oracle
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key /tmp/fgb-audio-v3-clean.tar "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-audio-v3-clean.tar"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/validate-media.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/validate-media-v3.sh"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/tools/prepare-episode-v3.py "$ORACLE_USER@$ORACLE_HOST:/tmp/prepare-episode-v3.py"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/add-episode-v3.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/add-episode-v3.sh"
+
+      - name: Atomically promote clean audio across the live library
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          master_before=$(pid fgbears-live.service)
+          youtube_before=$(pid fgbears-youtube-copy-relay.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ && "$youtube_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)" == masked* ]]
+
+          clean=/srv/fgbears-live/audio-v3-clean
+          work=/srv/fgbears-live/audio-v3-work
+          qdir=/srv/fgbears-live/quarantine/replaced-production-audio-v2-20260907
+          sudo rm -rf "$clean"
+          sudo install -d -o ubuntu -g ubuntu -m 0755 "$clean" "$work"
+          sudo install -d -o root -g root -m 0755 "$qdir"
+          tar -C /srv/fgbears-live -xf /tmp/fgb-audio-v3-clean.tar
+          # Tar contains fgb-audio-v3-clean; normalize directory name.
+          if [[ -d /srv/fgbears-live/fgb-audio-v3-clean ]]; then
+            rm -rf "$clean"
+            mv /srv/fgbears-live/fgb-audio-v3-clean "$clean"
+          fi
+
+          chmod +x /tmp/validate-media-v3.sh /tmp/prepare-episode-v3.py /tmp/add-episode-v3.sh
+          sudo install -m 0755 /tmp/validate-media-v3.sh /usr/local/bin/fgbears-validate
+          sudo install -m 0755 /tmp/validate-media-v3.sh /opt/fgbears-live/bin/validate-media.sh
+          sudo install -m 0755 /tmp/prepare-episode-v3.py /usr/local/bin/fgbears-prepare-v3
+          sudo install -m 0755 /tmp/prepare-episode-v3.py /opt/fgbears-live/tools/prepare-episode-v3.py
+          sudo install -m 0755 /tmp/add-episode-v3.sh /usr/local/bin/fgbears-add-episode
+          sudo install -m 0755 /tmp/add-episode-v3.sh /opt/fgbears-live/bin/add-episode-v3.sh
+          sudo rm -f /usr/local/bin/fgbears-normalize /opt/fgbears-live/bin/normalize-library.sh /opt/fgbears-live/bin/normalize-resilient.sh /opt/fgbears-live/bin/add-episode.sh
+
+          video_hash(){ ffmpeg -hide_banner -nostdin -loglevel error -i "$1" -map 0:v:0 -c:v copy -f hash -hash sha256 - 2>/dev/null | tail -n1; }
+          for ep in $(seq 1 31); do
+            prod="/srv/fgbears-live/media/FGBears-Episode-${ep}.mp4"
+            track="$clean/Episode-${ep}.m4a"
+            track_marker="$track.audio-profile.json"
+            cand="$work/FGBears-Episode-${ep}.mp4"
+            cand_marker="$cand.audio-profile.json"
+            [[ -s "$prod" && -s "$track" && -s "$track_marker" ]]
+            before_vhash=$(video_hash "$prod")
+            rm -f "$cand" "$cand_marker"
+            ffmpeg -hide_banner -nostdin -loglevel error -y \
+              -i "$prod" -i "$track" -map 0:v:0 -map 1:a:0 -c copy -shortest -movflags +faststart -map_metadata -1 "$cand"
+            after_vhash=$(video_hash "$cand")
+            test "$after_vhash" = "$before_vhash" || { echo "VIDEO_HASH_CHANGED_EP=$ep" >&2; exit 1; }
+            sig=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels -of csv=p=0 "$cand")
+            [[ "$sig" == "aac,48000,2" ]] || { echo "BAD_AUDIO_SIG_EP=$ep sig=$sig" >&2; exit 1; }
+            final_sha=$(sha256sum "$cand" | awk '{print $1}')
+            jq --arg sha "$final_sha" '. + {sha256:$sha,video_mode:"packet_copy",quality_verified:true}' "$track_marker" > "$cand_marker"
+
+            vdir=$(mktemp -d /tmp/fgb-v3-one.XXXXXX)
+            ln "$cand" "$vdir/FGBears-Episode-${ep}.mp4"
+            ln "$cand_marker" "$vdir/FGBears-Episode-${ep}.mp4.audio-profile.json"
+            /usr/local/bin/fgbears-validate "$vdir" >/dev/null
+            rm -rf "$vdir"
+
+            if [[ ! -e "$qdir/FGBears-Episode-${ep}.mp4" ]]; then sudo ln "$prod" "$qdir/FGBears-Episode-${ep}.mp4"; fi
+            if [[ -s "$prod.audio-profile.json" && ! -e "$qdir/FGBears-Episode-${ep}.mp4.audio-profile.json" ]]; then sudo ln "$prod.audio-profile.json" "$qdir/FGBears-Episode-${ep}.mp4.audio-profile.json"; fi
+            mv -f "$cand" "$prod"
+            mv -f "$cand_marker" "$prod.audio-profile.json"
+            source_i=$(jq -r '.source_metrics.i_lufs' "$prod.audio-profile.json")
+            out_i=$(jq -r '.output_metrics.i_lufs' "$prod.audio-profile.json")
+            out_tp=$(jq -r '.output_metrics.tp_dbtp' "$prod.audio-profile.json")
+            gain=$(jq -r '.static_gain_db' "$prod.audio-profile.json")
+            echo "PROMOTED_EP=$ep source_I=$source_i gain=$gain output_I=$out_i output_TP=$out_tp"
+
+            test "$(pid fgbears-live.service)" = "$master_before" || { echo "MASTER_PID_CHANGED_DURING_EP=$ep" >&2; exit 1; }
+            test "$(pid fgbears-youtube-copy-relay.service)" = "$youtube_before" || { echo "YOUTUBE_PID_CHANGED_DURING_EP=$ep" >&2; exit 1; }
+          done
+
+          /usr/local/bin/fgbears-validate /srv/fgbears-live/media
+          /usr/local/bin/fgbears-rebuild-playlist
+
+          master_after=$(pid fgbears-live.service)
+          youtube_after=$(pid fgbears-youtube-copy-relay.service)
+          test "$master_after" = "$master_before"
+          test "$youtube_after" = "$youtube_before"
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          [[ "$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)" == masked* ]]
+          ycmd=$(tr '\0' ' ' < "/proc/$youtube_after/cmdline")
+          printf '%s\n' "$ycmd" | grep -Eq -- '(^| )-c copy( |$)'
+          ! printf '%s\n' "$ycmd" | grep -Eq -- '-af |filter:a|loudnorm|acompressor|deesser|aresample|volume=|-c:a (aac|libfdk_aac|opus)'
+          yt_tcp=$(sudo ss -tnp 2>/dev/null | grep "pid=$youtube_after," | grep -c ESTAB || true)
+          [[ "$yt_tcp" =~ ^[1-9][0-9]*$ ]]
+          test ! -e /usr/local/bin/fgbears-normalize
+          test -x /usr/local/bin/fgbears-prepare-v3
+          test -x /usr/local/bin/fgbears-add-episode
+          profile_count=$(find /srv/fgbears-live/media -maxdepth 1 -type f -name '*.audio-profile.json' -exec jq -r '.profile' {} \; | grep -c '^fgb-clean-static-v3$')
+          test "$profile_count" -eq 31
+
+          rm -f /tmp/fgb-audio-v3-clean.tar /tmp/validate-media-v3.sh /tmp/prepare-episode-v3.py /tmp/add-episode-v3.sh
+          sudo rm -rf "$clean" "$work"
+          echo "FULL_AUDIO_REMEDIATION=PASS"
+          echo "EPISODES_REMEDIATED=31"
+          echo "MASTER_PID=$master_after"
+          echo "YOUTUBE_PID=$youtube_after"
+          echo "YOUTUBE_ESTABLISHED_TCP=$yt_tcp"
+          echo "RUMBLE_STATE=$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)"
+          echo "PROFILE_COUNT=$profile_count"
+          REMOTE
