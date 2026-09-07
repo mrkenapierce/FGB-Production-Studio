@@ -1,0 +1,83 @@
+name: Audit Episode 01 Audio Sources
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-episode01-sources.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Inventory every retained Episode 01 candidate
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== LIVE STATE ==='
+          echo "MASTER_PID=$(systemctl show -p MainPID --value fgbears-live.service 2>/dev/null || true)"
+          echo "YOUTUBE_PID=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service 2>/dev/null || true)"
+          echo "YOUTUBE_ACTIVE=$(systemctl is-active fgbears-youtube-copy-relay.service 2>/dev/null || true)"
+
+          roots=(/home/ubuntu /srv/fgbears-live)
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          for root in "${roots[@]}"; do
+            [[ -d "$root" ]] || continue
+            find "$root" -maxdepth 6 -type f \
+              \( -iname '*episode*01*' -o -iname '*episode*1.*' -o -iname '*ep*01*' -o -iname '*ep*1.*' \) \
+              \( -iname '*.wav' -o -iname '*.aiff' -o -iname '*.aif' -o -iname '*.flac' -o -iname '*.m4a' -o -iname '*.mp3' -o -iname '*.mp4' -o -iname '*.mov' -o -iname '*.aac' \) \
+              -print 2>/dev/null >> "$tmp" || true
+          done
+          sort -u "$tmp" -o "$tmp"
+          count=$(wc -l < "$tmp" | tr -d ' ')
+          echo "CANDIDATE_COUNT=$count"
+
+          measure() {
+            local f=$1
+            ffmpeg -hide_banner -nostdin -nostats -v info -i "$f" -map 0:a:0 -vn \
+              -af 'loudnorm=I=-16:TP=-3:LRA=11:print_format=summary' -f null - 2>&1 \
+              | awk -F: '/Input Integrated:|Input True Peak:|Input LRA:/{gsub(/^ +| +$/,"",$2); printf "%s=%s ", $1, $2} END{print ""}' \
+              | tr ' ' '_' || true
+          }
+
+          n=0
+          while IFS= read -r f; do
+            [[ -s "$f" ]] || continue
+            n=$((n+1))
+            echo "--- CANDIDATE $n ---"
+            echo "PATH=$f"
+            echo "SIZE=$(stat -c %s "$f")"
+            echo "MTIME=$(stat -c %y "$f")"
+            echo "SHA256=$(sha256sum "$f" | awk '{print $1}')"
+            ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,codec_long_name,sample_fmt,sample_rate,channels,channel_layout,bit_rate,bits_per_raw_sample,duration -of default=nw=1 "$f" || true
+            ffprobe -v error -show_entries format=format_name,duration,bit_rate -of default=nw=1 "$f" || true
+            echo "LOUDNESS=$(measure "$f")"
+          done < "$tmp"
+          echo 'AUDIT_COMPLETE=1'
+          REMOTE
