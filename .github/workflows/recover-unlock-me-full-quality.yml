@@ -28,6 +28,7 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
       - name: Install browser/audio tools
         run: |
           set -Eeuo pipefail
@@ -36,11 +37,12 @@ jobs:
           mkdir -p /tmp/pp /tmp/downloads && cd /tmp/pp
           npm init -y >/dev/null 2>&1
           npm install --silent puppeteer-core
-      - name: Download original 256 kbps track
+
+      - name: Recover original downloadable track
         run: |
           set -Eeuo pipefail
           cd /tmp/pp
-          cat > download.js <<'JS'
+          cat > recover.js <<'JS'
           const puppeteer=require('puppeteer-core');
           const fs=require('fs');
           const path=require('path');
@@ -48,7 +50,7 @@ jobs:
             const exe=process.env.CHROME;
             const browser=await puppeteer.launch({
               headless:true, executablePath:exe, ignoreHTTPSErrors:true,
-              args:['--no-sandbox','--ignore-certificate-errors','--disable-blink-features=AutomationControlled']
+              args:['--no-sandbox','--ignore-certificate-errors','--disable-blink-features=AutomationControlled','--autoplay-policy=no-user-gesture-required']
             });
             const page=await browser.newPage();
             await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36');
@@ -58,34 +60,94 @@ jobs:
               Object.defineProperty(navigator,'languages',{get:()=>['en-US','en']});
               Object.defineProperty(navigator,'plugins',{get:()=>[1,2,3,4,5]});
             });
-            const client=await page.target().createCDPSession();
-            await client.send('Page.setDownloadBehavior',{behavior:'allow',downloadPath:'/tmp/downloads'});
+
+            const client=await browser.target().createCDPSession();
+            await client.send('Browser.setDownloadBehavior',{behavior:'allow',downloadPath:'/tmp/downloads',eventsEnabled:true});
+            let downloadSuggested='';
+            client.on('Browser.downloadWillBegin',e=>{
+              console.log('DOWNLOAD_WILL_BEGIN url='+e.url+' suggested='+e.suggestedFilename);
+              downloadSuggested=e.suggestedFilename||'';
+              fs.writeFileSync('/tmp/download-url.txt',e.url);
+            });
+            client.on('Browser.downloadProgress',e=>console.log('DOWNLOAD_PROGRESS state='+e.state+' received='+e.receivedBytes+' total='+e.totalBytes));
+
+            let attachmentUrl='';
+            page.on('response',r=>{
+              const h=r.headers();
+              const ct=(h['content-type']||'').toLowerCase();
+              const cd=(h['content-disposition']||'').toLowerCase();
+              if(!attachmentUrl && (cd.includes('attachment') || (ct.startsWith('audio/') && !r.url().includes('/transcoding/')))) {
+                attachmentUrl=r.url();
+                console.log('ORIGINAL_RESPONSE='+r.status()+' '+ct+' '+cd+' '+r.url());
+                fs.writeFileSync('/tmp/original-response-url.txt',r.url());
+              }
+            });
+
             await page.goto('https://audio.com/kontraa/audio/unlock-me',{waitUntil:'domcontentloaded',timeout:60000});
             console.log('PAGE_TITLE='+await page.title());
-            const clicked=await page.evaluate(()=>{
-              const els=[...document.querySelectorAll('button,a')];
-              const el=els.find(e=>/^download$/i.test((e.innerText||e.getAttribute('aria-label')||e.title||'').trim()));
-              if(!el) return false;
-              el.click(); return true;
-            });
-            console.log('DOWNLOAD_CLICKED='+clicked);
-            if(!clicked) process.exit(2);
-            let chosen='';
-            for(let i=0;i<40;i++){
+
+            const clickByText=async re=>{
+              const handles=await page.$$('button,a,[role=button]');
+              for(const h of handles){
+                let t=''; try{t=(await page.evaluate(e=>(e.innerText||e.getAttribute('aria-label')||e.title||'').trim(),h));}catch{}
+                if(re.test(t)){ console.log('CLICK='+t); try{await h.click();return true;}catch(e){console.log('CLICK_ERROR='+e.message);} }
+              }
+              return false;
+            };
+
+            if(!await clickByText(/^download$/i)) throw new Error('Download control not found');
+            await new Promise(r=>setTimeout(r,1500));
+
+            const controls=await page.evaluate(()=>[...document.querySelectorAll('button,a,[role=button]')].map(e=>({
+              text:(e.innerText||e.getAttribute('aria-label')||e.title||'').trim(),
+              href:e.href||'', download:e.getAttribute('download')||'', visible:!!(e.offsetWidth||e.offsetHeight||e.getClientRects().length)
+            })).filter(x=>x.visible && (x.text||x.href)));
+            for(const c of controls){
+              if(/mp3|wav|download|original|audio/i.test(c.text+' '+c.href+' '+c.download)) console.log('CONTROL='+JSON.stringify(c));
+            }
+
+            // Prefer explicit MP3/original choice if the first Download click opened a format dialog.
+            let selected=false;
+            for(const re of [/^mp3$/i,/mp3.*download|download.*mp3/i,/original.*mp3/i]){
+              if(await clickByText(re)){selected=true;break;}
+            }
+            if(!selected){
+              const href=controls.find(c=>/\.mp3(?:\?|$)|format=mp3|download.*mp3/i.test(c.href));
+              if(href && href.href){ console.log('NAVIGATE_MP3='+href.href); await page.goto(href.href,{waitUntil:'domcontentloaded',timeout:60000}).catch(()=>{}); }
+            }
+
+            // Wait for either a completed browser download or a captured original/attachment response.
+            for(let i=0;i<60;i++){
               await new Promise(r=>setTimeout(r,500));
               const files=fs.readdirSync('/tmp/downloads').filter(f=>!f.endsWith('.crdownload'));
               const candidates=files.map(f=>({f,size:fs.statSync(path.join('/tmp/downloads',f)).size})).filter(x=>x.size>1000000).sort((a,b)=>b.size-a.size);
-              if(candidates.length){chosen=path.join('/tmp/downloads',candidates[0].f); break;}
+              if(candidates.length){
+                const chosen=path.join('/tmp/downloads',candidates[0].f);
+                fs.copyFileSync(chosen,'/tmp/unlock-me-original.bin');
+                console.log('DOWNLOADED_FILE='+chosen+' bytes='+candidates[0].size);
+                break;
+              }
+              if(attachmentUrl || downloadSuggested) {
+                // Allow a few more polling cycles for the file to finish.
+              }
             }
-            if(!chosen){console.error('No completed download found');process.exit(3);}
-            fs.copyFileSync(chosen,'/tmp/unlock-me-full.mp3');
-            console.log('DOWNLOAD_BYTES='+fs.statSync('/tmp/unlock-me-full.mp3').size);
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(1)});
           JS
-          CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium) node download.js
-          test -s /tmp/unlock-me-full.mp3
-          echo '=== ORIGINAL DOWNLOAD ==='
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium) node recover.js
+
+          if [[ ! -s /tmp/unlock-me-original.bin ]]; then
+            url=''
+            [[ -s /tmp/download-url.txt ]] && url=$(cat /tmp/download-url.txt)
+            [[ -z "$url" && -s /tmp/original-response-url.txt ]] && url=$(cat /tmp/original-response-url.txt)
+            if [[ -n "$url" ]]; then
+              curl -k -LfsS -A 'Mozilla/5.0' "$url" -o /tmp/unlock-me-original.bin
+            fi
+          fi
+          test -s /tmp/unlock-me-original.bin
+          mv /tmp/unlock-me-original.bin /tmp/unlock-me-full.mp3
+
+          echo '=== RECOVERED SOURCE ==='
           ffprobe -v error -show_entries format=duration,size,bit_rate -show_entries stream=codec_name,sample_rate,channels,bit_rate -of json /tmp/unlock-me-full.mp3
           size=$(stat -c %s /tmp/unlock-me-full.mp3)
           duration=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 /tmp/unlock-me-full.mp3)
@@ -94,15 +156,20 @@ jobs:
           test "$size" -gt 5500000
           test "$bitrate" -gt 240000
           sha256sum /tmp/unlock-me-full.mp3
-      - name: Prepare clean broadcast copy and stage on Oracle
+
+      - name: Prepare clean broadcast asset and stage on Oracle
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           set -Eeuo pipefail
-          # Delivery conversion only: 48 kHz stereo AAC. No speech EQ, compression,
-          # de-essing, denoising, loudness processing, or other mastering DSP.
+          # Lower by static gain only if required to preserve true-peak headroom.
+          measure=$(ffmpeg -hide_banner -nostats -i /tmp/unlock-me-full.mp3 -af ebur128=peak=true -f null - 2>&1)
+          printf '%s\n' "$measure" | tail -30
+          peak=$(printf '%s\n' "$measure" | awk '/Peak:/{v=$2} END{print v}')
+          gain=$(awk -v p="$peak" 'BEGIN{g=-2.0-p; if(g>0)g=0; printf "%.3f",g}')
+          echo STATIC_GAIN_DB=$gain
           ffmpeg -hide_banner -loglevel error -y -i /tmp/unlock-me-full.mp3 \
-            -ar 48000 -ac 2 -c:a aac -b:a 256k /tmp/fgb-music-loop.m4a
+            -af "volume=${gain}dB" -ar 48000 -ac 2 -c:a aac -b:a 256k /tmp/fgb-music-loop.m4a
           echo '=== BROADCAST ASSET ==='
           ffprobe -v error -show_entries format=duration,size,bit_rate -show_entries stream=codec_name,sample_rate,channels,bit_rate -of json /tmp/fgb-music-loop.m4a
           ffmpeg -hide_banner -nostats -i /tmp/fgb-music-loop.m4a -af ebur128=peak=true -f null - 2>&1 | tail -30
