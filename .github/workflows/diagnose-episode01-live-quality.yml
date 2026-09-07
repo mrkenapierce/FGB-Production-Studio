@@ -1,0 +1,50 @@
+name: Diagnose Episode 01 Live Quality
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-episode01-live-quality.yml'
+      - 'services/fgbears-live/tools/diagnose-episode01-quality.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Run Episode 01 source-vs-production diagnostic
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          curl -fsSL https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/services/fgbears-live/tools/diagnose-episode01-quality.py > /tmp/diagnose-episode01-quality.py
+          scp -i ~/.ssh/oracle_key /tmp/diagnose-episode01-quality.py "$ORACLE_USER@$ORACLE_HOST:/tmp/diagnose-episode01-quality.py"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'python3 /tmp/diagnose-episode01-quality.py; rc=$?; rm -f /tmp/diagnose-episode01-quality.py; exit $rc'
+
+      - name: Run passive live packet identity diagnostic
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          curl -fsSL https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/services/fgbears-live/tools/compare-live-audio-chain.py > /tmp/compare-live-audio-chain.py
+          scp -i ~/.ssh/oracle_key /tmp/compare-live-audio-chain.py "$ORACLE_USER@$ORACLE_HOST:/tmp/compare-live-audio-chain.py"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'python3 /tmp/compare-live-audio-chain.py; rc=$?; rm -f /tmp/compare-live-audio-chain.py; exit $rc'
