@@ -16,7 +16,7 @@ env:
 jobs:
   recover:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 12
     steps:
       - name: Configure Oracle SSH
         env:
@@ -46,69 +46,39 @@ jobs:
           (async()=>{
             const exe=process.env.CHROME;
             const browser=await puppeteer.launch({
-              headless:true,
-              executablePath:exe,
-              ignoreHTTPSErrors:true,
-              args:[
-                '--no-sandbox','--ignore-certificate-errors',
-                '--disable-blink-features=AutomationControlled',
-                '--autoplay-policy=no-user-gesture-required',
-                '--window-size=1365,768'
-              ]
+              headless:true, executablePath:exe, ignoreHTTPSErrors:true,
+              args:['--no-sandbox','--ignore-certificate-errors','--disable-blink-features=AutomationControlled','--autoplay-policy=no-user-gesture-required']
             });
             const page=await browser.newPage();
-            await page.setViewport({width:1365,height:768});
             await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36');
             await page.setExtraHTTPHeaders({'Accept-Language':'en-US,en;q=0.9'});
             await page.evaluateOnNewDocument(()=>{
               Object.defineProperty(navigator,'webdriver',{get:()=>undefined});
               Object.defineProperty(navigator,'languages',{get:()=>['en-US','en']});
               Object.defineProperty(navigator,'plugins',{get:()=>[1,2,3,4,5]});
-              window.chrome={runtime:{}};
             });
-            let candidates=[];
-            const keep=(u,ct,status)=>{
-              if (/audio\//i.test(ct)||/\.mp3(?:\?|$)/i.test(u)||/stream|download/i.test(u)) {
-                candidates.push({u,ct,status});
-                console.log('MEDIA_CANDIDATE='+status+' '+ct+' '+u);
+            let resolveMedia;
+            const mediaPromise=new Promise(r=>{resolveMedia=r});
+            let captured=false;
+            page.on('response',r=>{
+              const ct=(r.headers()['content-type']||'').toLowerCase();
+              if(!captured && r.status()>=200 && r.status()<300 && ct.startsWith('audio/')) {
+                captured=true;
+                fs.writeFileSync('/tmp/full-media-url.txt',r.url());
+                console.log('MEDIA_CAPTURED=yes');
+                resolveMedia(true);
               }
-            };
-            page.on('response',r=>keep(r.url(),r.headers()['content-type']||'',r.status()));
-            const url='https://audio.com/kontraa/audio/unlock-me';
-            await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
-            for(let i=0;i<8;i++){
-              console.log('TITLE_'+i+'='+await page.title());
-              if(!/just a moment/i.test(await page.title())) break;
-              await new Promise(r=>setTimeout(r,5000));
-            }
-            console.log('FINAL_TITLE='+await page.title());
-            const html=await page.content();
-            fs.writeFileSync('/tmp/audio-page.html',html);
-            console.log('HTML_BYTES='+html.length);
-            // Try any visible Play/Download controls.
-            for (const selector of ['button','a']) {
-              for (const el of await page.$$(selector)) {
-                const text=(await page.evaluate(e=>(e.innerText||e.getAttribute('aria-label')||e.title||'').trim(),el));
-                if(/^(play|download)/i.test(text)) {
-                  console.log('ACTION='+text);
-                  try { await el.click(); } catch(e) {}
-                  await new Promise(r=>setTimeout(r,4000));
-                }
-              }
-            }
-            // Inspect media DOM and performance resources after interaction.
-            const mediaEls=await page.$$eval('audio,source',els=>els.map(e=>({src:e.src,currentSrc:e.currentSrc||''})));
-            console.log('MEDIA_ELEMENTS='+JSON.stringify(mediaEls));
-            const perf=await page.evaluate(()=>performance.getEntriesByType('resource').map(e=>e.name));
-            for(const u of perf) if(/\.mp3(?:\?|$)|audio|stream|download/i.test(u)) console.log('PERF='+u);
-            const urls=[...candidates.map(x=>x.u),...mediaEls.flatMap(x=>[x.currentSrc,x.src]),...perf].filter(Boolean);
-            const unique=[...new Set(urls)];
-            // Prefer obvious MP3/content URLs over page/challenge URLs.
-            const chosen=unique.find(u=>/\.mp3(?:\?|$)/i.test(u) && !/cdn-cgi/i.test(u)) ||
-                         unique.find(u=>/stream|download/i.test(u) && !/cdn-cgi|audio\.com\/kontraa\/audio\/unlock-me$/i.test(u)) || '';
-            console.log('CHOSEN='+chosen);
-            if(!chosen) process.exit(2);
-            fs.writeFileSync('/tmp/full-media-url.txt',chosen);
+            });
+            await page.goto('https://audio.com/kontraa/audio/unlock-me',{waitUntil:'domcontentloaded',timeout:60000});
+            console.log('PAGE_TITLE='+await page.title());
+            const clicked=await page.evaluate(()=>{
+              const els=[...document.querySelectorAll('button,a')];
+              const el=els.find(e=>/^play$/i.test((e.innerText||e.getAttribute('aria-label')||e.title||'').trim()));
+              if(!el) return false;
+              el.click(); return true;
+            });
+            console.log('PLAY_CLICKED='+clicked);
+            await Promise.race([mediaPromise,new Promise((_,rej)=>setTimeout(()=>rej(new Error('audio response timeout')),15000))]);
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(1)});
           JS
@@ -130,7 +100,8 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           set -Eeuo pipefail
-          # Delivery conversion only: 48 kHz stereo AAC. No speech processing or mastering DSP.
+          # Delivery conversion only: 48 kHz stereo AAC. No speech EQ, compression,
+          # de-essing, denoising, loudness processing, or other mastering DSP.
           ffmpeg -hide_banner -loglevel error -y -i /tmp/unlock-me-full.mp3 \
             -ar 48000 -ac 2 -c:a aac -b:a 256k /tmp/fgb-music-loop.m4a
           echo '=== BROADCAST ASSET ==='
