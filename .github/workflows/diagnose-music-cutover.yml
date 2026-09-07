@@ -1,0 +1,60 @@
+name: Diagnose Music-Only Cutover
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-music-cutover.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read current state
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          master=$(systemctl show -p MainPID --value fgbears-live.service 2>/dev/null || echo 0)
+          yt=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service 2>/dev/null || echo 0)
+          ff=$(pgrep -P "$master" -x ffmpeg | head -1 || true)
+          echo MASTER_STATE=$(systemctl is-active fgbears-live.service 2>/dev/null || true)
+          echo MASTER_PID=$master
+          echo FFMPEG_PID=${ff:-none}
+          echo YOUTUBE_STATE=$(systemctl is-active fgbears-youtube-copy-relay.service 2>/dev/null || true)
+          echo YOUTUBE_PID=$yt
+          echo RUMBLE_STATE=$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)
+          echo MUSIC_FILE_EXISTS=$(test -s /srv/fgbears-live/audio/fgb-music-loop.m4a && echo yes || echo no)
+          echo ACTIVE_SCRIPT_MUSIC_MAP=$(grep -q -- '-map 4:a:0' /usr/local/bin/fgbears-start-stream 2>/dev/null && echo yes || echo no)
+          echo ACTIVE_SCRIPT_NARRATION_MAP=$(grep -q -- '-map 0:a:0' /usr/local/bin/fgbears-start-stream 2>/dev/null && echo yes || echo no)
+          if [[ -n "$ff" ]]; then
+            cmd=$(tr '\0' ' ' < "/proc/$ff/cmdline" 2>/dev/null || true)
+            [[ "$cmd" == *'-map 4:a:0'* ]] && echo RUNNING_MUSIC_MAP=yes || echo RUNNING_MUSIC_MAP=no
+            [[ "$cmd" == *'-map 0:a:0'* ]] && echo RUNNING_NARRATION_MAP=yes || echo RUNNING_NARRATION_MAP=no
+            sudo ls -l "/proc/$ff/fd" 2>/dev/null | grep 'fgb-music-loop.m4a' || echo MUSIC_FD=not_open
+          fi
+          echo LATEST_BACKUP=$(ls -1dt /srv/fgbears-live/quarantine/pre-music-only-* 2>/dev/null | head -1 || echo none)
+          echo '--- MASTER JOURNAL ---'
+          sudo journalctl -u fgbears-live.service --since '2026-09-07 22:12:50 UTC' --no-pager -n 120 || true
+          echo '--- YOUTUBE CONNECTION ---'
+          sudo ss -ntp 2>/dev/null | grep "pid=$yt," || true
+          REMOTE
