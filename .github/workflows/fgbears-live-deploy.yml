@@ -10,6 +10,7 @@ on:
       - '!services/fgbears-live/quarantine/**'
       - '!services/fgbears-live/bin/install.sh'
       - '!services/fgbears-live/bin/healthcheck.sh'
+      - '!services/fgbears-live/bin/rumble-relay.sh'
       - '!services/fgbears-live/bin/youtube-*'
       - '!services/fgbears-live/bin/finalize-youtube-only.py'
       - '!services/fgbears-live/systemd/fgbears-youtube-*'
