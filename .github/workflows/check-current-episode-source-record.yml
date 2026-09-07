@@ -1,0 +1,58 @@
+name: Check Current Episode Source Record
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/check-current-episode-source-record.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Read source record
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          master_pid=$(systemctl show -p MainPID --value fgbears-live.service)
+          ffmpeg_pid=$(pgrep -P "$master_pid" -x ffmpeg | head -n1)
+          current=$(sudo find "/proc/$ffmpeg_pid/fd" -maxdepth 1 -type l -printf '%l\n' 2>/dev/null | grep -E '^/srv/fgbears-live/media/FGBears-Episode-[0-9]+\.mp4$' | head -n1 || true)
+          echo "CURRENT_MEDIA=${current:-UNKNOWN}"
+          ep=''
+          if [[ "$current" =~ Episode-([0-9]+)\.mp4$ ]]; then ep=${BASH_REMATCH[1]}; fi
+          echo "CURRENT_EPISODE=${ep:-UNKNOWN}"
+          if [[ -s /srv/fgbears-live/remediation-14-32/results.tsv && -n "$ep" ]]; then
+            echo 'SOURCE_RECORD_BEGIN'
+            awk -F '\t' -v ep="$ep" '$1==ep{print}' /srv/fgbears-live/remediation-14-32/results.tsv || true
+            echo 'SOURCE_RECORD_END'
+          fi
+          if [[ -n "$ep" ]]; then
+            orig="/home/ubuntu/fgbears-upload/FGBears-Episode-${ep}.mp4"
+            hq="/srv/fgbears-live/hq-audio-staging/FGBears-Episode-${ep}.mp4"
+            [[ -s "$orig" ]] && echo "ORIGINAL_MASTER_PRESENT=yes PATH=$orig" || echo 'ORIGINAL_MASTER_PRESENT=no'
+            [[ -s "$hq" ]] && echo "HQ_STAGING_PRESENT=yes PATH=$hq" || echo 'HQ_STAGING_PRESENT=no'
+          fi
+          REMOTE
