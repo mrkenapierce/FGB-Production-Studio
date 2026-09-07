@@ -48,6 +48,29 @@ jobs:
           grep -Fq "!services/fgbears-live/bin/rumble-relay.sh" .github/workflows/fgbears-live-deploy.yml
           echo 'YOUTUBE_COPY_STATIC_BOUNDARY=PASS'
 
+      - name: Exercise copy fanout muxing
+        run: |
+          set -Eeuo pipefail
+          command -v ffmpeg >/dev/null
+          command -v ffprobe >/dev/null
+          tmp=$(mktemp -d)
+          trap 'rm -rf "$tmp"' EXIT
+          ffmpeg -hide_banner -loglevel error \
+            -f lavfi -i testsrc=size=160x90:rate=10:duration=1 \
+            -f lavfi -i sine=frequency=440:sample_rate=44100:duration=1 \
+            -map 0:v:0 -map 1:a:0 \
+            -c:v libx264 -preset ultrafast -g 20 -c:a aac \
+            -f tee \
+            "[f=flv:flvflags=no_duration_filesize]$tmp/rumble.flv|[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]$tmp/youtube.ts"
+          test -s "$tmp/rumble.flv"
+          test -s "$tmp/youtube.ts"
+          for media in "$tmp/rumble.flv" "$tmp/youtube.ts"; do
+            codecs=$(ffprobe -v error -show_entries stream=codec_type,codec_name -of compact=p=0:nk=1 "$media")
+            grep -Eq 'h264\|video|video\|h264' <<<"$codecs"
+            grep -Eq 'aac\|audio|audio\|aac' <<<"$codecs"
+          done
+          echo 'YOUTUBE_COPY_FANOUT_MUX=PASS'
+
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: validate
