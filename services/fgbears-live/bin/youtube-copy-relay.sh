@@ -23,8 +23,11 @@ source "$ENV_FILE"
   echo "YOUTUBE_COPY_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
   exit 78
 }
-[[ "$YOUTUBE_UPSTREAM_RTMP_BASE" == "rtmps://a.rtmps.youtube.com/live2" ]] || {
-  echo "YOUTUBE_UPSTREAM_RTMP_BASE must remain the approved YouTube RTMPS ingest URL." >&2
+# YouTube can assign different RTMPS ingest hosts. Accept only TLS endpoints
+# under rtmps.youtube.com, optionally with YouTube's documented port 443, and
+# keep the live2 application path fixed.
+[[ "$YOUTUBE_UPSTREAM_RTMP_BASE" =~ ^rtmps://([a-z0-9-]+\.)?rtmps\.youtube\.com(:443)?/live2$ ]] || {
+  echo "YOUTUBE_UPSTREAM_RTMP_BASE must be an approved YouTube RTMPS ingest URL." >&2
   exit 78
 }
 
