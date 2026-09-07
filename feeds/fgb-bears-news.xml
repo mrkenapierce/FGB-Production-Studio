@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 06 Sep 2026 22:20:02 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 07 Sep 2026 00:06:09 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -30,6 +30,16 @@
     </item>
 
     <item>
+      <title>Bears&apos; projected Josh Sweat trade would be a gut punch to Packers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears&apos; projected Josh Sweat trade would be a gut punch to Packers</description>
+      <link>https://sports.yahoo.com/articles/bears-projected-josh-sweat-trade-190002152.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3cc10cc3b384d227f457</guid>
+      <pubDate>Sun, 06 Sep 2026 11:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
       <title>Predicting Superlatives For Chicago Bears 2026 NFL Season</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Predicting Superlatives For Chicago Bears 2026 NFL Season</description>
       <link>https://www.si.com/nfl/bears/onsi/predicting-superlatives-for-chicago-bears-2026-nfl-season</link>
@@ -37,16 +47,6 @@
       <pubDate>Sun, 06 Sep 2026 11:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears Predicted to Soon Part Ways With $24 Million Star</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Predicted to Soon Part Ways With $24 Million Star</description>
-      <link>https://sports.yahoo.com/articles/bears-predicted-soon-part-ways-133014614.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a1327d55a7ce218468fc</guid>
-      <pubDate>Sun, 06 Sep 2026 06:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
