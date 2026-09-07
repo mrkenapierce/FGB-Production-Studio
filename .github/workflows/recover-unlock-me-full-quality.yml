@@ -33,21 +33,22 @@ jobs:
           set -Eeuo pipefail
           sudo apt-get update -qq
           sudo apt-get install -y -qq ffmpeg >/dev/null
-          mkdir -p /tmp/pp && cd /tmp/pp
+          mkdir -p /tmp/pp /tmp/downloads && cd /tmp/pp
           npm init -y >/dev/null 2>&1
           npm install --silent puppeteer-core
-      - name: Recover full 256 kbps track
+      - name: Download original 256 kbps track
         run: |
           set -Eeuo pipefail
           cd /tmp/pp
-          cat > capture.js <<'JS'
+          cat > download.js <<'JS'
           const puppeteer=require('puppeteer-core');
           const fs=require('fs');
+          const path=require('path');
           (async()=>{
             const exe=process.env.CHROME;
             const browser=await puppeteer.launch({
               headless:true, executablePath:exe, ignoreHTTPSErrors:true,
-              args:['--no-sandbox','--ignore-certificate-errors','--disable-blink-features=AutomationControlled','--autoplay-policy=no-user-gesture-required']
+              args:['--no-sandbox','--ignore-certificate-errors','--disable-blink-features=AutomationControlled']
             });
             const page=await browser.newPage();
             await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36');
@@ -57,36 +58,34 @@ jobs:
               Object.defineProperty(navigator,'languages',{get:()=>['en-US','en']});
               Object.defineProperty(navigator,'plugins',{get:()=>[1,2,3,4,5]});
             });
-            let resolveMedia;
-            const mediaPromise=new Promise(r=>{resolveMedia=r});
-            let captured=false;
-            page.on('response',r=>{
-              const ct=(r.headers()['content-type']||'').toLowerCase();
-              if(!captured && r.status()>=200 && r.status()<300 && ct.startsWith('audio/')) {
-                captured=true;
-                fs.writeFileSync('/tmp/full-media-url.txt',r.url());
-                console.log('MEDIA_CAPTURED=yes');
-                resolveMedia(true);
-              }
-            });
+            const client=await page.target().createCDPSession();
+            await client.send('Page.setDownloadBehavior',{behavior:'allow',downloadPath:'/tmp/downloads'});
             await page.goto('https://audio.com/kontraa/audio/unlock-me',{waitUntil:'domcontentloaded',timeout:60000});
             console.log('PAGE_TITLE='+await page.title());
             const clicked=await page.evaluate(()=>{
               const els=[...document.querySelectorAll('button,a')];
-              const el=els.find(e=>/^play$/i.test((e.innerText||e.getAttribute('aria-label')||e.title||'').trim()));
+              const el=els.find(e=>/^download$/i.test((e.innerText||e.getAttribute('aria-label')||e.title||'').trim()));
               if(!el) return false;
               el.click(); return true;
             });
-            console.log('PLAY_CLICKED='+clicked);
-            await Promise.race([mediaPromise,new Promise((_,rej)=>setTimeout(()=>rej(new Error('audio response timeout')),15000))]);
+            console.log('DOWNLOAD_CLICKED='+clicked);
+            if(!clicked) process.exit(2);
+            let chosen='';
+            for(let i=0;i<40;i++){
+              await new Promise(r=>setTimeout(r,500));
+              const files=fs.readdirSync('/tmp/downloads').filter(f=>!f.endsWith('.crdownload'));
+              const candidates=files.map(f=>({f,size:fs.statSync(path.join('/tmp/downloads',f)).size})).filter(x=>x.size>1000000).sort((a,b)=>b.size-a.size);
+              if(candidates.length){chosen=path.join('/tmp/downloads',candidates[0].f); break;}
+            }
+            if(!chosen){console.error('No completed download found');process.exit(3);}
+            fs.copyFileSync(chosen,'/tmp/unlock-me-full.mp3');
+            console.log('DOWNLOAD_BYTES='+fs.statSync('/tmp/unlock-me-full.mp3').size);
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(1)});
           JS
-          CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium) node capture.js
-          media_url=$(cat /tmp/full-media-url.txt)
-          curl -k -LfsS -A 'Mozilla/5.0' "$media_url" -o /tmp/unlock-me-full.mp3
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium) node download.js
           test -s /tmp/unlock-me-full.mp3
-          echo '=== FULL SOURCE ==='
+          echo '=== ORIGINAL DOWNLOAD ==='
           ffprobe -v error -show_entries format=duration,size,bit_rate -show_entries stream=codec_name,sample_rate,channels,bit_rate -of json /tmp/unlock-me-full.mp3
           size=$(stat -c %s /tmp/unlock-me-full.mp3)
           duration=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 /tmp/unlock-me-full.mp3)
