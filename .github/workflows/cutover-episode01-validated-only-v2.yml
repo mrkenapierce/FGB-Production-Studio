@@ -1,0 +1,267 @@
+name: Cut Over to Validated Episode 01 Only v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cutover-episode01-validated-only-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Execute validated-only cutover
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+
+          media=/srv/fgbears-live/media
+          playlist=/srv/fgbears-live/playlist.ffconcat
+          ep="$media/FGBears-Episode-01.mp4"
+          marker="$ep.audio-profile.json"
+          source_archive=/home/ubuntu/fgbears-upload
+          stamp=$(date -u +%Y%m%dT%H%M%SZ)
+          qdir="/srv/fgbears-live/quarantine/legacy-audio-system-$stamp"
+          qmedia="$qdir/production-media"
+          qaux="$qdir/processing-staging"
+
+          echo 'STAGE=preflight'
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
+          youtube_before=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]]
+          [[ -s "$ep" && -s "$marker" && -s "$playlist" ]]
+          jq -e '
+            .episode_repair == "01-source-preserving-v1" and
+            .profile == "fgb-clean-static-v3" and
+            .quality_verified == true and
+            .processing_mode == "static_gain_only" and
+            .dynamic_processing == false and
+            .sample_rate_hz == 48000 and
+            .channels == 2 and
+            .audio_bitrate_kbps == 256 and
+            .target_i_lufs == -16 and
+            .output_metrics.tp_dbtp <= -1.5
+          ' "$marker" >/dev/null
+          test "$(sha256sum "$ep" | awk '{print $1}')" = "$(jq -r '.sha256' "$marker")"
+
+          # Validate Episode 01 by itself, independent of the legacy active set.
+          vdir=$(mktemp -d)
+          ln "$ep" "$vdir/FGBears-Episode-01.mp4"
+          ln "$marker" "$vdir/FGBears-Episode-01.mp4.audio-profile.json"
+          /usr/local/bin/fgbears-validate "$vdir" >/dev/null
+          rm -rf "$vdir"
+
+          active_before=$(find "$media" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4' | wc -l)
+          source_count_before=$(find "$source_archive" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4' 2>/dev/null | wc -l)
+          yt_tcp_before=$(sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$youtube_before," 'index($0,p){n++} END{print n+0}')
+          [[ "$yt_tcp_before" =~ ^[1-9][0-9]*$ ]]
+
+          sudo install -d -o root -g root -m 0755 "$qmedia" "$qaux"
+          sudo cp -a "$playlist" "$qdir/playlist.ffconcat.pre-validated-only"
+          find "$media" -maxdepth 1 -type f -printf '%f\n' | sort > /tmp/legacy-media-inventory.txt
+          sudo install -o root -g root -m 0644 /tmp/legacy-media-inventory.txt "$qdir/production-media-inventory.txt"
+          find "$source_archive" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4' -printf '%f\n' 2>/dev/null | sort > /tmp/original-source-inventory.txt
+          sudo install -o root -g root -m 0644 /tmp/original-source-inventory.txt "$qdir/original-source-archive-inventory.txt"
+
+          cat > /tmp/playlist.ep01.ffconcat <<'EOF'
+          ffconcat version 1.0
+          file '/srv/fgbears-live/media/FGBears-Episode-01.mp4'
+          EOF
+          chmod 0644 /tmp/playlist.ep01.ffconcat
+
+          rollback_needed=1
+          rollback() {
+            rc=$?
+            if [[ ${rollback_needed:-0} -eq 1 ]]; then
+              echo 'ROLLBACK=START' >&2
+              sudo systemctl stop fgbears-live.service || true
+              shopt -s nullglob dotglob
+              for f in "$qmedia"/*; do sudo mv -f "$f" "$media/" || true; done
+              shopt -u nullglob dotglob
+              if [[ -s "$qdir/playlist.ffconcat.pre-validated-only" ]]; then
+                sudo cp -a "$qdir/playlist.ffconcat.pre-validated-only" "$playlist" || true
+              fi
+              for d in audio-v3-smoke audio-v3-work hq-audio-staging processed-pending; do
+                if [[ -e "$qaux/$d" && ! -e "/srv/fgbears-live/$d" ]]; then
+                  sudo mv "$qaux/$d" "/srv/fgbears-live/$d" || true
+                fi
+              done
+              sudo systemctl start fgbears-live.service || true
+              sleep 3
+              if ! systemctl is-active --quiet fgbears-youtube-copy-relay.service; then
+                sudo systemctl restart fgbears-youtube-copy-relay.service || true
+              fi
+              echo 'ROLLBACK=COMPLETE' >&2
+            fi
+            exit "$rc"
+          }
+          trap rollback ERR
+
+          echo 'STAGE=stop-master'
+          sudo systemctl stop fgbears-live.service
+
+          echo 'STAGE=quarantine-legacy-production-media'
+          shopt -s nullglob dotglob
+          for f in "$media"/*; do
+            base=$(basename "$f")
+            case "$base" in
+              FGBears-Episode-01.mp4|FGBears-Episode-01.mp4.audio-profile.json) ;;
+              *) sudo mv "$f" "$qmedia/" ;;
+            esac
+          done
+          shopt -u nullglob dotglob
+
+          echo 'STAGE=install-one-entry-playlist'
+          sudo chown --reference="$playlist" /tmp/playlist.ep01.ffconcat
+          sudo chmod --reference="$playlist" /tmp/playlist.ep01.ffconcat
+          sudo mv -f /tmp/playlist.ep01.ffconcat "$playlist"
+          test "$(find "$media" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4' | wc -l)" = 1
+          test "$(grep -c '^file ' "$playlist")" = 1
+          grep -Fxq "file '/srv/fgbears-live/media/FGBears-Episode-01.mp4'" "$playlist"
+
+          echo 'STAGE=start-master'
+          sudo systemctl start fgbears-live.service
+          for _ in {1..60}; do
+            if systemctl is-active --quiet fgbears-live.service; then break; fi
+            sleep 0.5
+          done
+          systemctl is-active --quiet fgbears-live.service
+          master_after=$(systemctl show -p MainPID --value fgbears-live.service)
+          [[ "$master_after" =~ ^[1-9][0-9]*$ ]]
+          test "$master_after" != "$master_before"
+
+          echo 'STAGE=wait-for-ffmpeg'
+          ffmpeg_pid=''
+          for _ in {1..60}; do
+            ffmpeg_pid=$(pgrep -P "$master_after" -x ffmpeg | head -n1 || true)
+            if [[ "$ffmpeg_pid" =~ ^[1-9][0-9]*$ ]]; then break; fi
+            sleep 0.5
+          done
+          [[ "$ffmpeg_pid" =~ ^[1-9][0-9]*$ ]]
+
+          echo 'STAGE=verify-episode01-open'
+          active_open=''
+          for _ in {1..60}; do
+            active_open=$(sudo lsof -p "$ffmpeg_pid" 2>/dev/null | awk '/FGBears-Episode-01\.mp4/{print $NF; exit}' || true)
+            if [[ "$active_open" == "$ep" ]]; then break; fi
+            sleep 0.5
+          done
+          test "$active_open" = "$ep"
+
+          echo 'STAGE=verify-progress'
+          progress_ok=0
+          for _ in {1..60}; do
+            if [[ -s /srv/fgbears-live/logs/ffmpeg-progress.log ]] && grep -q '^progress=continue' /srv/fgbears-live/logs/ffmpeg-progress.log; then
+              out_ms=$(awk -F= '$1=="out_time_ms"{print $2}' /srv/fgbears-live/logs/ffmpeg-progress.log | tail -1)
+              if [[ "$out_ms" =~ ^[1-9][0-9]*$ ]]; then progress_ok=1; break; fi
+            fi
+            sleep 0.5
+          done
+          test "$progress_ok" = 1
+
+          echo 'STAGE=verify-youtube'
+          youtube_after=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          yt_tcp_after=$(sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$youtube_after," 'index($0,p){n++} END{print n+0}')
+          if ! systemctl is-active --quiet fgbears-youtube-copy-relay.service || ! [[ "$yt_tcp_after" =~ ^[1-9][0-9]*$ ]]; then
+            echo 'YOUTUBE_RECOVERY=RESTART_RELAY'
+            sudo systemctl restart fgbears-youtube-copy-relay.service
+            for _ in {1..60}; do
+              if systemctl is-active --quiet fgbears-youtube-copy-relay.service; then
+                youtube_after=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+                yt_tcp_after=$(sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$youtube_after," 'index($0,p){n++} END{print n+0}')
+                if [[ "$yt_tcp_after" =~ ^[1-9][0-9]*$ ]]; then break; fi
+              fi
+              sleep 0.5
+            done
+          fi
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          [[ "$youtube_after" =~ ^[1-9][0-9]*$ ]]
+          [[ "$yt_tcp_after" =~ ^[1-9][0-9]*$ ]]
+
+          echo 'STAGE=quarantine-processing-staging'
+          for d in audio-v3-smoke audio-v3-work hq-audio-staging processed-pending; do
+            if [[ -e "/srv/fgbears-live/$d" ]]; then
+              sudo mv "/srv/fgbears-live/$d" "$qaux/$d"
+            fi
+          done
+
+          echo 'STAGE=final-validation'
+          /usr/local/bin/fgbears-validate "$media" >/dev/null
+          active_after=$(find "$media" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4' | wc -l)
+          markers_after=$(find "$media" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4.audio-profile.json' | wc -l)
+          playlist_after=$(grep -c '^file ' "$playlist")
+          qmedia_count=$(find "$qmedia" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4' | wc -l)
+          qaux_count=$(find "$qaux" -type f | wc -l)
+          source_count_after=$(find "$source_archive" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4' 2>/dev/null | wc -l)
+          test "$active_after" = 1
+          test "$markers_after" = 1
+          test "$playlist_after" = 1
+          test "$source_count_after" = "$source_count_before"
+
+          cat > /tmp/CUTOVER-RECORD.txt <<EOF
+          validated_only_rotation=true
+          active_episode=01
+          profile=01-source-preserving-v1
+          active_media_count_before=$active_before
+          active_media_count_after=$active_after
+          quarantined_media_count=$qmedia_count
+          quarantined_aux_files=$qaux_count
+          original_source_archive_count=$source_count_after
+          master_pid_before=$master_before
+          master_pid_after=$master_after
+          ffmpeg_pid=$ffmpeg_pid
+          youtube_pid_before=$youtube_before
+          youtube_pid_after=$youtube_after
+          youtube_established_tcp=$yt_tcp_after
+          cutover_utc=$stamp
+          EOF
+          sudo install -o root -g root -m 0644 /tmp/CUTOVER-RECORD.txt "$qdir/CUTOVER-RECORD.txt"
+
+          rollback_needed=0
+          trap - ERR
+
+          echo 'VALIDATED_ONLY_CUTOVER=PASS'
+          echo "ACTIVE_EPISODES=$active_after"
+          echo 'ACTIVE_EPISODE=01'
+          echo "PLAYLIST_ENTRIES=$playlist_after"
+          echo "EP01_PROFILE=$(jq -r '.episode_repair' "$marker")"
+          echo "EP01_I=$(jq -r '.output_metrics.i_lufs' "$marker")"
+          echo "EP01_TP=$(jq -r '.output_metrics.tp_dbtp' "$marker")"
+          echo "EP01_LRA=$(jq -r '.output_metrics.lra_lu' "$marker")"
+          echo "MASTER_PID_BEFORE=$master_before"
+          echo "MASTER_PID_AFTER=$master_after"
+          echo "FFMPEG_PID=$ffmpeg_pid"
+          echo "ACTIVE_MEDIA_OPEN=$active_open"
+          echo "YOUTUBE_PID_BEFORE=$youtube_before"
+          echo "YOUTUBE_PID_AFTER=$youtube_after"
+          echo "YOUTUBE_ESTABLISHED_TCP=$yt_tcp_after"
+          echo "QUARANTINED_MEDIA_FILES=$qmedia_count"
+          echo "QUARANTINED_AUX_FILES=$qaux_count"
+          echo "ORIGINAL_SOURCE_ARCHIVE_FILES=$source_count_after"
+          echo "QUARANTINE_DIR=$qdir"
+          REMOTE
