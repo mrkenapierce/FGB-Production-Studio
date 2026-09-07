@@ -1,0 +1,48 @@
+name: Diagnose YouTube Copy Relay
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-youtube-copy-relay.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Read retained YouTube copy diagnostics
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo "MASTER_ACTIVE=$(systemctl is-active fgbears-live.service || true)"
+          echo "MASTER_PID=$(systemctl show -p MainPID --value fgbears-live.service 2>/dev/null || true)"
+          echo "RUMBLE_ACTIVE=$(systemctl is-active fgbears-rumble-relay.service || true)"
+          echo "RUMBLE_PID=$(systemctl show -p MainPID --value fgbears-rumble-relay.service 2>/dev/null || true)"
+          echo "YOUTUBE_COPY_ACTIVE=$(systemctl is-active fgbears-youtube-copy-relay.service 2>/dev/null || true)"
+          echo "YOUTUBE_V3_ACTIVE=$(systemctl is-active fgbears-youtube-v3.service 2>/dev/null || true)"
+          sudo bash -c 'source /etc/fgbears-live/stream.env; printf "YOUTUBE_KEY_PRESENT=%s\n" "$([[ -n "${YOUTUBE_STREAM_KEY:-}" && "${YOUTUBE_STREAM_KEY:-}" != REPLACE_WITH_YOUTUBE_STREAM_KEY ]] && echo yes || echo no)"; printf "YOUTUBE_UPSTREAM_SCHEME_HOST=%s\n" "${YOUTUBE_UPSTREAM_RTMP_BASE:-<default>}"' | sed -E 's#(live2)/.*#\1/<redacted>#'
+          echo '=== RETAINED YOUTUBE COPY JOURNAL ==='
+          sudo journalctl -u fgbears-youtube-copy-relay.service -n 120 --no-pager || true
+          echo '=== RECENT RUMBLE RELAY JOURNAL ==='
+          sudo journalctl -u fgbears-rumble-relay.service -n 40 --no-pager || true
+          REMOTE
