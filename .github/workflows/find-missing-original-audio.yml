@@ -1,0 +1,45 @@
+name: Find Missing Original Audio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/find-missing-original-audio.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  find:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Find retained episode 30 and 31 sources
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          for ep in 30 31; do
+            echo "=== EPISODE_${ep} ==="
+            while IFS= read -r p; do
+              [[ -f "$p" ]] || continue
+              printf 'PATH=%s\n' "$p"
+              ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,bit_rate -show_entries format=duration,size -of json "$p" | tr -d '\n'; echo
+              marker="${p}.audio-profile.json"
+              if [[ -s "$marker" ]]; then printf 'MARKER='; jq -c '{profile,mastered,mastering_chain,measured_i_lufs,measured_tp_dbtp}' "$marker"; fi
+            done < <(sudo find /home/ubuntu /srv/fgbears-live /opt/fgbears-live -type f \( -iname "*Episode-${ep}.mp4" -o -iname "*Episode-${ep}*.wav" -o -iname "*Episode-${ep}*.m4a" -o -iname "*Episode-${ep}*.aac" \) 2>/dev/null | sort -u)
+          done
+          REMOTE
