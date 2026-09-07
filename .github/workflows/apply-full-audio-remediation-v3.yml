@@ -52,6 +52,14 @@ jobs:
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
+          resolve_ep() {
+            local dir=$1 ep=$2 p padded
+            padded=$(printf '%02d' "$ep")
+            for p in "$dir/FGBears-Episode-${ep}.mp4" "$dir/FGBears-Episode-${padded}.mp4"; do
+              if [[ -s "$p" ]]; then printf '%s\n' "$p"; return 0; fi
+            done
+            return 1
+          }
           export_dir=/tmp/fgb-audio-v3-export
           rm -rf "$export_dir" /tmp/fgb-audio-v3-export.tar
           mkdir -p "$export_dir"
@@ -61,19 +69,17 @@ jobs:
           [[ "$master" =~ ^[1-9][0-9]*$ && "$youtube" =~ ^[1-9][0-9]*$ ]]
           [[ "$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)" == masked* ]]
           for ep in $(seq 1 31); do
-            prod="/srv/fgbears-live/media/FGBears-Episode-${ep}.mp4"
-            [[ -s "$prod" ]] || { echo "MISSING_PRODUCTION=$ep" >&2; exit 1; }
+            prod=$(resolve_ep /srv/fgbears-live/media "$ep") || { echo "MISSING_PRODUCTION=$ep" >&2; exit 1; }
             if (( ep <= 29 )); then
-              src="/home/ubuntu/fgbears-upload/FGBears-Episode-${ep}.mp4"
+              src=$(resolve_ep /home/ubuntu/fgbears-upload "$ep") || { echo "MISSING_PREFERRED_SOURCE=$ep kind=original_master" >&2; exit 1; }
               kind=original_master
             else
-              src="/srv/fgbears-live/processed-pending/FGBears-Episode-${ep}.mp4"
+              src=$(resolve_ep /srv/fgbears-live/processed-pending "$ep") || { echo "MISSING_PREFERRED_SOURCE=$ep kind=retained_pre_v2" >&2; exit 1; }
               kind=retained_pre_v2
             fi
-            [[ -s "$src" ]] || { echo "MISSING_PREFERRED_SOURCE=$ep path=$src" >&2; exit 1; }
             sha=$(sha256sum "$src" | awk '{print $1}')
             ffmpeg -hide_banner -nostdin -loglevel error -y -i "$src" -map 0:a:0 -vn -c:a copy -map_metadata -1 "$export_dir/Episode-${ep}.m4a"
-            printf '%s\t%s\t%s\t%s\n' "$ep" "$kind" "$src" "$sha" >> "$export_dir/manifest.tsv"
+            printf '%s\t%s\t%s\t%s\t%s\n' "$ep" "$kind" "$src" "$sha" "$(basename "$prod")" >> "$export_dir/manifest.tsv"
           done
           printf 'MASTER_PID=%s\nYOUTUBE_PID=%s\n' "$master" "$youtube" > "$export_dir/live-before.env"
           tar -C /tmp -cf /tmp/fgb-audio-v3-export.tar fgb-audio-v3-export
@@ -88,8 +94,8 @@ jobs:
           rm -rf /tmp/fgb-audio-v3-export /tmp/fgb-audio-v3-clean
           tar -C /tmp -xf /tmp/fgb-audio-v3-export.tar
           mkdir -p /tmp/fgb-audio-v3-clean
-          while IFS=$'\t' read -r ep kind source_path source_sha; do
-            echo "=== BUILD_EPISODE_${ep} source_kind=${kind} ==="
+          while IFS=$'\t' read -r ep kind source_path source_sha production_basename; do
+            echo "=== BUILD_EPISODE_${ep} source_kind=${kind} production=${production_basename} ==="
             python3 services/fgbears-live/tools/prepare-audio-track-v3.py \
               --source "/tmp/fgb-audio-v3-export/Episode-${ep}.m4a" \
               --output "/tmp/fgb-audio-v3-clean/Episode-${ep}.m4a" \
@@ -97,6 +103,7 @@ jobs:
               --source-label "$source_path" \
               --source-file-sha256 "$source_sha"
           done < /tmp/fgb-audio-v3-export/manifest.tsv
+          cp /tmp/fgb-audio-v3-export/manifest.tsv /tmp/fgb-audio-v3-clean/manifest.tsv
           test "$(find /tmp/fgb-audio-v3-clean -maxdepth 1 -type f -name 'Episode-*.m4a' | wc -l)" -eq 31
           test "$(find /tmp/fgb-audio-v3-clean -maxdepth 1 -type f -name '*.audio-profile.json' | wc -l)" -eq 31
           tar -C /tmp -cf /tmp/fgb-audio-v3-clean.tar fgb-audio-v3-clean
@@ -122,6 +129,14 @@ jobs:
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          resolve_ep() {
+            local dir=$1 ep=$2 p padded
+            padded=$(printf '%02d' "$ep")
+            for p in "$dir/FGBears-Episode-${ep}.mp4" "$dir/FGBears-Episode-${padded}.mp4"; do
+              if [[ -s "$p" ]]; then printf '%s\n' "$p"; return 0; fi
+            done
+            return 1
+          }
           master_before=$(pid fgbears-live.service)
           youtube_before=$(pid fgbears-youtube-copy-relay.service)
           [[ "$master_before" =~ ^[1-9][0-9]*$ && "$youtube_before" =~ ^[1-9][0-9]*$ ]]
@@ -131,10 +146,9 @@ jobs:
           work=/srv/fgbears-live/audio-v3-work
           qdir=/srv/fgbears-live/quarantine/replaced-production-audio-v2-20260907
           sudo rm -rf "$clean"
-          sudo install -d -o ubuntu -g ubuntu -m 0755 "$clean" "$work"
+          sudo install -d -o ubuntu -g ubuntu -m 0755 "$work"
           sudo install -d -o root -g root -m 0755 "$qdir"
           tar -C /srv/fgbears-live -xf /tmp/fgb-audio-v3-clean.tar
-          # Tar contains fgb-audio-v3-clean; normalize directory name.
           if [[ -d /srv/fgbears-live/fgb-audio-v3-clean ]]; then
             rm -rf "$clean"
             mv /srv/fgbears-live/fgb-audio-v3-clean "$clean"
@@ -150,11 +164,13 @@ jobs:
           sudo rm -f /usr/local/bin/fgbears-normalize /opt/fgbears-live/bin/normalize-library.sh /opt/fgbears-live/bin/normalize-resilient.sh /opt/fgbears-live/bin/add-episode.sh
 
           video_hash(){ ffmpeg -hide_banner -nostdin -loglevel error -i "$1" -map 0:v:0 -c:v copy -f hash -hash sha256 - 2>/dev/null | tail -n1; }
-          for ep in $(seq 1 31); do
-            prod="/srv/fgbears-live/media/FGBears-Episode-${ep}.mp4"
+          while IFS=$'\t' read -r ep kind source_path source_sha production_basename; do
+            prod=$(resolve_ep /srv/fgbears-live/media "$ep") || { echo "MISSING_PRODUCTION_DURING_PROMOTION=$ep" >&2; exit 1; }
+            [[ "$(basename "$prod")" == "$production_basename" ]] || { echo "PRODUCTION_NAME_CHANGED_EP=$ep expected=$production_basename actual=$(basename "$prod")" >&2; exit 1; }
+            base=$(basename "$prod")
             track="$clean/Episode-${ep}.m4a"
             track_marker="$track.audio-profile.json"
-            cand="$work/FGBears-Episode-${ep}.mp4"
+            cand="$work/$base"
             cand_marker="$cand.audio-profile.json"
             [[ -s "$prod" && -s "$track" && -s "$track_marker" ]]
             before_vhash=$(video_hash "$prod")
@@ -169,24 +185,24 @@ jobs:
             jq --arg sha "$final_sha" '. + {sha256:$sha,video_mode:"packet_copy",quality_verified:true}' "$track_marker" > "$cand_marker"
 
             vdir=$(mktemp -d /tmp/fgb-v3-one.XXXXXX)
-            ln "$cand" "$vdir/FGBears-Episode-${ep}.mp4"
-            ln "$cand_marker" "$vdir/FGBears-Episode-${ep}.mp4.audio-profile.json"
+            ln "$cand" "$vdir/$base"
+            ln "$cand_marker" "$vdir/$base.audio-profile.json"
             /usr/local/bin/fgbears-validate "$vdir" >/dev/null
             rm -rf "$vdir"
 
-            if [[ ! -e "$qdir/FGBears-Episode-${ep}.mp4" ]]; then sudo ln "$prod" "$qdir/FGBears-Episode-${ep}.mp4"; fi
-            if [[ -s "$prod.audio-profile.json" && ! -e "$qdir/FGBears-Episode-${ep}.mp4.audio-profile.json" ]]; then sudo ln "$prod.audio-profile.json" "$qdir/FGBears-Episode-${ep}.mp4.audio-profile.json"; fi
+            if [[ ! -e "$qdir/$base" ]]; then sudo ln "$prod" "$qdir/$base"; fi
+            if [[ -s "$prod.audio-profile.json" && ! -e "$qdir/$base.audio-profile.json" ]]; then sudo ln "$prod.audio-profile.json" "$qdir/$base.audio-profile.json"; fi
             mv -f "$cand" "$prod"
             mv -f "$cand_marker" "$prod.audio-profile.json"
             source_i=$(jq -r '.source_metrics.i_lufs' "$prod.audio-profile.json")
             out_i=$(jq -r '.output_metrics.i_lufs' "$prod.audio-profile.json")
             out_tp=$(jq -r '.output_metrics.tp_dbtp' "$prod.audio-profile.json")
             gain=$(jq -r '.static_gain_db' "$prod.audio-profile.json")
-            echo "PROMOTED_EP=$ep source_I=$source_i gain=$gain output_I=$out_i output_TP=$out_tp"
+            echo "PROMOTED_EP=$ep file=$base source_I=$source_i gain=$gain output_I=$out_i output_TP=$out_tp"
 
             test "$(pid fgbears-live.service)" = "$master_before" || { echo "MASTER_PID_CHANGED_DURING_EP=$ep" >&2; exit 1; }
             test "$(pid fgbears-youtube-copy-relay.service)" = "$youtube_before" || { echo "YOUTUBE_PID_CHANGED_DURING_EP=$ep" >&2; exit 1; }
-          done
+          done < "$clean/manifest.tsv"
 
           /usr/local/bin/fgbears-validate /srv/fgbears-live/media
           /usr/local/bin/fgbears-rebuild-playlist
@@ -209,7 +225,7 @@ jobs:
           profile_count=$(find /srv/fgbears-live/media -maxdepth 1 -type f -name '*.audio-profile.json' -exec jq -r '.profile' {} \; | grep -c '^fgb-clean-static-v3$')
           test "$profile_count" -eq 31
 
-          rm -f /tmp/fgb-audio-v3-clean.tar /tmp/validate-media-v3.sh /tmp/prepare-episode-v3.py /tmp/add-episode-v3.sh
+          rm -f /tmp/fgb-audio-v3-clean.tar /tmp/validate-media-v3.sh /tmp/prepare-episode-v3.py /tmp/add-episode-v3.sh /tmp/fgb-audio-v3-export.tar
           sudo rm -rf "$clean" "$work"
           echo "FULL_AUDIO_REMEDIATION=PASS"
           echo "EPISODES_REMEDIATED=31"
