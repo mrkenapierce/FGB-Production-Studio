@@ -71,6 +71,7 @@ jobs:
 
           if [[ -n "$current" && -f "$current" ]]; then
             base=$(basename "$current")
+            stem=${base%.mp4}
             echo "CURRENT_BASENAME=$base"
             echo -n 'CURRENT_AUDIO='
             ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,profile,sample_rate,channels,bit_rate -of csv=p=0 "$current" || true
@@ -83,17 +84,26 @@ jobs:
               echo 'CURRENT_PROFILE_MARKER=NONE'
             fi
             echo '=== SAME BASENAME ON ORACLE ==='
-            sudo find /srv/fgbears-live -maxdepth 3 -type f -name "$base" -print 2>/dev/null | sort | while IFS= read -r f; do
+            sudo find /srv/fgbears-live -maxdepth 4 -type f -name "$base" -print 2>/dev/null | sort | while IFS= read -r f; do
               sha=$(sha256sum "$f" | awk '{print $1}')
-              echo "MATCH=$f SHA256=$sha"
+              audio=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,bit_rate -of csv=p=0 "$f" 2>/dev/null || true)
+              echo "MATCH=$f SHA256=$sha AUDIO=$audio"
             done
             echo '=== POSSIBLE PROVENANCE SIDECARS ==='
-            sudo find /srv/fgbears-live -maxdepth 3 -type f \( -name "${base}.ready.json" -o -name "${base}.audio-profile.json" -o -name "${base%.mp4}*.json" \) -print 2>/dev/null | sort | while IFS= read -r f; do
+            sudo find /srv/fgbears-live -maxdepth 5 -type f \( -name "${base}.ready.json" -o -name "${base}.audio-profile.json" -o -name "${stem}*.json" \) -print 2>/dev/null | sort | while IFS= read -r f; do
               echo "SIDECAR=$f"
               jq -c '.' "$f" 2>/dev/null || true
             done
+            echo '=== TEXT RECORDS NAMING CURRENT EPISODE ==='
+            sudo find /srv/fgbears-live -maxdepth 5 -type f ! -name '*.mp4' ! -name '*.ts' ! -name '*.wav' ! -name '*.m4a' ! -name '*.aac' -print0 2>/dev/null | \
+              xargs -0 -r grep -Il -- "$base" 2>/dev/null | head -n 20 | while IFS= read -r f; do
+                echo "RECORD=$f"
+                sudo grep -n -C 2 -- "$base" "$f" 2>/dev/null | head -n 30 || true
+              done
           fi
 
           echo '=== SOURCE-LIKE DIRECTORIES ==='
-          sudo find /srv/fgbears-live -maxdepth 1 -mindepth 1 -type d -printf '%f\n' 2>/dev/null | sort | grep -Ei 'original|source|master|pending|processed|media|backup|archive|raw' || true
+          sudo find /srv/fgbears-live -maxdepth 1 -mindepth 1 -type d -printf '%f\n' 2>/dev/null | sort | grep -Ei 'original|source|master|pending|processed|media|backup|archive|raw|remediation' || true
+          echo '=== OFFHOST MASTERING AREA ==='
+          sudo find /srv/fgbears-live/.audio-mastering-v2-offhost -maxdepth 3 -type f -printf '%p\n' 2>/dev/null | sort | head -n 100 || true
           REMOTE
