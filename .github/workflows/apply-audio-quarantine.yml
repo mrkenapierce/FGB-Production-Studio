@@ -1,0 +1,195 @@
+name: Apply Authorized Legacy Audio Quarantine
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-audio-quarantine.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-audio-quarantine
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  quarantine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate current source boundary
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/install.sh
+          bash -n services/fgbears-live/bin/healthcheck.sh
+          bash -n services/fgbears-live/bin/youtube-copy-relay.sh
+          ! grep -Eq 'youtube-v2|youtube-v3|youtube_generation|YOUTUBE_GENERATION' services/fgbears-live/bin/healthcheck.sh
+          grep -Fq 'fgbears-youtube-copy-relay.service' services/fgbears-live/bin/healthcheck.sh
+          grep -Fq 'udp://127.0.0.1:1940' services/fgbears-live/bin/youtube-copy-relay.sh
+          test ! -e services/fgbears-live/bin/normalize-library.sh
+          test ! -e services/fgbears-live/bin/normalize-resilient.sh
+          test ! -e services/fgbears-live/bin/add-episode.sh
+          test -s services/fgbears-live/quarantine/audio-processing-retired-20260907/normalize-library.sh
+          test -s services/fgbears-live/quarantine/audio-processing-retired-20260907/normalize-resilient.sh
+          test -s services/fgbears-live/quarantine/audio-processing-retired-20260907/add-episode.sh
+          echo 'SOURCE_QUARANTINE_BOUNDARY=PASS'
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stage current control files
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/healthcheck.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-healthcheck.new"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-copy-relay.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-youtube-copy-relay.new"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/systemd/fgbears-youtube-copy-relay.service "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-youtube-copy-relay.service.new"
+
+      - name: Quarantine legacy paths without restarting live media
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          master_before=$(pid fgbears-live.service)
+          youtube_before=$(pid fgbears-youtube-copy-relay.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]] || { echo 'MASTER_NOT_ACTIVE' >&2; exit 1; }
+          [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]] || { echo 'YOUTUBE_COPY_NOT_ACTIVE' >&2; exit 1; }
+
+          QROOT=/opt/fgbears-live/quarantine/audio-processing-retired-20260907/host
+          sudo install -d -m 0755 "$QROOT"
+          quarantine_file(){
+            local src=$1 dst
+            [[ -e "$src" || -L "$src" ]] || return 0
+            dst="$QROOT/${src#/}"
+            sudo install -d -m 0755 "$(dirname "$dst")"
+            if [[ -L "$src" ]]; then
+              printf '%s\n' "$(readlink "$src")" | sudo tee "${dst}.symlink-target" >/dev/null
+              sudo chmod 0644 "${dst}.symlink-target"
+              sudo rm -f "$src"
+            else
+              sudo cp -a "$src" "$dst"
+              sudo chmod a-x "$dst" || true
+              sudo rm -f "$src"
+            fi
+          }
+
+          # Preserve then remove executable legacy mastering/ingest entry points.
+          for f in \
+            /usr/local/bin/fgbears-normalize \
+            /usr/local/bin/fgbears-add-episode \
+            /opt/fgbears-live/bin/normalize-library.sh \
+            /opt/fgbears-live/bin/normalize-resilient.sh \
+            /opt/fgbears-live/bin/add-episode.sh \
+            /srv/fgbears-live/.audio-migration/normalize-dynamic.sh \
+            /srv/fgbears-live/remediation-14-32/normalize-dynamic-14.sh
+          do quarantine_file "$f"; done
+          while IFS= read -r f; do quarantine_file "$f"; done < <(sudo find /srv/fgbears-live/.audio-migration /srv/fgbears-live/remediation-14-32 -maxdepth 2 -type f -name 'normalize*.sh' 2>/dev/null || true)
+
+          # Preserve old destination control markers/binaries that should no longer participate.
+          quarantine_file /etc/fgbears-live/youtube-generation
+          quarantine_file /usr/local/bin/fgbears-rumble-relay
+          quarantine_file /usr/local/bin/fgbears-configure-rumble
+          quarantine_file /usr/local/bin/fgbears-youtube-audio-watchdog
+
+          # Deploy only current passive health/recovery logic and YouTube copy definitions.
+          sudo install -m 0755 /tmp/fgbears-healthcheck.new /opt/fgbears-live/bin/healthcheck.sh
+          sudo install -m 0755 /tmp/fgbears-healthcheck.new /usr/local/bin/fgbears-healthcheck
+          sudo install -m 0755 /tmp/fgbears-youtube-copy-relay.new /opt/fgbears-live/bin/youtube-copy-relay.sh
+          sudo install -m 0755 /tmp/fgbears-youtube-copy-relay.new /usr/local/bin/fgbears-youtube-copy-relay
+          sudo install -m 0644 /tmp/fgbears-youtube-copy-relay.service.new /etc/systemd/system/fgbears-youtube-copy-relay.service
+          sudo rm -f /tmp/fgbears-healthcheck.new /tmp/fgbears-youtube-copy-relay.new /tmp/fgbears-youtube-copy-relay.service.new
+
+          # Pin the next YouTube relay start to the master-direct UDP source without exposing credentials.
+          if sudo grep -q '^YOUTUBE_COPY_LOCAL_UDP_URL=' /etc/fgbears-live/stream.env; then
+            sudo sed -i 's#^YOUTUBE_COPY_LOCAL_UDP_URL=.*#YOUTUBE_COPY_LOCAL_UDP_URL=udp://127.0.0.1:1940?pkt_size=1316#' /etc/fgbears-live/stream.env
+          else
+            printf '%s\n' 'YOUTUBE_COPY_LOCAL_UDP_URL=udp://127.0.0.1:1940?pkt_size=1316' | sudo tee -a /etc/fgbears-live/stream.env >/dev/null
+          fi
+
+          # Hard-mask Rumble. Preserve its installed unit before replacing it with /dev/null.
+          sudo systemctl stop fgbears-rumble-relay.service >/dev/null 2>&1 || true
+          sudo systemctl disable fgbears-rumble-relay.service >/dev/null 2>&1 || true
+          if [[ -f /etc/systemd/system/fgbears-rumble-relay.service && ! -L /etc/systemd/system/fgbears-rumble-relay.service ]]; then
+            sudo install -d -m 0755 "$QROOT/etc/systemd/system"
+            sudo cp -a /etc/systemd/system/fgbears-rumble-relay.service "$QROOT/etc/systemd/system/fgbears-rumble-relay.service"
+            sudo chmod 0644 "$QROOT/etc/systemd/system/fgbears-rumble-relay.service"
+            sudo rm -f /etc/systemd/system/fgbears-rumble-relay.service
+          fi
+
+          retired_units=(
+            fgbears-rumble-relay.service fgbears-rumble-studio-uplink.service
+            fgbears-lovable-state-cache.service
+            fgbears-youtube-v2.service fgbears-youtube-v2-health.service fgbears-youtube-v2-health.timer
+            fgbears-youtube-v3.service fgbears-youtube-v3-source.service fgbears-youtube-v3-supervisor.service
+            fgbears-youtube-output.service fgbears-youtube-relay.service fgbears-youtube-router.service
+            fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service
+            fgbears-youtube-dynamic-card.service fgbears-youtube-freeze-card-refresh.service fgbears-youtube-freeze-card-refresh.timer
+            fgbears-youtube-audio-watchdog.service fgbears-youtube-audio-watchdog.timer
+          )
+          for unit in "${retired_units[@]}"; do sudo systemctl disable --now "$unit" >/dev/null 2>&1 || true; done
+          sudo systemctl daemon-reload
+          for unit in "${retired_units[@]}"; do sudo systemctl mask "$unit" >/dev/null 2>&1 || true; sudo systemctl reset-failed "$unit" >/dev/null 2>&1 || true; done
+          sudo systemctl daemon-reload
+          sudo systemctl enable fgbears-youtube-copy-relay.service >/dev/null
+          sudo systemctl enable --now fgbears-live-health.timer >/dev/null
+
+          # Quarantine data is retained but non-executable.
+          sudo find /opt/fgbears-live/quarantine -type f -exec chmod a-x {} +
+
+          # Verification: no live-media restart, no legacy destination, no active audio DSP.
+          bash -n /usr/local/bin/fgbears-healthcheck
+          ! grep -Eq 'youtube-v2|youtube-v3|youtube_generation|YOUTUBE_GENERATION' /usr/local/bin/fgbears-healthcheck
+          grep -Fq 'fgbears-youtube-copy-relay.service' /usr/local/bin/fgbears-healthcheck
+          [[ "$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)" == masked* ]]
+          ! systemctl is-active --quiet fgbears-rumble-relay.service
+          test ! -e /usr/local/bin/fgbears-normalize
+          test ! -e /usr/local/bin/fgbears-add-episode
+          test ! -e /opt/fgbears-live/bin/normalize-library.sh
+          test ! -e /opt/fgbears-live/bin/normalize-resilient.sh
+
+          for unit in "${retired_units[@]}"; do
+            [[ "$(systemctl is-enabled "$unit" 2>/dev/null || true)" == masked* ]] || { echo "NOT_MASKED=$unit" >&2; exit 1; }
+          done
+
+          master_after=$(pid fgbears-live.service)
+          youtube_after=$(pid fgbears-youtube-copy-relay.service)
+          test "$master_after" = "$master_before" || { echo "MASTER_PID_CHANGED=$master_before->$master_after" >&2; exit 1; }
+          test "$youtube_after" = "$youtube_before" || { echo "YOUTUBE_PID_CHANGED=$youtube_before->$youtube_after" >&2; exit 1; }
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          systemctl is-active --quiet fgbears-live-health.timer
+
+          ycmd=$(tr '\0' ' ' < "/proc/$youtube_after/cmdline")
+          printf '%s\n' "$ycmd" | grep -Fq 'udp://127.0.0.1:1940'
+          printf '%s\n' "$ycmd" | grep -Eq -- '(^| )-c copy( |$)'
+          ! printf '%s\n' "$ycmd" | grep -Eq -- '-af |filter:a|loudnorm|acompressor|deesser|aresample|volume=|-c:a (aac|libfdk_aac|opus)'
+          yt_tcp=$(sudo ss -tnp 2>/dev/null | grep "pid=$youtube_after," | grep -c ESTAB || true)
+          [[ "$yt_tcp" =~ ^[1-9][0-9]*$ ]] || { echo 'YOUTUBE_TCP_NOT_ESTABLISHED' >&2; exit 1; }
+
+          echo "QUARANTINE_APPLIED=yes"
+          echo "MASTER_PID=$master_after"
+          echo "YOUTUBE_PID=$youtube_after"
+          echo "YOUTUBE_ESTABLISHED_TCP=$yt_tcp"
+          echo "RUMBLE_STATE=$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)"
+          echo "HEALTH_TIMER=$(systemctl is-active fgbears-live-health.timer 2>/dev/null || true)"
+          echo "LEGACY_NORMALIZER_PRESENT=$([[ -e /usr/local/bin/fgbears-normalize ]] && echo yes || echo no)"
+          REMOTE
