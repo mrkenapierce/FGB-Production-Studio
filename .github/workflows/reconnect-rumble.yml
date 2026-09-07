@@ -17,6 +17,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Require protected Rumble key
+        env:
+          RUMBLE_STREAM_KEY: ${{ secrets.RUMBLE_STREAM_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$RUMBLE_STREAM_KEY"
+          echo 'RUMBLE_PROTECTED_KEY=AVAILABLE'
+
       - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -30,41 +38,39 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Restart Rumble destination only and verify reconnect
+      - name: Restore protected Rumble key and verify reconnect
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          RUMBLE_STREAM_KEY: ${{ secrets.RUMBLE_STREAM_KEY }}
         run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-
-          systemctl is-active --quiet fgbears-live.service
-          systemctl is-active --quiet fgbears-youtube-copy-relay.service
-          master_before=$(pid fgbears-live.service)
-          youtube_before=$(pid fgbears-youtube-copy-relay.service)
+          test -n "$RUMBLE_STREAM_KEY"
+          master_before=$(ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'systemctl show -p MainPID --value fgbears-live.service')
+          youtube_before=$(ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'systemctl show -p MainPID --value fgbears-youtube-copy-relay.service')
           [[ "$master_before" =~ ^[1-9][0-9]*$ ]]
           [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]]
 
-          sudo systemctl restart fgbears-rumble-relay.service
+          printf '%s\n' "$RUMBLE_STREAM_KEY" | ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo /usr/local/bin/fgbears-configure-rumble'
 
-          for _ in $(seq 1 20); do
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          for _ in $(seq 1 30); do
             rumble_pid=$(pid fgbears-rumble-relay.service)
             if [[ "$rumble_pid" =~ ^[1-9][0-9]*$ ]] && \
                sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$rumble_pid," 'index($0,p){ok=1} END{exit(ok?0:1)}'; then
-              break
+              echo "RUMBLE_TCP_ESTABLISHED=yes"
+              exit 0
             fi
             sleep 1
           done
+          echo 'RUMBLE_TCP_ESTABLISHED=no' >&2
+          sudo journalctl -u fgbears-rumble-relay.service -n 30 --no-pager >&2 || true
+          exit 1
+          REMOTE
 
-          systemctl is-active --quiet fgbears-rumble-relay.service
-          rumble_after=$(pid fgbears-rumble-relay.service)
-          [[ "$rumble_after" =~ ^[1-9][0-9]*$ ]]
-          sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$rumble_after," 'index($0,p){ok=1} END{exit(ok?0:1)}'
-
-          master_after=$(pid fgbears-live.service)
-          youtube_after=$(pid fgbears-youtube-copy-relay.service)
+          master_after=$(ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'systemctl show -p MainPID --value fgbears-live.service')
+          youtube_after=$(ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'systemctl show -p MainPID --value fgbears-youtube-copy-relay.service')
           test "$master_after" = "$master_before"
           test "$youtube_after" = "$youtube_before"
-
-          echo "RUMBLE_RECONNECT=PASS master_pid=$master_after rumble_pid=$rumble_after youtube_pid=$youtube_after"
-          REMOTE
+          echo "RUMBLE_RECONNECT=PASS master_pid=$master_after youtube_pid=$youtube_after"
