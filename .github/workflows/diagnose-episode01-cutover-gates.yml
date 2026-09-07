@@ -1,0 +1,84 @@
+name: Diagnose Episode 01 Cutover Gates
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-episode01-cutover-gates.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read-only gate diagnosis
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          media=/srv/fgbears-live/media
+          playlist=/srv/fgbears-live/playlist.ffconcat
+          mpid=$(systemctl show -p MainPID --value fgbears-live.service)
+          ypid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          echo "MASTER_ACTIVE=$(systemctl is-active fgbears-live.service || true)"
+          echo "MASTER_PID=$mpid"
+          echo "YOUTUBE_ACTIVE=$(systemctl is-active fgbears-youtube-copy-relay.service || true)"
+          echo "YOUTUBE_PID=$ypid"
+          echo "YOUTUBE_TCP=$(sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$ypid," 'index($0,p){n++} END{print n+0}')"
+          echo "ACTIVE_MEDIA=$(find "$media" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4' | wc -l)"
+          echo "ACTIVE_MARKERS=$(find "$media" -maxdepth 1 -type f -name 'FGBears-Episode-*.mp4.audio-profile.json' | wc -l)"
+          echo "PLAYLIST_ENTRIES=$(grep -c '^file ' "$playlist" || true)"
+          echo "LSOF_PRESENT=$(command -v lsof || true)"
+          echo 'MASTER_CHILDREN_BEGIN'
+          ps -eo pid,ppid,comm,args --no-headers | awk -v p="$mpid" '$2==p {sub(/[[:space:]]+/," "); print}' | sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g'
+          echo 'MASTER_CHILDREN_END'
+          echo 'MASTER_FFMPEG_MATCHES_BEGIN'
+          pgrep -af 'ffmpeg.*playlist\.ffconcat' | sed -E 's#(rtmps?://)[^ ]+#\1[REDACTED]#g' || true
+          echo 'MASTER_FFMPEG_MATCHES_END'
+          ffpid=$(pgrep -af 'ffmpeg.*playlist\.ffconcat' | awk 'NR==1{print $1}' || true)
+          echo "DISCOVERED_FFMPEG_PID=${ffpid:-none}"
+          if [[ -n "${ffpid:-}" && -x "$(command -v lsof || true)" ]]; then
+            echo 'OPEN_EPISODE_FILES_BEGIN'
+            sudo lsof -p "$ffpid" 2>/dev/null | awk '/FGBears-Episode-[0-9]+\.mp4/{print $NF}' | sort -u || true
+            echo 'OPEN_EPISODE_FILES_END'
+          fi
+          echo 'PROGRESS_BEGIN'
+          if [[ -s /srv/fgbears-live/logs/ffmpeg-progress.log ]]; then cat /srv/fgbears-live/logs/ffmpeg-progress.log; else echo missing; fi
+          echo 'PROGRESS_END'
+          echo 'AUX_DIRS_BEGIN'
+          for d in audio-v3-smoke audio-v3-work hq-audio-staging processed-pending; do
+            if [[ -d "/srv/fgbears-live/$d" ]]; then echo "$d present files=$(find "/srv/fgbears-live/$d" -type f | wc -l)"; else echo "$d absent"; fi
+          done
+          echo 'AUX_DIRS_END'
+          echo 'RECENT_CUTOVER_QUARANTINES_BEGIN'
+          find /srv/fgbears-live/quarantine -maxdepth 1 -type d -name 'legacy-audio-system-*' -printf '%f\n' | sort | tail -5
+          echo 'RECENT_CUTOVER_QUARANTINES_END'
+          echo 'RECENT_QDIR_CONTENTS_BEGIN'
+          latest=$(find /srv/fgbears-live/quarantine -maxdepth 1 -type d -name 'legacy-audio-system-*' -printf '%T@ %p\n' | sort -n | tail -1 | cut -d' ' -f2- || true)
+          if [[ -n "$latest" ]]; then
+            echo "LATEST=$latest"
+            echo "QMEDIA_MP4=$(find "$latest/production-media" -maxdepth 1 -type f -name '*.mp4' 2>/dev/null | wc -l)"
+            echo "QAUX_FILES=$(find "$latest/processing-staging" -type f 2>/dev/null | wc -l)"
+          fi
+          echo 'RECENT_QDIR_CONTENTS_END'
+          echo 'DIAGNOSIS=PASS'
+          REMOTE
