@@ -42,28 +42,42 @@ jobs:
           cat > capture.js <<'JS'
           const puppeteer=require('puppeteer-core');
           const fs=require('fs');
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
           (async()=>{
             const exe=process.env.CHROME;
             const browser=await puppeteer.launch({headless:true,executablePath:exe,ignoreHTTPSErrors:true,args:['--no-sandbox','--ignore-certificate-errors','--disable-blink-features=AutomationControlled','--autoplay-policy=no-user-gesture-required']});
-            const page=await browser.newPage();
-            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36');
-            await page.setExtraHTTPHeaders({'Accept-Language':'en-US,en;q=0.9'});
-            await page.evaluateOnNewDocument(()=>{Object.defineProperty(navigator,'webdriver',{get:()=>undefined});});
-            let resolveAudio; const audioPromise=new Promise(r=>resolveAudio=r); let done=false;
-            page.on('response',r=>{
-              const ct=(r.headers()['content-type']||'').toLowerCase();
-              if(!done && r.status()>=200 && r.status()<300 && ct.startsWith('audio/') && r.url().includes('/transcoding/')){
-                done=true; fs.writeFileSync('/tmp/music-url.txt',r.url()); console.log('FULL_STREAM_CAPTURED=yes'); resolveAudio(true);
-              }
-            });
-            await page.goto('https://audio.com/kontraa/audio/unlock-me',{waitUntil:'domcontentloaded',timeout:60000});
-            const clicked=await page.evaluate(()=>{
-              const els=[...document.querySelectorAll('button,a,[role=button]')];
-              const el=els.find(e=>/^play$/i.test((e.innerText||e.getAttribute('aria-label')||e.title||'').trim()));
-              if(!el)return false; el.click(); return true;
-            });
-            if(!clicked) throw new Error('Play control not found');
-            await Promise.race([audioPromise,new Promise((_,rej)=>setTimeout(()=>rej(new Error('full audio response timeout')),15000))]);
+            let media='';
+            for(let attempt=1;attempt<=4 && !media;attempt++){
+              const page=await browser.newPage();
+              await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36');
+              await page.setExtraHTTPHeaders({'Accept-Language':'en-US,en;q=0.9'});
+              await page.evaluateOnNewDocument(()=>Object.defineProperty(navigator,'webdriver',{get:()=>undefined}));
+              page.on('response',r=>{
+                const ct=(r.headers()['content-type']||'').toLowerCase();
+                if(!media && r.status()>=200 && r.status()<300 && ct.startsWith('audio/') && r.url().includes('/transcoding/')) media=r.url();
+              });
+              try{
+                await page.goto('https://audio.com/kontraa/audio/unlock-me',{waitUntil:'networkidle2',timeout:60000});
+                console.log('ATTEMPT='+attempt+' TITLE='+await page.title());
+                await sleep(2000);
+                const clicked=await page.evaluate(()=>{
+                  const els=[...document.querySelectorAll('button,a,[role=button]')];
+                  const el=els.find(e=>/^play(?:\s+\d+)?$/i.test((e.innerText||e.getAttribute('aria-label')||e.title||'').trim()));
+                  if(!el)return false; el.click(); return true;
+                });
+                console.log('PLAY_CLICKED='+clicked);
+                for(let i=0;i<24 && !media;i++){
+                  await sleep(500);
+                  const perf=await page.evaluate(()=>performance.getEntriesByType('resource').map(e=>e.name));
+                  const found=perf.find(u=>u.includes('/transcoding/') && /\.mp3(?:\?|$)/i.test(u));
+                  if(found) media=found;
+                }
+              }catch(e){ console.log('ATTEMPT_ERROR='+e.message); }
+              await page.close();
+            }
+            if(!media) throw new Error('full audio response unavailable after four attempts');
+            fs.writeFileSync('/tmp/music-url.txt',media);
+            console.log('FULL_STREAM_CAPTURED=yes');
             await browser.close();
           })().catch(e=>{console.error(e);process.exit(1)});
           JS
@@ -85,7 +99,6 @@ jobs:
           test "$bitrate" -ge 190000
 
           measure=$(ffmpeg -hide_banner -nostats -i /tmp/unlock-me-full-stream.mp3 -af ebur128=peak=true -f null - 2>&1)
-          printf '%s\n' "$measure" | tail -30
           source_i=$(printf '%s\n' "$measure" | awk '/^    I:/{v=$2} END{print v}')
           source_peak=$(printf '%s\n' "$measure" | awk '/^    Peak:/{v=$2} END{print v}')
           source_lra=$(printf '%s\n' "$measure" | awk '/^    LRA:/{v=$2} END{print v}')
@@ -102,7 +115,6 @@ jobs:
           out_channels=$(ffprobe -v error -select_streams a:0 -show_entries stream=channels -of default=nw=1:nk=1 /tmp/fgb-music-loop.m4a)
           [[ "$out_codec" == aac && "$out_rate" == 48000 && "$out_channels" == 2 ]]
           out_measure=$(ffmpeg -hide_banner -nostats -i /tmp/fgb-music-loop.m4a -af ebur128=peak=true -f null - 2>&1)
-          printf '%s\n' "$out_measure" | tail -30
           out_i=$(printf '%s\n' "$out_measure" | awk '/^    I:/{v=$2} END{print v}')
           out_peak=$(printf '%s\n' "$out_measure" | awk '/^    Peak:/{v=$2} END{print v}')
           out_lra=$(printf '%s\n' "$out_measure" | awk '/^    LRA:/{v=$2} END{print v}')
@@ -171,10 +183,9 @@ jobs:
           sudo install -m 755 /tmp/fgbears-start-stream.music-only "$START"
           sudo -u fgbears test -r "$MUSIC"
           bash -n "$START"
-
           sudo systemctl restart "$MASTER"
-          new_master=0
-          ffpid=''
+
+          new_master=0; ffpid=''
           for _ in $(seq 1 60); do
             new_master=$(systemctl show -p MainPID --value "$MASTER" 2>/dev/null || echo 0)
             if [[ "$new_master" =~ ^[1-9][0-9]*$ ]] && [[ "$new_master" != "$old_master" ]] && systemctl is-active --quiet "$MASTER"; then
@@ -184,28 +195,23 @@ jobs:
             sleep 1
           done
           [[ "$new_master" =~ ^[1-9][0-9]*$ && "$new_master" != "$old_master" && -n "$ffpid" ]]
-
           cmd=$(tr '\0' ' ' < "/proc/$ffpid/cmdline")
           [[ "$cmd" == *'-map 4:a:0'* ]]
           [[ "$cmd" != *'-map 0:a:0'* ]]
           ls -l "/proc/$ffpid/fd" 2>/dev/null | grep -q 'fgb-music-loop.m4a'
 
-          # Keep the YouTube relay itself undisturbed when possible. Recover only it if the brief master restart caused it to exit.
-          if ! systemctl is-active --quiet "$YT"; then
-            sudo systemctl restart "$YT"
-          fi
+          if ! systemctl is-active --quiet "$YT"; then sudo systemctl restart "$YT"; fi
           for _ in $(seq 1 45); do
             systemctl is-active --quiet "$YT" || { sleep 1; continue; }
             ytpid=$(systemctl show -p MainPID --value "$YT")
             [[ "$ytpid" =~ ^[1-9][0-9]*$ ]] || { sleep 1; continue; }
-            if sudo ss -ntp 2>/dev/null | grep -q "pid=$ytpid,"; then break; fi
+            sudo ss -ntp 2>/dev/null | grep -q "pid=$ytpid," && break
             sleep 1
           done
           ytpid=$(systemctl show -p MainPID --value "$YT")
           systemctl is-active --quiet "$YT"
           sudo ss -ntp 2>/dev/null | grep -q "pid=$ytpid,"
 
-          # Confirm FFmpeg is progressing after the restart.
           progress=/srv/fgbears-live/logs/ffmpeg-progress.log
           first=$(grep '^out_time_ms=' "$progress" 2>/dev/null | tail -1 | cut -d= -f2 || echo 0)
           sleep 6
