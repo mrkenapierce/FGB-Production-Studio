@@ -1,0 +1,101 @@
+name: Compare Episode 01 YouTube Source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/compare-episode01-youtube-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+          python3 -m pip install --quiet --user yt-dlp
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Export retained Episode 01 audio
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "ffmpeg -hide_banner -loglevel error -y -i /home/ubuntu/fgbears-upload/FGBears-Episode-01.mp4 -map 0:a:0 -c:a copy -f adts /tmp/ep01-retained.aac"
+          scp -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST:/tmp/ep01-retained.aac" /tmp/ep01-retained.aac
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'rm -f /tmp/ep01-retained.aac'
+      - name: Download original YouTube upload audio
+        run: |
+          set -Eeuo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
+          yt-dlp -f 'bestaudio/best' --no-playlist -o '/tmp/ep01-youtube.%(ext)s' 'https://www.youtube.com/watch?v=NFQyIY6GFwo'
+          f=$(find /tmp -maxdepth 1 -type f -name 'ep01-youtube.*' | head -n1)
+          test -s "$f"
+          cp "$f" /tmp/ep01-youtube.input
+          echo "YOUTUBE_DOWNLOADED_FILE=$f"
+      - name: Compare retained and YouTube audio
+        run: |
+          set -Eeuo pipefail
+          echo 'RETAINED_PROBE='
+          ffprobe -v error -show_entries stream=codec_name,sample_rate,channels,bit_rate -select_streams a:0 -of json /tmp/ep01-retained.aac
+          echo 'YOUTUBE_PROBE='
+          ffprobe -v error -show_entries stream=codec_name,sample_rate,channels,bit_rate -select_streams a:0 -of json /tmp/ep01-youtube.input
+          echo 'RETAINED_LOUDNESS='
+          ffmpeg -hide_banner -nostats -i /tmp/ep01-retained.aac -af 'loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json' -f null - 2>&1 | tail -30
+          echo 'YOUTUBE_LOUDNESS='
+          ffmpeg -hide_banner -nostats -i /tmp/ep01-youtube.input -af 'loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json' -f null - 2>&1 | tail -30
+          ffmpeg -hide_banner -loglevel error -y -ss 60 -t 20 -i /tmp/ep01-retained.aac -ac 1 -ar 48000 -f s16le /tmp/r.s16
+          ffmpeg -hide_banner -loglevel error -y -ss 60 -t 20 -i /tmp/ep01-youtube.input -ac 1 -ar 48000 -f s16le /tmp/y.s16
+          python3 - <<'PY'
+          import array, math
+          def rd(p):
+              a=array.array('h'); a.frombytes(open(p,'rb').read()); return a
+          r=rd('/tmp/r.s16'); y=rd('/tmp/y.s16')
+          def env(a,bs=480):
+              z=[]
+              for s in range(0,len(a),bs):
+                  b=a[s:s+bs]
+                  if not b: break
+                  z.append(math.sqrt(sum(float(v)*v for v in b)/len(b)))
+              m=sum(z)/len(z); return [v-m for v in z]
+          er,ey=env(r),env(y)
+          best=(-999,0)
+          for lag in range(-50,51):
+              pairs=[(er[i],ey[i+lag]) for i in range(len(er)) if 0<=i+lag<len(ey)]
+              if len(pairs)<50: continue
+              num=sum(a*b for a,b in pairs); den=math.sqrt(sum(a*a for a,b in pairs)*sum(b*b for a,b in pairs))
+              c=num/den if den else 0
+              if c>best[1]: best=(lag,c)
+          lag=best[0]*480
+          if lag>=0: ro=0; yo=lag
+          else: ro=-lag; yo=0
+          n=min(len(r)-ro,len(y)-yo,48000*10)
+          dot=sum(float(r[ro+i])*y[yo+i] for i in range(n)); rr=sum(float(r[ro+i])**2 for i in range(n)); yy=sum(float(y[yo+i])**2 for i in range(n))
+          scale=dot/rr if rr else 1
+          err=sum((y[yo+i]-scale*r[ro+i])**2 for i in range(n)); sig=sum((scale*r[ro+i])**2 for i in range(n))
+          corr=dot/math.sqrt(rr*yy) if rr and yy else 0
+          snr=10*math.log10(sig/err) if sig and err else 99
+          print(f'YOUTUBE_VS_RETAINED_LAG_MS={best[0]*10.0:.1f}')
+          print(f'YOUTUBE_VS_RETAINED_ENVELOPE_CORR={best[1]:.9f}')
+          print(f'YOUTUBE_VS_RETAINED_WAVEFORM_CORR={corr:.9f}')
+          print(f'YOUTUBE_VS_RETAINED_RESIDUAL_SNR_DB={snr:.3f}')
+          print(f'YOUTUBE_VS_RETAINED_SCALE={scale:.9f}')
+          PY
