@@ -1,0 +1,67 @@
+name: Recover Unlock Me Instrumental
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/recover-unlock-me-instrumental.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Capture and download Freesound instrumental preview
+        run: |
+          set -Eeuo pipefail
+          mkdir -p /tmp/pp && cd /tmp/pp
+          npm init -y >/dev/null 2>&1
+          npm install --silent puppeteer-core
+          cat > capture.js <<'JS'
+          const puppeteer=require('puppeteer-core'); const fs=require('fs');
+          (async()=>{
+            const exe=process.env.CHROME;
+            const browser=await puppeteer.launch({headless:true,executablePath:exe,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
+            const page=await browser.newPage(); let media='';
+            page.on('response',r=>{const u=r.url(),ct=r.headers()['content-type']||''; if((/audio/i.test(ct)||/\.mp3/i.test(u))&&!media){media=u;console.log('MEDIA='+u)}});
+            await page.goto('https://freesound.org/people/kontraamusic/sounds/801146/',{waitUntil:'networkidle2',timeout:60000});
+            const sels=['button[aria-label*=play i]','.bw-player__play-button','button'];
+            for(const sel of sels){for(const b of await page.$$(sel)){const t=(await page.evaluate(e=>(e.innerText||e.getAttribute('aria-label')||e.title||''),b)).trim(); if(/play/i.test(t)||sel!== 'button'){try{await b.click();}catch{}; await new Promise(r=>setTimeout(r,3000)); if(media) break;} } if(media) break;}
+            if(!media){const entries=await page.evaluate(()=>performance.getEntriesByType('resource').map(e=>e.name)); media=entries.find(u=>/\.mp3|preview.*mp3/i.test(u))||'';}
+            console.log('FINAL_MEDIA='+media); if(!media) process.exit(2); fs.writeFileSync('/tmp/media-url.txt',media); await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium) node capture.js
+          url=$(cat /tmp/media-url.txt)
+          curl -LfsS -A 'Mozilla/5.0' "$url" -o /tmp/unlock-me-instrumental.mp3
+          test -s /tmp/unlock-me-instrumental.mp3
+          ffprobe -v error -show_entries format=duration,size,bit_rate -show_entries stream=codec_name,sample_rate,channels -of json /tmp/unlock-me-instrumental.mp3
+          sha256sum /tmp/unlock-me-instrumental.mp3
+      - name: Prepare broadcast AAC and stage on Oracle
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
+          # One offline encode. No narration processing is involved: source is music-only.
+          ffmpeg -hide_banner -loglevel error -y -stream_loop -1 -i /tmp/unlock-me-instrumental.mp3 -t 60 \
+            -af 'loudnorm=I=-16:TP=-2:LRA=11' -ar 48000 -ac 2 -c:a aac -b:a 256k /tmp/fgb-music-loop.m4a
+          ffprobe -v error -show_entries format=duration -show_entries stream=codec_name,sample_rate,channels,bit_rate -of json /tmp/fgb-music-loop.m4a
+          scp -i ~/.ssh/oracle_key /tmp/fgb-music-loop.m4a "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-music-loop.m4a"
