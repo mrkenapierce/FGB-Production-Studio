@@ -1,0 +1,36 @@
+name: Recover FGB Music Bed Browser
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/recover-unlock-me-browser.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Dump rendered Audio.com page
+        run: |
+          set -Eeuo pipefail
+          chrome=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)
+          "$chrome" --headless --no-sandbox --disable-gpu --virtual-time-budget=10000 --dump-dom 'https://audio.com/kontraa/audio/unlock-me' > /tmp/page.html 2>/tmp/chrome.err || true
+          echo DOM_BYTES=$(wc -c </tmp/page.html)
+          python3 - <<'PY'
+          import re, html
+          s=open('/tmp/page.html',encoding='utf-8',errors='ignore').read()
+          vals=[]
+          for pat in [r'https?[^"\047 <>]+\.mp3(?:\?[^"\047 <>]*)?', r'https?[^"\047 <>]+(?:stream|audio|media)[^"\047 <>]*']:
+              for m in re.finditer(pat,s,re.I):
+                  u=html.unescape(m.group(0)).replace('\\u0026','&').replace('\\/','/')
+                  if u not in vals: vals.append(u)
+          for u in vals[:100]: print('MEDIA_URL='+u)
+          print('MEDIA_URL_COUNT='+str(len(vals)))
+          PY
+          echo '--- CHROME ERR TAIL ---'
+          tail -30 /tmp/chrome.err || true
