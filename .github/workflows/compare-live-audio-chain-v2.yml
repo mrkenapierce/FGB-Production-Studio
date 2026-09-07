@@ -86,9 +86,9 @@ jobs:
           print(f'CAPTURE_PACKETS={n}'); print(f'CAPTURE_BYTES={len(blob)}'); print(f'PCAP_LINKTYPE={lt}')
           if len(blob)<188*20: raise SystemExit('capture empty')
           PY
-
-          /usr/bin/ffmpeg -hide_banner -loglevel fatal -y -probesize 10M -analyzeduration 10M -i "$T/in.ts" -map 0:a:0 -c:a copy -f adts "$T/live.aac"
-          /usr/bin/ffmpeg -hide_banner -loglevel fatal -y -i "$prod" -map 0:a:0 -c:a copy -f adts "$T/prod.aac"
+          # spacer after nested heredoc
+          ffmpeg -hide_banner -loglevel fatal -y -probesize 10M -analyzeduration 10M -i "$T/in.ts" -map 0:a:0 -c:a copy -f adts "$T/live.aac"
+          ffmpeg -hide_banner -loglevel fatal -y -i "$prod" -map 0:a:0 -c:a copy -f adts "$T/prod.aac"
           sr=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nw=1:nk=1 "$prod")
 
           python3 - "$T/prod.aac" "$T/live.aac" "$sr" "$T/m.env" <<'PY'
@@ -118,18 +118,20 @@ jobs:
           print('AAC_PACKET_IDENTITY=yes'); print(f'MATCHED_FRAMES={m}/{c}'); print(f'IDENTITY_PCT={pct:.2f}'); print(f'EPISODE_OFFSET_SEC={off:.3f}')
           open(ep,'w').write(f'MATCH=yes\nOFFSET={off:.3f}\n')
           PY
+          # spacer after nested heredoc
           . "$T/m.env"
           [[ "${MATCH:-no}" == yes ]] || { echo 'RESULT=LIVE_AUDIO_DIFFERS_BEFORE_YOUTUBE'; exit 0; }
 
           start=$(python3 - <<PY
           print(f"{float('$OFFSET')+1.0:.3f}")
           PY
+          # spacer after nested heredoc
           )
           echo "SAME_SECTION_START=$start"
           echo '=== SAME SECTION MEASUREMENTS ==='
           measure(){
             label="$1"; file="$2"; seek="$3"; log="$T/$label.log"
-            /usr/bin/ffmpeg -hide_banner -nostats -ss "$seek" -t 8 -i "$file" -vn -af 'loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json' -f null - 2>"$log" || true
+            ffmpeg -hide_banner -nostats -ss "$seek" -t 8 -i "$file" -vn -af 'loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json' -f null - 2>"$log" || true
             python3 - "$label" "$log" <<'PY'
           import json,re,sys
           lab,path=sys.argv[1:]; s=open(path,errors='ignore').read(); x=re.findall(r'\{\s*"input_i".*?\}',s,re.S)
@@ -137,6 +139,7 @@ jobs:
           else:
               d=json.loads(x[-1]); print(f"{lab.upper()}_LUFS={d['input_i']}"); print(f"{lab.upper()}_TP={d['input_tp']}"); print(f"{lab.upper()}_LRA={d['input_lra']}")
           PY
+          # spacer after nested heredoc
           }
           measure production "$prod" "$start"
           [[ -s "$orig" ]] && measure original "$orig" "$start"
