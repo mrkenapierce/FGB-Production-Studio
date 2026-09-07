@@ -37,6 +37,8 @@ jobs:
           master_pid=$(systemctl show -p MainPID --value fgbears-live.service 2>/dev/null || true)
           rumble_pid=$(systemctl show -p MainPID --value fgbears-rumble-relay.service 2>/dev/null || true)
           youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service 2>/dev/null || true)
+          rumble_since=$(systemctl show -p ActiveEnterTimestamp --value fgbears-rumble-relay.service 2>/dev/null || true)
+          youtube_since=$(systemctl show -p ActiveEnterTimestamp --value fgbears-youtube-copy-relay.service 2>/dev/null || true)
           echo "MASTER_ACTIVE=$(systemctl is-active fgbears-live.service || true)"
           echo "MASTER_PID=$master_pid"
           echo "RUMBLE_ACTIVE=$(systemctl is-active fgbears-rumble-relay.service || true)"
@@ -54,8 +56,24 @@ jobs:
             echo "YOUTUBE_CPU_PCT=$(ps -p "$youtube_pid" -o %cpu= | xargs)"
             echo "YOUTUBE_RSS_KB=$(ps -p "$youtube_pid" -o rss= | xargs)"
           fi
+          if [[ "$rumble_pid" =~ ^[1-9][0-9]*$ ]]; then
+            rumble_established=$(sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$rumble_pid," 'index($0,p){n++} END{print n+0}')
+            echo "RUMBLE_ESTABLISHED_TCP=$rumble_established"
+          fi
+          if [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]]; then
+            youtube_established=$(sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$youtube_pid," 'index($0,p){n++} END{print n+0}')
+            echo "YOUTUBE_ESTABLISHED_TCP=$youtube_established"
+          fi
+          if [[ -n "$rumble_since" ]]; then
+            rumble_mux_failures=$(sudo journalctl -u fgbears-rumble-relay.service --since "$rumble_since" --no-pager 2>/dev/null | grep -Ec 'Slave muxer #[0-9]+ failed|error writing header|incompatible with output codec' || true)
+            echo "RUMBLE_MUX_FAILURES_SINCE_RESTART=$rumble_mux_failures"
+          fi
+          if [[ -n "$youtube_since" ]]; then
+            youtube_exit_failures=$(sudo journalctl -u fgbears-youtube-copy-relay.service --since "$youtube_since" --no-pager 2>/dev/null | grep -Ec 'Main process exited|Failed with result|Connection refused|Broken pipe' || true)
+            echo "YOUTUBE_EXIT_FAILURES_SINCE_RESTART=$youtube_exit_failures"
+          fi
           echo '=== YOUTUBE COPY JOURNAL ==='
-          sudo journalctl -u fgbears-youtube-copy-relay.service -n 80 --no-pager || true
+          sudo journalctl -u fgbears-youtube-copy-relay.service --since "$youtube_since" -n 50 --no-pager || true
           echo '=== RECENT RUMBLE RELAY JOURNAL ==='
-          sudo journalctl -u fgbears-rumble-relay.service -n 30 --no-pager || true
+          sudo journalctl -u fgbears-rumble-relay.service --since "$rumble_since" -n 40 --no-pager || true
           REMOTE
