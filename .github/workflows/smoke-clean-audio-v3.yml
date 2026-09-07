@@ -1,0 +1,74 @@
+name: Smoke Clean Audio v3
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/smoke-clean-audio-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate repair tooling
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile services/fgbears-live/tools/prepare-episode-v3.py
+          bash -n services/fgbears-live/bin/add-episode-v3.sh
+          bash -n services/fgbears-live/bin/validate-media.sh
+          ! grep -Eqi 'equalizer|deesser|acompressor|alimiter|afftdn|arnndn' services/fgbears-live/tools/prepare-episode-v3.py
+          grep -Fq 'static_gain_only' services/fgbears-live/tools/prepare-episode-v3.py
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Stage smoke-test tools
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          scp -i ~/.ssh/oracle_key services/fgbears-live/tools/prepare-episode-v3.py "$ORACLE_USER@$ORACLE_HOST:/tmp/prepare-episode-v3.py"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/validate-media.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/validate-media-v3.sh"
+      - name: Build and verify Episode 27 candidate without promotion
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1"; }
+          master_before=$(pid fgbears-live.service)
+          youtube_before=$(pid fgbears-youtube-copy-relay.service)
+          work=/srv/fgbears-live/audio-v3-smoke
+          sudo install -d -o ubuntu -g ubuntu -m 0755 "$work"
+          rm -f "$work/FGBears-Episode-27.mp4" "$work/FGBears-Episode-27.mp4.audio-profile.json"
+          nice -n 15 ionice -c2 -n7 python3 /tmp/prepare-episode-v3.py \
+            --video-source /srv/fgbears-live/media/FGBears-Episode-27.mp4 \
+            --audio-source /home/ubuntu/fgbears-upload/FGBears-Episode-27.mp4 \
+            --output "$work/FGBears-Episode-27.mp4" \
+            --source-kind original_master
+          chmod +x /tmp/validate-media-v3.sh
+          /tmp/validate-media-v3.sh "$work"
+          echo '=== MARKER ==='
+          jq -c '{profile,processing_mode,dynamic_processing,source_kind,source_metrics,static_gain_db,peak_limited,output_metrics,audio_bitrate_kbps,video_mode}' "$work/FGBears-Episode-27.mp4.audio-profile.json"
+          master_after=$(pid fgbears-live.service)
+          youtube_after=$(pid fgbears-youtube-copy-relay.service)
+          test "$master_after" = "$master_before"
+          test "$youtube_after" = "$youtube_before"
+          yt_tcp=$(sudo ss -tnp 2>/dev/null | grep "pid=$youtube_after," | grep -c ESTAB || true)
+          [[ "$yt_tcp" =~ ^[1-9][0-9]*$ ]]
+          echo "SMOKE_PASS=yes MASTER_PID=$master_after YOUTUBE_PID=$youtube_after YOUTUBE_TCP=$yt_tcp"
+          rm -f /tmp/prepare-episode-v3.py /tmp/validate-media-v3.sh
+          REMOTE
