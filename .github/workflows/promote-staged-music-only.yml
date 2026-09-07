@@ -1,0 +1,154 @@
+name: Promote Staged Music-Only Audio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/promote-staged-music-only.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Promote already-validated staged asset
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          STAGED_MUSIC=/tmp/fgb-music-loop.m4a
+          STAGED_START=/tmp/fgbears-start-stream.music-only
+          MUSIC=/srv/fgbears-live/audio/fgb-music-loop.m4a
+          START=/usr/local/bin/fgbears-start-stream
+          MASTER=fgbears-live.service
+          YT=fgbears-youtube-copy-relay.service
+          EXPECTED_SHA=7de2e22e341a24ba09c4053ac8fbaaac062c53faacd1f2155fe5e24dd45f7b78
+          STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          BACK=/srv/fgbears-live/quarantine/pre-music-only-final-$STAMP
+
+          # Source asset was already measured off-host at -16.1 LUFS, -3.1 dBTP,
+          # 7.7 LU LRA. Verify exact bytes before promotion.
+          test -s "$STAGED_MUSIC"
+          test -s "$STAGED_START"
+          [[ "$(sha256sum "$STAGED_MUSIC" | awk '{print $1}')" == "$EXPECTED_SHA" ]]
+          codec=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1:nk=1 "$STAGED_MUSIC")
+          rate=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nw=1:nk=1 "$STAGED_MUSIC")
+          channels=$(ffprobe -v error -select_streams a:0 -show_entries stream=channels -of default=nw=1:nk=1 "$STAGED_MUSIC")
+          [[ "$codec" == aac && "$rate" == 48000 && "$channels" == 2 ]]
+          bash -n "$STAGED_START"
+          grep -q -- '-map 4:a:0' "$STAGED_START"
+          ! grep -q -- '-map 0:a:0' "$STAGED_START"
+
+          old_master=$(systemctl show -p MainPID --value "$MASTER")
+          old_yt=$(systemctl show -p MainPID --value "$YT")
+          [[ "$old_master" =~ ^[1-9][0-9]*$ && "$old_yt" =~ ^[1-9][0-9]*$ ]]
+          systemctl is-active --quiet "$MASTER"
+          systemctl is-active --quiet "$YT"
+          [[ "$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)" == masked ]]
+
+          sudo install -d -m 755 "$BACK" /srv/fgbears-live/audio
+          sudo cp -a "$START" "$BACK/fgbears-start-stream.before"
+          if [[ -e "$MUSIC" ]]; then sudo cp -a "$MUSIC" "$BACK/fgb-music-loop.before.m4a"; fi
+
+          rollback() {
+            rc=$?
+            if (( rc != 0 )); then
+              echo MUSIC_ONLY_ROLLBACK=yes
+              sudo install -m 755 "$BACK/fgbears-start-stream.before" "$START" || true
+              if [[ -e "$BACK/fgb-music-loop.before.m4a" ]]; then
+                sudo install -o fgbears -g fgbears -m 644 "$BACK/fgb-music-loop.before.m4a" "$MUSIC" || true
+              else
+                sudo rm -f "$MUSIC" || true
+              fi
+              sudo systemctl restart "$MASTER" || true
+            fi
+            exit "$rc"
+          }
+          trap rollback EXIT
+
+          sudo install -o fgbears -g fgbears -m 644 "$STAGED_MUSIC" "$MUSIC"
+          sudo install -m 755 "$STAGED_START" "$START"
+          sudo -u fgbears test -r "$MUSIC"
+          sudo systemctl restart "$MASTER"
+
+          new_master=0; ffpid=''
+          for _ in $(seq 1 60); do
+            new_master=$(systemctl show -p MainPID --value "$MASTER" 2>/dev/null || echo 0)
+            if [[ "$new_master" =~ ^[1-9][0-9]*$ && "$new_master" != "$old_master" ]] && systemctl is-active --quiet "$MASTER"; then
+              ffpid=$(pgrep -P "$new_master" -x ffmpeg | head -1 || true)
+              [[ -n "$ffpid" ]] && break
+            fi
+            sleep 1
+          done
+          [[ "$new_master" =~ ^[1-9][0-9]*$ && "$new_master" != "$old_master" && -n "$ffpid" ]]
+
+          cmd=$(tr '\0' ' ' < "/proc/$ffpid/cmdline")
+          [[ "$cmd" == *'-map 4:a:0'* ]]
+          [[ "$cmd" != *'-map 0:a:0'* ]]
+          sudo ls -l "/proc/$ffpid/fd" | grep -q 'fgb-music-loop.m4a'
+
+          # Ensure the new master remains alive long enough to establish stable progress.
+          sleep 5
+          systemctl is-active --quiet "$MASTER"
+          [[ "$(systemctl show -p MainPID --value "$MASTER")" == "$new_master" ]]
+
+          if ! systemctl is-active --quiet "$YT"; then sudo systemctl restart "$YT"; fi
+          for _ in $(seq 1 45); do
+            systemctl is-active --quiet "$YT" || { sleep 1; continue; }
+            ytpid=$(systemctl show -p MainPID --value "$YT")
+            [[ "$ytpid" =~ ^[1-9][0-9]*$ ]] || { sleep 1; continue; }
+            sudo ss -ntp 2>/dev/null | grep -q "pid=$ytpid," && break
+            sleep 1
+          done
+          ytpid=$(systemctl show -p MainPID --value "$YT")
+          systemctl is-active --quiet "$YT"
+          sudo ss -ntp 2>/dev/null | grep -q "pid=$ytpid,"
+
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          first=$(grep '^out_time_ms=' "$progress" 2>/dev/null | tail -1 | cut -d= -f2 || echo 0)
+          sleep 6
+          second=$(grep '^out_time_ms=' "$progress" 2>/dev/null | tail -1 | cut -d= -f2 || echo 0)
+          [[ "$first" =~ ^[0-9]+$ && "$second" =~ ^[0-9]+$ && "$second" -gt "$first" ]]
+
+          # Final structural audit: music is the only mapped audio source.
+          ffpid=$(pgrep -P "$new_master" -x ffmpeg | head -1)
+          cmd=$(tr '\0' ' ' < "/proc/$ffpid/cmdline")
+          [[ "$cmd" == *'-map 4:a:0'* && "$cmd" != *'-map 0:a:0'* ]]
+          sudo ls -l "/proc/$ffpid/fd" | grep -q 'fgb-music-loop.m4a'
+
+          trap - EXIT
+          echo MUSIC_ONLY_CUTOVER=PASS
+          echo MUSIC_ASSET_SHA=$EXPECTED_SHA
+          echo MUSIC_LUFS=-16.1
+          echo MUSIC_TRUE_PEAK_DBTP=-3.1
+          echo MUSIC_LRA_LU=7.7
+          echo OLD_MASTER_PID=$old_master
+          echo NEW_MASTER_PID=$new_master
+          echo YOUTUBE_PID_BEFORE=$old_yt
+          echo YOUTUBE_PID_AFTER=$ytpid
+          echo EPISODE_NARRATION_MAPPED=no
+          echo MUSIC_FILE_OPEN=yes
+          echo YOUTUBE_TCP=established
+          echo RUMBLE_STATE=masked
+          echo ROLLBACK_BACKUP=$BACK
+          REMOTE
