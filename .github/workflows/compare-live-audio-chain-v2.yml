@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/compare-live-audio-chain-v2.yml'
+      - 'services/fgbears-live/tools/compare-live-audio-chain.py'
   workflow_dispatch:
 
 permissions:
@@ -21,130 +22,19 @@ jobs:
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
           set -Eeuo pipefail
-          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Capture and compare
+      - name: Run read-only comparison on Oracle
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_USER: ubuntu
         run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          T=$(mktemp -d /tmp/fgb-audio-v2.XXXXXX)
-          trap 'rm -rf "$T"' EXIT
-          mp=$(systemctl show -p MainPID --value fgbears-live.service)
-          fp=$(pgrep -P "$mp" -x ffmpeg | head -n1)
-          cur(){ sudo find "/proc/$fp/fd" -maxdepth 1 -type l -printf '%l\n' 2>/dev/null | grep -E '^/srv/fgbears-live/media/FGBears-Episode-[0-9]+\.mp4$' | head -n1 || true; }
-          prod=$(cur); test -n "$prod"
-          ep=$(basename "$prod" | sed -E 's/.*Episode-([0-9]+)\.mp4/\1/')
-          orig="/home/ubuntu/fgbears-upload/FGBears-Episode-${ep}.mp4"
-          echo "EPISODE=$ep"
-          echo -n 'PRODUCTION_AUDIO='; ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,bit_rate -of csv=p=0 "$prod"
-          if [[ -s "$orig" ]]; then echo -n 'ORIGINAL_AUDIO='; ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,bit_rate -of csv=p=0 "$orig"; else echo 'ORIGINAL_MASTER_PRESENT=no'; fi
-
-          ypid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
-          ycmd=$(tr '\0' ' ' < "/proc/$ypid/cmdline")
-          safe=$(printf '%s\n' "$ycmd" | sed -E 's#(rtmps?://[^/]+/live2/)[^ ]+#\1[REDACTED]#g')
-          echo "YOUTUBE_RELAY=$safe"
-          port=$(printf '%s\n' "$ycmd" | sed -nE 's#.*udp://127\.0\.0\.1:([0-9]+).*#\1#p' | head -n1)
-          echo "YOUTUBE_INPUT_PORT=$port"
-          test -n "$port"
-
-          sudo timeout 12 tcpdump -q -i lo -s 0 -U -w "$T/in.pcap" "udp dst port $port" >/dev/null 2>&1 || true
-          sudo chown "$USER":"$USER" "$T/in.pcap" || true
-          after=$(cur)
-          [[ "$after" == "$prod" ]] || { echo 'RESULT=CROSSED_EPISODE_BOUNDARY'; exit 0; }
-
-          python3 - "$T/in.pcap" "$T/in.ts" "$port" <<'PY'
-          import struct,sys
-          src,out,port=sys.argv[1],sys.argv[2],int(sys.argv[3]); d=open(src,'rb').read()
-          if len(d)<24: raise SystemExit('pcap too small')
-          m=d[:4]
-          if m in (b'\xd4\xc3\xb2\xa1',b'\x4d\x3c\xb2\xa1'): e='<'
-          elif m in (b'\xa1\xb2\xc3\xd4',b'\xa1\xb2\x3c\x4d'): e='>'
-          else: raise SystemExit('bad pcap')
-          lt=struct.unpack(e+'I',d[20:24])[0]; p=24; chunks=[]; n=0
-          while p+16<=len(d):
-              _,_,inc,_=struct.unpack(e+'IIII',d[p:p+16]); p+=16; q=d[p:p+inc]; p+=inc
-              if lt==1 and len(q)>=34 and q[12:14]==b'\x08\x00': off=14
-              elif lt==113 and len(q)>=36 and q[14:16]==b'\x08\x00': off=16
-              elif lt==276 and len(q)>=40 and q[0:2]==b'\x08\x00': off=20
-              elif lt in (101,12): off=0
-              else: continue
-              if len(q)<off+28 or (q[off]>>4)!=4 or q[off+9]!=17: continue
-              ihl=(q[off]&15)*4; u=off+ihl
-              if len(q)<u+8: continue
-              _,dp,ul,_=struct.unpack('!HHHH',q[u:u+8])
-              if dp!=port: continue
-              x=q[u+8:u+ul]
-              if x: chunks.append(x); n+=1
-          blob=b''.join(chunks); open(out,'wb').write(blob)
-          print(f'CAPTURE_PACKETS={n}'); print(f'CAPTURE_BYTES={len(blob)}'); print(f'PCAP_LINKTYPE={lt}')
-          if len(blob)<188*20: raise SystemExit('capture empty')
-          PY
-          # spacer after nested heredoc
-          ffmpeg -hide_banner -loglevel fatal -y -probesize 10M -analyzeduration 10M -i "$T/in.ts" -map 0:a:0 -c:a copy -f adts "$T/live.aac"
-          ffmpeg -hide_banner -loglevel fatal -y -i "$prod" -map 0:a:0 -c:a copy -f adts "$T/prod.aac"
-          sr=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nw=1:nk=1 "$prod")
-
-          python3 - "$T/prod.aac" "$T/live.aac" "$sr" "$T/m.env" <<'PY'
-          import hashlib,sys
-          pp,lp,sr,ep=sys.argv[1],sys.argv[2],int(sys.argv[3]),sys.argv[4]
-          def fr(path):
-              b=open(path,'rb').read(); z=[]; i=0
-              while i+7<=len(b):
-                  if b[i]!=255 or (b[i+1]&0xf6)!=0xf0: i+=1; continue
-                  h=7 if (b[i+1]&1) else 9; L=((b[i+3]&3)<<11)|(b[i+4]<<3)|((b[i+5]&0xe0)>>5)
-                  if L<h or i+L>len(b): break
-                  z.append(hashlib.sha256(b[i+h:i+L]).digest()); i+=L
-              return z
-          p,l=fr(pp),fr(lp); print(f'PROD_FRAMES={len(p)}'); print(f'LIVE_FRAMES={len(l)}')
-          skip=5; w=min(50,max(0,len(l)-skip)); found=-1
-          if w>=20:
-              nd=l[skip:skip+w]
-              for i,h in enumerate(p):
-                  if h==nd[0] and p[i:i+w]==nd: found=i; break
-          if found<0:
-              print('AAC_PACKET_IDENTITY=no'); open(ep,'w').write('MATCH=no\n'); raise SystemExit
-          start=found-skip; m=c=0
-          for j,h in enumerate(l):
-              i=start+j
-              if 0<=i<len(p): c+=1; m+=int(p[i]==h)
-          off=max(0,start)*1024/sr; pct=100*m/c if c else 0
-          print('AAC_PACKET_IDENTITY=yes'); print(f'MATCHED_FRAMES={m}/{c}'); print(f'IDENTITY_PCT={pct:.2f}'); print(f'EPISODE_OFFSET_SEC={off:.3f}')
-          open(ep,'w').write(f'MATCH=yes\nOFFSET={off:.3f}\n')
-          PY
-          # spacer after nested heredoc
-          . "$T/m.env"
-          [[ "${MATCH:-no}" == yes ]] || { echo 'RESULT=LIVE_AUDIO_DIFFERS_BEFORE_YOUTUBE'; exit 0; }
-
-          start=$(python3 - <<PY
-          print(f"{float('$OFFSET')+1.0:.3f}")
-          PY
-          # spacer after nested heredoc
-          )
-          echo "SAME_SECTION_START=$start"
-          echo '=== SAME SECTION MEASUREMENTS ==='
-          measure(){
-            label="$1"; file="$2"; seek="$3"; log="$T/$label.log"
-            ffmpeg -hide_banner -nostats -ss "$seek" -t 8 -i "$file" -vn -af 'loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json' -f null - 2>"$log" || true
-            python3 - "$label" "$log" <<'PY'
-          import json,re,sys
-          lab,path=sys.argv[1:]; s=open(path,errors='ignore').read(); x=re.findall(r'\{\s*"input_i".*?\}',s,re.S)
-          if not x: print(lab.upper()+'_MEASURE=unavailable')
-          else:
-              d=json.loads(x[-1]); print(f"{lab.upper()}_LUFS={d['input_i']}"); print(f"{lab.upper()}_TP={d['input_tp']}"); print(f"{lab.upper()}_LRA={d['input_lra']}")
-          PY
-          # spacer after nested heredoc
-          }
-          measure production "$prod" "$start"
-          [[ -s "$orig" ]] && measure original "$orig" "$start"
-          measure youtube_input "$T/in.ts" 1
-          marker="${prod}.audio-profile.json"
-          if [[ -s "$marker" ]]; then echo -n 'MASTERING_PROFILE='; jq -c '{profile,mastering_chain,target_i_lufs,target_tp_dbtp,measured_i_lufs,measured_tp_dbtp}' "$marker"; fi
-          echo 'RESULT=COMPLETE'
-          REMOTE
+          curl -fsSL https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/services/fgbears-live/tools/compare-live-audio-chain.py > /tmp/compare-live-audio-chain.py
+          scp -i ~/.ssh/oracle_key /tmp/compare-live-audio-chain.py "$ORACLE_USER@$ORACLE_HOST:/tmp/compare-live-audio-chain.py"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'python3 /tmp/compare-live-audio-chain.py; rc=$?; rm -f /tmp/compare-live-audio-chain.py; exit $rc'
