@@ -1,0 +1,37 @@
+name: Probe Unlock Me Audio Mirror
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-audio-com-unlock-me.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Extract media URLs
+        run: |
+          set -Eeuo pipefail
+          page='https://audio.com/phanu-phngs-wngs-swasdi/audio/unlock-me-amapiano-music-149058'
+          curl -LfsS -A 'Mozilla/5.0' "$page" -o /tmp/page.html
+          echo PAGE_BYTES=$(wc -c </tmp/page.html)
+          python3 - <<'PY'
+          import re, html, json
+          s=open('/tmp/page.html',encoding='utf-8',errors='ignore').read()
+          pats=[r'https?[^"\047 <>]+\.mp3[^"\047 <>]*',r'https?[^"\047 <>]+(?:audio|media|storage)[^"\047 <>]*']
+          seen=[]
+          for pat in pats:
+              for m in re.finditer(pat,s,re.I):
+                  u=html.unescape(m.group(0)).replace('\\u0026','&').replace('\\/','/')
+                  if u not in seen: seen.append(u)
+          for u in seen[:100]: print('URL='+u)
+          print('URL_COUNT='+str(len(seen)))
+          for key in ['audioSrc','audioUrl','downloadUrl','srcUrl','fileUrl','mediaUrl','originalUrl']:
+              if key in s: print('FOUND_KEY='+key)
+          PY
