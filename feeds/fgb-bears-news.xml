@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 07 Sep 2026 19:17:47 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 07 Sep 2026 22:08:24 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -20,16 +20,6 @@
     </item>
 
     <item>
-      <title>Bears vs Panthers Prediction, Picks &amp; Early Odds: NFL Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs Panthers Prediction, Picks &amp; Early Odds: NFL Week 1</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-panthers-prediction-picks-174000705.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0e6d17dc53c454d96a0d</guid>
-      <pubDate>Mon, 07 Sep 2026 17:40:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Panthers-Bears, Packers-Vikings markets</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Panthers-Bears, Packers-Vikings markets</description>
       <link>https://www.cbssports.com/prediction/news/week-1-nfl-picks-predictions-kalshi-polymarket-underdog-panthers-bears-packers-vikings-markets/</link>
@@ -37,6 +27,26 @@
       <pubDate>Mon, 07 Sep 2026 14:05:56 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Matt Suhey, member of Super Bowl-winning &apos;85 Bears and lead blocker for Walter Payton, dies at 68</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Matt Suhey, member of Super Bowl-winning &apos;85 Bears and lead blocker for Walter Payton, dies at 68</description>
+      <link>https://sports.yahoo.com/nfl/article/matt-suhey-member-of-super-bowl-winning-85-bears-and-lead-blocker-for-walter-payton-dies-at-68-134412097.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b75f44e4a2ca67b471bf</guid>
+      <pubDate>Mon, 07 Sep 2026 13:44:12 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Dennis Allen&apos;s Great Bears Secondary Gamble Going Off Contrary to Plan</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Dennis Allen&apos;s Great Bears Secondary Gamble Going Off Contrary to Plan</description>
+      <link>https://www.si.com/nfl/bears/onsi/dennis-allen-s-great-bears-secondary-gamble-going-off-contrary-to-plan</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3626edf42b4d8790d338</guid>
+      <pubDate>Mon, 07 Sep 2026 13:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -60,33 +70,23 @@
     </item>
 
     <item>
-      <title>Bears Reporter Warns Chicago Could Become the NFL&apos;s Top Regression Team</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Reporter Warns Chicago Could Become the NFL&apos;s Top Regression Team</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-reporter-chicago-nfl-regression-team</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a1caae230e1042449c30</guid>
-      <pubDate>Mon, 07 Sep 2026 11:05:00 GMT</pubDate>
+      <title>Bears QB Caleb Williams ready for 2026 season, but loss to Rams still burns</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears QB Caleb Williams ready for 2026 season, but loss to Rams still burns</description>
+      <link>https://www.nytimes.com/athletic/7565645/2026/09/07/bears-caleb-williams-ben-johnson-2025-memories/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f0382e4f180b3336dd77</guid>
+      <pubDate>Mon, 07 Sep 2026 03:30:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
-      <title>Bears&apos; Super Bowl champion fullback Matt Suhey dies at 68</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; Super Bowl champion fullback Matt Suhey dies at 68</description>
-      <link>https://www.espn.com/nfl/story/_/id/49860580/bears-super-bowl-champion-fullback-matt-suhey-dies-68</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4a873994e88b0e28fdfd</guid>
-      <pubDate>Mon, 07 Sep 2026 11:02:00 GMT</pubDate>
+      <title>Matt Suhey, Walter Payton&apos;s &apos;bodyguard&apos; and FB for Super Bowl champion Bears, dies at 68</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Matt Suhey, Walter Payton&apos;s &apos;bodyguard&apos; and FB for Super Bowl champion Bears, dies at 68</description>
+      <link>https://www.nfl.com/news/matt-suhey-dies-age-68-fullback-bears-walter-payton-bodyguard</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3b635813a60991b6290e</guid>
+      <pubDate>Mon, 07 Sep 2026 03:04:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Former Bears FB Matt Suhey dies at 68</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Former Bears FB Matt Suhey dies at 68</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/former-bears-fb-matt-suhey-dies-at-68</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2795581350ab0e2783e6</guid>
-      <pubDate>Mon, 07 Sep 2026 07:53:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
   </channel>
 </rss>
