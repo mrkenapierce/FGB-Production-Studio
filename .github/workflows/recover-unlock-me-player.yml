@@ -1,0 +1,48 @@
+name: Recover FGB Music Player Media
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/recover-unlock-me-player.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Capture player media URL
+        run: |
+          set -Eeuo pipefail
+          mkdir -p /tmp/pp && cd /tmp/pp
+          npm init -y >/dev/null 2>&1
+          npm install --silent puppeteer-core
+          cat > capture.js <<'JS'
+          const puppeteer=require('puppeteer-core');
+          (async()=>{
+            const exe=process.env.CHROME || '/usr/bin/google-chrome';
+            const browser=await puppeteer.launch({headless:true,executablePath:exe,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
+            const page=await browser.newPage();
+            const urls=[];
+            page.on('request',r=>{const u=r.url(); if(/audio|mp3|m4a|mpeg|media|stream/i.test(u)){urls.push(u); console.log('REQ='+u)}});
+            page.on('response',r=>{const u=r.url(), ct=(r.headers()['content-type']||''); if(/audio/i.test(ct)||/\.mp3|\.m4a/i.test(u)){urls.push(u); console.log('RESP='+r.status()+' '+ct+' '+u)}});
+            await page.goto('https://audio.com/kontraa/audio/unlock-me',{waitUntil:'networkidle2',timeout:60000});
+            console.log('TITLE='+await page.title());
+            console.log('AUDIO_ELEMENTS='+await page.$$eval('audio',els=>els.map(e=>({src:e.src,currentSrc:e.currentSrc,html:e.outerHTML}))));
+            const buttons=await page.$$('button');
+            for(const b of buttons){
+              const txt=(await page.evaluate(el=>el.innerText||el.getAttribute('aria-label')||'',b)).trim();
+              if(/play/i.test(txt)){ console.log('CLICK='+txt); try{await b.click();}catch{} break; }
+            }
+            await new Promise(r=>setTimeout(r,8000));
+            const entries=await page.evaluate(()=>performance.getEntriesByType('resource').map(e=>e.name).filter(u=>/audio|mp3|m4a|mpeg|media|stream/i.test(u)));
+            entries.forEach(u=>console.log('PERF='+u));
+            console.log('FINAL_AUDIO='+JSON.stringify(await page.$$eval('audio',els=>els.map(e=>({src:e.src,currentSrc:e.currentSrc})))));
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium) node capture.js
