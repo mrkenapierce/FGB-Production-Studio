@@ -1,0 +1,99 @@
+name: Trace Live Audio Lineage
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/trace-live-audio-lineage.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  trace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Trace production audio source read-only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          master_pid=$(systemctl show -p MainPID --value fgbears-live.service 2>/dev/null || true)
+          youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service 2>/dev/null || true)
+          echo "MASTER_ACTIVE=$(systemctl is-active fgbears-live.service || true)"
+          echo "MASTER_PID=$master_pid"
+          echo "YOUTUBE_ACTIVE=$(systemctl is-active fgbears-youtube-copy-relay.service || true)"
+          echo "YOUTUBE_PID=$youtube_pid"
+
+          ffmpeg_pid=$(pgrep -P "$master_pid" -x ffmpeg | head -n1 || true)
+          echo "MASTER_FFMPEG_PID=${ffmpeg_pid:-0}"
+          if [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]]; then
+            ycmd=$(tr '\0' ' ' < "/proc/$youtube_pid/cmdline")
+            [[ "$ycmd" == *'udp://127.0.0.1:1940'* ]] && echo 'YOUTUBE_INPUT=udp://127.0.0.1:1940' || echo 'YOUTUBE_INPUT=OTHER'
+            [[ "$ycmd" == *'-c copy'* ]] && echo 'YOUTUBE_AUDIO_MODE=copy' || echo 'YOUTUBE_AUDIO_MODE=unexpected'
+          fi
+
+          echo '=== PLAYLIST ==='
+          playlist=/srv/fgbears-live/playlist.ffconcat
+          echo "PLAYLIST=$playlist"
+          echo "PLAYLIST_COUNT=$(grep -c '^file ' "$playlist" || true)"
+          awk -F"'" '/^file /{print $2}' "$playlist" | sed -E 's#/[^/]+$##' | sort -u | sed 's/^/PLAYLIST_DIR=/'
+          head -n 5 "$playlist" || true
+          tail -n 5 "$playlist" || true
+
+          current=''
+          if [[ "$ffmpeg_pid" =~ ^[1-9][0-9]*$ ]] && command -v lsof >/dev/null 2>&1; then
+            current=$(sudo lsof -Fn -p "$ffmpeg_pid" 2>/dev/null | sed -n 's/^n//p' | grep -E '^/srv/fgbears-live/.*\.mp4$' | head -n1 || true)
+          fi
+          if [[ -z "$current" && "$ffmpeg_pid" =~ ^[1-9][0-9]*$ ]]; then
+            current=$(sudo find "/proc/$ffmpeg_pid/fd" -maxdepth 1 -type l -printf '%l\n' 2>/dev/null | grep -E '^/srv/fgbears-live/.*\.mp4$' | head -n1 || true)
+          fi
+          echo "CURRENT_MEDIA=${current:-UNKNOWN}"
+
+          if [[ -n "$current" && -f "$current" ]]; then
+            base=$(basename "$current")
+            echo "CURRENT_BASENAME=$base"
+            echo -n 'CURRENT_AUDIO='
+            ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,profile,sample_rate,channels,bit_rate -of csv=p=0 "$current" || true
+            echo "CURRENT_SHA256=$(sha256sum "$current" | awk '{print $1}')"
+            marker="${current}.audio-profile.json"
+            if [[ -s "$marker" ]]; then
+              echo "CURRENT_PROFILE_MARKER=$marker"
+              jq -c '.' "$marker" 2>/dev/null || cat "$marker"
+            else
+              echo 'CURRENT_PROFILE_MARKER=NONE'
+            fi
+            echo '=== SAME BASENAME ON ORACLE ==='
+            sudo find /srv/fgbears-live -maxdepth 3 -type f -name "$base" -print 2>/dev/null | sort | while IFS= read -r f; do
+              sha=$(sha256sum "$f" | awk '{print $1}')
+              echo "MATCH=$f SHA256=$sha"
+            done
+            echo '=== POSSIBLE PROVENANCE SIDECARS ==='
+            sudo find /srv/fgbears-live -maxdepth 3 -type f \( -name "${base}.ready.json" -o -name "${base}.audio-profile.json" -o -name "${base%.mp4}*.json" \) -print 2>/dev/null | sort | while IFS= read -r f; do
+              echo "SIDECAR=$f"
+              jq -c '.' "$f" 2>/dev/null || true
+            done
+          fi
+
+          echo '=== SOURCE-LIKE DIRECTORIES ==='
+          sudo find /srv/fgbears-live -maxdepth 1 -mindepth 1 -type d -printf '%f\n' 2>/dev/null | sort | grep -Ei 'original|source|master|pending|processed|media|backup|archive|raw' || true
+          REMOTE
