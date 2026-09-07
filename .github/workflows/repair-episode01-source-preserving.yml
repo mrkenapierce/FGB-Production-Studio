@@ -1,0 +1,226 @@
+name: Repair Episode 01 Source-Preserving Audio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-episode01-source-preserving.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Export Episode 01 source and current production copy
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          src=/home/ubuntu/fgbears-upload/FGBears-Episode-01.mp4
+          prod=/srv/fgbears-live/media/FGBears-Episode-01.mp4
+          [[ -s "$src" && -s "$prod" ]]
+          master=$(systemctl show -p MainPID --value fgbears-live.service)
+          youtube=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          [[ "$master" =~ ^[1-9][0-9]*$ && "$youtube" =~ ^[1-9][0-9]*$ ]]
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          yt_tcp=$(sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$youtube," 'index($0,p){n++} END{print n+0}')
+          [[ "$yt_tcp" =~ ^[1-9][0-9]*$ ]]
+          printf 'MASTER_PID=%s\nYOUTUBE_PID=%s\nSOURCE_SHA256=%s\n' "$master" "$youtube" "$(sha256sum "$src" | awk '{print $1}')" > /tmp/ep01-repair-before.env
+          cp "$src" /tmp/ep01-source.mp4
+          cp "$prod" /tmp/ep01-current.mp4
+          REMOTE
+          scp -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST:/tmp/ep01-source.mp4" /tmp/ep01-source.mp4
+          scp -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST:/tmp/ep01-current.mp4" /tmp/ep01-current.mp4
+          scp -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST:/tmp/ep01-repair-before.env" /tmp/ep01-repair-before.env
+
+      - name: Install FFmpeg on off-host worker
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+
+      - name: Build and validate source-preserving Episode 01 candidate
+        run: |
+          set -Eeuo pipefail
+          cat > /tmp/build_ep01.py <<'PY'
+          import json, re, subprocess, hashlib, pathlib, os, sys
+          src=pathlib.Path('/tmp/ep01-source.mp4')
+          current=pathlib.Path('/tmp/ep01-current.mp4')
+          audio=pathlib.Path('/tmp/ep01-repaired.m4a')
+          cand=pathlib.Path('/tmp/FGBears-Episode-01.mp4')
+          marker=pathlib.Path('/tmp/FGBears-Episode-01.mp4.audio-profile.json')
+          TARGET=-16.0
+          PRE_TP=-1.8
+          MAX_TP=-1.5
+          def run(cmd, capture=False):
+              p=subprocess.run(cmd,text=True,stdout=subprocess.PIPE if capture else None,stderr=subprocess.PIPE if capture else None)
+              if p.returncode:
+                  if capture: print(p.stderr,file=sys.stderr)
+                  raise SystemExit(f"failed: {' '.join(cmd)}")
+              return p
+          def measure(path):
+              p=run(['ffmpeg','-hide_banner','-nostdin','-nostats','-v','info','-i',str(path),'-map','0:a:0','-vn','-af',f'loudnorm=I={TARGET}:TP={MAX_TP}:LRA=11:print_format=json','-f','null','-'],True)
+              blocks=re.findall(r'\{\s*"input_i".*?\}',p.stderr,re.S)
+              if not blocks: raise SystemExit('loudness measurement missing')
+              d=json.loads(blocks[-1])
+              return {'i_lufs':float(d['input_i']),'tp_dbtp':float(d['input_tp']),'lra_lu':float(d['input_lra'])}
+          def sha(path):
+              h=hashlib.sha256()
+              with open(path,'rb') as f:
+                  for b in iter(lambda:f.read(1024*1024),b''): h.update(b)
+              return h.hexdigest()
+          def vhash(path):
+              p=run(['ffmpeg','-hide_banner','-nostdin','-loglevel','error','-i',str(path),'-map','0:v:0','-c:v','copy','-f','hash','-hash','sha256','-'],True)
+              return p.stdout.strip()
+          sm=measure(src)
+          desired=TARGET-sm['i_lufs']
+          safe=PRE_TP-sm['tp_dbtp']
+          gain=min(desired,safe)
+          def encode(g):
+              audio.unlink(missing_ok=True)
+              run(['ffmpeg','-hide_banner','-nostdin','-y','-loglevel','warning','-i',str(src),'-map','0:a:0','-vn','-af',f'volume={g:.3f}dB,aresample=48000:resampler=soxr:precision=28:cheby=1:first_pts=0','-c:a','aac','-aac_coder','twoloop','-b:a','256k','-ar','48000','-ac','2','-movflags','+faststart',str(audio)])
+              return measure(audio)
+          om=encode(gain)
+          if om['tp_dbtp'] > MAX_TP:
+              gain -= (om['tp_dbtp']-(-1.6))
+              om=encode(gain)
+          if om['tp_dbtp'] > MAX_TP: raise SystemExit(f"true peak unsafe {om['tp_dbtp']}")
+          if abs(om['lra_lu']-sm['lra_lu']) > 0.6: raise SystemExit(f"LRA changed {sm['lra_lu']}->{om['lra_lu']}")
+          run(['ffmpeg','-hide_banner','-nostdin','-y','-loglevel','error','-i',str(current),'-i',str(audio),'-map','0:v:0','-map','1:a:0','-c','copy','-shortest','-movflags','+faststart','-map_metadata','-1',str(cand)])
+          if vhash(current)!=vhash(cand): raise SystemExit('video packet hash changed')
+          probe=run(['ffprobe','-v','error','-select_streams','a:0','-show_entries','stream=codec_name,sample_rate,channels,bit_rate','-of','json',str(cand)],True)
+          ainfo=json.loads(probe.stdout)['streams'][0]
+          if (ainfo.get('codec_name'),str(ainfo.get('sample_rate')),int(ainfo.get('channels',0))) != ('aac','48000',2): raise SystemExit(f'bad audio signature {ainfo}')
+          source_sha=os.environ['SOURCE_SHA256']
+          final_sha=sha(cand)
+          m={
+            'profile':'fgb-clean-static-v3','quality_verified':True,'processing_mode':'static_gain_only','dynamic_processing':False,
+            'processing_chain':['constant_gain','aresample_48000','stereo_delivery','aac_encode_256k'],
+            'forbidden_processing_absent':['equalizer','deesser','compressor','limiter','denoise','dynamic_loudnorm'],
+            'source_kind':'original_master','source_path':'/home/ubuntu/fgbears-upload/FGBears-Episode-01.mp4','source_sha256':source_sha,
+            'source_audio_codec':'aac','source_sample_rate_hz':44100,'source_channels':2,'source_metrics':sm,
+            'target_i_lufs':TARGET,'preencode_peak_ceiling_dbtp':PRE_TP,'max_output_tp_dbtp':MAX_TP,
+            'static_gain_db':round(gain,3),'peak_limited':gain < desired-0.01,'output_metrics':om,
+            'audio_codec':'aac','audio_bitrate_kbps':256,'sample_rate_hz':48000,'channels':2,
+            'audio_track_sha256':sha(audio),'sha256':final_sha,'video_mode':'packet_copy',
+            'resampler':'soxr','resampler_precision':28,'aac_coder':'twoloop','episode_repair':'01-source-preserving-v1'
+          }
+          marker.write_text(json.dumps(m,indent=2,sort_keys=True)+'\n')
+          print(f"EP01_SOURCE_I={sm['i_lufs']:.2f}")
+          print(f"EP01_SOURCE_TP={sm['tp_dbtp']:.2f}")
+          print(f"EP01_SOURCE_LRA={sm['lra_lu']:.2f}")
+          print(f"EP01_STATIC_GAIN={gain:.3f}")
+          print(f"EP01_OUTPUT_I={om['i_lufs']:.2f}")
+          print(f"EP01_OUTPUT_TP={om['tp_dbtp']:.2f}")
+          print(f"EP01_OUTPUT_LRA={om['lra_lu']:.2f}")
+          print(f"EP01_OUTPUT_AUDIO_BITRATE={ainfo.get('bit_rate')}")
+          print('EP01_CANDIDATE=PASS')
+          PY
+          set -a
+          source /tmp/ep01-repair-before.env
+          set +a
+          python3 /tmp/build_ep01.py
+          tmpv=$(mktemp -d)
+          cp /tmp/FGBears-Episode-01.mp4 /tmp/FGBears-Episode-01.mp4.audio-profile.json "$tmpv/"
+          services/fgbears-live/bin/validate-media.sh "$tmpv"
+          rm -rf "$tmpv"
+
+      - name: Promote Episode 01 atomically without restarting live services
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key /tmp/FGBears-Episode-01.mp4 /tmp/FGBears-Episode-01.mp4.audio-profile.json "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          source /tmp/ep01-repair-before.env
+          prod=/srv/fgbears-live/media/FGBears-Episode-01.mp4
+          cand=/tmp/FGBears-Episode-01.mp4
+          marker=/tmp/FGBears-Episode-01.mp4.audio-profile.json
+          current_marker="$prod.audio-profile.json"
+          master_now=$(systemctl show -p MainPID --value fgbears-live.service)
+          youtube_now=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          test "$master_now" = "$MASTER_PID"
+          test "$youtube_now" = "$YOUTUBE_PID"
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          yt_tcp=$(sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$youtube_now," 'index($0,p){n++} END{print n+0}')
+          [[ "$yt_tcp" =~ ^[1-9][0-9]*$ ]]
+          [[ -s "$prod" && -s "$cand" && -s "$marker" ]]
+          test "$(sha256sum /home/ubuntu/fgbears-upload/FGBears-Episode-01.mp4 | awk '{print $1}')" = "$SOURCE_SHA256"
+          vhash(){ ffmpeg -hide_banner -nostdin -loglevel error -i "$1" -map 0:v:0 -c:v copy -f hash -hash sha256 - 2>/dev/null | tail -n1; }
+          test "$(vhash "$prod")" = "$(vhash "$cand")"
+          vdir=$(mktemp -d)
+          trap 'rm -rf "$vdir"' EXIT
+          ln "$cand" "$vdir/FGBears-Episode-01.mp4"
+          ln "$marker" "$vdir/FGBears-Episode-01.mp4.audio-profile.json"
+          /usr/local/bin/fgbears-validate "$vdir" >/dev/null
+          qdir=/srv/fgbears-live/quarantine/episode01-pre-source-preserving-$(date -u +%Y%m%dT%H%M%SZ)
+          sudo install -d -o root -g root -m 0755 "$qdir"
+          sudo ln "$prod" "$qdir/FGBears-Episode-01.mp4"
+          if [[ -s "$current_marker" ]]; then sudo ln "$current_marker" "$qdir/FGBears-Episode-01.mp4.audio-profile.json"; fi
+          rollback=1
+          restore(){
+            rc=$?
+            if [[ ${rollback:-0} -eq 1 ]]; then
+              sudo ln -f "$qdir/FGBears-Episode-01.mp4" "$prod" || true
+              if [[ -e "$qdir/FGBears-Episode-01.mp4.audio-profile.json" ]]; then sudo ln -f "$qdir/FGBears-Episode-01.mp4.audio-profile.json" "$current_marker" || true; fi
+              echo 'EP01_ROLLBACK=COMPLETE' >&2
+            fi
+            exit "$rc"
+          }
+          trap restore ERR
+          sudo chown --reference="$prod" "$cand"
+          sudo chmod --reference="$prod" "$cand"
+          if [[ -s "$current_marker" ]]; then
+            sudo chown --reference="$current_marker" "$marker"
+            sudo chmod --reference="$current_marker" "$marker"
+          else
+            sudo chown --reference="$prod" "$marker"
+            sudo chmod 0644 "$marker"
+          fi
+          sudo mv -f "$cand" "$prod"
+          sudo mv -f "$marker" "$current_marker"
+          /usr/local/bin/fgbears-validate /srv/fgbears-live/media >/dev/null
+          test "$(systemctl show -p MainPID --value fgbears-live.service)" = "$MASTER_PID"
+          test "$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)" = "$YOUTUBE_PID"
+          yt_tcp_after=$(sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$YOUTUBE_PID," 'index($0,p){n++} END{print n+0}')
+          [[ "$yt_tcp_after" =~ ^[1-9][0-9]*$ ]]
+          rollback=0
+          trap - ERR
+          echo 'EPISODE01_REPAIR=PASS'
+          echo "MASTER_PID=$MASTER_PID"
+          echo "YOUTUBE_PID=$YOUTUBE_PID"
+          echo "YOUTUBE_ESTABLISHED_TCP=$yt_tcp_after"
+          echo "EP01_PROFILE=$(jq -r .episode_repair "$current_marker")"
+          echo "EP01_SOURCE=$(jq -r .source_path "$current_marker")"
+          echo "EP01_OUTPUT_I=$(jq -r .output_metrics.i_lufs "$current_marker")"
+          echo "EP01_OUTPUT_TP=$(jq -r .output_metrics.tp_dbtp "$current_marker")"
+          echo "EP01_OUTPUT_LRA=$(jq -r .output_metrics.lra_lu "$current_marker")"
+          echo "EP01_QUARANTINE=$qdir"
+          rm -f /tmp/ep01-source.mp4 /tmp/ep01-current.mp4 /tmp/ep01-repair-before.env
+          REMOTE
