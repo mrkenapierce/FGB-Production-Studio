@@ -1,0 +1,96 @@
+name: Audit Legacy Audio Paths
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-legacy-audio-paths.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Audit live and legacy media paths
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          redact(){ sed -E 's#(rtmps?://[^/]+/[^/]+/)[^ ]+#\1[REDACTED]#g; s#(stream_key|STREAM_KEY|YOUTUBE_STREAM_KEY|RUMBLE_STREAM_KEY)=([^ ]+)#\1=[REDACTED]#g'; }
+
+          echo '=== CURRENT MEDIA SERVICES ==='
+          for u in fgbears-live.service fgbears-youtube-copy-relay.service fgbears-rumble-relay.service fgbears-youtube-v3.service fgbears-youtube.service fgbears-audio.service fgbears-live-health.service; do
+            if systemctl cat "$u" >/dev/null 2>&1; then
+              printf '%s active=' "$u"; systemctl is-active "$u" 2>/dev/null || true
+              printf '%s enabled=' "$u"; systemctl is-enabled "$u" 2>/dev/null || true
+              printf '%s mainpid=' "$u"; systemctl show -p MainPID --value "$u" 2>/dev/null || true
+            fi
+          done
+
+          echo '=== ALL FGB/YOUTUBE/RUMBLE/AUDIO UNIT FILES ==='
+          systemctl list-unit-files --type=service --type=timer --no-pager 2>/dev/null | grep -Ei 'fgbear|youtube|rumble|audio|ffmpeg|stream' || true
+
+          echo '=== ALL ACTIVE MATCHING UNITS ==='
+          systemctl list-units --all --type=service --type=timer --no-pager 2>/dev/null | grep -Ei 'fgbear|youtube|rumble|audio|ffmpeg|stream' || true
+
+          echo '=== INSTALLED MATCHING UNIT FILES ==='
+          sudo find /etc/systemd/system /lib/systemd/system /usr/lib/systemd/system -maxdepth 2 \( -type f -o -type l \) 2>/dev/null | grep -Ei 'fgbear|youtube|rumble|audio|ffmpeg|stream' | sort || true
+
+          echo '=== RUNNING MEDIA PROCESSES ==='
+          ps -eo pid=,ppid=,lstart=,pcpu=,pmem=,args= | grep -Ei '[f]fmpeg|[f]fplay|[g]streamer|[p]ulseaudio|[p]ipewire|[a]lsa|[y]outube|[r]umble|fgbears' | redact || true
+
+          echo '=== OPEN MEDIA SOCKETS ==='
+          sudo ss -lntup 2>/dev/null | grep -E ':(1935|1940|1941|1942|1943|8080|8081|9000)\b|ffmpeg|fgbears' | redact || true
+          sudo ss -unap 2>/dev/null | grep -E ':(1940|1941|1942|1943)\b|ffmpeg|fgbears' | redact || true
+
+          echo '=== ENABLED TIMERS ==='
+          systemctl list-timers --all --no-pager 2>/dev/null | grep -Ei 'fgbear|youtube|rumble|audio|ffmpeg|stream' || true
+
+          echo '=== ROOT/UBUNTU CRON MEDIA REFERENCES ==='
+          (sudo crontab -l 2>/dev/null || true; crontab -l 2>/dev/null || true) | grep -Ei 'fgbear|youtube|rumble|audio|ffmpeg|stream' | redact || true
+
+          echo '=== LEGACY EXECUTABLE/CONFIG REFERENCES ==='
+          sudo find /usr/local/bin /opt /srv/fgbears-live /home/ubuntu -maxdepth 4 -type f \( -name '*.sh' -o -name '*.py' -o -name '*.service' -o -name '*.timer' -o -name '*.conf' -o -name '*.env' \) 2>/dev/null \
+            | grep -Ei 'fgbear|youtube|rumble|audio|stream|ffmpeg' \
+            | head -n 250 || true
+
+          echo '=== SYSTEMD DEPENDENCY LINKS TO LEGACY NAMES ==='
+          sudo find /etc/systemd/system -type l -printf '%p -> %l\n' 2>/dev/null | grep -Ei 'youtube|rumble|fgbear|audio|ffmpeg|stream' || true
+
+          echo '=== CURRENT MASTER + YOUTUBE COMMANDS ==='
+          for u in fgbears-live.service fgbears-youtube-copy-relay.service; do
+            p=$(systemctl show -p MainPID --value "$u" 2>/dev/null || true)
+            if [[ "$p" =~ ^[1-9][0-9]*$ ]] && [[ -r /proc/$p/cmdline ]]; then
+              printf '%s ' "$u"; tr '\0' ' ' < /proc/$p/cmdline | redact; echo
+            fi
+          done
+
+          echo '=== AUDIO FILTER/ENCODE TOKENS IN RUNNING COMMANDS ==='
+          for p in $(pgrep -x ffmpeg || true); do
+            if [[ -r /proc/$p/cmdline ]]; then
+              cmd=$(tr '\0' ' ' < /proc/$p/cmdline)
+              if printf '%s' "$cmd" | grep -Eq -- '-af |filter:a|loudnorm|acompressor|deesser|aresample|volume=|-c:a (aac|libfdk_aac|opus)|anullsrc|alsa|pulse|pipewire'; then
+                printf 'PID=%s ' "$p"; printf '%s\n' "$cmd" | redact
+              fi
+            fi
+          done
+          echo 'AUDIT_COMPLETE=yes'
+          REMOTE
