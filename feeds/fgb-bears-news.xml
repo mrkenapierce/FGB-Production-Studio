@@ -5,58 +5,78 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 07 Sep 2026 04:32:34 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 07 Sep 2026 15:15:32 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Matt Suhey, Popular 1985 Chicago Bears Super Bowl Champion, Passes Away</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Matt Suhey, Popular 1985 Chicago Bears Super Bowl Champion, Passes Away</description>
-      <link>https://sports.yahoo.com/articles/matt-suhey-popular-1985-chicago-025232638.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c3093bcea03c3a0e07ce</guid>
-      <pubDate>Mon, 07 Sep 2026 02:52:32 GMT</pubDate>
+      <title>Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Panthers-Bears, Packers-Vikings markets</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Panthers-Bears, Packers-Vikings markets</description>
+      <link>https://www.cbssports.com/prediction/news/week-1-nfl-picks-predictions-kalshi-polymarket-underdog-panthers-bears-packers-vikings-markets/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6fae38906232bb5f48ed</guid>
+      <pubDate>Mon, 07 Sep 2026 14:05:56 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Matt Suhey, member of Super Bowl-winning &apos;85 Bears and lead blocker for Walter Payton, dies at 68</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Matt Suhey, member of Super Bowl-winning &apos;85 Bears and lead blocker for Walter Payton, dies at 68</description>
+      <link>https://sports.yahoo.com/nfl/article/matt-suhey-member-of-super-bowl-winning-85-bears-and-lead-blocker-for-walter-payton-dies-at-68-134412097.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b75f44e4a2ca67b471bf</guid>
+      <pubDate>Mon, 07 Sep 2026 13:44:12 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears could be in position for a surprising trade at the deadline</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears could be in position for a surprising trade at the deadline</description>
-      <link>https://sports.yahoo.com/articles/bears-could-position-surprising-trade-230001405.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a02d6b107cc050dfec90</guid>
-      <pubDate>Sun, 06 Sep 2026 16:00:00 GMT</pubDate>
+      <title>2026 NFL Week 1 early odds: Cowboys road favorites vs. Giants, while Panthers in familiar position vs. Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: 2026 NFL Week 1 early odds: Cowboys road favorites vs. Giants, while Panthers in familiar position vs. Bears</description>
+      <link>https://www.cbssports.com/nfl/news/2026-nfl-week-1-early-odds-cowboys-road-favorites-vs-giants-while-panthers-in-familiar-position-vs-bears/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d7effd2d9b461872ad0b</guid>
+      <pubDate>Mon, 07 Sep 2026 12:56:01 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
-      <title>The Bears Defense Faces Carolina with a Few Old Issues and a New One</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Bears Defense Faces Carolina with a Few Old Issues and a New One</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-bears-defense-faces-carolina-with-a-few-old-issues-and-a-new-one</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e08a76d3ccaf150e5677</guid>
-      <pubDate>Sun, 06 Sep 2026 14:01:00 GMT</pubDate>
+      <title>Can the 2026 Chicago Bears Boast Their Best Offense in Franchise History?</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Can the 2026 Chicago Bears Boast Their Best Offense in Franchise History?</description>
+      <link>https://www.si.com/nfl/bears/onsi/can-the-2026-chicago-bears-boast-their-best-offense-in-franchise-history</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-68c1f119c09746ab3bf5</guid>
+      <pubDate>Mon, 07 Sep 2026 07:53:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Predicting Superlatives For Chicago Bears 2026 NFL Season</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Predicting Superlatives For Chicago Bears 2026 NFL Season</description>
-      <link>https://www.si.com/nfl/bears/onsi/predicting-superlatives-for-chicago-bears-2026-nfl-season</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-099f4dc99b9da6ad46e4</guid>
-      <pubDate>Sun, 06 Sep 2026 11:30:00 GMT</pubDate>
+      <title>Projecting Week 1 Roles For Jordan van den Berg and Rest of Chicago Bears Rookies</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Projecting Week 1 Roles For Jordan van den Berg and Rest of Chicago Bears Rookies</description>
+      <link>https://www.si.com/nfl/bears/onsi/projecting-week-1-roles-for-jordan-van-den-berg-and-rest-of-chicago-bears-rookies</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4e019300c18bd99d55ed</guid>
+      <pubDate>Mon, 07 Sep 2026 05:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Bears&apos; Jonah Jackson: D&apos;Andre Swift &apos;seems to be finding another gear&apos; in Year 2 under Ben Johnson</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears&apos; Jonah Jackson: D&apos;Andre Swift &apos;seems to be finding another gear&apos; in Year 2 under Ben Johnson</description>
-      <link>https://www.nfl.com/news/bears-jonah-jackson-d-andre-swift-seems-to-be-finding-another-gear-in-year-2-under-ben-johnson</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-831ad89ff6869d58d4c6</guid>
-      <pubDate>Sun, 06 Sep 2026 04:16:00 GMT</pubDate>
+      <title>Bears&apos; offseason party is over as toughest schedule looms</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; offseason party is over as toughest schedule looms</description>
+      <link>https://www.espn.com/nfl/story/_/id/49850796/chicago-bears-offseason-party-toughest-2026-nfl-schedule-looms</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4390bb84859479c131ba</guid>
+      <pubDate>Mon, 07 Sep 2026 04:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Bears QB Caleb Williams ready for 2026 season, but loss to Rams still burns</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears QB Caleb Williams ready for 2026 season, but loss to Rams still burns</description>
+      <link>https://www.nytimes.com/athletic/7565645/2026/09/07/bears-caleb-williams-ben-johnson-2025-memories/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f0382e4f180b3336dd77</guid>
+      <pubDate>Mon, 07 Sep 2026 03:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -65,26 +85,6 @@
       <link>https://www.chicagobears.com/news/bears-training-camp-diaries-with-sam-roush-neville-gallimore-week-5</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-be6abf7d92b60410ebb6</guid>
       <pubDate>Thu, 03 Sep 2026 21:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Panthers-Bears, Vikings-Packers markets</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Panthers-Bears, Vikings-Packers markets</description>
-      <link>https://www.cbssports.com/prediction/news/week-1-nfl-picks-predictions-kalshi-polymarket-underdog-panthers-bears-vikings-packers-markets/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fd6c0048752d1fc7e9c3</guid>
-      <pubDate>Thu, 03 Sep 2026 17:11:21 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Open Applications for 2026 Community All-Pros $107,000 Grant</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears Open Applications for 2026 Community All-Pros $107,000 Grant</description>
-      <link>https://www.chicagobears.com/news/chicago-bears-open-applications-for-2026-community-all-pros-107-000-grant</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9696151b86a866db1d74</guid>
-      <pubDate>Thu, 03 Sep 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
