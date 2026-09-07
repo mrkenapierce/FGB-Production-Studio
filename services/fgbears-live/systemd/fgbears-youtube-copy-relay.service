@@ -1,6 +1,6 @@
 [Unit]
 Description=FGBears YouTube RTMPS copy-remux relay
-After=network-online.target fgbears-rumble-relay.service
+After=network-online.target fgbears-live.service
 Wants=network-online.target
 StartLimitIntervalSec=30min
 StartLimitBurst=6
