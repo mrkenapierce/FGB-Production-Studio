@@ -56,11 +56,7 @@ jobs:
 
           echo "CURRENT_EPISODE=$ep"
           echo "PRODUCTION_PATH=$production"
-          if [[ -s "$original" ]]; then
-            echo "ORIGINAL_MASTER_PRESENT=yes"
-          else
-            echo "ORIGINAL_MASTER_PRESENT=no"
-          fi
+          [[ -s "$original" ]] && echo 'ORIGINAL_MASTER_PRESENT=yes' || echo 'ORIGINAL_MASTER_PRESENT=no'
 
           echo '=== AUDIO TECHNICAL PROPERTIES ==='
           echo -n 'PRODUCTION_AUDIO='
@@ -70,13 +66,39 @@ jobs:
             ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,bit_rate -of csv=p=0 "$original"
           fi
 
+          echo '=== LIVE YOUTUBE RELAY TOPOLOGY ==='
+          systemctl is-active fgbears-youtube-copy-relay.service || true
+          ytmain=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service 2>/dev/null || true)
+          ytff=''
+          if [[ "$ytmain" =~ ^[1-9][0-9]*$ ]]; then
+            ytff=$(pgrep -P "$ytmain" -x ffmpeg | head -n1 || true)
+            [[ -z "$ytff" ]] && [[ "$(cat /proc/$ytmain/comm 2>/dev/null || true)" == ffmpeg ]] && ytff=$ytmain
+          fi
+          echo "YOUTUBE_SERVICE_MAINPID=${ytmain:-UNKNOWN}"
+          echo "YOUTUBE_FFMPEG_PID=${ytff:-UNKNOWN}"
+          input_port=''
+          if [[ -n "$ytff" && -r "/proc/$ytff/cmdline" ]]; then
+            cmd=$(tr '\0' ' ' < "/proc/$ytff/cmdline")
+            safe=$(printf '%s\n' "$cmd" | sed -E 's#(rtmps?://[^/]+/live2/)[^ ]+#\1[REDACTED]#g')
+            echo "YOUTUBE_CMD=$safe"
+            input_port=$(printf '%s\n' "$cmd" | sed -nE 's#.*udp://(127\.0\.0\.1|localhost):([0-9]+).*#\2#p' | head -n1)
+          fi
+          echo "YOUTUBE_INPUT_PORT=${input_port:-UNKNOWN}"
+          echo 'UDP_SOCKETS_RELEVANT_BEGIN'
+          ss -u -a -n -p 2>/dev/null | grep -E ':(1940|1941|1942|1943)\b|fgbears|ffmpeg' | sed -E 's#(rtmps?://[^/]+/live2/)[^ ]+#\1[REDACTED]#g' || true
+          echo 'UDP_SOCKETS_RELEVANT_END'
+
+          if [[ -z "$input_port" ]]; then
+            echo 'RESULT=YOUTUBE_INPUT_PORT_NOT_FOUND'
+            exit 0
+          fi
           if ! command -v tcpdump >/dev/null 2>&1; then
-            echo 'YOUTUBE_INPUT_CAPTURE=UNAVAILABLE_TCPDUMP_MISSING'
+            echo 'RESULT=TCPDUMP_MISSING'
             exit 0
           fi
 
-          echo '=== PASSIVE CAPTURE OF YOUTUBE INPUT UDP 1942 ==='
-          sudo timeout 14 tcpdump -q -i lo -s 0 -U -w "$TMP/youtube-input.pcap" 'udp dst port 1942' >/dev/null 2>&1 || true
+          echo "=== PASSIVE CAPTURE OF YOUTUBE INPUT UDP $input_port ==="
+          sudo timeout 14 tcpdump -q -i lo -s 0 -U -w "$TMP/youtube-input.pcap" "udp dst port $input_port" >/dev/null 2>&1 || true
           sudo chown "$USER":"$USER" "$TMP/youtube-input.pcap" 2>/dev/null || true
           current_after=$(current_media)
           echo "CURRENT_AFTER=${current_after:-UNKNOWN}"
@@ -87,120 +109,84 @@ jobs:
           fi
           echo 'SEGMENT_STABLE=yes'
 
-          python3 - "$TMP/youtube-input.pcap" "$TMP/youtube-input.ts" <<'PY'
+          python3 - "$TMP/youtube-input.pcap" "$TMP/youtube-input.ts" "$input_port" <<'PY'
           import struct, sys
-          src, out = sys.argv[1:]
-          data = open(src,'rb').read()
-          if len(data) < 24:
-              raise SystemExit('pcap too small')
+          src, out, port_s = sys.argv[1:]
+          port=int(port_s)
+          data=open(src,'rb').read()
+          if len(data)<24: raise SystemExit('pcap too small')
           magic=data[:4]
-          if magic in (b'\xd4\xc3\xb2\xa1', b'\x4d\x3c\xb2\xa1'):
-              e='<'
-          elif magic in (b'\xa1\xb2\xc3\xd4', b'\xa1\xb2\x3c\x4d'):
-              e='>'
-          else:
-              raise SystemExit(f'unknown pcap magic {magic.hex()}')
-          linktype=struct.unpack(e+'I', data[20:24])[0]
+          if magic in (b'\xd4\xc3\xb2\xa1', b'\x4d\x3c\xb2\xa1'): e='<'
+          elif magic in (b'\xa1\xb2\xc3\xd4', b'\xa1\xb2\x3c\x4d'): e='>'
+          else: raise SystemExit(f'unknown pcap magic {magic.hex()}')
+          linktype=struct.unpack(e+'I',data[20:24])[0]
           pos=24; payloads=[]; packets=0
-          while pos+16 <= len(data):
-              _,_,incl,_=struct.unpack(e+'IIII', data[pos:pos+16]); pos += 16
-              pkt=data[pos:pos+incl]; pos += incl
-              if len(pkt) < 20: continue
-              off=None; proto=None
-              if linktype == 1:  # Ethernet
-                  if len(pkt) < 14: continue
+          while pos+16<=len(data):
+              _,_,incl,_=struct.unpack(e+'IIII',data[pos:pos+16]); pos+=16
+              pkt=data[pos:pos+incl]; pos+=incl
+              if len(pkt)<20: continue
+              if linktype==1:
+                  if len(pkt)<14: continue
                   eth=struct.unpack('!H',pkt[12:14])[0]; off=14
-                  if eth == 0x8100 and len(pkt)>=18:
+                  if eth==0x8100 and len(pkt)>=18:
                       eth=struct.unpack('!H',pkt[16:18])[0]; off=18
-                  if eth != 0x0800: continue
-              elif linktype == 113:  # Linux cooked v1
-                  if len(pkt)<16 or struct.unpack('!H',pkt[14:16])[0] != 0x0800: continue
+                  if eth!=0x0800: continue
+              elif linktype==113:
+                  if len(pkt)<16 or struct.unpack('!H',pkt[14:16])[0]!=0x0800: continue
                   off=16
-              elif linktype == 276:  # Linux cooked v2
-                  if len(pkt)<20 or struct.unpack('!H',pkt[0:2])[0] != 0x0800: continue
+              elif linktype==276:
+                  if len(pkt)<20 or struct.unpack('!H',pkt[0:2])[0]!=0x0800: continue
                   off=20
-              elif linktype in (101, 12):
-                  off=0
-              else:
-                  continue
-              if len(pkt) < off+20: continue
-              vihl=pkt[off]
-              if (vihl>>4) != 4: continue
-              ihl=(vihl & 0x0f)*4
-              if len(pkt) < off+ihl+8 or pkt[off+9] != 17: continue
-              u=off+ihl
-              sport,dport,ulen,_=struct.unpack('!HHHH',pkt[u:u+8])
-              if dport != 1942: continue
+              elif linktype in (101,12): off=0
+              else: continue
+              if len(pkt)<off+20 or (pkt[off]>>4)!=4 or pkt[off+9]!=17: continue
+              ihl=(pkt[off]&0x0f)*4; u=off+ihl
+              if len(pkt)<u+8: continue
+              _,dport,ulen,_=struct.unpack('!HHHH',pkt[u:u+8])
+              if dport!=port: continue
               pl=pkt[u+8:u+ulen]
-              if pl:
-                  payloads.append(pl); packets += 1
+              if pl: payloads.append(pl); packets+=1
           blob=b''.join(payloads)
           open(out,'wb').write(blob)
           print(f'PCAP_LINKTYPE={linktype}')
           print(f'YOUTUBE_INPUT_UDP_PACKETS={packets}')
           print(f'YOUTUBE_INPUT_TS_BYTES={len(blob)}')
-          if len(blob) < 188*20:
-              raise SystemExit('insufficient MPEG-TS payload')
+          if len(blob)<188*20: raise SystemExit('insufficient MPEG-TS payload')
           PY
 
-          ffmpeg -hide_banner -loglevel error -y -probesize 10M -analyzeduration 10M \
-            -i "$TMP/youtube-input.ts" -map 0:a:0 -c:a copy -f adts "$TMP/live.aac"
-          ffmpeg -hide_banner -loglevel error -y \
-            -i "$production" -map 0:a:0 -c:a copy -f adts "$TMP/prod.aac"
-
+          ffmpeg -hide_banner -loglevel error -y -probesize 10M -analyzeduration 10M -i "$TMP/youtube-input.ts" -map 0:a:0 -c:a copy -f adts "$TMP/live.aac"
+          ffmpeg -hide_banner -loglevel error -y -i "$production" -map 0:a:0 -c:a copy -f adts "$TMP/prod.aac"
           sample_rate=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nw=1:nk=1 "$production")
+
           python3 - "$TMP/prod.aac" "$TMP/live.aac" "$sample_rate" "$TMP/match.env" <<'PY'
-          import hashlib, sys
-          prod_path, live_path, sr_s, env_path = sys.argv[1:]
-          sr=int(sr_s)
+          import hashlib,sys
+          prod_path,live_path,sr_s,env_path=sys.argv[1:]; sr=int(sr_s)
           def frames(path):
               b=open(path,'rb').read(); out=[]; i=0
-              while i+7 <= len(b):
-                  if not (b[i]==0xff and (b[i+1]&0xf6)==0xf0):
-                      i += 1; continue
-                  protection_absent=b[i+1]&1
-                  fl=((b[i+3]&3)<<11)|(b[i+4]<<3)|((b[i+5]&0xe0)>>5)
-                  h=7 if protection_absent else 9
-                  if fl < h or i+fl > len(b): break
-                  payload=b[i+h:i+fl]
-                  out.append(hashlib.sha256(payload).digest())
-                  i += fl
+              while i+7<=len(b):
+                  if not (b[i]==0xff and (b[i+1]&0xf6)==0xf0): i+=1; continue
+                  pa=b[i+1]&1; fl=((b[i+3]&3)<<11)|(b[i+4]<<3)|((b[i+5]&0xe0)>>5); h=7 if pa else 9
+                  if fl<h or i+fl>len(b): break
+                  out.append(hashlib.sha256(b[i+h:i+fl]).digest()); i+=fl
               return out
           p=frames(prod_path); l=frames(live_path)
-          print(f'PRODUCTION_AAC_FRAMES={len(p)}')
-          print(f'LIVE_AAC_FRAMES={len(l)}')
-          if len(l)<20:
-              raise SystemExit('not enough live AAC frames')
-          skip=min(5,max(0,len(l)//20))
-          window=min(50,len(l)-skip)
-          needle=l[skip:skip+window]
+          print(f'PRODUCTION_AAC_FRAMES={len(p)}'); print(f'LIVE_AAC_FRAMES={len(l)}')
+          if len(l)<20: raise SystemExit('not enough live AAC frames')
+          skip=min(5,max(0,len(l)//20)); window=min(50,len(l)-skip); needle=l[skip:skip+window]
           found=-1
-          first=needle[0]
           for i,h in enumerate(p):
-              if h==first and p[i:i+window]==needle:
-                  found=i; break
+              if h==needle[0] and p[i:i+window]==needle: found=i; break
           if found<0:
-              print('PACKET_COPY_MATCH=no')
-              open(env_path,'w').write('PACKET_COPY_MATCH=no\n')
-              raise SystemExit(0)
-          prod_start=found-skip
-          matched=0; compared=0
+              print('PACKET_COPY_MATCH=no'); open(env_path,'w').write('PACKET_COPY_MATCH=no\n'); raise SystemExit(0)
+          prod_start=found-skip; matched=compared=0
           for j,h in enumerate(l):
               i=prod_start+j
-              if i<0 or i>=len(p): continue
-              compared += 1
-              if p[i]==h: matched += 1
-          offset=max(0,prod_start)*1024.0/sr
-          ratio=(100.0*matched/compared) if compared else 0.0
-          print('PACKET_COPY_MATCH=yes')
-          print(f'PRODUCTION_MATCH_FRAME={max(0,prod_start)}')
-          print(f'PRODUCTION_MATCH_OFFSET_SEC={offset:.3f}')
-          print(f'MATCHED_AAC_FRAMES={matched}/{compared}')
-          print(f'AAC_FRAME_IDENTITY_PCT={ratio:.2f}')
+              if 0<=i<len(p):
+                  compared+=1; matched += (p[i]==h)
+          offset=max(0,prod_start)*1024.0/sr; ratio=100.0*matched/compared if compared else 0.0
+          print('PACKET_COPY_MATCH=yes'); print(f'PRODUCTION_MATCH_OFFSET_SEC={offset:.3f}'); print(f'MATCHED_AAC_FRAMES={matched}/{compared}'); print(f'AAC_FRAME_IDENTITY_PCT={ratio:.2f}')
           with open(env_path,'w') as f:
-              f.write('PACKET_COPY_MATCH=yes\n')
-              f.write(f'PRODUCTION_MATCH_OFFSET_SEC={offset:.3f}\n')
-              f.write(f'AAC_FRAME_IDENTITY_PCT={ratio:.2f}\n')
+              f.write('PACKET_COPY_MATCH=yes\n'); f.write(f'PRODUCTION_MATCH_OFFSET_SEC={offset:.3f}\n'); f.write(f'AAC_FRAME_IDENTITY_PCT={ratio:.2f}\n')
           PY
 
           . "$TMP/match.env"
@@ -208,68 +194,35 @@ jobs:
             echo 'RESULT=YOUTUBE_INPUT_NOT_BYTE_IDENTICAL_TO_PRODUCTION'
             exit 0
           fi
-
           start=$(python3 - <<PY
-          x=float('${PRODUCTION_MATCH_OFFSET_SEC}')
-          print(f'{x+1.0:.3f}')
+          print(f"{float('${PRODUCTION_MATCH_OFFSET_SEC}')+1.0:.3f}")
           PY
           )
           duration=10
           echo "COMPARISON_START_SEC=$start"
           echo "COMPARISON_DURATION_SEC=$duration"
 
-          loudness() {
-            label=$1; file=$2
-            log="$TMP/${label}.loudnorm.log"
-            ffmpeg -hide_banner -nostats -ss "$start" -t "$duration" -i "$file" -vn \
-              -af 'loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json' -f null - 2>"$log" || true
+          measure_loudness() {
+            label=$1; file=$2; seek=$3
+            log="$TMP/${label}.log"
+            ffmpeg -hide_banner -nostats -ss "$seek" -t "$duration" -i "$file" -vn -af 'loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json' -f null - 2>"$log" || true
             python3 - "$label" "$log" <<'PY'
           import json,re,sys
-          label,path=sys.argv[1:]
-          s=open(path,errors='ignore').read()
-          blocks=re.findall(r'\{\s*"input_i".*?\}',s,re.S)
-          if not blocks:
-              print(f'{label.upper()}_LOUDNESS=UNAVAILABLE'); raise SystemExit
-          d=json.loads(blocks[-1])
-          print(f"{label.upper()}_I_LUFS={d.get('input_i')}")
-          print(f"{label.upper()}_TP_DBTP={d.get('input_tp')}")
-          print(f"{label.upper()}_LRA_LU={d.get('input_lra')}")
-          print(f"{label.upper()}_THRESHOLD_LUFS={d.get('input_thresh')}")
+          label,path=sys.argv[1:]; s=open(path,errors='ignore').read(); b=re.findall(r'\{\s*"input_i".*?\}',s,re.S)
+          if not b: print(f'{label.upper()}_LOUDNESS=UNAVAILABLE')
+          else:
+              d=json.loads(b[-1]); print(f"{label.upper()}_I_LUFS={d.get('input_i')}"); print(f"{label.upper()}_TP_DBTP={d.get('input_tp')}"); print(f"{label.upper()}_LRA_LU={d.get('input_lra')}")
           PY
           }
 
           echo '=== SAME-SECTION LOUDNESS ==='
-          loudness production "$production"
-          if [[ -s "$original" ]]; then loudness original "$original"; fi
-          # The captured YouTube-input segment begins near its own zero point; measure it directly.
-          live_log="$TMP/live.loudnorm.log"
-          ffmpeg -hide_banner -nostats -i "$TMP/youtube-input.ts" -vn -t 10 \
-            -af 'loudnorm=I=-14:TP=-1.5:LRA=11:print_format=json' -f null - 2>"$live_log" || true
-          python3 - "$live_log" <<'PY'
-          import json,re,sys
-          s=open(sys.argv[1],errors='ignore').read(); b=re.findall(r'\{\s*"input_i".*?\}',s,re.S)
-          if not b: print('YOUTUBE_INPUT_LOUDNESS=UNAVAILABLE')
-          else:
-              d=json.loads(b[-1])
-              print(f"YOUTUBE_INPUT_I_LUFS={d.get('input_i')}")
-              print(f"YOUTUBE_INPUT_TP_DBTP={d.get('input_tp')}")
-              print(f"YOUTUBE_INPUT_LRA_LU={d.get('input_lra')}")
-          PY
+          measure_loudness production "$production" "$start"
+          if [[ -s "$original" ]]; then measure_loudness original "$original" "$start"; fi
+          measure_loudness youtube_input "$TMP/youtube-input.ts" 1
 
           echo '=== MASTERING MARKER ==='
           marker="${production}.audio-profile.json"
-          if [[ -s "$marker" ]]; then
-            jq -c '{profile,mastered,mastering_chain,target_i_lufs,target_tp_dbtp,measured_i_lufs,measured_tp_dbtp,sample_rate_hz,audio_bitrate_kbps}' "$marker"
-          else
-            echo 'MASTERING_MARKER=missing'
-          fi
+          if [[ -s "$marker" ]]; then jq -c '{profile,mastered,mastering_chain,target_i_lufs,target_tp_dbtp,measured_i_lufs,measured_tp_dbtp,sample_rate_hz,audio_bitrate_kbps}' "$marker"; else echo 'MASTERING_MARKER=missing'; fi
 
-          echo '=== TRANSPORT HEALTH ==='
-          ss -u -a -n -i 2>/dev/null | grep -A2 -B1 ':1942' || true
-          systemctl is-active fgbears-youtube-copy-relay.service || true
-          ytpid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service 2>/dev/null || true)
-          if [[ "$ytpid" =~ ^[1-9][0-9]*$ ]]; then
-            ps -o pid=,etime=,pcpu=,pmem=,cmd= -p "$ytpid" | sed -E 's#(rtmps?://[^/]+/live2/)[^ ]+#\1[REDACTED]#g' || true
-          fi
           echo 'RESULT=COMPARISON_COMPLETE'
           REMOTE
