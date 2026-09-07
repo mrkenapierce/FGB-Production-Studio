@@ -53,9 +53,12 @@ install -m 0755 /opt/fgbears-live/bin/rebuild-playlist.sh /usr/local/bin/fgbears
 install -m 0755 /opt/fgbears-live/bin/healthcheck.sh /usr/local/bin/fgbears-healthcheck
 install -m 0755 /opt/fgbears-live/bin/audio-health.py /usr/local/bin/fgbears-audio-health
 install -m 0755 /opt/fgbears-live/bin/stream-status.sh /usr/local/bin/fgbears-stream-status
+install -m 0755 /opt/fgbears-live/tools/prepare-episode-v3.py /usr/local/bin/fgbears-prepare-v3
+install -m 0755 /opt/fgbears-live/bin/add-episode-v3.sh /usr/local/bin/fgbears-add-episode
 
-# Legacy destination and audio-mastering entry points are deliberately absent.
-rm -f /usr/local/bin/fgbears-rumble-relay /usr/local/bin/fgbears-configure-rumble /usr/local/bin/fgbears-normalize /usr/local/bin/fgbears-add-episode
+# Retired v2 mastering entry points stay absent. The only active ingest path is
+# fgbears-add-episode -> fgbears-prepare-v3 (constant gain + transport conversion).
+rm -f /usr/local/bin/fgbears-rumble-relay /usr/local/bin/fgbears-configure-rumble /usr/local/bin/fgbears-normalize
 rm -f /opt/fgbears-live/bin/normalize-library.sh /opt/fgbears-live/bin/normalize-resilient.sh /opt/fgbears-live/bin/add-episode.sh
 
 install -m 0644 /opt/fgbears-live/systemd/fgbears-live.service /etc/systemd/system/fgbears-live.service
@@ -101,4 +104,4 @@ systemctl enable fgbears-live.service fgbears-youtube-copy-relay.service >/dev/n
 systemctl enable --now fgbears-live-health.timer >/dev/null
 if systemctl cat fgbears-news-refresh.timer >/dev/null 2>&1; then systemctl enable --now fgbears-news-refresh.timer >/dev/null; fi
 
-echo 'Installed current FGBears YouTube-only control files. Rumble, retired YouTube generations, and legacy audio mastering remain quarantined. No live media process was restarted.'
+echo 'Installed FGBears YouTube-only controls with clean-static-v3 episode ingest. Rumble, retired YouTube generations, and v2 mastering remain quarantined. No live media process was restarted.'
