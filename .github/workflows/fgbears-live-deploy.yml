@@ -2,19 +2,6 @@ name: Deploy FGBears Shared Program
 
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - 'services/fgbears-live/**'
-      - '!services/fgbears-live/youtube-v3/**'
-      - '!services/fgbears-live/quarantine/**'
-      - '!services/fgbears-live/bin/install.sh'
-      - '!services/fgbears-live/bin/healthcheck.sh'
-      - '!services/fgbears-live/bin/rumble-relay.sh'
-      - '!services/fgbears-live/bin/youtube-*'
-      - '!services/fgbears-live/bin/finalize-youtube-only.py'
-      - '!services/fgbears-live/systemd/fgbears-youtube-*'
-      - '!services/fgbears-live/tests/test-youtube-*'
 
 permissions:
   contents: read
@@ -33,17 +20,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate shared deployment boundary
+      - name: Validate current YouTube-only deployment boundary
         run: |
           set -Eeuo pipefail
           bash -n services/fgbears-live/bin/install.sh
           bash -n services/fgbears-live/bin/start-stream.sh
-          bash -n services/fgbears-live/bin/rumble-relay.sh
-          ! grep -Eq 'install .*youtube-relay|enable .*youtube-relay|restart .*youtube-relay' services/fgbears-live/bin/install.sh
-          ! grep -Eq 'install .*youtube-audio-watchdog|enable .*youtube-audio-watchdog|restart .*youtube-audio-watchdog' services/fgbears-live/bin/install.sh
-          grep -Fq 'fgbears-youtube-v3.service' services/fgbears-live/bin/install.sh
-          ! grep -Fq 'systemctl enable fgbears-youtube-v2.service' services/fgbears-live/bin/install.sh
-          echo 'SHARED_DEPLOY_BOUNDARY=PASS'
+          bash -n services/fgbears-live/bin/healthcheck.sh
+          bash -n services/fgbears-live/bin/youtube-copy-relay.sh
+          ! grep -Eq 'systemctl (enable|start|restart).*fgbears-rumble' services/fgbears-live/bin/install.sh
+          ! grep -Eq 'systemctl (enable|start|restart).*fgbears-youtube-(v2|v3|router|output|relay|lovable|dynamic|freeze)' services/fgbears-live/bin/install.sh
+          ! grep -Eq 'fgbears-normalize|normalize-library|normalize-resilient' services/fgbears-live/bin/install.sh
+          grep -Fq 'fgbears-youtube-copy-relay.service' services/fgbears-live/bin/install.sh
+          echo 'CURRENT_TOPOLOGY_BOUNDARY=PASS'
 
       - name: Configure Oracle SSH
         env:
@@ -58,82 +46,30 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Install shared program while preserving destination transports
+      - name: Install files without restarting live media
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-          dump_master_diagnostics(){
-            echo '=== FGBEARS MASTER STATUS ===' >&2
-            sudo systemctl status fgbears-live.service --no-pager -l >&2 || true
-            echo '=== FGBEARS MASTER JOURNAL ===' >&2
-            sudo journalctl -u fgbears-live.service -n 160 --no-pager >&2 || true
-            echo '=== OVERLAY HEALTH ===' >&2
-            for port in 8787 8788 8789; do
-              printf 'port_%s=' "$port" >&2
-              curl --silent --show-error --max-time 2 "http://127.0.0.1:${port}/healthz" >&2 || true
-              printf '\n' >&2
-            done
-          }
-
-          youtube_before=$(pid fgbears-youtube-v3.service)
-          rumble_before=$(pid fgbears-rumble-relay.service)
-          [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]] || { echo "YouTube v3 is not active"; exit 1; }
-          [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]] || { echo "Rumble relay is not active"; exit 1; }
+          master_before=$(pid fgbears-live.service)
+          youtube_before=$(pid fgbears-youtube-copy-relay.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]] || { echo 'Master is not active' >&2; exit 1; }
+          [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]] || { echo 'YouTube copy relay is not active' >&2; exit 1; }
 
           rm -rf /tmp/fgbears-shared-deploy
           git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-shared-deploy
           sudo bash /tmp/fgbears-shared-deploy/services/fgbears-live/bin/install.sh
 
-          # Only the shared master needs a restart. Destination relays remain
-          # connected and consume the resumed local UDP program immediately.
-          sudo systemctl reset-failed fgbears-live.service
-          if ! sudo systemctl restart fgbears-live.service; then
-            dump_master_diagnostics
-            exit 1
-          fi
+          master_after=$(pid fgbears-live.service)
+          youtube_after=$(pid fgbears-youtube-copy-relay.service)
+          test "$master_after" = "$master_before" || { echo "Installer restarted master: $master_before -> $master_after" >&2; exit 1; }
+          test "$youtube_after" = "$youtube_before" || { echo "Installer restarted YouTube: $youtube_before -> $youtube_after" >&2; exit 1; }
 
-          healthy=0
-          for _ in $(seq 1 30); do
-            if systemctl is-active --quiet fgbears-live.service &&
-               systemctl is-active --quiet fgbears-rumble-relay.service &&
-               systemctl is-active --quiet fgbears-youtube-v3.service; then
-              healthy=1
-              break
-            fi
-            sleep 1
+          [[ "$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)" == masked* ]] || { echo 'Rumble is not masked' >&2; exit 1; }
+          for unit in fgbears-youtube-v2.service fgbears-youtube-v3.service fgbears-youtube-output.service fgbears-youtube-relay.service fgbears-youtube-router.service fgbears-youtube-lovable-routing.service fgbears-youtube-lovable-compositor.service fgbears-youtube-audio-watchdog.service fgbears-youtube-audio-watchdog.timer; do
+            [[ "$(systemctl is-enabled "$unit" 2>/dev/null || true)" == masked* ]] || { echo "Retired unit not masked: $unit" >&2; exit 1; }
           done
-          if [[ "$healthy" != 1 ]]; then
-            dump_master_diagnostics
-            exit 1
-          fi
-
-          youtube_after=$(pid fgbears-youtube-v3.service)
-          rumble_after=$(pid fgbears-rumble-relay.service)
-          test "$youtube_after" = "$youtube_before" || {
-            echo "Shared deployment changed YouTube v3 PID: $youtube_before -> $youtube_after" >&2
-            exit 1
-          }
-          test "$rumble_after" = "$rumble_before" || {
-            echo "Shared deployment changed Rumble relay PID: $rumble_before -> $rumble_after" >&2
-            exit 1
-          }
-
-          for unit in \
-            fgbears-youtube-v2.service \
-            fgbears-youtube-output.service \
-            fgbears-youtube-relay.service \
-            fgbears-youtube-router.service \
-            fgbears-youtube-lovable-routing.service \
-            fgbears-youtube-lovable-compositor.service \
-            fgbears-youtube-audio-watchdog.service \
-            fgbears-youtube-audio-watchdog.timer
-          do
-            state=$(systemctl is-enabled "$unit" 2>/dev/null || true)
-            [[ "$state" == masked* ]] || { echo "Retired unit not masked: $unit ($state)" >&2; exit 1; }
-          done
-
-          echo "SHARED_DEPLOY=PASS rumble_pid_unchanged=$rumble_after youtube_v3_pid_unchanged=$youtube_after"
+          echo "SHARED_INSTALL=PASS master_pid_unchanged=$master_after youtube_pid_unchanged=$youtube_after"
           REMOTE
