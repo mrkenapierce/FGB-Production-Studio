@@ -1,0 +1,33 @@
+name: Probe Unlock Me Source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-unlock-me-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Find official MP3 asset URL
+        run: |
+          set -Eeuo pipefail
+          page='https://pixabay.com/music/upbeat-unlock-me-amapiano-music-149058/'
+          curl -LfsS -A 'Mozilla/5.0' "$page" -o /tmp/page.html
+          echo 'PAGE_BYTES='$(wc -c </tmp/page.html)
+          python3 - <<'PY'
+          import re, html
+          s=open('/tmp/page.html',encoding='utf-8',errors='ignore').read()
+          urls=[]
+          for m in re.finditer(r'https?[^"\047 <>]+(?:\.mp3)(?:\?[^"\047 <>]*)?', s, re.I):
+              u=html.unescape(m.group(0)).replace('\\u0026','&')
+              if u not in urls: urls.append(u)
+          for u in urls[:30]: print('MP3_URL='+u)
+          print('MP3_URL_COUNT='+str(len(urls)))
+          PY
