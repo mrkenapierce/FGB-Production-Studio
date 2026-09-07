@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
       - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -31,53 +32,6 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_USER: ubuntu
         run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'python3 - <<'"'"'PY'"'"'
-          import json, os, re, subprocess, glob
-          orig_dir="/home/ubuntu/fgbears-upload"
-          prod_dir="/srv/fgbears-live/media"
-          def probe(path):
-              cmd=["ffprobe","-v","error","-show_entries","format=duration:stream=index,codec_type,codec_name,sample_rate,channels,bit_rate,width,height,r_frame_rate,pix_fmt","-of","json",path]
-              try:
-                  d=json.loads(subprocess.check_output(cmd,text=True))
-              except Exception as e:
-                  return {"error":str(e)}
-              a=next((s for s in d.get("streams",[]) if s.get("codec_type")=="audio"),{})
-              v=next((s for s in d.get("streams",[]) if s.get("codec_type")=="video"),{})
-              return {
-                  "duration":round(float(d.get("format",{}).get("duration",0) or 0),3),
-                  "audio":{k:a.get(k) for k in ("codec_name","sample_rate","channels","bit_rate")},
-                  "video":{k:v.get(k) for k in ("codec_name","width","height","r_frame_rate","pix_fmt")},
-                  "size":os.path.getsize(path),
-              }
-          def episodes(root):
-              out={}
-              for p in glob.glob(root+"/FGBears-Episode-*.mp4"):
-                  m=re.search(r"Episode-(\d+)\.mp4$",p)
-                  if m: out[int(m.group(1))]=p
-              return out
-          O=episodes(orig_dir); P=episodes(prod_dir)
-          all_eps=sorted(set(O)|set(P))
-          print(f"ORIGINAL_COUNT={len(O)}")
-          print(f"PRODUCTION_COUNT={len(P)}")
-          print("EPISODES="+",".join(map(str,all_eps)))
-          print("MISSING_ORIGINAL="+",".join(map(str,sorted(set(P)-set(O)))))
-          print("MISSING_PRODUCTION="+",".join(map(str,sorted(set(O)-set(P)))))
-          for n in all_eps:
-              rec={"episode":n,"original":probe(O[n]) if n in O else None,"production":probe(P[n]) if n in P else None}
-              print("EP="+json.dumps(rec,separators=(",",":")))
-          mp=int(subprocess.check_output(["systemctl","show","-p","MainPID","--value","fgbears-live.service"],text=True).strip() or 0)
-          cur=[]
-          if mp:
-              try:
-                  fp=int(subprocess.check_output(["pgrep","-P",str(mp),"-x","ffmpeg"],text=True).splitlines()[0])
-                  for fd in glob.glob(f"/proc/{fp}/fd/*"):
-                      try:
-                          t=os.readlink(fd)
-                      except OSError: continue
-                      if t.startswith(prod_dir+"/FGBears-Episode-") and t.endswith(".mp4"): cur.append(t)
-              except Exception: pass
-          print("CURRENT_FILES="+json.dumps(sorted(set(cur))))
-          print("MASTER_PID="+str(mp))
-          yp=int(subprocess.check_output(["systemctl","show","-p","MainPID","--value","fgbears-youtube-copy-relay.service"],text=True).strip() or 0)
-          print("YOUTUBE_PID="+str(yp))
-          PY
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key services/fgbears-live/tools/inventory-audio-remediation.py "$ORACLE_USER@$ORACLE_HOST:/tmp/inventory-audio-remediation.py"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'python3 /tmp/inventory-audio-remediation.py; rc=$?; rm -f /tmp/inventory-audio-remediation.py; exit $rc'
