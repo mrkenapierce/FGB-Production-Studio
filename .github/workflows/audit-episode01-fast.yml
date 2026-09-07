@@ -1,0 +1,63 @@
+name: Fast Audit Episode 01 Sources
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-episode01-fast.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Fast source inventory
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          tmp=$(mktemp)
+          trap 'rm -f "$tmp"' EXIT
+          for root in /home/ubuntu /srv/fgbears-live; do
+            [[ -d "$root" ]] || continue
+            find "$root" -maxdepth 7 -type f \
+              \( -iname '*Episode-01.*' -o -iname '*Episode-1.*' -o -iname '*Episode_01.*' -o -iname '*Episode_1.*' -o -iname '*Ep01.*' -o -iname '*Ep1.*' \) \
+              \( -iname '*.wav' -o -iname '*.aiff' -o -iname '*.aif' -o -iname '*.flac' -o -iname '*.m4a' -o -iname '*.mp3' -o -iname '*.mp4' -o -iname '*.mov' -o -iname '*.aac' \) \
+              -print 2>/dev/null >> "$tmp" || true
+          done
+          sort -u "$tmp" -o "$tmp"
+          echo "CANDIDATE_COUNT=$(wc -l < "$tmp" | tr -d ' ')"
+          while IFS= read -r f; do
+            [[ -s "$f" ]] || continue
+            echo '---'
+            echo "PATH=$f"
+            echo "SIZE=$(stat -c %s "$f")"
+            echo "MTIME=$(stat -c %y "$f")"
+            echo "SHA256=$(sha256sum "$f" | awk '{print $1}')"
+            ffprobe -v error -select_streams a:0 \
+              -show_entries stream=codec_name,sample_fmt,sample_rate,channels,channel_layout,bit_rate,bits_per_raw_sample,duration \
+              -of default=nw=1 "$f" || true
+            ffprobe -v error -show_entries format=format_name,duration,bit_rate -of default=nw=1 "$f" || true
+          done < "$tmp"
+          echo 'FAST_AUDIT_COMPLETE=1'
+          REMOTE
