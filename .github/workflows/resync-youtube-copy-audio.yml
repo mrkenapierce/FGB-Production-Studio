@@ -1,0 +1,83 @@
+name: Resync YouTube Copy Audio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/resync-youtube-copy-audio.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  resync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Restart YouTube copy relay only and verify clean resync
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-rumble-relay.service
+          master_before=$(pid fgbears-live.service)
+          rumble_before=$(pid fgbears-rumble-relay.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]]
+          [[ "$rumble_before" =~ ^[1-9][0-9]*$ ]]
+          sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$rumble_before," 'index($0,p){ok=1} END{exit(ok?0:1)}'
+
+          sudo systemctl restart fgbears-youtube-copy-relay.service
+
+          for _ in $(seq 1 30); do
+            youtube_pid=$(pid fgbears-youtube-copy-relay.service)
+            if [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]] && \
+               sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$youtube_pid," 'index($0,p){ok=1} END{exit(ok?0:1)}'; then
+              break
+            fi
+            sleep 1
+          done
+
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          youtube_after=$(pid fgbears-youtube-copy-relay.service)
+          [[ "$youtube_after" =~ ^[1-9][0-9]*$ ]]
+          sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$youtube_after," 'index($0,p){ok=1} END{exit(ok?0:1)}'
+
+          master_after=$(pid fgbears-live.service)
+          rumble_after=$(pid fgbears-rumble-relay.service)
+          test "$master_after" = "$master_before"
+          test "$rumble_after" = "$rumble_before"
+
+          cmd=$(tr '\0' ' ' < "/proc/$youtube_after/cmdline")
+          [[ "$cmd" == *'-c copy'* ]]
+          [[ "$cmd" != *'libx264'* ]]
+          [[ "$cmd" != *'filter_complex'* ]]
+
+          sleep 8
+          since=$(systemctl show -p ActiveEnterTimestamp --value fgbears-youtube-copy-relay.service)
+          recent=$(sudo journalctl -u fgbears-youtube-copy-relay.service --since "$since" --no-pager 2>/dev/null || true)
+          discontinuities=$(printf '%s\n' "$recent" | grep -Ec 'timestamp discontinuity|DTS .* out of order' || true)
+          exits=$(printf '%s\n' "$recent" | grep -Ec 'Main process exited|Failed with result|Connection refused|Broken pipe' || true)
+          echo "YOUTUBE_POST_RESYNC_DISCONTINUITIES=$discontinuities"
+          echo "YOUTUBE_POST_RESYNC_FAILURES=$exits"
+          echo "YOUTUBE_RESYNC=PASS master_pid=$master_after rumble_pid=$rumble_after youtube_pid=$youtube_after"
+          REMOTE
