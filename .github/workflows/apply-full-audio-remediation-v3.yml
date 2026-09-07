@@ -88,6 +88,14 @@ jobs:
           REMOTE
           scp -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-audio-v3-export.tar" /tmp/fgb-audio-v3-export.tar
 
+      - name: Install FFmpeg on hosted audio worker
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version | head -n1
+          ffprobe -version | head -n1
+
       - name: Build clean audio tracks off-host
         run: |
           set -Eeuo pipefail
