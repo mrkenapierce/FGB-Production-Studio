@@ -1,0 +1,24 @@
+name: Find Episode 01 YouTube Source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/find-episode01-youtube-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Install yt-dlp
+        run: python3 -m pip install --quiet --user yt-dlp
+      - name: Inventory FGB channel uploads
+        run: |
+          set -Eeuo pipefail
+          export PATH="$HOME/.local/bin:$PATH"
+          yt-dlp --flat-playlist --playlist-reverse --print '%(id)s\t%(title)s\t%(upload_date)s' 'https://www.youtube.com/@FootballsGreatestBears/videos' | head -40
