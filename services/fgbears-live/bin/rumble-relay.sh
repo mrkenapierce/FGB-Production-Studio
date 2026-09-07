@@ -54,5 +54,6 @@ exec ffmpeg \
   -i "$LOCAL_INPUT" \
   -map 0:v:0 -map 0:a:0 \
   -c copy \
+  -tag:v 7 -tag:a 10 \
   -f tee \
   "${RUMBLE_SLAVE}|${YOUTUBE_COPY_SLAVE}"
