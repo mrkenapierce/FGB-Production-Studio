@@ -1,0 +1,119 @@
+name: Cut Over to YouTube Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cutover-youtube-only.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stop Rumble and attach YouTube directly to master
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+
+          systemctl is-active --quiet fgbears-live.service
+          master_before=$(pid fgbears-live.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]]
+
+          ffmpeg_pid=$(pgrep -P "$master_before" -x ffmpeg | head -n 1 || true)
+          [[ "$ffmpeg_pid" =~ ^[1-9][0-9]*$ ]]
+          sudo tr '\0' ' ' < "/proc/$ffmpeg_pid/cmdline" | grep -Fq 'udp://127.0.0.1:1940?pkt_size=1316'
+
+          # End Rumble without touching the master encoder.
+          sudo systemctl disable --now fgbears-rumble-relay.service || true
+          sleep 1
+          ! systemctl is-active --quiet fgbears-rumble-relay.service
+
+          # Point the YouTube copy relay directly at the master's local UDP output.
+          sudo bash -s <<'ROOT'
+          set -Eeuo pipefail
+          env_file=/etc/fgbears-live/stream.env
+          test -r "$env_file"
+          tmp=$(mktemp /etc/fgbears-live/stream.env.XXXXXX)
+          found=0
+          while IFS= read -r line || [[ -n "$line" ]]; do
+            if [[ "$line" == YOUTUBE_COPY_LOCAL_UDP_URL=* ]]; then
+              if ((found == 0)); then
+                printf '%s\n' 'YOUTUBE_COPY_LOCAL_UDP_URL=udp://127.0.0.1:1940?pkt_size=1316' >> "$tmp"
+                found=1
+              fi
+            else
+              printf '%s\n' "$line" >> "$tmp"
+            fi
+          done < "$env_file"
+          if ((found == 0)); then
+            printf '%s\n' 'YOUTUBE_COPY_LOCAL_UDP_URL=udp://127.0.0.1:1940?pkt_size=1316' >> "$tmp"
+          fi
+          chown root:fgbears "$tmp"
+          chmod 0640 "$tmp"
+          mv -f "$tmp" "$env_file"
+ROOT
+
+          sudo systemctl restart fgbears-youtube-copy-relay.service
+
+          for _ in $(seq 1 30); do
+            youtube_pid=$(pid fgbears-youtube-copy-relay.service)
+            if [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]] && \
+               sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$youtube_pid," 'index($0,p){ok=1} END{exit(ok?0:1)}'; then
+              break
+            fi
+            sleep 1
+          done
+
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          youtube_after=$(pid fgbears-youtube-copy-relay.service)
+          [[ "$youtube_after" =~ ^[1-9][0-9]*$ ]]
+          sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$youtube_after," 'index($0,p){ok=1} END{exit(ok?0:1)}'
+
+          master_after=$(pid fgbears-live.service)
+          test "$master_after" = "$master_before"
+          ! systemctl is-active --quiet fgbears-rumble-relay.service
+          [[ "$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)" != enabled ]]
+
+          cmd=$(tr '\0' ' ' < "/proc/$youtube_after/cmdline")
+          [[ "$cmd" == *'udp://127.0.0.1:1940'* ]]
+          [[ "$cmd" == *'-c copy'* ]]
+          [[ "$cmd" != *'libx264'* ]]
+          [[ "$cmd" != *'filter_complex'* ]]
+
+          sleep 8
+          since=$(systemctl show -p ActiveEnterTimestamp --value fgbears-youtube-copy-relay.service)
+          recent=$(sudo journalctl -u fgbears-youtube-copy-relay.service --since "$since" --no-pager 2>/dev/null || true)
+          discontinuities=$(printf '%s\n' "$recent" | grep -Ec 'timestamp discontinuity|DTS .* out of order' || true)
+          exits=$(printf '%s\n' "$recent" | grep -Ec 'Main process exited|Failed with result|Connection refused|Broken pipe' || true)
+          echo "YOUTUBE_ONLY=PASS"
+          echo "MASTER_PID=$master_after"
+          echo "YOUTUBE_PID=$youtube_after"
+          echo "RUMBLE_ACTIVE=$(systemctl is-active fgbears-rumble-relay.service 2>/dev/null || true)"
+          echo "RUMBLE_ENABLED=$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)"
+          echo "YOUTUBE_DIRECT_INPUT=udp1940"
+          echo "YOUTUBE_POST_CUTOVER_DISCONTINUITIES=$discontinuities"
+          echo "YOUTUBE_POST_CUTOVER_FAILURES=$exits"
+          REMOTE
