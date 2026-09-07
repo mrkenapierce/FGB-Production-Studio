@@ -1,0 +1,226 @@
+name: Cut Over Livestream to Music-Only Audio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/cutover-music-only-audio.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  cutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Build verified full-length music asset
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg >/dev/null
+          mkdir -p /tmp/music-capture && cd /tmp/music-capture
+          npm init -y >/dev/null 2>&1
+          npm install --silent puppeteer-core
+          cat > capture.js <<'JS'
+          const puppeteer=require('puppeteer-core');
+          const fs=require('fs');
+          (async()=>{
+            const exe=process.env.CHROME;
+            const browser=await puppeteer.launch({headless:true,executablePath:exe,ignoreHTTPSErrors:true,args:['--no-sandbox','--ignore-certificate-errors','--disable-blink-features=AutomationControlled','--autoplay-policy=no-user-gesture-required']});
+            const page=await browser.newPage();
+            await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Safari/537.36');
+            await page.setExtraHTTPHeaders({'Accept-Language':'en-US,en;q=0.9'});
+            await page.evaluateOnNewDocument(()=>{Object.defineProperty(navigator,'webdriver',{get:()=>undefined});});
+            let resolveAudio; const audioPromise=new Promise(r=>resolveAudio=r); let done=false;
+            page.on('response',r=>{
+              const ct=(r.headers()['content-type']||'').toLowerCase();
+              if(!done && r.status()>=200 && r.status()<300 && ct.startsWith('audio/') && r.url().includes('/transcoding/')){
+                done=true; fs.writeFileSync('/tmp/music-url.txt',r.url()); console.log('FULL_STREAM_CAPTURED=yes'); resolveAudio(true);
+              }
+            });
+            await page.goto('https://audio.com/kontraa/audio/unlock-me',{waitUntil:'domcontentloaded',timeout:60000});
+            const clicked=await page.evaluate(()=>{
+              const els=[...document.querySelectorAll('button,a,[role=button]')];
+              const el=els.find(e=>/^play$/i.test((e.innerText||e.getAttribute('aria-label')||e.title||'').trim()));
+              if(!el)return false; el.click(); return true;
+            });
+            if(!clicked) throw new Error('Play control not found');
+            await Promise.race([audioPromise,new Promise((_,rej)=>setTimeout(()=>rej(new Error('full audio response timeout')),15000))]);
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          JS
+          CHROME=$(command -v google-chrome || command -v google-chrome-stable || command -v chromium) node capture.js
+          curl -k -LfsS -A 'Mozilla/5.0' "$(cat /tmp/music-url.txt)" -o /tmp/unlock-me-full-stream.mp3
+
+          codec=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1:nk=1 /tmp/unlock-me-full-stream.mp3)
+          rate=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nw=1:nk=1 /tmp/unlock-me-full-stream.mp3)
+          channels=$(ffprobe -v error -select_streams a:0 -show_entries stream=channels -of default=nw=1:nk=1 /tmp/unlock-me-full-stream.mp3)
+          duration=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 /tmp/unlock-me-full-stream.mp3)
+          bitrate=$(ffprobe -v error -show_entries format=bit_rate -of default=nw=1:nk=1 /tmp/unlock-me-full-stream.mp3)
+          echo SOURCE_CODEC=$codec
+          echo SOURCE_SAMPLE_RATE=$rate
+          echo SOURCE_CHANNELS=$channels
+          echo SOURCE_DURATION=$duration
+          echo SOURCE_BITRATE=$bitrate
+          [[ "$codec" == mp3 && "$rate" == 44100 && "$channels" == 2 ]]
+          awk -v d="$duration" 'BEGIN{exit !(d>185 && d<186)}'
+          test "$bitrate" -ge 190000
+
+          measure=$(ffmpeg -hide_banner -nostats -i /tmp/unlock-me-full-stream.mp3 -af ebur128=peak=true -f null - 2>&1)
+          printf '%s\n' "$measure" | tail -30
+          source_i=$(printf '%s\n' "$measure" | awk '/^    I:/{v=$2} END{print v}')
+          source_peak=$(printf '%s\n' "$measure" | awk '/^    Peak:/{v=$2} END{print v}')
+          source_lra=$(printf '%s\n' "$measure" | awk '/^    LRA:/{v=$2} END{print v}')
+          test -n "$source_peak"
+          gain=$(awk -v p="$source_peak" 'BEGIN{g=-3.0-p; if(g>0)g=0; printf "%.3f",g}')
+          echo SOURCE_I_LUFS=$source_i
+          echo SOURCE_TRUE_PEAK_DBTP=$source_peak
+          echo SOURCE_LRA_LU=$source_lra
+          echo STATIC_GAIN_DB=$gain
+
+          ffmpeg -hide_banner -loglevel error -y -i /tmp/unlock-me-full-stream.mp3 -af "volume=${gain}dB" -ar 48000 -ac 2 -c:a aac -b:a 256k /tmp/fgb-music-loop.m4a
+          out_codec=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1:nk=1 /tmp/fgb-music-loop.m4a)
+          out_rate=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nw=1:nk=1 /tmp/fgb-music-loop.m4a)
+          out_channels=$(ffprobe -v error -select_streams a:0 -show_entries stream=channels -of default=nw=1:nk=1 /tmp/fgb-music-loop.m4a)
+          [[ "$out_codec" == aac && "$out_rate" == 48000 && "$out_channels" == 2 ]]
+          out_measure=$(ffmpeg -hide_banner -nostats -i /tmp/fgb-music-loop.m4a -af ebur128=peak=true -f null - 2>&1)
+          printf '%s\n' "$out_measure" | tail -30
+          out_i=$(printf '%s\n' "$out_measure" | awk '/^    I:/{v=$2} END{print v}')
+          out_peak=$(printf '%s\n' "$out_measure" | awk '/^    Peak:/{v=$2} END{print v}')
+          out_lra=$(printf '%s\n' "$out_measure" | awk '/^    LRA:/{v=$2} END{print v}')
+          echo BROADCAST_I_LUFS=$out_i
+          echo BROADCAST_TRUE_PEAK_DBTP=$out_peak
+          echo BROADCAST_LRA_LU=$out_lra
+          awk -v p="$out_peak" 'BEGIN{exit !(p<=-2.0)}'
+          awk -v a="$source_lra" -v b="$out_lra" 'BEGIN{d=a-b;if(d<0)d=-d;exit !(d<=0.5)}'
+          sha256sum /tmp/fgb-music-loop.m4a
+
+      - name: Stage asset and music-only master script
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key /tmp/fgb-music-loop.m4a "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-music-loop.m4a"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/start-stream.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-start-stream.music-only"
+
+      - name: Guarded production cutover
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          START=/usr/local/bin/fgbears-start-stream
+          MUSIC=/srv/fgbears-live/audio/fgb-music-loop.m4a
+          MASTER=fgbears-live.service
+          YT=fgbears-youtube-copy-relay.service
+          STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          BACK=/srv/fgbears-live/quarantine/pre-music-only-$STAMP
+          sudo install -d -m 755 "$BACK" /srv/fgbears-live/audio
+
+          old_master=$(systemctl show -p MainPID --value "$MASTER")
+          old_yt=$(systemctl show -p MainPID --value "$YT")
+          [[ "$old_master" =~ ^[1-9][0-9]*$ && "$old_yt" =~ ^[1-9][0-9]*$ ]]
+          systemctl is-active --quiet "$MASTER"
+          systemctl is-active --quiet "$YT"
+          [[ "$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)" == masked ]]
+          test -s /tmp/fgb-music-loop.m4a
+          test -s /tmp/fgbears-start-stream.music-only
+          bash -n /tmp/fgbears-start-stream.music-only
+          grep -q -- '-map 4:a:0' /tmp/fgbears-start-stream.music-only
+          ! grep -q -- '-map 0:a:0' /tmp/fgbears-start-stream.music-only
+
+          sudo cp -a "$START" "$BACK/fgbears-start-stream.before"
+          if [[ -e "$MUSIC" ]]; then sudo cp -a "$MUSIC" "$BACK/fgb-music-loop.before.m4a"; fi
+
+          rollback() {
+            status=$?
+            if (( status != 0 )); then
+              echo CUTOVER_FAILED_ROLLBACK=yes
+              sudo install -m 755 "$BACK/fgbears-start-stream.before" "$START" || true
+              if [[ -e "$BACK/fgb-music-loop.before.m4a" ]]; then
+                sudo install -o fgbears -g fgbears -m 644 "$BACK/fgb-music-loop.before.m4a" "$MUSIC" || true
+              else
+                sudo rm -f "$MUSIC" || true
+              fi
+              sudo systemctl restart "$MASTER" || true
+            fi
+            exit "$status"
+          }
+          trap rollback EXIT
+
+          sudo install -o fgbears -g fgbears -m 644 /tmp/fgb-music-loop.m4a "$MUSIC"
+          sudo install -m 755 /tmp/fgbears-start-stream.music-only "$START"
+          sudo -u fgbears test -r "$MUSIC"
+          bash -n "$START"
+
+          sudo systemctl restart "$MASTER"
+          new_master=0
+          ffpid=''
+          for _ in $(seq 1 60); do
+            new_master=$(systemctl show -p MainPID --value "$MASTER" 2>/dev/null || echo 0)
+            if [[ "$new_master" =~ ^[1-9][0-9]*$ ]] && [[ "$new_master" != "$old_master" ]] && systemctl is-active --quiet "$MASTER"; then
+              ffpid=$(pgrep -P "$new_master" -x ffmpeg | head -1 || true)
+              [[ -n "$ffpid" ]] && break
+            fi
+            sleep 1
+          done
+          [[ "$new_master" =~ ^[1-9][0-9]*$ && "$new_master" != "$old_master" && -n "$ffpid" ]]
+
+          cmd=$(tr '\0' ' ' < "/proc/$ffpid/cmdline")
+          [[ "$cmd" == *'-map 4:a:0'* ]]
+          [[ "$cmd" != *'-map 0:a:0'* ]]
+          ls -l "/proc/$ffpid/fd" 2>/dev/null | grep -q 'fgb-music-loop.m4a'
+
+          # Keep the YouTube relay itself undisturbed when possible. Recover only it if the brief master restart caused it to exit.
+          if ! systemctl is-active --quiet "$YT"; then
+            sudo systemctl restart "$YT"
+          fi
+          for _ in $(seq 1 45); do
+            systemctl is-active --quiet "$YT" || { sleep 1; continue; }
+            ytpid=$(systemctl show -p MainPID --value "$YT")
+            [[ "$ytpid" =~ ^[1-9][0-9]*$ ]] || { sleep 1; continue; }
+            if sudo ss -ntp 2>/dev/null | grep -q "pid=$ytpid,"; then break; fi
+            sleep 1
+          done
+          ytpid=$(systemctl show -p MainPID --value "$YT")
+          systemctl is-active --quiet "$YT"
+          sudo ss -ntp 2>/dev/null | grep -q "pid=$ytpid,"
+
+          # Confirm FFmpeg is progressing after the restart.
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          first=$(grep '^out_time_ms=' "$progress" 2>/dev/null | tail -1 | cut -d= -f2 || echo 0)
+          sleep 6
+          second=$(grep '^out_time_ms=' "$progress" 2>/dev/null | tail -1 | cut -d= -f2 || echo 0)
+          [[ "$first" =~ ^[0-9]+$ && "$second" =~ ^[0-9]+$ && "$second" -gt "$first" ]]
+
+          trap - EXIT
+          echo MUSIC_ONLY_CUTOVER=PASS
+          echo OLD_MASTER_PID=$old_master
+          echo NEW_MASTER_PID=$new_master
+          echo YOUTUBE_PID_BEFORE=$old_yt
+          echo YOUTUBE_PID_AFTER=$ytpid
+          echo MUSIC_FILE_OPEN=yes
+          echo EPISODE_NARRATION_MAPPED=no
+          echo YOUTUBE_TCP=established
+          echo RUMBLE_STATE=masked
+          echo ROLLBACK_BACKUP=$BACK
+          REMOTE
