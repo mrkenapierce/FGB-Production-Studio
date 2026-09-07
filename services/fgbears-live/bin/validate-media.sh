@@ -4,10 +4,9 @@ set -Eeuo pipefail
 MEDIA_DIR=${1:-${MEDIA_DIR:-/srv/fgbears-live/media}}
 [[ -d "$MEDIA_DIR" ]] || { echo "Media directory does not exist: $MEDIA_DIR" >&2; exit 66; }
 
-PROFILE_VERSION=${FGB_AUDIO_PROFILE_VERSION:-fgb-podcast-v2-mastered}
-LOUDNESS_TARGET_I=${FGB_LOUDNESS_TARGET_I:--14}
-LOUDNESS_TOLERANCE_LU=${FGB_LOUDNESS_TOLERANCE_LU:-0.8}
-MAX_POST_TRUE_PEAK=${FGB_MAX_POST_TRUE_PEAK:--1.0}
+PROFILE_VERSION=${FGB_AUDIO_PROFILE_VERSION:-fgb-clean-static-v3}
+MAX_POST_TRUE_PEAK=${FGB_MAX_POST_TRUE_PEAK:--1.5}
+MAX_LRA_DELTA=${FGB_MAX_LRA_DELTA:-0.6}
 
 failures=0
 count=0
@@ -27,20 +26,22 @@ while IFS= read -r -d '' file; do
     if jq -e \
       --arg profile "$PROFILE_VERSION" \
       --arg sha "$expected_sha" \
-      --argjson target "$LOUDNESS_TARGET_I" \
-      --argjson tolerance "$LOUDNESS_TOLERANCE_LU" \
       --argjson maxTp "$MAX_POST_TRUE_PEAK" \
+      --argjson maxLraDelta "$MAX_LRA_DELTA" \
       '.profile == $profile and
-       .mastered == true and
-       ((.mastering_chain | type) == "string") and
-       ((.mastering_chain | length) > 0) and
+       .quality_verified == true and
+       .processing_mode == "static_gain_only" and
+       .dynamic_processing == false and
+       .processing_chain == ["constant_gain","aresample_48000","stereo_delivery","aac_encode_256k"] and
        .audio_codec == "aac" and
-       .audio_bitrate_kbps == 192 and
+       .audio_bitrate_kbps == 256 and
        .sample_rate_hz == 48000 and
        .channels == 2 and
        .sha256 == $sha and
-       ((.measured_i_lufs - $target) | if . < 0 then -. else . end) <= $tolerance and
-       .measured_tp_dbtp <= $maxTp' "$marker" >/dev/null; then
+       .target_i_lufs == -16 and
+       .output_metrics.tp_dbtp <= $maxTp and
+       (((.output_metrics.lra_lu - .source_metrics.lra_lu) | if . < 0 then -. else . end) <= $maxLraDelta) and
+       (.source_kind == "original_master" or .source_kind == "retained_pre_v2" or .source_kind == "new_original")' "$marker" >/dev/null; then
       marker_ok=true
     fi
   fi
@@ -49,14 +50,14 @@ while IFS= read -r -d '' file; do
     echo "INVALID: $file" >&2
     echo "  video=$video" >&2
     echo "  audio=$audio" >&2
-    if [[ "$marker_ok" != true ]]; then
-      echo "  audio_profile=missing_or_invalid (required=$PROFILE_VERSION mastered=true)" >&2
-    fi
+    [[ "$marker_ok" == true ]] || echo "  audio_profile=missing_or_invalid (required=$PROFILE_VERSION static_gain_only)" >&2
     failures=$((failures + 1))
   else
-    measured_i=$(jq -r '.measured_i_lufs' "$marker")
-    measured_tp=$(jq -r '.measured_tp_dbtp' "$marker")
-    echo "OK: $file audio_profile=$PROFILE_VERSION mastered=true I=${measured_i}LUFS TP=${measured_tp}dBTP"
+    source_i=$(jq -r '.source_metrics.i_lufs' "$marker")
+    output_i=$(jq -r '.output_metrics.i_lufs' "$marker")
+    output_tp=$(jq -r '.output_metrics.tp_dbtp' "$marker")
+    gain=$(jq -r '.static_gain_db' "$marker")
+    echo "OK: $file profile=$PROFILE_VERSION source_I=${source_i}LUFS gain=${gain}dB output_I=${output_i}LUFS TP=${output_tp}dBTP"
   fi
 done < <(find "$MEDIA_DIR" -maxdepth 1 -type f -name '*.mp4' -print0 | sort -zV)
 
