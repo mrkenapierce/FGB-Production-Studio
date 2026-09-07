@@ -28,6 +28,10 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Install ffmpeg tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg >/dev/null
       - name: Capture and download Freesound instrumental preview
         run: |
           set -Eeuo pipefail
@@ -58,6 +62,7 @@ jobs:
           url=$(cat /tmp/media-url.txt)
           curl -k -LfsS -A 'Mozilla/5.0' "$url" -o /tmp/unlock-me-instrumental.mp3
           test -s /tmp/unlock-me-instrumental.mp3
+          echo '=== SOURCE ==='
           ffprobe -v error -show_entries format=duration,size,bit_rate -show_entries stream=codec_name,sample_rate,channels -of json /tmp/unlock-me-instrumental.mp3
           sha256sum /tmp/unlock-me-instrumental.mp3
       - name: Prepare broadcast AAC and stage on Oracle
@@ -65,8 +70,11 @@ jobs:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           set -Eeuo pipefail
-          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null
-          ffmpeg -hide_banner -loglevel error -y -stream_loop -1 -i /tmp/unlock-me-instrumental.mp3 -t 60 \
-            -af 'loudnorm=I=-16:TP=-2:LRA=11' -ar 48000 -ac 2 -c:a aac -b:a 256k /tmp/fgb-music-loop.m4a
-          ffprobe -v error -show_entries format=duration -show_entries stream=codec_name,sample_rate,channels,bit_rate -of json /tmp/fgb-music-loop.m4a
+          # One offline delivery encode only. The entire music-only track is retained.
+          # No speech EQ, compression, de-essing, denoising, or live DSP is applied.
+          ffmpeg -hide_banner -loglevel error -y -i /tmp/unlock-me-instrumental.mp3 \
+            -ar 48000 -ac 2 -c:a aac -b:a 256k /tmp/fgb-music-loop.m4a
+          echo '=== BROADCAST ASSET ==='
+          ffprobe -v error -show_entries format=duration,size,bit_rate -show_entries stream=codec_name,sample_rate,channels,bit_rate -of json /tmp/fgb-music-loop.m4a
+          ffmpeg -hide_banner -nostats -i /tmp/fgb-music-loop.m4a -af ebur128=peak=true -f null - 2>&1 | tail -30
           scp -i ~/.ssh/oracle_key /tmp/fgb-music-loop.m4a "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-music-loop.m4a"
