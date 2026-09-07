@@ -10,6 +10,7 @@ source "$ENV_FILE"
 
 : "${RUMBLE_LOCAL_UDP_URL:=udp://127.0.0.1:1940?pkt_size=1316}"
 : "${PLAYLIST_FILE:=/srv/fgbears-live/playlist.ffconcat}"
+: "${MUSIC_LOOP_FILE:=/srv/fgbears-live/audio/fgb-music-loop.m4a}"
 : "${FFMPEG_LOGLEVEL:=warning}"
 : "${OUTPUT_FPS:=30}"
 : "${VIDEO_GOP:=60}"
@@ -29,6 +30,7 @@ source "$ENV_FILE"
 : "${TEE_FIFO_OPTIONS:=attempt_recovery=1:recover_any_error=1:recovery_wait_time=5}"
 
 [[ -s "$PLAYLIST_FILE" ]] || { echo "Playlist is missing or empty: $PLAYLIST_FILE" >&2; exit 66; }
+[[ -s "$MUSIC_LOOP_FILE" ]] || { echo "FGB music loop is missing or empty: $MUSIC_LOOP_FILE" >&2; exit 66; }
 [[ -r "$AD_OVERLAY_SCRIPT" ]] || { echo "Ad overlay renderer is missing: $AD_OVERLAY_SCRIPT" >&2; exit 66; }
 [[ -r "$CRAWL_OVERLAY_SCRIPT" ]] || { echo "Crawl overlay renderer is missing: $CRAWL_OVERLAY_SCRIPT" >&2; exit 66; }
 [[ -r "$BEARS_NEWS_SCRIPT" ]] || { echo "Bears news renderer is missing: $BEARS_NEWS_SCRIPT" >&2; exit 66; }
@@ -38,7 +40,7 @@ source "$ENV_FILE"
 }
 
 TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${RUMBLE_LOCAL_UDP_URL}"
-printf 'FGBears Live output: Rumble-only local UDP mirror.\n'
+printf 'FGBears Live output: YouTube-bound local UDP master with independent looped FGB music audio.\n'
 
 python3 "$AD_OVERLAY_SCRIPT" &
 OVERLAY_PID=$!
@@ -97,14 +99,9 @@ progress_sink() {
 
 FFMPEG_PID=""
 
-# The ad renderer atomically publishes AD_FRAME_FILE whenever the creative
-# changes. Image2 loop mode re-opens the same filename and therefore sees those
-# replacements, so there is no reason to transport the same 1280x720 JPEG over
-# HTTP 30 times per second. The looped image is paced at 30 fps locally. The
-# crawl runs at a sustainable 25 fps and is composited into the 30-fps master;
-# news remains 30 fps. Secondary overlays repeat the last available frame so
-# they can never throttle the Rumble master clock. There is one transport
-# output: Rumble on local UDP 1940.
+# Input 0 remains the visual episode playlist. Its embedded audio is deliberately
+# ignored. Input 4 is the standalone FGB music bed and is looped indefinitely.
+# Therefore episode narration cannot enter the live output graph.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
@@ -113,8 +110,9 @@ ffmpeg \
   -thread_queue_size 64 -re -loop 1 -framerate "$AD_OVERLAY_FPS" -i "$AD_FRAME_FILE" \
   -thread_queue_size 256 -f rawvideo -pixel_format rgba -video_size 1280x139 -framerate "$CRAWL_OVERLAY_FPS" -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.rgba" \
   -thread_queue_size 256 -f rawvideo -pixel_format rgba -video_size 1280x104 -framerate "$BEARS_NEWS_OVERLAY_FPS" -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.rgba" \
+  -thread_queue_size 64 -re -stream_loop -1 -i "$MUSIC_LOOP_FILE" \
   -filter_complex "[1:v][3:v]overlay=x=0:y=0:shortest=0:repeatlast=1:eof_action=repeat[withnews];[withnews][2:v]overlay=x=0:y=574:shortest=0:repeatlast=1:eof_action=repeat,drawbox=x=0:y=0:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=713:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=0:w=7:h=720:color=0xC83803:t=fill,drawbox=x=1273:y=0:w=7:h=720:color=0xC83803:t=fill,format=yuv420p[v]" \
-  -map "[v]" -map 0:a:0 \
+  -map "[v]" -map 4:a:0 \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
   -b:v 5000k -maxrate 5500k -bufsize 10000k \
   -g "$VIDEO_GOP" -keyint_min "$VIDEO_GOP" -sc_threshold 0 -r "$OUTPUT_FPS" -fps_mode cfr -threads 0 \
