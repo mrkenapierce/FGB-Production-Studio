@@ -1,0 +1,46 @@
+name: Inventory FGB Background Music
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inventory-fgb-music-bed.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Inventory likely music assets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== AUDIO FILES ==='
+          sudo find /srv/fgbears-live /home/ubuntu -type f \
+            \( -iname '*.mp3' -o -iname '*.wav' -o -iname '*.m4a' -o -iname '*.aac' -o -iname '*.flac' -o -iname '*.ogg' -o -iname '*.opus' \) \
+            2>/dev/null | grep -Ei 'fgb|music|bed|background|theme|intro|outro|loop|podcast|production' | head -200 || true
+          echo '=== MEDIA NAMES ==='
+          sudo find /srv/fgbears-live /home/ubuntu -type f 2>/dev/null | grep -Ei '(music|bed|background|theme|intro|outro|loop)' | head -200 || true
+          echo '=== REFERENCES IN SCRIPTS/CONFIG ==='
+          sudo grep -RInE '(music|background|bed|theme|\.mp3|\.wav|\.m4a|\.aac)' /opt/fgbears-live /srv/fgbears-live /etc/fgbears-live 2>/dev/null | head -300 || true
+          REMOTE
