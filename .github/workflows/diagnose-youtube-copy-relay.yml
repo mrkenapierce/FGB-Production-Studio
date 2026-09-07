@@ -28,21 +28,34 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Read retained YouTube copy diagnostics
+      - name: Read YouTube copy diagnostics
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
+          master_pid=$(systemctl show -p MainPID --value fgbears-live.service 2>/dev/null || true)
+          rumble_pid=$(systemctl show -p MainPID --value fgbears-rumble-relay.service 2>/dev/null || true)
+          youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service 2>/dev/null || true)
           echo "MASTER_ACTIVE=$(systemctl is-active fgbears-live.service || true)"
-          echo "MASTER_PID=$(systemctl show -p MainPID --value fgbears-live.service 2>/dev/null || true)"
+          echo "MASTER_PID=$master_pid"
           echo "RUMBLE_ACTIVE=$(systemctl is-active fgbears-rumble-relay.service || true)"
-          echo "RUMBLE_PID=$(systemctl show -p MainPID --value fgbears-rumble-relay.service 2>/dev/null || true)"
+          echo "RUMBLE_PID=$rumble_pid"
           echo "YOUTUBE_COPY_ACTIVE=$(systemctl is-active fgbears-youtube-copy-relay.service 2>/dev/null || true)"
+          echo "YOUTUBE_COPY_PID=$youtube_pid"
+          echo "YOUTUBE_COPY_ENABLED=$(systemctl is-enabled fgbears-youtube-copy-relay.service 2>/dev/null || true)"
           echo "YOUTUBE_V3_ACTIVE=$(systemctl is-active fgbears-youtube-v3.service 2>/dev/null || true)"
+          echo "YOUTUBE_V3_ENABLED=$(systemctl is-enabled fgbears-youtube-v3.service 2>/dev/null || true)"
           sudo bash -c 'source /etc/fgbears-live/stream.env; printf "YOUTUBE_KEY_PRESENT=%s\n" "$([[ -n "${YOUTUBE_STREAM_KEY:-}" && "${YOUTUBE_STREAM_KEY:-}" != REPLACE_WITH_YOUTUBE_STREAM_KEY ]] && echo yes || echo no)"; printf "YOUTUBE_UPSTREAM_SCHEME_HOST=%s\n" "${YOUTUBE_UPSTREAM_RTMP_BASE:-<default>}"' | sed -E 's#(live2)/.*#\1/<redacted>#'
-          echo '=== RETAINED YOUTUBE COPY JOURNAL ==='
-          sudo journalctl -u fgbears-youtube-copy-relay.service -n 120 --no-pager || true
+          if [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]] && [[ -r "/proc/$youtube_pid/cmdline" ]]; then
+            cmd=$(tr '\0' ' ' < "/proc/$youtube_pid/cmdline")
+            [[ "$cmd" == *'-c copy'* ]] && echo 'YOUTUBE_COPY_MODE=copy' || echo 'YOUTUBE_COPY_MODE=unexpected'
+            [[ "$cmd" == *'libx264'* || "$cmd" == *'filter_complex'* ]] && echo 'YOUTUBE_ENCODER_PRESENT=yes' || echo 'YOUTUBE_ENCODER_PRESENT=no'
+            echo "YOUTUBE_CPU_PCT=$(ps -p "$youtube_pid" -o %cpu= | xargs)"
+            echo "YOUTUBE_RSS_KB=$(ps -p "$youtube_pid" -o rss= | xargs)"
+          fi
+          echo '=== YOUTUBE COPY JOURNAL ==='
+          sudo journalctl -u fgbears-youtube-copy-relay.service -n 80 --no-pager || true
           echo '=== RECENT RUMBLE RELAY JOURNAL ==='
-          sudo journalctl -u fgbears-rumble-relay.service -n 40 --no-pager || true
+          sudo journalctl -u fgbears-rumble-relay.service -n 30 --no-pager || true
           REMOTE
