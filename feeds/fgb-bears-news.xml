@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 07 Sep 2026 15:15:32 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 07 Sep 2026 19:17:47 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Former Bears FB Matt Suhey dies at 68</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Former Bears FB Matt Suhey dies at 68</description>
+      <link>https://sports.yahoo.com/articles/former-bears-fb-matt-suhey-185312278.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e2579d3812a463d79dc1</guid>
+      <pubDate>Mon, 07 Sep 2026 18:53:12 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears vs Panthers Prediction, Picks &amp; Early Odds: NFL Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs Panthers Prediction, Picks &amp; Early Odds: NFL Week 1</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-panthers-prediction-picks-174000705.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0e6d17dc53c454d96a0d</guid>
+      <pubDate>Mon, 07 Sep 2026 17:40:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Panthers-Bears, Packers-Vikings markets</title>
@@ -17,16 +37,6 @@
       <pubDate>Mon, 07 Sep 2026 14:05:56 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Matt Suhey, member of Super Bowl-winning &apos;85 Bears and lead blocker for Walter Payton, dies at 68</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Matt Suhey, member of Super Bowl-winning &apos;85 Bears and lead blocker for Walter Payton, dies at 68</description>
-      <link>https://sports.yahoo.com/nfl/article/matt-suhey-member-of-super-bowl-winning-85-bears-and-lead-blocker-for-walter-payton-dies-at-68-134412097.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b75f44e4a2ca67b471bf</guid>
-      <pubDate>Mon, 07 Sep 2026 13:44:12 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -40,53 +50,43 @@
     </item>
 
     <item>
-      <title>Can the 2026 Chicago Bears Boast Their Best Offense in Franchise History?</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Can the 2026 Chicago Bears Boast Their Best Offense in Franchise History?</description>
-      <link>https://www.si.com/nfl/bears/onsi/can-the-2026-chicago-bears-boast-their-best-offense-in-franchise-history</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-68c1f119c09746ab3bf5</guid>
-      <pubDate>Mon, 07 Sep 2026 07:53:00 GMT</pubDate>
+      <title>Rome Odunze, D&apos;Andre Swift, Kyle Monangai Monday Injury Updates Are Mixed Bag for Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Rome Odunze, D&apos;Andre Swift, Kyle Monangai Monday Injury Updates Are Mixed Bag for Bears</description>
+      <link>https://www.si.com/nfl/bears/onsi/rome-odunze-d-andre-swift-kyle-monangai-injury-updates-bears-monday</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9406fd3c163e2baae9f4</guid>
+      <pubDate>Mon, 07 Sep 2026 11:55:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Projecting Week 1 Roles For Jordan van den Berg and Rest of Chicago Bears Rookies</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Projecting Week 1 Roles For Jordan van den Berg and Rest of Chicago Bears Rookies</description>
-      <link>https://www.si.com/nfl/bears/onsi/projecting-week-1-roles-for-jordan-van-den-berg-and-rest-of-chicago-bears-rookies</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4e019300c18bd99d55ed</guid>
-      <pubDate>Mon, 07 Sep 2026 05:00:00 GMT</pubDate>
+      <title>Bears Reporter Warns Chicago Could Become the NFL&apos;s Top Regression Team</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Reporter Warns Chicago Could Become the NFL&apos;s Top Regression Team</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-reporter-chicago-nfl-regression-team</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a1caae230e1042449c30</guid>
+      <pubDate>Mon, 07 Sep 2026 11:05:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Bears&apos; offseason party is over as toughest schedule looms</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; offseason party is over as toughest schedule looms</description>
-      <link>https://www.espn.com/nfl/story/_/id/49850796/chicago-bears-offseason-party-toughest-2026-nfl-schedule-looms</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4390bb84859479c131ba</guid>
-      <pubDate>Mon, 07 Sep 2026 04:00:00 GMT</pubDate>
+      <title>Bears&apos; Super Bowl champion fullback Matt Suhey dies at 68</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; Super Bowl champion fullback Matt Suhey dies at 68</description>
+      <link>https://www.espn.com/nfl/story/_/id/49860580/bears-super-bowl-champion-fullback-matt-suhey-dies-68</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4a873994e88b0e28fdfd</guid>
+      <pubDate>Mon, 07 Sep 2026 11:02:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
-      <title>Bears QB Caleb Williams ready for 2026 season, but loss to Rams still burns</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears QB Caleb Williams ready for 2026 season, but loss to Rams still burns</description>
-      <link>https://www.nytimes.com/athletic/7565645/2026/09/07/bears-caleb-williams-ben-johnson-2025-memories/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f0382e4f180b3336dd77</guid>
-      <pubDate>Mon, 07 Sep 2026 03:30:00 GMT</pubDate>
+      <title>Former Bears FB Matt Suhey dies at 68</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Former Bears FB Matt Suhey dies at 68</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/former-bears-fb-matt-suhey-dies-at-68</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2795581350ab0e2783e6</guid>
+      <pubDate>Mon, 07 Sep 2026 07:53:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Bears training camp diaries with Sam Roush, Neville Gallimore | Week 5</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears training camp diaries with Sam Roush, Neville Gallimore | Week 5</description>
-      <link>https://www.chicagobears.com/news/bears-training-camp-diaries-with-sam-roush-neville-gallimore-week-5</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-be6abf7d92b60410ebb6</guid>
-      <pubDate>Thu, 03 Sep 2026 21:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
