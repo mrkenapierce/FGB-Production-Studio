@@ -81,6 +81,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Require protected YouTube stream key
+        env:
+          FGB_YOUTUBE_STREAM_KEY: ${{ secrets.FGB_YOUTUBE_STREAM_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$FGB_YOUTUBE_STREAM_KEY"
+          echo 'YOUTUBE_PROTECTED_KEY=AVAILABLE'
+
       - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -97,9 +105,17 @@ jobs:
       - name: Deploy YouTube copy relay without restarting master
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          FGB_YOUTUBE_STREAM_KEY: ${{ secrets.FGB_YOUTUBE_STREAM_KEY }}
         run: |
+          set -Eeuo pipefail
+          test -n "$FGB_YOUTUBE_STREAM_KEY"
+          printf '%s\n' "$FGB_YOUTUBE_STREAM_KEY" | ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo tee /run/fgbears-youtube-key >/dev/null && sudo chmod 600 /run/fgbears-youtube-key'
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
+
+          KEY_FILE=/run/fgbears-youtube-key
+          ENV_FILE=/etc/fgbears-live/stream.env
+          trap 'sudo rm -f "$KEY_FILE"' EXIT
 
           pid() {
             systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0
@@ -114,8 +130,8 @@ jobs:
             exit 1
           }
           command -v ffmpeg >/dev/null
-          sudo test -r /etc/fgbears-live/stream.env
-          sudo bash -c 'source /etc/fgbears-live/stream.env; test -n "${YOUTUBE_STREAM_KEY:-}"; test "${YOUTUBE_STREAM_KEY}" != "REPLACE_WITH_YOUTUBE_STREAM_KEY"'
+          sudo test -r "$ENV_FILE"
+          sudo test -s "$KEY_FILE"
 
           master_before=$(pid fgbears-live.service)
           rumble_before=$(pid fgbears-rumble-relay.service)
@@ -125,18 +141,25 @@ jobs:
           rm -rf /tmp/fgbears-youtube-copy-deploy
           git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-youtube-copy-deploy
 
-          backup=$(mktemp /tmp/fgbears-rumble-relay.pre-youtube-copy.XXXXXX)
-          sudo cp -a /usr/local/bin/fgbears-rumble-relay "$backup"
+          relay_backup=$(mktemp /tmp/fgbears-rumble-relay.pre-youtube-copy.XXXXXX)
+          env_backup=$(mktemp /tmp/fgbears-stream-env.pre-youtube-copy.XXXXXX)
+          sudo cp -a /usr/local/bin/fgbears-rumble-relay "$relay_backup"
+          sudo cp -a "$ENV_FILE" "$env_backup"
 
           rollback() {
             rc=$?
             trap - ERR
             echo "YouTube copy deployment failed; rolling back destination relay only (rc=$rc)." >&2
+            echo '=== YOUTUBE COPY STATUS ===' >&2
+            sudo systemctl status fgbears-youtube-copy-relay.service --no-pager -l >&2 || true
+            echo '=== YOUTUBE COPY JOURNAL ===' >&2
+            sudo journalctl -u fgbears-youtube-copy-relay.service -n 100 --no-pager >&2 || true
             sudo systemctl disable --now fgbears-youtube-copy-relay.service >/dev/null 2>&1 || true
             sudo rm -f /etc/systemd/system/fgbears-youtube-copy-relay.service
             sudo rm -f /usr/local/bin/fgbears-youtube-copy-relay
-            sudo cp -a "$backup" /usr/local/bin/fgbears-rumble-relay
+            sudo cp -a "$relay_backup" /usr/local/bin/fgbears-rumble-relay
             sudo chmod 0755 /usr/local/bin/fgbears-rumble-relay
+            sudo cp -a "$env_backup" "$ENV_FILE"
             sudo systemctl daemon-reload || true
             sudo systemctl reset-failed fgbears-rumble-relay.service || true
             sudo systemctl restart fgbears-rumble-relay.service || true
@@ -145,6 +168,35 @@ jobs:
             exit "$rc"
           }
           trap rollback ERR
+
+          # Reuse the existing protected GitHub stream-key secret. The key is
+          # transferred through stdin, never printed, and written atomically to
+          # the root-owned Oracle environment used by the destination relay.
+          sudo python3 - "$ENV_FILE" "$KEY_FILE" <<'PY'
+          from pathlib import Path
+          import sys
+          env_path = Path(sys.argv[1])
+          key_path = Path(sys.argv[2])
+          value = key_path.read_text(encoding='utf-8').strip()
+          if not value or '\n' in value or '\r' in value or '|' in value:
+              raise SystemExit('invalid protected YouTube stream key')
+          lines = env_path.read_text(encoding='utf-8').splitlines()
+          out = []
+          seen = False
+          for line in lines:
+              if line.startswith('YOUTUBE_STREAM_KEY='):
+                  out.append('YOUTUBE_STREAM_KEY=' + value)
+                  seen = True
+              else:
+                  out.append(line)
+          if not seen:
+              out.append('YOUTUBE_STREAM_KEY=' + value)
+          tmp = env_path.with_suffix(env_path.suffix + '.partial')
+          tmp.write_text('\n'.join(out) + '\n', encoding='utf-8')
+          tmp.replace(env_path)
+          PY
+          sudo chown root:fgbears "$ENV_FILE"
+          sudo chmod 0640 "$ENV_FILE"
 
           sudo install -m 0755 \
             /tmp/fgbears-youtube-copy-deploy/services/fgbears-live/bin/rumble-relay.sh \
@@ -156,8 +208,9 @@ jobs:
             /tmp/fgbears-youtube-copy-deploy/services/fgbears-live/systemd/fgbears-youtube-copy-relay.service \
             /etc/systemd/system/fgbears-youtube-copy-relay.service
 
-          # The former compositor path stays retired. Only the copy/remux path
-          # is allowed to target YouTube after this cutover.
+          # The former compositor remains retired. This operation is best-effort
+          # because the copy relay must not depend on the state-file details of
+          # a previously quarantined unit.
           sudo systemctl disable --now fgbears-youtube-v3.service >/dev/null 2>&1 || true
           sudo systemctl mask fgbears-youtube-v3.service >/dev/null 2>&1 || true
 
@@ -184,7 +237,7 @@ jobs:
             sleep 1
           done
 
-          sleep 8
+          sleep 10
           systemctl is-active --quiet fgbears-youtube-copy-relay.service
           systemctl is-active --quiet fgbears-rumble-relay.service
           systemctl is-active --quiet fgbears-live.service
@@ -200,8 +253,6 @@ jobs:
           [[ "$rumble_after" =~ ^[1-9][0-9]*$ ]]
           [[ "$youtube_after" =~ ^[1-9][0-9]*$ ]]
 
-          # Confirm the YouTube process is still a lightweight packet-copy
-          # relay rather than a compositor/encoder.
           youtube_cmd=$(tr '\0' ' ' < "/proc/$youtube_after/cmdline")
           [[ "$youtube_cmd" == *"-c copy"* ]]
           [[ "$youtube_cmd" != *"libx264"* ]]
@@ -211,6 +262,6 @@ jobs:
           youtube_rss=$(ps -p "$youtube_after" -o rss= | xargs)
 
           trap - ERR
-          rm -f "$backup"
+          rm -f "$relay_backup" "$env_backup"
           echo "YOUTUBE_COPY_RELAY=PASS master_pid_unchanged=$master_after rumble_pid=$rumble_after youtube_pid=$youtube_after youtube_cpu_pct=$youtube_cpu youtube_rss_kb=$youtube_rss"
           REMOTE
