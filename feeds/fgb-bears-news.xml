@@ -5,15 +5,25 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 07 Sep 2026 00:06:09 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 07 Sep 2026 04:32:34 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears Dillon Thieneman gets surprise nod as possible Defensive Rookie of the Year from ESPN</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Dillon Thieneman gets surprise nod as possible Defensive Rookie of the Year from ESPN</description>
-      <link>https://sports.yahoo.com/articles/bears-dillon-thieneman-gets-surprise-160000349.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1db9b45e9ac99db9b3e9</guid>
+      <title>Matt Suhey, Popular 1985 Chicago Bears Super Bowl Champion, Passes Away</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Matt Suhey, Popular 1985 Chicago Bears Super Bowl Champion, Passes Away</description>
+      <link>https://sports.yahoo.com/articles/matt-suhey-popular-1985-chicago-025232638.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c3093bcea03c3a0e07ce</guid>
+      <pubDate>Mon, 07 Sep 2026 02:52:32 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears could be in position for a surprising trade at the deadline</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears could be in position for a surprising trade at the deadline</description>
+      <link>https://sports.yahoo.com/articles/bears-could-position-surprising-trade-230001405.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a02d6b107cc050dfec90</guid>
       <pubDate>Sun, 06 Sep 2026 16:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
@@ -27,16 +37,6 @@
       <pubDate>Sun, 06 Sep 2026 14:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; projected Josh Sweat trade would be a gut punch to Packers</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears&apos; projected Josh Sweat trade would be a gut punch to Packers</description>
-      <link>https://sports.yahoo.com/articles/bears-projected-josh-sweat-trade-190002152.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3cc10cc3b384d227f457</guid>
-      <pubDate>Sun, 06 Sep 2026 11:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
