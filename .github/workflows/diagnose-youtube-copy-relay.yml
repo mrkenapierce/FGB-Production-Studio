@@ -72,6 +72,62 @@ jobs:
             youtube_exit_failures=$(sudo journalctl -u fgbears-youtube-copy-relay.service --since "$youtube_since" --no-pager 2>/dev/null | grep -Ec 'Main process exited|Failed with result|Connection refused|Broken pipe' || true)
             echo "YOUTUBE_EXIT_FAILURES_SINCE_RESTART=$youtube_exit_failures"
           fi
+
+          # Read-only two-second CPU sample. This measures actual host busy time
+          # and instantaneous CPU consumed by the three media processes without
+          # restarting or signaling any service.
+          python3 - "$master_pid" "$rumble_pid" "$youtube_pid" <<'PY'
+          import os, sys, time
+          labels = ['MASTER', 'RUMBLE', 'YOUTUBE']
+          pids = [int(x) if x.isdigit() else 0 for x in sys.argv[1:4]]
+          hz = os.sysconf(os.sysconf_names['SC_CLK_TCK'])
+          cpus = os.cpu_count() or 1
+
+          def cpu_total_idle():
+              parts = open('/proc/stat', encoding='utf-8').readline().split()[1:]
+              vals = list(map(int, parts))
+              idle = vals[3] + (vals[4] if len(vals) > 4 else 0)
+              return sum(vals), idle
+
+          def proc_ticks(pid):
+              if pid <= 0:
+                  return None
+              try:
+                  fields = open(f'/proc/{pid}/stat', encoding='utf-8').read().split()
+                  return int(fields[13]) + int(fields[14])
+              except Exception:
+                  return None
+
+          t0, i0 = cpu_total_idle()
+          p0 = [proc_ticks(pid) for pid in pids]
+          wall0 = time.monotonic()
+          time.sleep(2)
+          t1, i1 = cpu_total_idle()
+          p1 = [proc_ticks(pid) for pid in pids]
+          wall = time.monotonic() - wall0
+          dt = t1 - t0
+          didle = i1 - i0
+          busy = (100.0 * (dt - didle) / dt) if dt > 0 else 0.0
+          print(f'CPU_LOGICAL_COUNT={cpus}')
+          print(f'CPU_HOST_BUSY_PCT={busy:.1f}')
+          for label, a, b in zip(labels, p0, p1):
+              if a is not None and b is not None and wall > 0:
+                  pct = 100.0 * (b - a) / hz / wall
+                  print(f'{label}_CPU_2S_PCT={pct:.1f}')
+              else:
+                  print(f'{label}_CPU_2S_PCT=NA')
+          l1, l5, l15 = os.getloadavg()
+          print(f'LOADAVG_1M={l1:.2f}')
+          print(f'LOADAVG_5M={l5:.2f}')
+          print(f'LOADAVG_15M={l15:.2f}')
+          try:
+              pressure = open('/proc/pressure/cpu', encoding='utf-8').readline().split()
+              avg10 = next(x.split('=',1)[1] for x in pressure if x.startswith('avg10='))
+              print(f'CPU_PRESSURE_SOME_AVG10={avg10}')
+          except Exception:
+              print('CPU_PRESSURE_SOME_AVG10=NA')
+          PY
+
           echo '=== YOUTUBE COPY JOURNAL ==='
           sudo journalctl -u fgbears-youtube-copy-relay.service --since "$youtube_since" -n 50 --no-pager || true
           echo '=== RECENT RUMBLE RELAY JOURNAL ==='
