@@ -1,0 +1,233 @@
+name: Promote Staged Clean Audio v3
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/promote-staged-clean-audio-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgb-audio-v3-promotion
+  cancel-in-progress: false
+
+jobs:
+  promote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Stage v3 controls
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/validate-media.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/validate-media-v3.sh"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/tools/prepare-episode-v3.py "$ORACLE_USER@$ORACLE_HOST:/tmp/prepare-episode-v3.py"
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/add-episode-v3.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/add-episode-v3.sh"
+
+      - name: Validate staged archive and promote atomically
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ubuntu
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          resolve_ep() {
+            local dir=$1 ep=$2 p padded
+            padded=$(printf '%02d' "$ep")
+            for p in "$dir/FGBears-Episode-${ep}.mp4" "$dir/FGBears-Episode-${padded}.mp4"; do
+              if [[ -s "$p" ]]; then printf '%s\n' "$p"; return 0; fi
+            done
+            return 1
+          }
+          video_hash(){ ffmpeg -hide_banner -nostdin -loglevel error -i "$1" -map 0:v:0 -c:v copy -f hash -hash sha256 - 2>/dev/null | tail -n1; }
+
+          master_before=$(pid fgbears-live.service)
+          youtube_before=$(pid fgbears-youtube-copy-relay.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ && "$youtube_before" =~ ^[1-9][0-9]*$ ]]
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          [[ "$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)" == masked* ]]
+          yt_tcp_before=$(sudo ss -tnp 2>/dev/null | grep "pid=$youtube_before," | grep -c ESTAB || true)
+          [[ "$yt_tcp_before" =~ ^[1-9][0-9]*$ ]]
+
+          archive=/tmp/fgb-audio-v3-clean.tar
+          [[ -s "$archive" ]] || { echo 'STAGED_ARCHIVE_MISSING' >&2; exit 1; }
+          archive_bytes=$(stat -c %s "$archive")
+          (( archive_bytes > 100000000 )) || { echo "STAGED_ARCHIVE_TOO_SMALL=$archive_bytes" >&2; exit 1; }
+
+          stage=/tmp/fgb-audio-v3-promote-stage
+          rm -rf "$stage"
+          mkdir -p "$stage"
+          tar -C "$stage" -xf "$archive"
+          clean="$stage/fgb-audio-v3-clean"
+          [[ -d "$clean" && -s "$clean/manifest.tsv" ]]
+          test "$(find "$clean" -maxdepth 1 -type f -name 'Episode-*.m4a' | wc -l)" -eq 31
+          test "$(find "$clean" -maxdepth 1 -type f -name '*.audio-profile.json' | wc -l)" -eq 31
+          while IFS= read -r marker; do
+            jq -e '.profile=="fgb-clean-static-v3" and .quality_verified==true and .processing_mode=="static_gain_only" and .dynamic_processing==false and .audio_codec=="aac" and .audio_bitrate_kbps==256 and .sample_rate_hz==48000 and .channels==2 and .output_metrics.tp_dbtp<=-1.5' "$marker" >/dev/null
+          done < <(find "$clean" -maxdepth 1 -type f -name '*.audio-profile.json' | sort -V)
+          echo "STAGED_ARCHIVE=PASS bytes=$archive_bytes tracks=31"
+
+          media_bytes=$(find /srv/fgbears-live/media -maxdepth 1 -type f -name '*.mp4' -printf '%s\n' | awk '{s+=$1} END{print s+0}')
+          avail_bytes=$(df -B1 --output=avail /srv/fgbears-live | tail -n1 | tr -d ' ')
+          required_bytes=$((media_bytes + 1073741824))
+          (( avail_bytes > required_bytes )) || { echo "INSUFFICIENT_DISK available=$avail_bytes required=$required_bytes" >&2; exit 1; }
+          echo "DISK_PREFLIGHT=PASS available=$avail_bytes required=$required_bytes"
+
+          work=/srv/fgbears-live/audio-v3-candidates
+          sudo rm -rf "$work"
+          sudo install -d -o ubuntu -g ubuntu -m 0755 "$work"
+
+          chmod +x /tmp/validate-media-v3.sh /tmp/prepare-episode-v3.py /tmp/add-episode-v3.sh
+          sudo install -m 0755 /tmp/validate-media-v3.sh /usr/local/bin/fgbears-validate
+          sudo install -m 0755 /tmp/validate-media-v3.sh /opt/fgbears-live/bin/validate-media.sh
+          sudo install -m 0755 /tmp/prepare-episode-v3.py /usr/local/bin/fgbears-prepare-v3
+          sudo install -m 0755 /tmp/prepare-episode-v3.py /opt/fgbears-live/tools/prepare-episode-v3.py
+          sudo install -m 0755 /tmp/add-episode-v3.sh /usr/local/bin/fgbears-add-episode
+          sudo install -m 0755 /tmp/add-episode-v3.sh /opt/fgbears-live/bin/add-episode-v3.sh
+          sudo rm -f /usr/local/bin/fgbears-normalize /opt/fgbears-live/bin/normalize-library.sh /opt/fgbears-live/bin/normalize-resilient.sh /opt/fgbears-live/bin/add-episode.sh
+
+          # Build and validate every candidate before touching production.
+          while IFS=$'\t' read -r ep kind source_path source_sha production_basename; do
+            prod=$(resolve_ep /srv/fgbears-live/media "$ep") || { echo "MISSING_PRODUCTION=$ep" >&2; exit 1; }
+            base=$(basename "$prod")
+            [[ "$base" == "$production_basename" ]] || { echo "PRODUCTION_NAME_CHANGED_EP=$ep expected=$production_basename actual=$base" >&2; exit 1; }
+            track="$clean/Episode-${ep}.m4a"
+            track_marker="$track.audio-profile.json"
+            cand="$work/$base"
+            cand_marker="$cand.audio-profile.json"
+            [[ -s "$track" && -s "$track_marker" ]]
+
+            before_vhash=$(video_hash "$prod")
+            rm -f "$cand" "$cand_marker"
+            nice -n 15 ionice -c2 -n7 ffmpeg -hide_banner -nostdin -loglevel error -y \
+              -i "$prod" -i "$track" -map 0:v:0 -map 1:a:0 -c copy -shortest -movflags +faststart -map_metadata -1 "$cand"
+            after_vhash=$(video_hash "$cand")
+            test "$after_vhash" = "$before_vhash" || { echo "VIDEO_HASH_CHANGED_EP=$ep" >&2; exit 1; }
+
+            prod_dur=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$prod")
+            cand_dur=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$cand")
+            awk -v a="$prod_dur" -v b="$cand_dur" 'BEGIN{d=a-b; if(d<0)d=-d; if(d>0.20) exit 1}' || { echo "DURATION_CHANGED_EP=$ep prod=$prod_dur cand=$cand_dur" >&2; exit 1; }
+
+            sig=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels -of csv=p=0 "$cand")
+            [[ "$sig" == "aac,48000,2" ]] || { echo "BAD_AUDIO_SIG_EP=$ep sig=$sig" >&2; exit 1; }
+            final_sha=$(sha256sum "$cand" | awk '{print $1}')
+            jq --arg sha "$final_sha" '. + {sha256:$sha,video_mode:"packet_copy",quality_verified:true}' "$track_marker" > "$cand_marker"
+            echo "CANDIDATE_OK_EP=$ep file=$base"
+
+            test "$(pid fgbears-live.service)" = "$master_before"
+            test "$(pid fgbears-youtube-copy-relay.service)" = "$youtube_before"
+          done < "$clean/manifest.tsv"
+
+          test "$(find "$work" -maxdepth 1 -type f -name '*.mp4' | wc -l)" -eq 31
+          test "$(find "$work" -maxdepth 1 -type f -name '*.audio-profile.json' | wc -l)" -eq 31
+          /usr/local/bin/fgbears-validate "$work"
+          echo 'ALL_CANDIDATES=PASS'
+
+          # Final pre-promotion live gate.
+          test "$(pid fgbears-live.service)" = "$master_before"
+          test "$(pid fgbears-youtube-copy-relay.service)" = "$youtube_before"
+          yt_tcp_gate=$(sudo ss -tnp 2>/dev/null | grep "pid=$youtube_before," | grep -c ESTAB || true)
+          [[ "$yt_tcp_gate" =~ ^[1-9][0-9]*$ ]]
+
+          qdir="/srv/fgbears-live/quarantine/replaced-production-audio-v2-$(date -u +%Y%m%dT%H%M%SZ)"
+          sudo install -d -o root -g root -m 0755 "$qdir"
+          while IFS=$'\t' read -r ep kind source_path source_sha production_basename; do
+            prod=$(resolve_ep /srv/fgbears-live/media "$ep")
+            base=$(basename "$prod")
+            sudo ln "$prod" "$qdir/$base"
+            if [[ -s "$prod.audio-profile.json" ]]; then sudo ln "$prod.audio-profile.json" "$qdir/$base.audio-profile.json"; fi
+          done < "$clean/manifest.tsv"
+          echo "V2_BACKUP_DIR=$qdir"
+
+          promoting=1
+          rollback() {
+            rc=$?
+            if [[ ${promoting:-0} -eq 1 ]]; then
+              echo "PROMOTION_ERROR_ROLLBACK_START rc=$rc" >&2
+              while IFS=$'\t' read -r ep kind source_path source_sha production_basename; do
+                prod=$(resolve_ep /srv/fgbears-live/media "$ep" 2>/dev/null || true)
+                [[ -n "$prod" ]] || prod="/srv/fgbears-live/media/$production_basename"
+                base=$production_basename
+                [[ -e "$qdir/$base" ]] && sudo ln -f "$qdir/$base" "$prod"
+                [[ -e "$qdir/$base.audio-profile.json" ]] && sudo ln -f "$qdir/$base.audio-profile.json" "$prod.audio-profile.json"
+              done < "$clean/manifest.tsv"
+              sudo /usr/local/bin/fgbears-rebuild-playlist >/dev/null 2>&1 || true
+              echo 'PROMOTION_ROLLBACK=COMPLETE' >&2
+            fi
+            exit "$rc"
+          }
+          trap rollback ERR
+
+          while IFS=$'\t' read -r ep kind source_path source_sha production_basename; do
+            prod=$(resolve_ep /srv/fgbears-live/media "$ep")
+            base=$(basename "$prod")
+            cand="$work/$base"
+            cand_marker="$cand.audio-profile.json"
+            sudo chown --reference="$prod" "$cand"
+            sudo chmod --reference="$prod" "$cand"
+            if [[ -s "$prod.audio-profile.json" ]]; then
+              sudo chown --reference="$prod.audio-profile.json" "$cand_marker"
+              sudo chmod --reference="$prod.audio-profile.json" "$cand_marker"
+            else
+              sudo chown --reference="$prod" "$cand_marker"
+              sudo chmod 0644 "$cand_marker"
+            fi
+            sudo mv -f "$cand" "$prod"
+            sudo mv -f "$cand_marker" "$prod.audio-profile.json"
+            echo "PROMOTED_EP=$ep file=$base"
+          done < "$clean/manifest.tsv"
+
+          sudo /usr/local/bin/fgbears-validate /srv/fgbears-live/media
+          sudo /usr/local/bin/fgbears-rebuild-playlist
+          promoting=0
+          trap - ERR
+
+          master_after=$(pid fgbears-live.service)
+          youtube_after=$(pid fgbears-youtube-copy-relay.service)
+          test "$master_after" = "$master_before"
+          test "$youtube_after" = "$youtube_before"
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          [[ "$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)" == masked* ]]
+          ycmd=$(tr '\0' ' ' < "/proc/$youtube_after/cmdline")
+          printf '%s\n' "$ycmd" | grep -Eq -- '(^| )-c copy( |$)'
+          ! printf '%s\n' "$ycmd" | grep -Eq -- '-af |filter:a|loudnorm|acompressor|deesser|aresample|volume=|-c:a (aac|libfdk_aac|opus)'
+          yt_tcp=$(sudo ss -tnp 2>/dev/null | grep "pid=$youtube_after," | grep -c ESTAB || true)
+          [[ "$yt_tcp" =~ ^[1-9][0-9]*$ ]]
+          profile_count=$(find /srv/fgbears-live/media -maxdepth 1 -type f -name '*.audio-profile.json' -exec jq -r '.profile' {} \; | grep -c '^fgb-clean-static-v3$')
+          test "$profile_count" -eq 31
+
+          sudo rm -rf "$work"
+          rm -rf "$stage"
+          echo 'FULL_AUDIO_PROMOTION=PASS'
+          echo 'EPISODES_PROMOTED=31'
+          echo "MASTER_PID=$master_after"
+          echo "YOUTUBE_PID=$youtube_after"
+          echo "YOUTUBE_ESTABLISHED_TCP=$yt_tcp"
+          echo "RUMBLE_STATE=$(systemctl is-enabled fgbears-rumble-relay.service 2>/dev/null || true)"
+          echo "PROFILE_COUNT=$profile_count"
+          echo "V2_BACKUP_DIR=$qdir"
+          REMOTE
