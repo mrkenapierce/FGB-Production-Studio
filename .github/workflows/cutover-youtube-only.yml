@@ -46,12 +46,10 @@ jobs:
           [[ "$ffmpeg_pid" =~ ^[1-9][0-9]*$ ]]
           sudo tr '\0' ' ' < "/proc/$ffmpeg_pid/cmdline" | grep -Fq 'udp://127.0.0.1:1940?pkt_size=1316'
 
-          # End Rumble without touching the master encoder.
           sudo systemctl disable --now fgbears-rumble-relay.service || true
           sleep 1
           ! systemctl is-active --quiet fgbears-rumble-relay.service
 
-          # Point the YouTube copy relay directly at the master's local UDP output.
           sudo bash -s <<'ROOT'
           set -Eeuo pipefail
           env_file=/etc/fgbears-live/stream.env
@@ -74,7 +72,7 @@ jobs:
           chown root:fgbears "$tmp"
           chmod 0640 "$tmp"
           mv -f "$tmp" "$env_file"
-ROOT
+          ROOT
 
           sudo systemctl restart fgbears-youtube-copy-relay.service
 
