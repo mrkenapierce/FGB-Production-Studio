@@ -1,0 +1,63 @@
+name: Check Live YouTube Audio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/check-live-youtube-audio.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  audio-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout diagnostics
+        uses: actions/checkout@v4
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Capture and analyze exact YouTube-bound audio
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/audio-health.py "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-audio-health.py"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          master_pid=$(systemctl show -p MainPID --value fgbears-live.service 2>/dev/null || true)
+          youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service 2>/dev/null || true)
+          echo "MASTER_ACTIVE=$(systemctl is-active fgbears-live.service || true)"
+          echo "MASTER_PID=$master_pid"
+          echo "YOUTUBE_ACTIVE=$(systemctl is-active fgbears-youtube-copy-relay.service || true)"
+          echo "YOUTUBE_PID=$youtube_pid"
+          if [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]]; then
+            youtube_established=$(sudo ss -Htnp state established 2>/dev/null | awk -v p="pid=$youtube_pid," 'index($0,p){n++} END{print n+0}')
+            echo "YOUTUBE_ESTABLISHED_TCP=$youtube_established"
+          fi
+          printf '%s\n' 'YOUTUBE_LOCAL_UDP_URL=udp://127.0.0.1:1940?pkt_size=1316' > /tmp/fgb-audio-health.env
+          set +e
+          sudo python3 /tmp/fgb-audio-health.py --capture-seconds 12 --env-file /tmp/fgb-audio-health.env
+          rc=$?
+          set -e
+          echo "AUDIO_HEALTH_EXIT_CODE=$rc"
+          sudo rm -f /tmp/fgb-audio-health.py /tmp/fgb-audio-health.env
+          exit 0
+          REMOTE
