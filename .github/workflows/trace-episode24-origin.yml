@@ -1,0 +1,68 @@
+name: Trace Episode 24 Origin
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/trace-episode24-origin.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  trace:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Inspect retained Episode 24 provenance read-only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          echo '=== EP24 FILES ==='
+          sudo find /srv/fgbears-live -maxdepth 7 -type f -iname '*Episode-24*' -print 2>/dev/null | sort | while IFS= read -r f; do
+            case "$f" in
+              *.mp4)
+                sha=$(sha256sum "$f" | awk '{print $1}')
+                audio=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,bit_rate -of csv=p=0 "$f" 2>/dev/null || true)
+                statline=$(stat -c '%y %s' "$f" 2>/dev/null || true)
+                echo "MEDIA=$f SHA256=$sha AUDIO=$audio STAT=$statline"
+                ;;
+              *.json)
+                echo "JSON=$f"
+                jq -c '.' "$f" 2>/dev/null || cat "$f" 2>/dev/null || true
+                ;;
+              *) echo "FILE=$f" ;;
+            esac
+          done
+
+          echo '=== OFFHOST MASTERING TREE ==='
+          sudo find /srv/fgbears-live/.audio-mastering-v2-offhost -maxdepth 7 -type f -printf '%p\n' 2>/dev/null | sort | head -n 300 || true
+
+          echo '=== REMEDIATION TEXT/MANIFEST FILES ==='
+          sudo find /srv/fgbears-live/remediation-14-32 -maxdepth 5 -type f ! -name '*.mp4' ! -name '*.wav' ! -name '*.m4a' ! -name '*.aac' -print 2>/dev/null | sort | head -n 300 || true
+
+          echo '=== RECORDS REFERENCING EP24 ==='
+          while IFS= read -r f; do
+            sudo grep -n -C 4 -E 'Episode-24|episode.?24|"24"' "$f" 2>/dev/null | head -n 80 && echo "RECORD=$f" || true
+          done < <(sudo find /srv/fgbears-live -maxdepth 7 -type f ! -name '*.mp4' ! -name '*.wav' ! -name '*.m4a' ! -name '*.aac' ! -name '*.ts' -print 2>/dev/null | sort)
+          exit 0
+          REMOTE
