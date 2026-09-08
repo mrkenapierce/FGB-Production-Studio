@@ -5,28 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 08 Sep 2026 13:39:07 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 08 Sep 2026 17:29:21 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Dennis Allen already knows Bears DT Jordan van den Berg&apos;s next step</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Dennis Allen already knows Bears DT Jordan van den Berg&apos;s next step</description>
-      <link>https://sports.yahoo.com/articles/dennis-allen-already-knows-bears-124117900.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d025459aa2a8b81cc062</guid>
-      <pubDate>Tue, 08 Sep 2026 05:41:00 GMT</pubDate>
+      <title>Rome Odunze dealing with foot injury, Bears hopeful he&apos;ll play Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Rome Odunze dealing with foot injury, Bears hopeful he&apos;ll play Week 1</description>
+      <link>https://sports.yahoo.com/articles/rome-odunze-dealing-foot-injury-171334273.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-43db2f9044bfe06cad7b</guid>
+      <pubDate>Tue, 08 Sep 2026 17:13:34 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears Start 2026 NFL Week 1 Power Rankings in Elite Company</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Start 2026 NFL Week 1 Power Rankings in Elite Company</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-start-2026-nfl-week-1-power-rankings-in-elite-company</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1d21063931356336dd05</guid>
-      <pubDate>Tue, 08 Sep 2026 04:01:00 GMT</pubDate>
+      <title>2026 NFC North Season Preview and Prediction: The Bears will repeat</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 2026 NFC North Season Preview and Prediction: The Bears will repeat</description>
+      <link>https://sports.yahoo.com/articles/2026-nfc-north-season-preview-160000178.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ee2661ba476b4ad93407</guid>
+      <pubDate>Tue, 08 Sep 2026 16:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Bears-Panthers, Packers-Vikings markets</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Bears-Panthers, Packers-Vikings markets</description>
+      <link>https://www.cbssports.com/prediction/news/week-1-nfl-picks-predictions-kalshi-polymarket-underdog-bears-panthers-packers-vikings-markets/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5c48ba0cf29bec87a012</guid>
+      <pubDate>Tue, 08 Sep 2026 15:31:19 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears 2026 Record Predictions From Experts Have Common Theme</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears 2026 Record Predictions From Experts Have Common Theme</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-2026-record-predictions-from-experts-have-common-theme</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-72013c8c83a3acd14e6a</guid>
+      <pubDate>Tue, 08 Sep 2026 08:47:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears Predicted to Fall Short in Super Bowl Against Perennial AFC Favorite</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Predicted to Fall Short in Super Bowl Against Perennial AFC Favorite</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-predicted-to-fall-short-in-super-bowl-against-perennial-afc-favorite</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a82287edc22d16db49be</guid>
+      <pubDate>Tue, 08 Sep 2026 06:53:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams gaining confidence, building chemistry within Bears offense | Bears, etc. Podcast</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Caleb Williams gaining confidence, building chemistry within Bears offense | Bears, etc. Podcast</description>
+      <link>https://www.chicagobears.com/audio/caleb-williams-gaining-confidence-building-chemistry-within-bears-offense-bears-etc-podcast</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9b77a147195dda4a0aa6</guid>
+      <pubDate>Tue, 08 Sep 2026 06:29:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
@@ -40,16 +80,6 @@
     </item>
 
     <item>
-      <title>Penn State Legend Dies After NFL Career Included 1985 Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Penn State Legend Dies After NFL Career Included 1985 Bears</description>
-      <link>https://sports.yahoo.com/articles/penn-state-legend-dies-nfl-060628749.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ad0c17c0c0e16b4b2f86</guid>
-      <pubDate>Mon, 07 Sep 2026 23:06:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Fantasy will become reality for Bears rookies Sunday</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Fantasy will become reality for Bears rookies Sunday</description>
       <link>https://www.chicagobears.com/news/fantasy-will-become-reality-for-bears-rookies-sunday</link>
@@ -57,36 +87,6 @@
       <pubDate>Mon, 07 Sep 2026 21:53:57 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears Well-Equipped for Another Prolonged Rome Odunze Absence</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Well-Equipped for Another Prolonged Rome Odunze Absence</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-well-equipped-for-another-prolonged-rome-odunze-absence</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-76bdfaf52c97160aa7aa</guid>
-      <pubDate>Mon, 07 Sep 2026 19:25:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Panthers-Bears, Packers-Vikings markets</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Panthers-Bears, Packers-Vikings markets</description>
-      <link>https://www.cbssports.com/prediction/news/week-1-nfl-picks-predictions-kalshi-polymarket-underdog-panthers-bears-packers-vikings-markets/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6fae38906232bb5f48ed</guid>
-      <pubDate>Mon, 07 Sep 2026 14:05:56 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>2026 NFL Week 1 early odds: Cowboys road favorites vs. Giants, while Panthers in familiar position vs. Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: 2026 NFL Week 1 early odds: Cowboys road favorites vs. Giants, while Panthers in familiar position vs. Bears</description>
-      <link>https://www.cbssports.com/nfl/news/2026-nfl-week-1-early-odds-cowboys-road-favorites-vs-giants-while-panthers-in-familiar-position-vs-bears/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d7effd2d9b461872ad0b</guid>
-      <pubDate>Mon, 07 Sep 2026 12:56:01 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
