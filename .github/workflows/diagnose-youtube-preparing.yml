@@ -1,0 +1,122 @@
+name: Diagnose YouTube Preparing State
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-youtube-preparing.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Verify protected key synchronization without exposing key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          GH_YT_KEY: ${{ secrets.FGB_YOUTUBE_STREAM_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$GH_YT_KEY"
+          local_hash=$(printf '%s' "$GH_YT_KEY" | sha256sum | awk '{print $1}')
+          remote_hash=$(ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "sudo bash -lc 'source /etc/fgbears-live/stream.env; printf %s \"\$YOUTUBE_STREAM_KEY\" | sha256sum | awk '\''{print \$1}'\'''" )
+          if [[ "$local_hash" == "$remote_hash" ]]; then
+            echo 'ORACLE_GITHUB_STREAM_KEY_MATCH=PASS'
+          else
+            echo 'ORACLE_GITHUB_STREAM_KEY_MATCH=FAIL'
+            exit 1
+          fi
+
+      - name: Read-only ingest and media diagnostics
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          master_unit=fgbears-live.service
+          yt_unit=fgbears-youtube-copy-relay.service
+          pid() { systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+
+          echo '=== SERVICE STATE ==='
+          for u in "$master_unit" "$yt_unit"; do
+            printf '%s=' "$u"
+            systemctl is-active "$u" || true
+          done
+          master_pid=$(pid "$master_unit")
+          yt_pid=$(pid "$yt_unit")
+          echo "MASTER_PID=$master_pid"
+          echo "YOUTUBE_PID=$yt_pid"
+          [[ "$master_pid" =~ ^[1-9][0-9]*$ ]]
+          [[ "$yt_pid" =~ ^[1-9][0-9]*$ ]]
+
+          echo '=== SANITIZED RELAY COMMAND ==='
+          tr '\0' ' ' < "/proc/$yt_pid/cmdline" | sed -E 's#rtmps://[^ ]+/live2/[^ ]+#rtmps://[REDACTED]/live2/[REDACTED]#g'
+          echo
+
+          echo '=== SANITIZED MASTER COMMAND ==='
+          tr '\0' ' ' < "/proc/$master_pid/cmdline" | sed -E 's#rtmps://[^ ]+/live2/[^ ]+#rtmps://[REDACTED]/live2/[REDACTED]#g'
+          echo
+
+          echo '=== PROCESS HEALTH ==='
+          ps -p "$master_pid","$yt_pid" -o pid,etimes,%cpu,%mem,rss,stat,cmd --no-headers | sed -E 's#rtmps://[^ ]+/live2/[^ ]+#rtmps://[REDACTED]/live2/[REDACTED]#g'
+
+          echo '=== LOCAL UDP 1940 ==='
+          sudo ss -uanp | grep -E '127\.0\.0\.1:1940|:1940' || true
+
+          echo '=== YOUTUBE TCP SAMPLE 1 ==='
+          sudo ss -tinp | grep -A1 -B0 "pid=$yt_pid" || true
+          io1=$(awk '/^wchar:/ {print $2}' "/proc/$yt_pid/io")
+          sleep 5
+          io2=$(awk '/^wchar:/ {print $2}' "/proc/$yt_pid/io")
+          echo "YOUTUBE_RELAY_WCHAR_DELTA_5S=$((io2-io1))"
+          echo '=== YOUTUBE TCP SAMPLE 2 ==='
+          sudo ss -tinp | grep -A1 -B0 "pid=$yt_pid" || true
+
+          if (( io2 <= io1 )); then
+            echo 'YOUTUBE_NETWORK_WRITE_PROGRESS=FAIL'
+          else
+            echo 'YOUTUBE_NETWORK_WRITE_PROGRESS=PASS'
+          fi
+
+          echo '=== RELAY JOURNAL ERRORS (SANITIZED) ==='
+          sudo journalctl -u "$yt_unit" --since '-30 minutes' --no-pager -o cat \
+            | sed -E 's#rtmps://[^ ]+/live2/[^ ]+#rtmps://[REDACTED]/live2/[REDACTED]#g' \
+            | grep -Ei 'error|failed|broken|invalid|non-monoton|disconnect|reset|timed out|timeout|server|404|403|401|warning' \
+            | tail -n 80 || true
+
+          echo '=== ACTIVE VIDEO KEYFRAME SAMPLE ==='
+          video=$(tr '\0' '\n' < "/proc/$master_pid/cmdline" | grep -E '^/.*\.(mp4|mkv|mov)$' | head -n1 || true)
+          if [[ -n "$video" && -r "$video" ]]; then
+            echo "VIDEO_FILE=$video"
+            ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,avg_frame_rate -of default=nw=1 "$video" || true
+            ffprobe -v error -select_streams v:0 -skip_frame nokey -show_entries frame=pts_time -of csv=p=0 "$video" 2>/dev/null | head -n 12 || true
+          else
+            echo 'VIDEO_FILE=UNRESOLVED_FROM_CMDLINE'
+          fi
+
+          echo '=== AUDIO SOURCE OPEN ==='
+          sudo lsof -p "$master_pid" 2>/dev/null | grep -Ei '\.(m4a|mp3|wav|aac)( |$)' | tail -n 10 || true
+
+          echo 'YOUTUBE_PREPARING_DIAGNOSTIC=COMPLETE'
+          REMOTE
