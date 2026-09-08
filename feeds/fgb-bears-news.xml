@@ -5,18 +5,18 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 08 Sep 2026 00:21:19 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 08 Sep 2026 04:55:20 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears Get D’Andre Swift, Kyle Monangai Updates Ahead of Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Get D’Andre Swift, Kyle Monangai Updates Ahead of Week 1</description>
-      <link>https://sports.yahoo.com/articles/bears-d-andre-swift-kyle-233644605.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-974368d8cb69b5e442d6</guid>
-      <pubDate>Mon, 07 Sep 2026 16:36:00 GMT</pubDate>
+      <title>Fantasy will become reality for Bears rookies Sunday</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Fantasy will become reality for Bears rookies Sunday</description>
+      <link>https://www.chicagobears.com/news/fantasy-will-become-reality-for-bears-rookies-sunday</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-724f46d837afe7e3a0d9</guid>
+      <pubDate>Mon, 07 Sep 2026 21:53:57 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
@@ -27,6 +27,16 @@
       <pubDate>Mon, 07 Sep 2026 14:05:56 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Dillon Thieneman explains what Dennis Allen&apos;s Bears defense gets right</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Dillon Thieneman explains what Dennis Allen&apos;s Bears defense gets right</description>
+      <link>https://sports.yahoo.com/articles/dillon-thieneman-explains-dennis-allens-210027853.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-41b6f112829e02378a0e</guid>
+      <pubDate>Mon, 07 Sep 2026 13:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -77,16 +87,6 @@
       <pubDate>Mon, 07 Sep 2026 11:02:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Former Bears FB Matt Suhey dies at 68</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Former Bears FB Matt Suhey dies at 68</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/former-bears-fb-matt-suhey-dies-at-68</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2795581350ab0e2783e6</guid>
-      <pubDate>Mon, 07 Sep 2026 07:53:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
