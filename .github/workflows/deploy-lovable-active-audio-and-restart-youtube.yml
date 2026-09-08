@@ -1,0 +1,222 @@
+name: Deploy Lovable Active Audio and Restart YouTube
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-lovable-active-audio-and-restart-youtube.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+  EXPECTED_TRACK_ID: be315889-b007-43a8-9b1c-f5d3068ee421
+  EXPECTED_TRACK_NAME: FGB_Episode_033_extracted_audio.m4a
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Resolve exact active Lovable audio
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg jq >/dev/null
+
+          endpoints=(
+            'https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing'
+            'https://grant-gems-today.lovable.app/api/public/fgbears/stream-routing'
+          )
+          endpoint=''
+          for candidate in "${endpoints[@]}"; do
+            if curl -LfsS --max-time 20 "$candidate" -o /tmp/stream-state.json; then
+              if jq -e '.presentation.audio.enabled == true and .presentation.audio.mode == "track"' /tmp/stream-state.json >/dev/null; then
+                endpoint="$candidate"
+                break
+              fi
+            fi
+          done
+          [[ -n "$endpoint" ]] || { echo 'No production stream-state endpoint returned an active audio track.' >&2; exit 2; }
+
+          track_id=$(jq -r '.presentation.audio.activeTrackId // empty' /tmp/stream-state.json)
+          track_name=$(jq -r '.presentation.audio.activeTrackName // empty' /tmp/stream-state.json)
+          asset_path=$(jq -r '.presentation.audio.assetUrl // empty' /tmp/stream-state.json)
+          loop=$(jq -r '.presentation.audio.loop' /tmp/stream-state.json)
+          gain=$(jq -r '.presentation.audio.volumeGainDb' /tmp/stream-state.json)
+          revision=$(jq -r '.presentation.audio.revision' /tmp/stream-state.json)
+
+          [[ "$track_id" == "$EXPECTED_TRACK_ID" ]]
+          [[ "$track_name" == "$EXPECTED_TRACK_NAME" ]]
+          [[ "$loop" == true ]]
+          [[ -n "$asset_path" && "$asset_path" != null ]]
+
+          origin="${endpoint%/api/public/fgbears/stream-routing}"
+          if [[ "$asset_path" == http://* || "$asset_path" == https://* ]]; then
+            asset_url="$asset_path"
+          else
+            asset_url="${origin}${asset_path}"
+          fi
+
+          echo CONTROL_ENDPOINT="$endpoint"
+          echo ACTIVE_TRACK_ID="$track_id"
+          echo ACTIVE_TRACK_NAME="$track_name"
+          echo AUDIO_REVISION="$revision"
+          echo AUDIO_LOOP="$loop"
+          echo AUDIO_GAIN_DB="$gain"
+
+          curl -LfsS --retry 3 --retry-delay 2 --max-time 120 "$asset_url" -o /tmp/selected-lovable-audio.m4a
+          test -s /tmp/selected-lovable-audio.m4a
+
+          bytes=$(stat -c %s /tmp/selected-lovable-audio.m4a)
+          codec=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1:nk=1 /tmp/selected-lovable-audio.m4a)
+          rate=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nw=1:nk=1 /tmp/selected-lovable-audio.m4a)
+          channels=$(ffprobe -v error -select_streams a:0 -show_entries stream=channels -of default=nw=1:nk=1 /tmp/selected-lovable-audio.m4a)
+          duration=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 /tmp/selected-lovable-audio.m4a)
+          sha=$(sha256sum /tmp/selected-lovable-audio.m4a | awk '{print $1}')
+
+          [[ "$codec" == aac ]]
+          [[ "$channels" == 2 ]]
+          [[ "$bytes" -gt 17000000 && "$bytes" -lt 18000000 ]]
+          awk -v d="$duration" 'BEGIN{exit !(d>1089 && d<1090)}'
+
+          echo SOURCE_BYTES="$bytes"
+          echo SOURCE_CODEC="$codec"
+          echo SOURCE_RATE="$rate"
+          echo SOURCE_CHANNELS="$channels"
+          echo SOURCE_DURATION="$duration"
+          echo SOURCE_SHA256="$sha"
+          printf '%s\n' "$sha" > /tmp/selected-lovable-audio.sha256
+
+      - name: Stage exact Lovable asset on Oracle
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key /tmp/selected-lovable-audio.m4a "$ORACLE_USER@$ORACLE_HOST:/tmp/selected-lovable-audio.m4a"
+          scp -i ~/.ssh/oracle_key /tmp/selected-lovable-audio.sha256 "$ORACLE_USER@$ORACLE_HOST:/tmp/selected-lovable-audio.sha256"
+
+      - name: Restart production master and YouTube relay
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+
+          MASTER=fgbears-live.service
+          YT=fgbears-youtube-copy-relay.service
+          RUMBLE=fgbears-rumble-relay.service
+          MUSIC=/srv/fgbears-live/audio/fgb-music-loop.m4a
+          START=/usr/local/bin/fgbears-start-stream
+          STAGED=/tmp/selected-lovable-audio.m4a
+          EXPECTED_SHA=$(cat /tmp/selected-lovable-audio.sha256)
+          STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+          BACK=/srv/fgbears-live/quarantine/pre-lovable-audio-$STAMP
+
+          test -s "$STAGED"
+          [[ "$(sha256sum "$STAGED" | awk '{print $1}')" == "$EXPECTED_SHA" ]]
+          codec=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1:nk=1 "$STAGED")
+          channels=$(ffprobe -v error -select_streams a:0 -show_entries stream=channels -of default=nw=1:nk=1 "$STAGED")
+          [[ "$codec" == aac && "$channels" == 2 ]]
+
+          grep -q -- '-map 4:a:0' "$START"
+          ! grep -q -- '-map 0:a:0' "$START"
+          grep -q -- '-c:a copy' "$START"
+
+          old_master=$(systemctl show -p MainPID --value "$MASTER" 2>/dev/null || echo 0)
+          old_yt=$(systemctl show -p MainPID --value "$YT" 2>/dev/null || echo 0)
+          [[ "$(systemctl is-enabled "$RUMBLE" 2>/dev/null || true)" == masked ]]
+
+          sudo install -d -m 755 "$BACK" /srv/fgbears-live/audio
+          if [[ -e "$MUSIC" ]]; then sudo cp -a "$MUSIC" "$BACK/fgb-music-loop.before.m4a"; fi
+          sudo cp -a "$START" "$BACK/fgbears-start-stream.before"
+
+          rollback() {
+            rc=$?
+            if (( rc != 0 )); then
+              echo LOVABLE_AUDIO_ROLLBACK=yes
+              if [[ -e "$BACK/fgb-music-loop.before.m4a" ]]; then
+                sudo install -o fgbears -g fgbears -m 644 "$BACK/fgb-music-loop.before.m4a" "$MUSIC" || true
+              fi
+              sudo systemctl restart "$MASTER" || true
+              sudo systemctl restart "$YT" || true
+            fi
+            exit "$rc"
+          }
+          trap rollback EXIT
+
+          sudo install -o fgbears -g fgbears -m 644 "$STAGED" "$MUSIC"
+          sudo -u fgbears test -r "$MUSIC"
+          [[ "$(sha256sum "$MUSIC" | awk '{print $1}')" == "$EXPECTED_SHA" ]]
+
+          sudo systemctl restart "$MASTER"
+          new_master=0
+          ffpid=''
+          for _ in $(seq 1 60); do
+            new_master=$(systemctl show -p MainPID --value "$MASTER" 2>/dev/null || echo 0)
+            if [[ "$new_master" =~ ^[1-9][0-9]*$ ]] && systemctl is-active --quiet "$MASTER"; then
+              ffpid=$(pgrep -P "$new_master" -x ffmpeg | head -1 || true)
+              [[ -n "$ffpid" ]] && break
+            fi
+            sleep 1
+          done
+          [[ "$new_master" =~ ^[1-9][0-9]*$ && -n "$ffpid" ]]
+          [[ "$new_master" != "$old_master" || "$old_master" == 0 ]]
+
+          cmd=$(tr '\0' ' ' < "/proc/$ffpid/cmdline")
+          [[ "$cmd" == *'-map 4:a:0'* ]]
+          [[ "$cmd" != *'-map 0:a:0'* ]]
+          sudo ls -l "/proc/$ffpid/fd" | grep -q 'fgb-music-loop.m4a'
+
+          sleep 5
+          systemctl is-active --quiet "$MASTER"
+          [[ "$(systemctl show -p MainPID --value "$MASTER")" == "$new_master" ]]
+
+          sudo systemctl restart "$YT"
+          ytpid=0
+          for _ in $(seq 1 60); do
+            ytpid=$(systemctl show -p MainPID --value "$YT" 2>/dev/null || echo 0)
+            if [[ "$ytpid" =~ ^[1-9][0-9]*$ ]] && systemctl is-active --quiet "$YT"; then
+              if sudo ss -ntp 2>/dev/null | grep -q "pid=$ytpid,"; then break; fi
+            fi
+            sleep 1
+          done
+          [[ "$ytpid" =~ ^[1-9][0-9]*$ ]]
+          systemctl is-active --quiet "$YT"
+          sudo ss -ntp 2>/dev/null | grep -q "pid=$ytpid,"
+          [[ "$ytpid" != "$old_yt" || "$old_yt" == 0 ]]
+
+          progress=/srv/fgbears-live/logs/ffmpeg-progress.log
+          first=$(grep '^out_time_ms=' "$progress" 2>/dev/null | tail -1 | cut -d= -f2 || echo 0)
+          sleep 6
+          second=$(grep '^out_time_ms=' "$progress" 2>/dev/null | tail -1 | cut -d= -f2 || echo 0)
+          [[ "$first" =~ ^[0-9]+$ && "$second" =~ ^[0-9]+$ && "$second" -gt "$first" ]]
+
+          trap - EXIT
+          echo YOUTUBE_LIVESTREAM_RESTART=PASS
+          echo LOVABLE_ACTIVE_AUDIO=PASS
+          echo MUSIC_FILE_SHA256="$EXPECTED_SHA"
+          echo OLD_MASTER_PID="$old_master"
+          echo NEW_MASTER_PID="$new_master"
+          echo OLD_YOUTUBE_PID="$old_yt"
+          echo NEW_YOUTUBE_PID="$ytpid"
+          echo EPISODE_AUDIO_MAPPED=no
+          echo SELECTED_AUDIO_FILE_OPEN=yes
+          echo YOUTUBE_TCP=established
+          echo RUMBLE_STATE=masked
+          echo ROLLBACK_BACKUP="$BACK"
+          REMOTE
