@@ -1,0 +1,59 @@
+name: Probe YouTube Broadcast API Auth
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-youtube-broadcast-api-auth.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check protected OAuth credential sets without exposing values
+        env:
+          YT_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YTO_CLIENT_ID: ${{ secrets.YOUTUBE_OAUTH_CLIENT_ID }}
+          YTO_CLIENT_SECRET: ${{ secrets.YOUTUBE_OAUTH_CLIENT_SECRET }}
+          YTO_REFRESH_TOKEN: ${{ secrets.YOUTUBE_OAUTH_REFRESH_TOKEN }}
+          G_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          G_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          G_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GO_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GO_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GO_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
+          YT_ACCESS_TOKEN: ${{ secrets.YOUTUBE_ACCESS_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          available=0
+          if [[ -n "$YT_CLIENT_ID" && -n "$YT_CLIENT_SECRET" && -n "$YT_REFRESH_TOKEN" ]]; then
+            echo 'YOUTUBE_API_AUTH_SET=YOUTUBE_STANDARD'
+            available=1
+          fi
+          if [[ -n "$YTO_CLIENT_ID" && -n "$YTO_CLIENT_SECRET" && -n "$YTO_REFRESH_TOKEN" ]]; then
+            echo 'YOUTUBE_API_AUTH_SET=YOUTUBE_OAUTH'
+            available=1
+          fi
+          if [[ -n "$G_CLIENT_ID" && -n "$G_CLIENT_SECRET" && -n "$G_REFRESH_TOKEN" ]]; then
+            echo 'YOUTUBE_API_AUTH_SET=GOOGLE_STANDARD'
+            available=1
+          fi
+          if [[ -n "$GO_CLIENT_ID" && -n "$GO_CLIENT_SECRET" && -n "$GO_REFRESH_TOKEN" ]]; then
+            echo 'YOUTUBE_API_AUTH_SET=GOOGLE_OAUTH'
+            available=1
+          fi
+          if [[ -n "$YT_ACCESS_TOKEN" ]]; then
+            echo 'YOUTUBE_API_ACCESS_TOKEN=AVAILABLE'
+            available=1
+          fi
+          if (( available == 1 )); then
+            echo 'YOUTUBE_BROADCAST_API_AUTH=AVAILABLE'
+          else
+            echo 'YOUTUBE_BROADCAST_API_AUTH=UNAVAILABLE'
+          fi
