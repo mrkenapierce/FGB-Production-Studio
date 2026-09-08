@@ -1,0 +1,66 @@
+name: Locate Uploaded Episode 033 Audio
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/locate-uploaded-episode033-audio.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+  EXPECTED_STREAM_SHA: c8063973c20ca9f7a06dc432dc8b6017064ada7fa1d2553aa33e35eeb65cc495
+  EXPECTED_DURATION: '1089.340952'
+
+jobs:
+  locate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Find exact audio payload match
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          expected='c8063973c20ca9f7a06dc432dc8b6017064ada7fa1d2553aa33e35eeb65cc495'
+          echo EXPECTED_STREAM_SHA=$expected
+          mapfile -t candidates < <(
+            sudo find /home/ubuntu/fgbears-upload /srv/fgbears-live -maxdepth 5 -type f \
+              \( -iname '*Episode*33*.mp4' -o -iname '*Episode*033*.mp4' -o -iname '*033*.m4a' -o -iname '*33*.m4a' -o -iname '*033*.wav' -o -iname '*33*.wav' \) \
+              2>/dev/null | sort -u
+          )
+          echo CANDIDATE_COUNT=${#candidates[@]}
+          match=''
+          for f in "${candidates[@]}"; do
+            codec=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1:nk=1 "$f" 2>/dev/null || true)
+            [[ -n "$codec" ]] || continue
+            duration=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$f" 2>/dev/null || true)
+            rate=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nw=1:nk=1 "$f" 2>/dev/null || true)
+            channels=$(ffprobe -v error -select_streams a:0 -show_entries stream=channels -of default=nw=1:nk=1 "$f" 2>/dev/null || true)
+            sha=$(ffmpeg -v error -i "$f" -map 0:a:0 -c copy -f hash -hash sha256 - 2>/dev/null | sed 's/^SHA256=//' || true)
+            printf 'CANDIDATE path=%q codec=%s rate=%s channels=%s duration=%s stream_sha=%s\n' "$f" "$codec" "$rate" "$channels" "$duration" "$sha"
+            if [[ "$sha" == "$expected" ]]; then match="$f"; break; fi
+          done
+          if [[ -z "$match" ]]; then
+            echo EXACT_MATCH=no
+            exit 2
+          fi
+          echo EXACT_MATCH=yes
+          echo MATCH_PATH=$match
+          echo MATCH_STREAM_SHA=$expected
+          REMOTE
