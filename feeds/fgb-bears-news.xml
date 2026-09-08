@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 08 Sep 2026 20:06:56 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 08 Sep 2026 22:37:45 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Braxton Jones will start at left tackle for the Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Braxton Jones will start at left tackle for the Bears</description>
+      <link>https://sports.yahoo.com/articles/braxton-jones-start-left-tackle-202832237.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-44b4f50680fd508ce15a</guid>
+      <pubDate>Tue, 08 Sep 2026 20:28:32 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>NFL Week 1 betting: 5 biggest storylines, including big Chargers line and many Bears bets</title>
@@ -15,16 +25,6 @@
       <link>https://sports.yahoo.com/nfl/betting/article/nfl-week-1-betting-5-biggest-storylines-including-big-chargers-line-and-many-bears-bets-193035996.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-74456af280a5e0befde8</guid>
       <pubDate>Tue, 08 Sep 2026 19:30:35 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Report: Kyler Gordon away from the Bears as he works to recover from calf injury</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Report: Kyler Gordon away from the Bears as he works to recover from calf injury</description>
-      <link>https://sports.yahoo.com/articles/report-kyler-gordon-away-bears-184827122.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8626bcb19ee3ed18b829</guid>
-      <pubDate>Tue, 08 Sep 2026 18:48:27 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -40,43 +40,23 @@
     </item>
 
     <item>
-      <title>Bears Settle on Veteran Starters for Now on the Defensive Side</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Settle on Veteran Starters for Now on the Defensive Side</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-settle-on-veteran-starters-for-now-on-the-defensive-side</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7fb2ab06312481f6a454</guid>
-      <pubDate>Tue, 08 Sep 2026 12:12:00 GMT</pubDate>
+      <title>Bears Finally Get Encouraging Update on Kyler Gordon&apos;s Injury Recovery Timeline</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Finally Get Encouraging Update on Kyler Gordon&apos;s Injury Recovery Timeline</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-finally-get-encouraging-update-on-kyler-gordon-s-injury-recovery-timeline</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-54b5c08637ca1d2db209</guid>
+      <pubDate>Tue, 08 Sep 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Ben Johnson Confirms Chicago Bears&apos; Starting Left Tackle for Week 1 vs. Panthers</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Confirms Chicago Bears&apos; Starting Left Tackle for Week 1 vs. Panthers</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-confirms-chicago-bears-starting-left-tackle-for-week-1-vs-panthers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4f027bca54a7ab594856</guid>
-      <pubDate>Tue, 08 Sep 2026 11:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams gaining confidence, building chemistry within Bears offense | Bears, etc. Podcast</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Caleb Williams gaining confidence, building chemistry within Bears offense | Bears, etc. Podcast</description>
-      <link>https://www.chicagobears.com/audio/caleb-williams-gaining-confidence-building-chemistry-within-bears-offense-bears-etc-podcast</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9b77a147195dda4a0aa6</guid>
-      <pubDate>Tue, 08 Sep 2026 06:29:00 GMT</pubDate>
+      <title>Bears rookies set for NFL debuts | Bears Weekly</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears rookies set for NFL debuts | Bears Weekly</description>
+      <link>https://www.chicagobears.com/audio/bears-rookies-set-for-nfl-debuts-bears-weekly</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-161198c25213b11621e6</guid>
+      <pubDate>Tue, 08 Sep 2026 13:48:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Why Bears coach Ben Johnson’s messaging about 2026 resonated with players</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Why Bears coach Ben Johnson’s messaging about 2026 resonated with players</description>
-      <link>https://www.nytimes.com/athletic/7572818/2026/09/08/bears-ben-johnson-2026-message/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-86ef72b242f1601d2eff</guid>
-      <pubDate>Tue, 08 Sep 2026 03:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -84,9 +64,29 @@
       <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; Braxton Jones to start at left tackle in season opener</description>
       <link>https://www.espn.com/nfl/story/_/id/49871513/bears-braxton-jones-start-left-tackle-season-opener</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-fe47aa22849f30e86591</guid>
-      <pubDate>Mon, 07 Sep 2026 23:48:00 GMT</pubDate>
+      <pubDate>Tue, 08 Sep 2026 13:48:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Biggest Takeaways From Chicago Bears&apos; First Unofficial Depth Chart of Regular Season</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Biggest Takeaways From Chicago Bears&apos; First Unofficial Depth Chart of Regular Season</description>
+      <link>https://www.si.com/nfl/bears/onsi/biggest-takeaways-from-chicago-bears-first-unofficial-depth-chart-of-regular-season</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f84fca5a9376f3e64d19</guid>
+      <pubDate>Tue, 08 Sep 2026 13:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Report: Kyler Gordon away from the Bears as he works to recover from calf injury</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Report: Kyler Gordon away from the Bears as he works to recover from calf injury</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/report-kyler-gordon-away-from-the-bears-working-on-his-own-to-recover-from-calf-injury</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cd2265d6483a90c20b36</guid>
+      <pubDate>Tue, 08 Sep 2026 07:48:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
