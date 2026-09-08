@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 08 Sep 2026 04:55:20 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 08 Sep 2026 09:15:03 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Penn State Legend Dies After NFL Career Included 1985 Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Penn State Legend Dies After NFL Career Included 1985 Bears</description>
+      <link>https://sports.yahoo.com/articles/penn-state-legend-dies-nfl-060628749.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ad0c17c0c0e16b4b2f86</guid>
+      <pubDate>Mon, 07 Sep 2026 23:06:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Fantasy will become reality for Bears rookies Sunday</title>
@@ -20,6 +30,26 @@
     </item>
 
     <item>
+      <title>Will D’Andre Swift and Kyle Monangai Play in Week 1? Latest on Bears RBs’ Injury Status Ahead of Season Opener</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Will D’Andre Swift and Kyle Monangai Play in Week 1? Latest on Bears RBs’ Injury Status Ahead of Season Opener</description>
+      <link>https://sports.yahoo.com/articles/d-andre-swift-kyle-monangai-004710673.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c123f2cc3182a342b59a</guid>
+      <pubDate>Mon, 07 Sep 2026 17:47:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears Well-Equipped for Another Prolonged Rome Odunze Absence</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Well-Equipped for Another Prolonged Rome Odunze Absence</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-well-equipped-for-another-prolonged-rome-odunze-absence</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-76bdfaf52c97160aa7aa</guid>
+      <pubDate>Mon, 07 Sep 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Panthers-Bears, Packers-Vikings markets</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Panthers-Bears, Packers-Vikings markets</description>
       <link>https://www.cbssports.com/prediction/news/week-1-nfl-picks-predictions-kalshi-polymarket-underdog-panthers-bears-packers-vikings-markets/</link>
@@ -27,16 +57,6 @@
       <pubDate>Mon, 07 Sep 2026 14:05:56 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Dillon Thieneman explains what Dennis Allen&apos;s Bears defense gets right</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Dillon Thieneman explains what Dennis Allen&apos;s Bears defense gets right</description>
-      <link>https://sports.yahoo.com/articles/dillon-thieneman-explains-dennis-allens-210027853.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-41b6f112829e02378a0e</guid>
-      <pubDate>Mon, 07 Sep 2026 13:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -57,26 +77,6 @@
       <pubDate>Mon, 07 Sep 2026 12:56:01 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>What to expect from Chicago Bears UDFA Skyler Thomas</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: What to expect from Chicago Bears UDFA Skyler Thomas</description>
-      <link>https://sports.yahoo.com/articles/expect-chicago-bears-udfa-skyler-193000638.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c1735617bf6597c6e9ce</guid>
-      <pubDate>Mon, 07 Sep 2026 12:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Rome Odunze, D&apos;Andre Swift, Kyle Monangai Monday Injury Updates Are Mixed Bag for Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Rome Odunze, D&apos;Andre Swift, Kyle Monangai Monday Injury Updates Are Mixed Bag for Bears</description>
-      <link>https://www.si.com/nfl/bears/onsi/rome-odunze-d-andre-swift-kyle-monangai-injury-updates-bears-monday</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9406fd3c163e2baae9f4</guid>
-      <pubDate>Mon, 07 Sep 2026 11:55:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
