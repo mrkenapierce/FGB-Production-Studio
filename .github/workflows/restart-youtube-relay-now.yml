@@ -1,0 +1,72 @@
+name: Restart YouTube Relay Now
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/restart-youtube-relay-now.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  restart:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Restart only YouTube relay and verify ingest
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          master_unit=fgbears-live.service
+          yt_unit=fgbears-youtube-copy-relay.service
+          pid() { systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+
+          systemctl is-active --quiet "$master_unit"
+          master_before=$(pid "$master_unit")
+          yt_before=$(pid "$yt_unit")
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]]
+
+          sudo systemctl restart "$yt_unit"
+          for _ in $(seq 1 20); do
+            systemctl is-active --quiet "$yt_unit" && break
+            sleep 1
+          done
+          systemctl is-active --quiet "$yt_unit"
+          sleep 8
+
+          master_after=$(pid "$master_unit")
+          yt_after=$(pid "$yt_unit")
+          test "$master_after" = "$master_before"
+          [[ "$yt_after" =~ ^[1-9][0-9]*$ ]]
+          test "$yt_after" != "$yt_before"
+
+          tcp=$(sudo ss -tinp | grep "pid=$yt_after" || true)
+          grep -q 'ESTAB' <<<"$tcp"
+
+          echo "YOUTUBE_RELAY_RESTART=PASS"
+          echo "MASTER_PID_UNCHANGED=$master_after"
+          echo "YOUTUBE_PID_BEFORE=$yt_before"
+          echo "YOUTUBE_PID_AFTER=$yt_after"
+          echo "YOUTUBE_TCP_ESTABLISHED=PASS"
+          REMOTE
