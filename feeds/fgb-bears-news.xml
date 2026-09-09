@@ -5,28 +5,48 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 09 Sep 2026 09:56:13 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 09 Sep 2026 14:04:45 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Should the Chicago Bears extend D’Andre Swift?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Should the Chicago Bears extend D’Andre Swift?</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-extend-d-andre-024500217.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8afc0205b686e1e6bfee</guid>
-      <pubDate>Wed, 09 Sep 2026 02:45:00 GMT</pubDate>
+      <title>2026 Chicago Bears Season Preview: The Hunter is now the Hunted</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 2026 Chicago Bears Season Preview: The Hunter is now the Hunted</description>
+      <link>https://sports.yahoo.com/articles/2026-chicago-bears-season-preview-120000818.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8f3d5d86905fd76694e8</guid>
+      <pubDate>Wed, 09 Sep 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears&apos; Jaylon Johnson reveals eye-opening Ben Johnson moment that &apos;sparked&apos; him</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears&apos; Jaylon Johnson reveals eye-opening Ben Johnson moment that &apos;sparked&apos; him</description>
-      <link>https://sports.yahoo.com/articles/bears-jaylon-johnson-reveals-eye-073906601.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b5c261494203bcb6db37</guid>
-      <pubDate>Wed, 09 Sep 2026 00:40:00 GMT</pubDate>
+      <title>Four Matchups That Will Make or Break the Bears in Week 1 vs Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Four Matchups That Will Make or Break the Bears in Week 1 vs Panthers</description>
+      <link>https://www.si.com/nfl/bears/onsi/four-matchups-that-will-make-or-break-the-bears-in-week-1-vs-panthers</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d8fa379c8cfcc67dd53d</guid>
+      <pubDate>Wed, 09 Sep 2026 06:31:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Where Bears rank in ESPN power rankings ahead of Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Where Bears rank in ESPN power rankings ahead of Week 1</description>
+      <link>https://sports.yahoo.com/articles/where-bears-rank-espn-power-132018698.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8cfde555d802e8cb934d</guid>
+      <pubDate>Wed, 09 Sep 2026 06:20:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears vs. Panthers: Caleb Williams Won&apos;t Wear a Checkdown Charlie Disguise</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears vs. Panthers: Caleb Williams Won&apos;t Wear a Checkdown Charlie Disguise</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-vs-panthers-caleb-williams-won-t-wear-a-checkdown-charlie-disguise</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4a7d5a489c79dc183b86</guid>
+      <pubDate>Wed, 09 Sep 2026 05:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -50,16 +70,6 @@
     </item>
 
     <item>
-      <title>Ben Johnson Takes Aim at His and Bears&apos; Real 2025 Problem Area</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Takes Aim at His and Bears&apos; Real 2025 Problem Area</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-takes-aim-at-his-and-bears-real-2025-problem-area</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4da27b69a694adf77f32</guid>
-      <pubDate>Tue, 08 Sep 2026 17:01:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Bears-Panthers, Packers-Vikings markets</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Bears-Panthers, Packers-Vikings markets</description>
       <link>https://www.cbssports.com/prediction/news/week-1-nfl-picks-predictions-kalshi-polymarket-underdog-bears-panthers-packers-vikings-markets/</link>
@@ -70,23 +80,13 @@
     </item>
 
     <item>
-      <title>Bears Finally Get Encouraging Update on Kyler Gordon&apos;s Injury Recovery Timeline</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Finally Get Encouraging Update on Kyler Gordon&apos;s Injury Recovery Timeline</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-finally-get-encouraging-update-on-kyler-gordon-s-injury-recovery-timeline</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-54b5c08637ca1d2db209</guid>
-      <pubDate>Tue, 08 Sep 2026 15:00:00 GMT</pubDate>
+      <title>Report: Kyler Gordon away from the Bears as he works to recover from calf injury</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Report: Kyler Gordon away from the Bears as he works to recover from calf injury</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/report-kyler-gordon-away-from-the-bears-working-on-his-own-to-recover-from-calf-injury</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cd2265d6483a90c20b36</guid>
+      <pubDate>Tue, 08 Sep 2026 07:48:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Braxton Jones to start at left tackle in season opener</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; Braxton Jones to start at left tackle in season opener</description>
-      <link>https://www.espn.com/nfl/story/_/id/49871513/bears-braxton-jones-start-left-tackle-season-opener</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fe47aa22849f30e86591</guid>
-      <pubDate>Tue, 08 Sep 2026 13:48:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
