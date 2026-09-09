@@ -5,26 +5,56 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 08 Sep 2026 22:37:45 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 09 Sep 2026 00:36:40 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Braxton Jones will start at left tackle for the Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Braxton Jones will start at left tackle for the Bears</description>
-      <link>https://sports.yahoo.com/articles/braxton-jones-start-left-tackle-202832237.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-44b4f50680fd508ce15a</guid>
-      <pubDate>Tue, 08 Sep 2026 20:28:32 GMT</pubDate>
+      <title>Bears mourn passing of Matt Suhey</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears mourn passing of Matt Suhey</description>
+      <link>https://www.chicagobears.com/news/bears-mourn-passing-of-matt-suhey</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3e96544a00258f576afc</guid>
+      <pubDate>Wed, 09 Sep 2026 00:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams, Ben Johnson, Chicago Bears about to take fans on a fun ride</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Caleb Williams, Ben Johnson, Chicago Bears about to take fans on a fun ride</description>
+      <link>https://sports.yahoo.com/articles/caleb-williams-ben-johnson-chicago-000000941.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-88b0ee7fb139e3fe1387</guid>
+      <pubDate>Wed, 09 Sep 2026 00:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>NFL Week 1 betting: 5 biggest storylines, including big Chargers line and many Bears bets</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Week 1 betting: 5 biggest storylines, including big Chargers line and many Bears bets</description>
-      <link>https://sports.yahoo.com/nfl/betting/article/nfl-week-1-betting-5-biggest-storylines-including-big-chargers-line-and-many-bears-bets-193035996.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-74456af280a5e0befde8</guid>
-      <pubDate>Tue, 08 Sep 2026 19:30:35 GMT</pubDate>
+      <title>Bears name five season-long captains</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears name five season-long captains</description>
+      <link>https://www.chicagobears.com/news/bears-name-five-season-long-captains</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a9cae43c819251f78d0a</guid>
+      <pubDate>Tue, 08 Sep 2026 20:09:39 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Ben Johnson Takes Aim at His and Bears&apos; Real 2025 Problem Area</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Takes Aim at His and Bears&apos; Real 2025 Problem Area</description>
+      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-takes-aim-at-his-and-bears-real-2025-problem-area</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4da27b69a694adf77f32</guid>
+      <pubDate>Tue, 08 Sep 2026 17:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears Head Coach Ben Johnson Feels &apos;A Fire Lit Under&apos; Jaylon Johnson</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Head Coach Ben Johnson Feels &apos;A Fire Lit Under&apos; Jaylon Johnson</description>
+      <link>https://sports.yahoo.com/articles/bears-head-coach-ben-johnson-232027212.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d34bc1d43b461a421812</guid>
+      <pubDate>Tue, 08 Sep 2026 16:20:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -50,16 +80,6 @@
     </item>
 
     <item>
-      <title>Bears rookies set for NFL debuts | Bears Weekly</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears rookies set for NFL debuts | Bears Weekly</description>
-      <link>https://www.chicagobears.com/audio/bears-rookies-set-for-nfl-debuts-bears-weekly</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-161198c25213b11621e6</guid>
-      <pubDate>Tue, 08 Sep 2026 13:48:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
       <title>Bears&apos; Braxton Jones to start at left tackle in season opener</title>
       <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; Braxton Jones to start at left tackle in season opener</description>
       <link>https://www.espn.com/nfl/story/_/id/49871513/bears-braxton-jones-start-left-tackle-season-opener</link>
@@ -67,26 +87,6 @@
       <pubDate>Tue, 08 Sep 2026 13:48:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Biggest Takeaways From Chicago Bears&apos; First Unofficial Depth Chart of Regular Season</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Biggest Takeaways From Chicago Bears&apos; First Unofficial Depth Chart of Regular Season</description>
-      <link>https://www.si.com/nfl/bears/onsi/biggest-takeaways-from-chicago-bears-first-unofficial-depth-chart-of-regular-season</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f84fca5a9376f3e64d19</guid>
-      <pubDate>Tue, 08 Sep 2026 13:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Report: Kyler Gordon away from the Bears as he works to recover from calf injury</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Report: Kyler Gordon away from the Bears as he works to recover from calf injury</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/report-kyler-gordon-away-from-the-bears-working-on-his-own-to-recover-from-calf-injury</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cd2265d6483a90c20b36</guid>
-      <pubDate>Tue, 08 Sep 2026 07:48:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
