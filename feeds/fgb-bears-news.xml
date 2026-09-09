@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 09 Sep 2026 05:15:29 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 09 Sep 2026 09:56:13 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -20,6 +20,16 @@
     </item>
 
     <item>
+      <title>Bears&apos; Jaylon Johnson reveals eye-opening Ben Johnson moment that &apos;sparked&apos; him</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears&apos; Jaylon Johnson reveals eye-opening Ben Johnson moment that &apos;sparked&apos; him</description>
+      <link>https://sports.yahoo.com/articles/bears-jaylon-johnson-reveals-eye-073906601.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b5c261494203bcb6db37</guid>
+      <pubDate>Wed, 09 Sep 2026 00:40:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
       <title>Bears mourn passing of Matt Suhey</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears mourn passing of Matt Suhey</description>
       <link>https://www.chicagobears.com/news/bears-mourn-passing-of-matt-suhey</link>
@@ -27,16 +37,6 @@
       <pubDate>Wed, 09 Sep 2026 00:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams, Ben Johnson, Chicago Bears about to take fans on a fun ride</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Caleb Williams, Ben Johnson, Chicago Bears about to take fans on a fun ride</description>
-      <link>https://sports.yahoo.com/articles/caleb-williams-ben-johnson-chicago-000000941.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-88b0ee7fb139e3fe1387</guid>
-      <pubDate>Wed, 09 Sep 2026 00:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
