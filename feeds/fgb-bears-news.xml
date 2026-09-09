@@ -5,48 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 09 Sep 2026 14:04:45 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 09 Sep 2026 17:48:30 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>2026 Chicago Bears Season Preview: The Hunter is now the Hunted</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 2026 Chicago Bears Season Preview: The Hunter is now the Hunted</description>
-      <link>https://sports.yahoo.com/articles/2026-chicago-bears-season-preview-120000818.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8f3d5d86905fd76694e8</guid>
-      <pubDate>Wed, 09 Sep 2026 12:00:00 GMT</pubDate>
+      <title>Can the Bears stop Carolina’s Tetairoa McMillan when he’s lined up in the slot?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Can the Bears stop Carolina’s Tetairoa McMillan when he’s lined up in the slot?</description>
+      <link>https://sports.yahoo.com/articles/bears-stop-carolina-tetairoa-mcmillan-170000671.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-777ad109c240ae7af299</guid>
+      <pubDate>Wed, 09 Sep 2026 17:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Four Matchups That Will Make or Break the Bears in Week 1 vs Panthers</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Four Matchups That Will Make or Break the Bears in Week 1 vs Panthers</description>
-      <link>https://www.si.com/nfl/bears/onsi/four-matchups-that-will-make-or-break-the-bears-in-week-1-vs-panthers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d8fa379c8cfcc67dd53d</guid>
-      <pubDate>Wed, 09 Sep 2026 06:31:00 GMT</pubDate>
+      <title>Chicago Bears launch Bearigami</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears launch Bearigami</description>
+      <link>https://www.chicagobears.com/news/chicago-bears-launch-bearigami</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-63fad1ba862bc79c675c</guid>
+      <pubDate>Wed, 09 Sep 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
-      <title>Where Bears rank in ESPN power rankings ahead of Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Where Bears rank in ESPN power rankings ahead of Week 1</description>
-      <link>https://sports.yahoo.com/articles/where-bears-rank-espn-power-132018698.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8cfde555d802e8cb934d</guid>
-      <pubDate>Wed, 09 Sep 2026 06:20:00 GMT</pubDate>
+      <title>Sam Roush explains how valuable Bears teammate Cole Kmet has been</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Sam Roush explains how valuable Bears teammate Cole Kmet has been</description>
+      <link>https://sports.yahoo.com/articles/sam-roush-explains-valuable-bears-172919760.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b358a36f6e2fc8ad3134</guid>
+      <pubDate>Wed, 09 Sep 2026 10:29:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears vs. Panthers: Caleb Williams Won&apos;t Wear a Checkdown Charlie Disguise</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears vs. Panthers: Caleb Williams Won&apos;t Wear a Checkdown Charlie Disguise</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-vs-panthers-caleb-williams-won-t-wear-a-checkdown-charlie-disguise</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4a7d5a489c79dc183b86</guid>
-      <pubDate>Wed, 09 Sep 2026 05:30:00 GMT</pubDate>
+      <title>Bears Considered Potential Trade Suitor For Former Super Bowl-Winning Edge Rusher</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Considered Potential Trade Suitor For Former Super Bowl-Winning Edge Rusher</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-considered-potential-trade-suitor-for-former-super-bowl-winning-edge-rusher</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-724393b72c567dba29e0</guid>
+      <pubDate>Wed, 09 Sep 2026 09:31:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>NFL Insider Confirms Caleb Williams Had 2025 Playoff Team &apos;Scared&apos; to Face Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: NFL Insider Confirms Caleb Williams Had 2025 Playoff Team &apos;Scared&apos; to Face Bears</description>
+      <link>https://www.si.com/nfl/bears/onsi/nfl-insider-confirms-caleb-williams-had-2025-playoff-team-scared-to-face-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d21b76cd3d61d6626cff</guid>
+      <pubDate>Wed, 09 Sep 2026 08:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Have Bears’ Ben Johnson, Caleb Williams found the key to unlock a new level of explosion?</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Have Bears’ Ben Johnson, Caleb Williams found the key to unlock a new level of explosion?</description>
+      <link>https://www.nytimes.com/athletic/7576117/2026/09/09/bears-ben-johnson-caleb-williams-scramble-drill/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-54bff283dc851cbc9069</guid>
+      <pubDate>Wed, 09 Sep 2026 03:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -60,33 +80,13 @@
     </item>
 
     <item>
-      <title>Bears name five season-long captains</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears name five season-long captains</description>
-      <link>https://www.chicagobears.com/news/bears-name-five-season-long-captains</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a9cae43c819251f78d0a</guid>
-      <pubDate>Tue, 08 Sep 2026 20:09:39 GMT</pubDate>
+      <title>Panthers&apos; new-look offensive line ready to &apos;come with that smoke&apos; vs. Bears in Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Panthers&apos; new-look offensive line ready to &apos;come with that smoke&apos; vs. Bears in Week 1</description>
+      <link>https://www.nfl.com/news/panthers-new-look-offensive-line-ready-to-come-with-that-smoke-vs-bears-in-week-1</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c353e8dd9e50e540e381</guid>
+      <pubDate>Tue, 08 Sep 2026 20:16:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Bears-Panthers, Packers-Vikings markets</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Week 1 NFL picks, predictions for Kalshi, Polymarket, Underdog: Bears-Panthers, Packers-Vikings markets</description>
-      <link>https://www.cbssports.com/prediction/news/week-1-nfl-picks-predictions-kalshi-polymarket-underdog-bears-panthers-packers-vikings-markets/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5c48ba0cf29bec87a012</guid>
-      <pubDate>Tue, 08 Sep 2026 15:31:19 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Report: Kyler Gordon away from the Bears as he works to recover from calf injury</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Report: Kyler Gordon away from the Bears as he works to recover from calf injury</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/report-kyler-gordon-away-from-the-bears-working-on-his-own-to-recover-from-calf-injury</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cd2265d6483a90c20b36</guid>
-      <pubDate>Tue, 08 Sep 2026 07:48:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
   </channel>
 </rss>
