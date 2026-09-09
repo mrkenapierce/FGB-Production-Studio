@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 09 Sep 2026 20:11:39 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 09 Sep 2026 22:32:50 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears vs. Panthers Injury Report: Odunze Listed As Limited</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Panthers Injury Report: Odunze Listed As Limited</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-panthers-injury-report-211327652.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e5136cc6c49dc45efc38</guid>
+      <pubDate>Wed, 09 Sep 2026 21:13:27 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears WR Rome Odunze limited in practice with calf injury</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears WR Rome Odunze limited in practice with calf injury</description>
+      <link>https://sports.yahoo.com/articles/bears-wr-rome-odunze-limited-203547734.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1b10a1f9680f9426353e</guid>
+      <pubDate>Wed, 09 Sep 2026 20:35:47 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Caleb Williams, Bears gear up for season opener: &apos;It all matters now&apos;</title>
@@ -30,6 +50,36 @@
     </item>
 
     <item>
+      <title>Bears&apos; Luther Burden: Not on Week 1 injury report</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Luther Burden: Not on Week 1 injury report</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-luther-burden-not-on-week-1-injury-report/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-245bb5a7b30d73ef3c1a</guid>
+      <pubDate>Wed, 09 Sep 2026 13:37:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Kyle Monangai: Cleared to play Sunday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyle Monangai: Cleared to play Sunday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-kyle-monangai-cleared-to-play-sunday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1967a1c8a5e1cc6f669f</guid>
+      <pubDate>Wed, 09 Sep 2026 13:33:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Rome Odunze and More Chicago Bears Injury Updates From Wednesday</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Rome Odunze and More Chicago Bears Injury Updates From Wednesday</description>
+      <link>https://www.si.com/nfl/bears/onsi/rome-odunze-chicago-bears-injury-updates-wednesday</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e8d37a2eaae22733d098</guid>
+      <pubDate>Wed, 09 Sep 2026 13:31:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>Why Bears Tackle Braxton Jones Feels Capable of Keeping Starting Job</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why Bears Tackle Braxton Jones Feels Capable of Keeping Starting Job</description>
       <link>https://www.si.com/nfl/bears/onsi/why-bears-tackle-braxton-jones-feels-capable-of-keeping-starting-job</link>
@@ -37,56 +87,6 @@
       <pubDate>Wed, 09 Sep 2026 12:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Where the Chicago Bears rank statistically heading into Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Where the Chicago Bears rank statistically heading into Week 1</description>
-      <link>https://sports.yahoo.com/articles/where-chicago-bears-rank-statistically-183535653.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6fdb5b47d58050f81ac5</guid>
-      <pubDate>Wed, 09 Sep 2026 11:35:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>The Biggest Problems Facing Ben Johnson&apos;s Bears Offense for Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Biggest Problems Facing Ben Johnson&apos;s Bears Offense for Week 1</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-biggest-problems-facing-ben-johnson-s-bears-offense-for-week-1</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-493d6b80cff830c3a98e</guid>
-      <pubDate>Wed, 09 Sep 2026 11:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Sam Roush explains how valuable Bears teammate Cole Kmet has been</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Sam Roush explains how valuable Bears teammate Cole Kmet has been</description>
-      <link>https://sports.yahoo.com/articles/sam-roush-explains-valuable-bears-172919760.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b358a36f6e2fc8ad3134</guid>
-      <pubDate>Wed, 09 Sep 2026 10:29:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Have Bears’ Ben Johnson, Caleb Williams found the key to unlock a new level of explosion?</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Have Bears’ Ben Johnson, Caleb Williams found the key to unlock a new level of explosion?</description>
-      <link>https://www.nytimes.com/athletic/7576117/2026/09/09/bears-ben-johnson-caleb-williams-scramble-drill/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-54bff283dc851cbc9069</guid>
-      <pubDate>Wed, 09 Sep 2026 03:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Panthers&apos; new-look offensive line ready to &apos;come with that smoke&apos; vs. Bears in Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Panthers&apos; new-look offensive line ready to &apos;come with that smoke&apos; vs. Bears in Week 1</description>
-      <link>https://www.nfl.com/news/panthers-new-look-offensive-line-ready-to-come-with-that-smoke-vs-bears-in-week-1</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c353e8dd9e50e540e381</guid>
-      <pubDate>Tue, 08 Sep 2026 20:16:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
   </channel>
 </rss>
