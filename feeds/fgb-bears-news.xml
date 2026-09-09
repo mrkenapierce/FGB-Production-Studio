@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 09 Sep 2026 00:36:40 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 09 Sep 2026 05:15:29 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Should the Chicago Bears extend D’Andre Swift?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Should the Chicago Bears extend D’Andre Swift?</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-extend-d-andre-024500217.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8afc0205b686e1e6bfee</guid>
+      <pubDate>Wed, 09 Sep 2026 02:45:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears mourn passing of Matt Suhey</title>
@@ -47,16 +57,6 @@
       <pubDate>Tue, 08 Sep 2026 17:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears Head Coach Ben Johnson Feels &apos;A Fire Lit Under&apos; Jaylon Johnson</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Head Coach Ben Johnson Feels &apos;A Fire Lit Under&apos; Jaylon Johnson</description>
-      <link>https://sports.yahoo.com/articles/bears-head-coach-ben-johnson-232027212.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d34bc1d43b461a421812</guid>
-      <pubDate>Tue, 08 Sep 2026 16:20:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
