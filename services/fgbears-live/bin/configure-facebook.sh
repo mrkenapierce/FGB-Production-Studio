@@ -33,7 +33,7 @@ updates = {
     "FACEBOOK_SCHEDULE_TIMEZONE": "America/Chicago",
     "FACEBOOK_LIVE_MINUTES": "10",
     "FACEBOOK_OFF_MINUTES": "10",
-    "FACEBOOK_LIVE_WINDOWS": "00-09,20-29,40-49",
+    "FACEBOOK_LIVE_WINDOWS": "05-14,25-34,45-54",
 }
 retired = {"FACEBOOK_ROLLOVER_TIMES", "FACEBOOK_FIRST_START"}
 seen = set()
@@ -67,7 +67,7 @@ systemctl disable fgbears-facebook-relay.service >/dev/null 2>&1 || true
 systemctl enable --now fgbears-facebook-window-sync.timer
 
 # Align immediately with the current Central 10-minute block rather than waiting
-# for the next boundary. The timer then re-evaluates at :00/:10/:20/:30/:40/:50.
+# for the next :05/:15/:25/:35/:45/:55 boundary.
 systemctl start fgbears-facebook-window-sync.service
 
-echo "Facebook relay configured for alternating 10-minute live/off windows all day in America/Chicago: LIVE :00-:09, :20-:29, :40-:49; OFF :10-:19, :30-:39, :50-:59."
+echo "Facebook relay configured for alternating 10-minute live/off windows all day in America/Chicago: LIVE :05-:14, :25-:34, :45-:54; OFF :15-:24, :35-:44, :55-:04."
