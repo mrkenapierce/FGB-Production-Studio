@@ -5,28 +5,18 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 10 Sep 2026 19:55:03 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 10 Sep 2026 22:04:51 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears Week 1 Thursday practice report</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Week 1 Thursday practice report</description>
-      <link>https://sports.yahoo.com/articles/bears-week-1-thursday-practice-192855922.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3711a0a1a83938e63f09</guid>
-      <pubDate>Thu, 10 Sep 2026 19:28:55 GMT</pubDate>
+      <title>5 things we learned from Bears coordinators</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 5 things we learned from Bears coordinators</description>
+      <link>https://www.chicagobears.com/news/5-things-we-learned-from-bears-coordinators-week-1-2026</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-aeacfcd62dcddc5536aa</guid>
+      <pubDate>Thu, 10 Sep 2026 19:24:23 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>What Drake Maye’s rough Week 1 reminds us about Caleb Williams and the Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: What Drake Maye’s rough Week 1 reminds us about Caleb Williams and the Bears</description>
-      <link>https://sports.yahoo.com/articles/drake-maye-rough-week-1-184500362.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-561f652d120890c42293</guid>
-      <pubDate>Thu, 10 Sep 2026 18:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
@@ -40,23 +30,53 @@
     </item>
 
     <item>
-      <title>Rome Odunze Injury Update From Thursday Practice Puts Bears WR on Track For Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Rome Odunze Injury Update From Thursday Practice Puts Bears WR on Track For Week 1</description>
-      <link>https://www.si.com/nfl/bears/onsi/rome-odunze-injury-update-thursday-practice-bears-week-1</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-08cd82cbc36d52e2ecf5</guid>
-      <pubDate>Thu, 10 Sep 2026 11:29:00 GMT</pubDate>
+      <title>The Old Fallback Dennis Allen Used When Determining Bears DB Starters</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Old Fallback Dennis Allen Used When Determining Bears DB Starters</description>
+      <link>https://www.si.com/nfl/bears/onsi/the-old-fallback-dennis-allen-used-when-determining-bears-db-starters</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3684b462bcaec0c820c6</guid>
+      <pubDate>Thu, 10 Sep 2026 14:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>4 Reasons Chicago Bears Should be Concerned About Carolina Panthers</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 4 Reasons Chicago Bears Should be Concerned About Carolina Panthers</description>
-      <link>https://www.si.com/nfl/bears/onsi/reasons-chicago-bears-concerned-carolina-panthers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e16c7c274fb30b868d0c</guid>
-      <pubDate>Thu, 10 Sep 2026 11:00:00 GMT</pubDate>
+      <title>New Chicago Bears Injury Could Cement Malik Muhammad&apos;s Week 1 Role</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: New Chicago Bears Injury Could Cement Malik Muhammad&apos;s Week 1 Role</description>
+      <link>https://www.si.com/nfl/bears/onsi/new-chicago-bears-injury-could-cement-malik-muhammad-s-week-1-role</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d6adc4abf4181dc2ad64</guid>
+      <pubDate>Thu, 10 Sep 2026 14:15:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Rome Odunze: Limited again Thursday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Rome Odunze: Limited again Thursday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-rome-odunze-limited-again-thursday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-628e3e2d25df2ee366fa</guid>
+      <pubDate>Thu, 10 Sep 2026 12:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Xavier Woods latest addition to Bears&apos; injury report on Thursday</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Xavier Woods latest addition to Bears&apos; injury report on Thursday</description>
+      <link>https://sports.yahoo.com/articles/xavier-woods-latest-addition-bears-192838853.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d57aaa85adeff5962dff</guid>
+      <pubDate>Thu, 10 Sep 2026 12:28:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Statistical Breakdown: How Bears and Panthers stack up before Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Statistical Breakdown: How Bears and Panthers stack up before Week 1</description>
+      <link>https://sports.yahoo.com/articles/statistical-breakdown-bears-panthers-stack-183232302.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c2ab6a0fd799fb4bcfbd</guid>
+      <pubDate>Thu, 10 Sep 2026 11:32:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -67,26 +87,6 @@
       <pubDate>Thu, 10 Sep 2026 05:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>After long Bears offseason, Caleb Williams, Ben Johnson are ready to play: ‘It all matters now’</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: After long Bears offseason, Caleb Williams, Ben Johnson are ready to play: ‘It all matters now’</description>
-      <link>https://www.nytimes.com/athletic/7578615/2026/09/10/bears-offseason-caleb-williams-ben-johnson-ready-to-play/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-375c9e519b3bb78fbb41</guid>
-      <pubDate>Thu, 10 Sep 2026 04:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams, Bears gear up for season opener: &apos;It all matters now&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Caleb Williams, Bears gear up for season opener: &apos;It all matters now&apos;</description>
-      <link>https://www.chicagobears.com/news/caleb-williams-bears-gear-up-for-season-opener-it-all-matters-now</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f4e4ac089153902f9976</guid>
-      <pubDate>Wed, 09 Sep 2026 18:43:59 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
