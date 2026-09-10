@@ -5,6 +5,7 @@ set -Eeuo pipefail
 ENV_FILE=${ENV_FILE:-/etc/fgbears-live/stream.env}
 [[ -f "$ENV_FILE" ]] || { echo "Missing stream configuration: $ENV_FILE" >&2; exit 66; }
 [[ -x /usr/local/bin/fgbears-facebook-relay ]] || { echo "Facebook relay is not installed." >&2; exit 66; }
+[[ -x /usr/local/bin/fgbears-facebook-window-sync ]] || { echo "Facebook window sync is not installed." >&2; exit 66; }
 
 IFS= read -r facebook_rtmp_base
 IFS= read -r facebook_stream_key
@@ -30,13 +31,17 @@ updates = {
     "FACEBOOK_RTMP_BASE": os.environ["FACEBOOK_RTMP_BASE_VALUE"],
     "FACEBOOK_STREAM_KEY": os.environ["FACEBOOK_STREAM_KEY_VALUE"],
     "FACEBOOK_SCHEDULE_TIMEZONE": "America/Chicago",
-    "FACEBOOK_ROLLOVER_TIMES": "03:00,11:00,19:00",
-    "FACEBOOK_FIRST_START": "2026-09-10T19:00:00-05:00",
+    "FACEBOOK_LIVE_MINUTES": "10",
+    "FACEBOOK_OFF_MINUTES": "10",
+    "FACEBOOK_LIVE_WINDOWS": "00-09,20-29,40-49",
 }
+retired = {"FACEBOOK_ROLLOVER_TIMES", "FACEBOOK_FIRST_START"}
 seen = set()
 out = []
 for line in src.read_text(encoding="utf-8").splitlines():
     key = line.split("=", 1)[0] if "=" in line and not line.lstrip().startswith("#") else None
+    if key in retired:
+        continue
     if key in updates:
         if key not in seen:
             out.append(f"{key}={updates[key]}")
@@ -55,20 +60,14 @@ trap - EXIT
 unset facebook_stream_key
 
 systemctl daemon-reload
-systemctl reset-failed fgbears-facebook-relay.service fgbears-facebook-rollover.service || true
-systemctl enable --now fgbears-facebook-rollover.timer
+systemctl disable --now fgbears-facebook-rollover.timer >/dev/null 2>&1 || true
+systemctl stop fgbears-facebook-rollover.service >/dev/null 2>&1 || true
+systemctl reset-failed fgbears-facebook-relay.service fgbears-facebook-window-sync.service || true
+systemctl disable fgbears-facebook-relay.service >/dev/null 2>&1 || true
+systemctl enable --now fgbears-facebook-window-sync.timer
 
-# Before the requested first boundary, keep Facebook stopped. At/after the
-# boundary, enable it for reboot continuity and start immediately. The recurring
-# rollover timer then restarts only this sidecar at 03:00, 11:00 and 19:00 CT.
-first_start=$(TZ=America/Chicago date -d '2026-09-10 19:00:00' +%s)
-now=$(date +%s)
-if (( now >= first_start )); then
-  systemctl enable fgbears-facebook-relay.service
-  systemctl restart fgbears-facebook-relay.service
-else
-  systemctl disable fgbears-facebook-relay.service >/dev/null 2>&1 || true
-  systemctl stop fgbears-facebook-relay.service >/dev/null 2>&1 || true
-fi
+# Align immediately with the current Central 10-minute block rather than waiting
+# for the next boundary. The timer then re-evaluates at :00/:10/:20/:30/:40/:50.
+systemctl start fgbears-facebook-window-sync.service
 
-echo "Facebook relay configured for 8-hour rollovers at 7 PM, 3 AM, and 11 AM America/Chicago, first start September 10, 2026 at 7 PM CT."
+echo "Facebook relay configured for alternating 10-minute live/off windows all day in America/Chicago: LIVE :00-:09, :20-:29, :40-:49; OFF :10-:19, :30-:39, :50-:59."
