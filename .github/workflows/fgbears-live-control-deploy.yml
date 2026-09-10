@@ -1,0 +1,72 @@
+name: Deploy FGB Live Control
+
+on:
+  workflow_dispatch:
+    inputs:
+      bootstrap:
+        description: 'Install/update control tooling before sync (does not restart the live stream)'
+        required: true
+        default: 'false'
+        type: choice
+        options: ['false', 'true']
+  push:
+    branches: [main]
+    paths:
+      - 'services/fgbears-live/control/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgbears-live-control-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-control:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Require Oracle deployment secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_USER" || { echo 'Missing ORACLE_USER secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+
+      - name: Configure SSH
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+
+      - name: Trust Oracle host key
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Bootstrap control tooling
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.bootstrap == 'true' }}
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'set -e; rm -rf /tmp/fgb-control-deploy; git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgb-control-deploy; sudo bash /tmp/fgb-control-deploy/services/fgbears-live/bin/install-control.sh'
+
+      - name: Sync and render approved control package
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'set -e; sudo -u fgbears /usr/local/bin/fgbears-sync-control; sudo -u fgbears /usr/local/bin/fgbears-render-control-assets'
+
+      - name: Confirm live service was not restarted
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'systemctl is-active fgbears-live.service || true; echo "Control deployment completed; workflow did not issue a restart command."'

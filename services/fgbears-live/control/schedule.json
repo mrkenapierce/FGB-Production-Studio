@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "channel": "fgp-live",
+  "timezone": "America/Chicago",
+  "revision": 1,
+  "fallback_asset": "services/fgbears-live/control/creatives/fallback.svg",
+  "items": [
+    {
+      "id": "house-fallback",
+      "type": "fallback",
+      "asset": "services/fgbears-live/control/creatives/fallback.svg",
+      "duration_seconds": 60,
+      "frequency_per_hour": 1,
+      "priority": 0,
+      "active": true
+    }
+  ]
+}
