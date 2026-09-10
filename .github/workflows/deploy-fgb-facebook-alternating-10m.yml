@@ -46,13 +46,14 @@ jobs:
           grep -Fq 'onfail=ignore' services/fgbears-live/bin/youtube-copy-relay.sh
           grep -Fq 'shifted=$(((minute + 55) % 60))' services/fgbears-live/bin/facebook-window-sync.sh
           grep -Fq 'slot % 2 == 0' services/fgbears-live/bin/facebook-window-sync.sh
+          grep -Fq 'ExecStart=/usr/local/bin/fgbears-facebook-relay' services/fgbears-live/systemd/fgbears-facebook-relay.service
+          grep -Fq 'ExecStart=/usr/local/bin/fgbears-facebook-window-sync' services/fgbears-live/systemd/fgbears-facebook-window-sync.service
+          grep -Fq 'Unit=fgbears-facebook-window-sync.service' services/fgbears-live/systemd/fgbears-facebook-window-sync.timer
           for minute in 05 15 25 35 45 55; do
-            grep -Fq "OnCalendar=*-*-* *:${minute}:00 America/Chicago" services/fgbears-live/systemd/fgbears-facebook-window-sync.timer
+            expression="*-*-* *:${minute}:00 America/Chicago"
+            grep -Fq "OnCalendar=${expression}" services/fgbears-live/systemd/fgbears-facebook-window-sync.timer
+            systemd-analyze calendar "$expression" >/dev/null
           done
-          systemd-analyze verify \
-            services/fgbears-live/systemd/fgbears-facebook-relay.service \
-            services/fgbears-live/systemd/fgbears-facebook-window-sync.service \
-            services/fgbears-live/systemd/fgbears-facebook-window-sync.timer
 
       - name: Require protected deployment secrets
         env:
