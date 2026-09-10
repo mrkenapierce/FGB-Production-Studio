@@ -5,9 +5,59 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 10 Sep 2026 09:53:48 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 10 Sep 2026 13:56:56 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Panthers vs Bears: Matchups to watch</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Panthers vs Bears: Matchups to watch</description>
+      <link>https://sports.yahoo.com/articles/panthers-vs-bears-matchups-watch-120000988.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a83a0dd9ba594d0d0c58</guid>
+      <pubDate>Thu, 10 Sep 2026 12:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears QB Caleb Williams sounds off on explosive plays</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears QB Caleb Williams sounds off on explosive plays</description>
+      <link>https://sports.yahoo.com/articles/bears-qb-caleb-williams-sounds-133051826.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7aff89bbc3206364d75e</guid>
+      <pubDate>Thu, 10 Sep 2026 06:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bear Necessities: The Three Top Factors That Will Decide the Bears’ Season Opener</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bear Necessities: The Three Top Factors That Will Decide the Bears’ Season Opener</description>
+      <link>https://www.si.com/nfl/bears/onsi/bear-necessities-the-three-top-factors-that-will-decide-the-bears-season-opener</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-34d969ac84657a4b5383</guid>
+      <pubDate>Thu, 10 Sep 2026 05:13:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>What does Cam Lewis bring to the Bears’ secondary? ‘He’s our Swiss Army Knife’</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: What does Cam Lewis bring to the Bears’ secondary? ‘He’s our Swiss Army Knife’</description>
+      <link>https://www.nytimes.com/athletic/7579619/2026/09/10/cam-lewis-bears-defense-swiss-army-knife/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4a79ce007ccee2ed3e2e</guid>
+      <pubDate>Thu, 10 Sep 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>After long Bears offseason, Caleb Williams, Ben Johnson are ready to play: ‘It all matters now’</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: After long Bears offseason, Caleb Williams, Ben Johnson are ready to play: ‘It all matters now’</description>
+      <link>https://www.nytimes.com/athletic/7578615/2026/09/10/bears-offseason-caleb-williams-ben-johnson-ready-to-play/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-375c9e519b3bb78fbb41</guid>
+      <pubDate>Thu, 10 Sep 2026 04:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
 
     <item>
       <title>Caleb Williams, Bears gear up for season opener: &apos;It all matters now&apos;</title>
@@ -30,26 +80,6 @@
     </item>
 
     <item>
-      <title>Could the Bears move to the White Sox&apos;s current site? Former sports columnist makes the case</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Could the Bears move to the White Sox&apos;s current site? Former sports columnist makes the case</description>
-      <link>https://sports.yahoo.com/articles/could-bears-move-white-soxs-005305013.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-19e7154db924647d10b0</guid>
-      <pubDate>Wed, 09 Sep 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Get Good News Ahead of Panthers Game</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Get Good News Ahead of Panthers Game</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-good-news-ahead-235152127.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f87d3eb6cb33c0fed34b</guid>
-      <pubDate>Wed, 09 Sep 2026 16:51:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Bears&apos; Austin Booker: Looks ready to suit up Sunday</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Austin Booker: Looks ready to suit up Sunday</description>
       <link>https://www.cbssports.com/fantasy/football/news/bears-austin-booker-looks-ready-to-suit-up-sunday/</link>
@@ -57,36 +87,6 @@
       <pubDate>Wed, 09 Sep 2026 16:21:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Jaylon Johnson: On pace to play Sunday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Jaylon Johnson: On pace to play Sunday</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-jaylon-johnson-on-pace-to-play-sunday/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-943d8473237dff0963c7</guid>
-      <pubDate>Wed, 09 Sep 2026 16:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears launch Bearigami</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears launch Bearigami</description>
-      <link>https://www.chicagobears.com/news/chicago-bears-launch-bearigami</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-63fad1ba862bc79c675c</guid>
-      <pubDate>Wed, 09 Sep 2026 15:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Why Bears Tackle Braxton Jones Feels Capable of Keeping Starting Job</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why Bears Tackle Braxton Jones Feels Capable of Keeping Starting Job</description>
-      <link>https://www.si.com/nfl/bears/onsi/why-bears-tackle-braxton-jones-feels-capable-of-keeping-starting-job</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a2b6ffe6515e69e657c6</guid>
-      <pubDate>Wed, 09 Sep 2026 12:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
