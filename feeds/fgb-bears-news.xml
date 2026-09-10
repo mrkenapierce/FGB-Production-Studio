@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 09 Sep 2026 22:32:50 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 10 Sep 2026 00:34:47 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -15,16 +15,6 @@
       <link>https://sports.yahoo.com/articles/bears-vs-panthers-injury-report-211327652.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-e5136cc6c49dc45efc38</guid>
       <pubDate>Wed, 09 Sep 2026 21:13:27 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears WR Rome Odunze limited in practice with calf injury</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears WR Rome Odunze limited in practice with calf injury</description>
-      <link>https://sports.yahoo.com/articles/bears-wr-rome-odunze-limited-203547734.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1b10a1f9680f9426353e</guid>
-      <pubDate>Wed, 09 Sep 2026 20:35:47 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -40,6 +30,36 @@
     </item>
 
     <item>
+      <title>Chicago Bears Get Good News Ahead of Panthers Game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Get Good News Ahead of Panthers Game</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-good-news-ahead-235152127.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f87d3eb6cb33c0fed34b</guid>
+      <pubDate>Wed, 09 Sep 2026 16:51:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Austin Booker: Looks ready to suit up Sunday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Austin Booker: Looks ready to suit up Sunday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-austin-booker-looks-ready-to-suit-up-sunday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a37cf68556a71484f6bc</guid>
+      <pubDate>Wed, 09 Sep 2026 16:21:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Jaylon Johnson: On pace to play Sunday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Jaylon Johnson: On pace to play Sunday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-jaylon-johnson-on-pace-to-play-sunday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-943d8473237dff0963c7</guid>
+      <pubDate>Wed, 09 Sep 2026 16:15:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
       <title>Chicago Bears launch Bearigami</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears launch Bearigami</description>
       <link>https://www.chicagobears.com/news/chicago-bears-launch-bearigami</link>
@@ -47,26 +67,6 @@
       <pubDate>Wed, 09 Sep 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Luther Burden: Not on Week 1 injury report</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Luther Burden: Not on Week 1 injury report</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-luther-burden-not-on-week-1-injury-report/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-245bb5a7b30d73ef3c1a</guid>
-      <pubDate>Wed, 09 Sep 2026 13:37:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Kyle Monangai: Cleared to play Sunday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyle Monangai: Cleared to play Sunday</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-kyle-monangai-cleared-to-play-sunday/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1967a1c8a5e1cc6f669f</guid>
-      <pubDate>Wed, 09 Sep 2026 13:33:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
