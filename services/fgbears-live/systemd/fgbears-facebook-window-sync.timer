@@ -1,0 +1,17 @@
+[Unit]
+Description=Run FGBears Facebook live-window sync at every 10-minute boundary on the 5s
+
+[Timer]
+OnCalendar=*-*-* *:05:00 America/Chicago
+OnCalendar=*-*-* *:15:00 America/Chicago
+OnCalendar=*-*-* *:25:00 America/Chicago
+OnCalendar=*-*-* *:35:00 America/Chicago
+OnCalendar=*-*-* *:45:00 America/Chicago
+OnCalendar=*-*-* *:55:00 America/Chicago
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=true
+Unit=fgbears-facebook-window-sync.service
+
+[Install]
+WantedBy=timers.target

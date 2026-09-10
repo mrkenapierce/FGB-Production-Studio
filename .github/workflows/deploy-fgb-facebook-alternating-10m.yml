@@ -1,0 +1,212 @@
+name: Deploy FGB Facebook Alternating 10-Minute Relay
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'services/fgbears-live/bin/youtube-copy-relay.sh'
+      - 'services/fgbears-live/bin/facebook-relay.sh'
+      - 'services/fgbears-live/bin/facebook-window-sync.sh'
+      - 'services/fgbears-live/bin/configure-facebook.sh'
+      - 'services/fgbears-live/systemd/fgbears-facebook-relay.service'
+      - 'services/fgbears-live/systemd/fgbears-facebook-window-sync.service'
+      - 'services/fgbears-live/systemd/fgbears-facebook-window-sync.timer'
+      - '.github/workflows/deploy-fgb-facebook-alternating-10m.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgb-facebook-production-deploy
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+  FACEBOOK_RTMP_BASE: rtmps://live-api-s.facebook.com:443/rtmp/
+
+jobs:
+  validate-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate Facebook sidecar architecture
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/youtube-copy-relay.sh
+          bash -n services/fgbears-live/bin/facebook-relay.sh
+          bash -n services/fgbears-live/bin/facebook-window-sync.sh
+          bash -n services/fgbears-live/bin/configure-facebook.sh
+          grep -Fq -- '-c copy' services/fgbears-live/bin/facebook-relay.sh
+          ! grep -Eq 'libx264|libx265|overlay=|filter_complex' services/fgbears-live/bin/facebook-relay.sh
+          grep -Fq 'FACEBOOK_MIRROR_SLAVE=' services/fgbears-live/bin/youtube-copy-relay.sh
+          grep -Fq 'onfail=ignore' services/fgbears-live/bin/youtube-copy-relay.sh
+          grep -Fq 'shifted=$(((minute + 55) % 60))' services/fgbears-live/bin/facebook-window-sync.sh
+          grep -Fq 'slot % 2 == 0' services/fgbears-live/bin/facebook-window-sync.sh
+          for minute in 05 15 25 35 45 55; do
+            grep -Fq "OnCalendar=*-*-* *:${minute}:00 America/Chicago" services/fgbears-live/systemd/fgbears-facebook-window-sync.timer
+          done
+          systemd-analyze verify \
+            services/fgbears-live/systemd/fgbears-facebook-relay.service \
+            services/fgbears-live/systemd/fgbears-facebook-window-sync.service \
+            services/fgbears-live/systemd/fgbears-facebook-window-sync.timer
+
+      - name: Require protected deployment secrets
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          FACEBOOK_STREAM_KEY: ${{ secrets.FGB_FACEBOOK_STREAM_KEY }}
+        run: |
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+          test -n "$FACEBOOK_STREAM_KEY" || { echo 'Missing FGB_FACEBOOK_STREAM_KEY secret'; exit 1; }
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Preflight current production without changes
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          main_pid=$(systemctl show -p MainPID --value fgbears-live.service)
+          youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          [[ "$main_pid" =~ ^[1-9][0-9]*$ ]]
+          [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]]
+          echo "Preflight passed: master and YouTube copy relay are active."
+          REMOTE
+
+      - name: Stage Facebook sidecar files on Oracle
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/youtube-copy-relay.sh \
+            services/fgbears-live/bin/facebook-relay.sh \
+            services/fgbears-live/bin/facebook-window-sync.sh \
+            services/fgbears-live/bin/configure-facebook.sh \
+            services/fgbears-live/systemd/fgbears-facebook-relay.service \
+            services/fgbears-live/systemd/fgbears-facebook-window-sync.service \
+            services/fgbears-live/systemd/fgbears-facebook-window-sync.timer \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+
+      - name: Install sidecar and load isolated mirror without restarting master
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          before_main=$(systemctl show -p MainPID --value fgbears-live.service)
+          [[ "$before_main" =~ ^[1-9][0-9]*$ ]]
+
+          install -m 0755 /tmp/youtube-copy-relay.sh /usr/local/bin/fgbears-youtube-copy-relay
+          install -m 0755 /tmp/facebook-relay.sh /usr/local/bin/fgbears-facebook-relay
+          install -m 0755 /tmp/facebook-window-sync.sh /usr/local/bin/fgbears-facebook-window-sync
+          install -m 0755 /tmp/configure-facebook.sh /usr/local/bin/fgbears-configure-facebook
+          install -m 0644 /tmp/fgbears-facebook-relay.service /etc/systemd/system/fgbears-facebook-relay.service
+          install -m 0644 /tmp/fgbears-facebook-window-sync.service /etc/systemd/system/fgbears-facebook-window-sync.service
+          install -m 0644 /tmp/fgbears-facebook-window-sync.timer /etc/systemd/system/fgbears-facebook-window-sync.timer
+          rm -f /etc/systemd/system/fgbears-facebook-rollover.service /etc/systemd/system/fgbears-facebook-rollover.timer
+          systemctl daemon-reload
+          systemctl disable --now fgbears-facebook-rollover.timer >/dev/null 2>&1 || true
+
+          # Reconnect only the already-isolated YouTube copy relay once so it
+          # begins emitting the localhost Facebook mirror. Never restart master.
+          systemctl reset-failed fgbears-youtube-copy-relay.service || true
+          systemctl restart fgbears-youtube-copy-relay.service
+
+          for _ in $(seq 1 45); do
+            systemctl is-active --quiet fgbears-youtube-copy-relay.service || { sleep 2; continue; }
+            youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+            if [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]]; then
+              sockets=$(ss -ntpH state established || true)
+              if grep "pid=$youtube_pid" <<<"$sockets" | grep -q ':443'; then
+                break
+              fi
+            fi
+            sleep 2
+          done
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          ss -ntpH state established | grep "pid=$youtube_pid" | grep -q ':443'
+
+          after_main=$(systemctl show -p MainPID --value fgbears-live.service)
+          [[ "$after_main" == "$before_main" ]] || {
+            echo "Safety failure: master PID changed during Facebook installation." >&2
+            exit 1
+          }
+          systemctl is-active --quiet fgbears-live.service
+          echo "Facebook mirror loaded; master PID remained unchanged and YouTube re-established."
+          REMOTE
+
+      - name: Install Facebook credential and alternating 10-minute schedule on the 5s
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          FACEBOOK_STREAM_KEY: ${{ secrets.FGB_FACEBOOK_STREAM_KEY }}
+        run: |
+          {
+            printf '%s\n' "$FACEBOOK_RTMP_BASE"
+            printf '%s\n' "$FACEBOOK_STREAM_KEY"
+          } | ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo /usr/local/bin/fgbears-configure-facebook'
+
+      - name: Verify schedule and protected production state
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          systemctl is-active --quiet fgbears-facebook-window-sync.timer
+          test "$(systemctl is-enabled fgbears-facebook-window-sync.timer)" = enabled
+          sudo grep -Fqx 'FACEBOOK_RELAY_ENABLED=1' /etc/fgbears-live/stream.env
+          sudo grep -Fqx 'FACEBOOK_LOCAL_UDP_URL=udp://127.0.0.1:1944?pkt_size=1316' /etc/fgbears-live/stream.env
+          sudo grep -Fqx 'FACEBOOK_SCHEDULE_TIMEZONE=America/Chicago' /etc/fgbears-live/stream.env
+          sudo grep -Fqx 'FACEBOOK_LIVE_MINUTES=10' /etc/fgbears-live/stream.env
+          sudo grep -Fqx 'FACEBOOK_OFF_MINUTES=10' /etc/fgbears-live/stream.env
+          sudo grep -Fqx 'FACEBOOK_LIVE_WINDOWS=05-14,25-34,45-54' /etc/fgbears-live/stream.env
+          key_length=$(sudo awk -F= '/^FACEBOOK_STREAM_KEY=/{print length(substr($0,index($0,"=")+1))}' /etc/fgbears-live/stream.env)
+          test "${key_length:-0}" -gt 0
+
+          # Reconcile once, then ensure observed state matches the current :05-anchored slot.
+          sudo systemctl start fgbears-facebook-window-sync.service
+          minute=$(TZ=America/Chicago date +%M)
+          minute=$((10#$minute))
+          shifted=$(((minute + 55) % 60))
+          slot=$((shifted / 10))
+          if (( slot % 2 == 0 )); then
+            for _ in $(seq 1 30); do
+              systemctl is-active --quiet fgbears-facebook-relay.service && break
+              sleep 1
+            done
+            systemctl is-active --quiet fgbears-facebook-relay.service
+          else
+            ! systemctl is-active --quiet fgbears-facebook-relay.service
+          fi
+
+          # Facebook credentials must remain absent from master and YouTube args.
+          main_pid=$(systemctl show -p MainPID --value fgbears-live.service)
+          main_ffmpeg=$(pgrep -P "$main_pid" -x ffmpeg | head -n1 || true)
+          youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          for pid in "$main_ffmpeg" "$youtube_pid"; do
+            [[ -n "$pid" ]] || continue
+            args=$(sudo tr '\0' '\n' < "/proc/$pid/cmdline")
+            ! grep -Fq 'live-api-s.facebook.com' <<<"$args"
+          done
+          echo 'Verified: Facebook alternates 10 minutes live / 10 minutes off on the 5s; master and YouTube remain active.'
+          REMOTE

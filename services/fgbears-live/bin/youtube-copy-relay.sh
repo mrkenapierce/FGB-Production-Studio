@@ -8,8 +8,10 @@ source "$ENV_FILE"
 
 : "${YOUTUBE_STREAM_KEY:?YOUTUBE_STREAM_KEY is required}"
 : "${YOUTUBE_COPY_LOCAL_UDP_URL:=udp://127.0.0.1:1940?pkt_size=1316}"
+: "${FACEBOOK_LOCAL_UDP_URL:=udp://127.0.0.1:1944?pkt_size=1316}"
 : "${YOUTUBE_UPSTREAM_RTMP_BASE:=rtmps://a.rtmps.youtube.com/live2}"
 : "${FFMPEG_LOGLEVEL:=warning}"
+: "${TEE_FIFO_OPTIONS:=attempt_recovery=1:recover_any_error=1:recovery_wait_time=5}"
 
 [[ "$YOUTUBE_STREAM_KEY" != "REPLACE_WITH_YOUTUBE_STREAM_KEY" ]] || {
   echo "Replace the placeholder YouTube stream key in $ENV_FILE" >&2
@@ -23,6 +25,14 @@ source "$ENV_FILE"
   echo "YOUTUBE_COPY_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
   exit 78
 }
+[[ "$FACEBOOK_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
+  echo "FACEBOOK_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
+  exit 78
+}
+[[ "$FACEBOOK_LOCAL_UDP_URL" != "$YOUTUBE_COPY_LOCAL_UDP_URL" ]] || {
+  echo "Facebook mirror must use a different UDP port from the YouTube input." >&2
+  exit 78
+}
 [[ "$YOUTUBE_UPSTREAM_RTMP_BASE" =~ ^rtmps://([a-z0-9-]+\.)?rtmps\.youtube\.com(:443)?/live2$ ]] || {
   echo "YOUTUBE_UPSTREAM_RTMP_BASE must be an approved YouTube RTMPS ingest URL." >&2
   exit 78
@@ -32,8 +42,13 @@ LOCAL_BASE=${YOUTUBE_COPY_LOCAL_UDP_URL%%\?*}
 LOCAL_INPUT="${LOCAL_BASE}?fifo_size=1000000&overrun_nonfatal=1&reuse=1"
 UPSTREAM_TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 
-# Copy/remux only. Consume the shared master program directly from loopback UDP
-# and send it to YouTube without audio/video filters, scaling, or re-encoding.
+# Copy/remux only. Consume the shared master program directly from loopback UDP.
+# YouTube remains the external destination for this relay; a second FIFO-backed
+# loopback MPEG-TS slave supplies the isolated Facebook sidecar. Facebook can
+# start, stop, fail, or roll over without backpressuring the YouTube output.
+YOUTUBE_SLAVE="[f=flv:flvflags=no_duration_filesize]${UPSTREAM_TARGET}"
+FACEBOOK_MIRROR_SLAVE="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${FACEBOOK_LOCAL_UDP_URL}"
+
 exec ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -fflags +genpts+discardcorrupt -err_detect ignore_err \
@@ -42,5 +57,5 @@ exec ffmpeg \
   -map 0:v:0 -map 0:a:0 \
   -c copy \
   -rw_timeout 15000000 \
-  -f flv -flvflags no_duration_filesize \
-  "$UPSTREAM_TARGET"
+  -f tee -use_fifo 1 -fifo_options "$TEE_FIFO_OPTIONS" \
+  "${YOUTUBE_SLAVE}|${FACEBOOK_MIRROR_SLAVE}"
