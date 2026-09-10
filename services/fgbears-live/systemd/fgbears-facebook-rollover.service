@@ -1,9 +1,0 @@
-[Unit]
-Description=Rollover FGBears Facebook 8-hour livestream session
-After=network-online.target fgbears-live.service fgbears-youtube-copy-relay.service
-Wants=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=/bin/systemctl enable fgbears-facebook-relay.service
-ExecStart=/bin/systemctl restart fgbears-facebook-relay.service
