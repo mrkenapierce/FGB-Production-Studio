@@ -44,9 +44,9 @@ jobs:
           ! grep -Eq 'libx264|libx265|overlay=|filter_complex' services/fgbears-live/bin/facebook-relay.sh
           grep -Fq 'FACEBOOK_MIRROR_SLAVE=' services/fgbears-live/bin/youtube-copy-relay.sh
           grep -Fq 'onfail=ignore' services/fgbears-live/bin/youtube-copy-relay.sh
-          grep -Fq 'slot=$((minute / 10))' services/fgbears-live/bin/facebook-window-sync.sh
+          grep -Fq 'shifted=$(((minute + 55) % 60))' services/fgbears-live/bin/facebook-window-sync.sh
           grep -Fq 'slot % 2 == 0' services/fgbears-live/bin/facebook-window-sync.sh
-          for minute in 00 10 20 30 40 50; do
+          for minute in 05 15 25 35 45 55; do
             grep -Fq "OnCalendar=*-*-* *:${minute}:00 America/Chicago" services/fgbears-live/systemd/fgbears-facebook-window-sync.timer
           done
           systemd-analyze verify \
@@ -154,7 +154,7 @@ jobs:
           echo "Facebook mirror loaded; master PID remained unchanged and YouTube re-established."
           REMOTE
 
-      - name: Install Facebook credential and alternating 10-minute schedule
+      - name: Install Facebook credential and alternating 10-minute schedule on the 5s
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           FACEBOOK_STREAM_KEY: ${{ secrets.FGB_FACEBOOK_STREAM_KEY }}
@@ -179,13 +179,16 @@ jobs:
           sudo grep -Fqx 'FACEBOOK_SCHEDULE_TIMEZONE=America/Chicago' /etc/fgbears-live/stream.env
           sudo grep -Fqx 'FACEBOOK_LIVE_MINUTES=10' /etc/fgbears-live/stream.env
           sudo grep -Fqx 'FACEBOOK_OFF_MINUTES=10' /etc/fgbears-live/stream.env
-          sudo grep -Fqx 'FACEBOOK_LIVE_WINDOWS=00-09,20-29,40-49' /etc/fgbears-live/stream.env
+          sudo grep -Fqx 'FACEBOOK_LIVE_WINDOWS=05-14,25-34,45-54' /etc/fgbears-live/stream.env
           key_length=$(sudo awk -F= '/^FACEBOOK_STREAM_KEY=/{print length(substr($0,index($0,"=")+1))}' /etc/fgbears-live/stream.env)
           test "${key_length:-0}" -gt 0
 
-          # Reconcile once, then ensure observed state matches the current slot.
+          # Reconcile once, then ensure observed state matches the current :05-anchored slot.
           sudo systemctl start fgbears-facebook-window-sync.service
-          minute=$(TZ=America/Chicago date +%M); minute=$((10#$minute)); slot=$((minute / 10))
+          minute=$(TZ=America/Chicago date +%M)
+          minute=$((10#$minute))
+          shifted=$(((minute + 55) % 60))
+          slot=$((shifted / 10))
           if (( slot % 2 == 0 )); then
             for _ in $(seq 1 30); do
               systemctl is-active --quiet fgbears-facebook-relay.service && break
@@ -205,5 +208,5 @@ jobs:
             args=$(sudo tr '\0' '\n' < "/proc/$pid/cmdline")
             ! grep -Fq 'live-api-s.facebook.com' <<<"$args"
           done
-          echo 'Verified: Facebook alternates 10 minutes live / 10 minutes off all day; master and YouTube remain active.'
+          echo 'Verified: Facebook alternates 10 minutes live / 10 minutes off on the 5s; master and YouTube remain active.'
           REMOTE
