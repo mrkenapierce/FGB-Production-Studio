@@ -11,12 +11,13 @@ case "${FACEBOOK_RELAY_ENABLED:-0}" in
   *) systemctl stop fgbears-facebook-relay.service >/dev/null 2>&1 || true; exit 0 ;;
 esac
 
-# Alternate 10-minute blocks continuously in America/Chicago:
-# LIVE : :00-:09, :20-:29, :40-:49
-# OFF  : :10-:19, :30-:39, :50-:59
+# Alternate 10-minute blocks continuously in America/Chicago, anchored on :05:
+# LIVE : :05-:14, :25-:34, :45-:54
+# OFF  : :15-:24, :35-:44, :55-:04
 minute=$(TZ=America/Chicago date +%M)
 minute=$((10#$minute))
-slot=$((minute / 10))
+shifted=$(((minute + 55) % 60))
+slot=$((shifted / 10))
 
 if (( slot % 2 == 0 )); then
   if ! systemctl is-active --quiet fgbears-facebook-relay.service; then
