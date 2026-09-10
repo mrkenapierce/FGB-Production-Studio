@@ -1,0 +1,8 @@
+[Unit]
+Description=Synchronize FGBears Facebook alternating 10-minute live window
+After=network-online.target fgbears-live.service fgbears-youtube-copy-relay.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/fgbears-facebook-window-sync
