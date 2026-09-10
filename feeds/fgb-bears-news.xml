@@ -5,19 +5,9 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 10 Sep 2026 00:34:47 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 10 Sep 2026 05:15:26 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
-
-    <item>
-      <title>Bears vs. Panthers Injury Report: Odunze Listed As Limited</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Panthers Injury Report: Odunze Listed As Limited</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-panthers-injury-report-211327652.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e5136cc6c49dc45efc38</guid>
-      <pubDate>Wed, 09 Sep 2026 21:13:27 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
 
     <item>
       <title>Caleb Williams, Bears gear up for season opener: &apos;It all matters now&apos;</title>
@@ -27,6 +17,26 @@
       <pubDate>Wed, 09 Sep 2026 18:43:59 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Four Reasons Why the Bears Could Win Super Bowl 61</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Four Reasons Why the Bears Could Win Super Bowl 61</description>
+      <link>https://www.si.com/nfl/bears/onsi/four-reasons-why-the-bears-could-win-super-bowl-61</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-85ce13ce49eb126004d5</guid>
+      <pubDate>Wed, 09 Sep 2026 17:34:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears news: Rob Gronkowski&apos;s 2026 take will not sit well with Chicago fans</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears news: Rob Gronkowski&apos;s 2026 take will not sit well with Chicago fans</description>
+      <link>https://sports.yahoo.com/articles/bears-news-rob-gronkowskis-2026-025203625.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d5c141f16c10e69088a2</guid>
+      <pubDate>Wed, 09 Sep 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -75,16 +85,6 @@
       <link>https://www.si.com/nfl/bears/onsi/rome-odunze-chicago-bears-injury-updates-wednesday</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-e8d37a2eaae22733d098</guid>
       <pubDate>Wed, 09 Sep 2026 13:31:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Why Bears Tackle Braxton Jones Feels Capable of Keeping Starting Job</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why Bears Tackle Braxton Jones Feels Capable of Keeping Starting Job</description>
-      <link>https://www.si.com/nfl/bears/onsi/why-bears-tackle-braxton-jones-feels-capable-of-keeping-starting-job</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a2b6ffe6515e69e657c6</guid>
-      <pubDate>Wed, 09 Sep 2026 12:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
