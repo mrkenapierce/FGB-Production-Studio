@@ -82,18 +82,47 @@ print("Meta user access token validated for the authenticated Facebook account."
 PY
 
 install -d -o root -g root -m 0755 /etc/fgbears-live
+install -d -o root -g fgbears -m 0750 /srv/fgbears-live/runtime
+
+# Keep exact pre-activation state so a failed permission check or public-live
+# creation can restore the persistent-key mode without disturbing other outputs.
+stream_backup=$(mktemp /etc/fgbears-live/stream.env.backup.XXXXXX)
+cp -a "$ENV_FILE" "$stream_backup"
+meta_backup=""
+if [[ -e "$META_ENV_FILE" ]]; then
+  meta_backup=$(mktemp /etc/fgbears-live/meta-live.env.backup.XXXXXX)
+  cp -a "$META_ENV_FILE" "$meta_backup"
+fi
+rollback() {
+  local status=$?
+  if (( status == 0 )); then
+    rm -f "$stream_backup" ${meta_backup:+"$meta_backup"}
+    return 0
+  fi
+  echo "Meta Live API activation failed; restoring prior Facebook configuration." >&2
+  cp -a "$stream_backup" "$ENV_FILE"
+  if [[ -n "$meta_backup" && -e "$meta_backup" ]]; then
+    cp -a "$meta_backup" "$META_ENV_FILE"
+  else
+    rm -f "$META_ENV_FILE"
+  fi
+  rm -f "$stream_backup" ${meta_backup:+"$meta_backup"}
+  rm -f /srv/fgbears-live/runtime/facebook-secure-stream-url /srv/fgbears-live/runtime/facebook-live-id
+  systemctl stop fgbears-facebook-relay.service >/dev/null 2>&1 || true
+  systemctl start fgbears-facebook-window-sync.service >/dev/null 2>&1 || true
+  exit "$status"
+}
+trap rollback EXIT
+
 temporary=$(mktemp /etc/fgbears-live/meta-live.env.XXXXXX)
-trap 'rm -f "$temporary"' EXIT
 printf 'META_USER_ACCESS_TOKEN=%s\n' "$meta_user_access_token" > "$temporary"
 printf 'META_GRAPH_VERSION=v26.0\n' >> "$temporary"
 chown root:root "$temporary"
 chmod 0600 "$temporary"
 mv -f "$temporary" "$META_ENV_FILE"
-trap - EXIT
 unset meta_user_access_token
 
 set_api_flag 1
-install -d -o root -g fgbears -m 0750 /srv/fgbears-live/runtime
 rm -f /srv/fgbears-live/runtime/facebook-secure-stream-url /srv/fgbears-live/runtime/facebook-live-id
 systemctl daemon-reload
 systemctl reset-failed fgbears-facebook-relay.service fgbears-facebook-window-sync.service || true
@@ -103,4 +132,6 @@ systemctl enable --now fgbears-facebook-window-sync.timer
 # public LiveVideo now; otherwise the next :05/:25/:45 boundary will do so.
 systemctl start fgbears-facebook-window-sync.service
 
+trap - EXIT
+rm -f "$stream_backup" ${meta_backup:+"$meta_backup"}
 echo "Meta Live API mode enabled for public Facebook Live creation on :05/:25/:45 windows."
