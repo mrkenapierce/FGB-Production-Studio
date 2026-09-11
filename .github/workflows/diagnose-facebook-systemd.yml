@@ -1,0 +1,77 @@
+name: Diagnose Facebook Systemd Registration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-facebook-systemd.yml'
+
+permissions:
+  contents: write
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read Facebook systemd state
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE' | tee /tmp/facebook-systemd-diagnostic.txt
+          set +e
+          echo '=== unit files ==='
+          ls -l /etc/systemd/system/fgbears-facebook-* 2>&1
+          echo '=== relay cat ==='
+          systemctl cat fgbears-facebook-relay.service 2>&1
+          echo '=== relay enabled/status ==='
+          systemctl is-enabled fgbears-facebook-relay.service 2>&1
+          systemctl status --no-pager -l fgbears-facebook-relay.service 2>&1 | tail -n 30
+          echo '=== sync unit ==='
+          systemctl cat fgbears-facebook-window-sync.service 2>&1
+          systemctl status --no-pager -l fgbears-facebook-window-sync.service 2>&1 | tail -n 30
+          echo '=== timer ==='
+          systemctl cat fgbears-facebook-window-sync.timer 2>&1
+          systemctl status --no-pager -l fgbears-facebook-window-sync.timer 2>&1 | tail -n 30
+          echo '=== sync journal ==='
+          journalctl -u fgbears-facebook-window-sync.service -n 40 --no-pager 2>&1
+          echo '=== masks / wants ==='
+          find /etc/systemd/system -maxdepth 2 \( -type l -o -type f \) -name 'fgbears-facebook-*' -printf '%p -> %l\n' 2>/dev/null
+          echo '=== protected core ==='
+          printf 'master=%s youtube=%s\n' "$(systemctl is-active fgbears-live.service)" "$(systemctl is-active fgbears-youtube-copy-relay.service)"
+          REMOTE
+      - name: Record diagnostic
+        run: |
+          set -Eeuo pipefail
+          mkdir -p .github/deployment-status
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, datetime
+          text=Path('/tmp/facebook-systemd-diagnostic.txt').read_text(errors='replace')
+          Path('.github/deployment-status/facebook-systemd-diagnostic.json').write_text(json.dumps({
+            'checkedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'diagnostic': text[-12000:]
+          }, indent=2)+'\n')
+          PY
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add .github/deployment-status/facebook-systemd-diagnostic.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record Facebook systemd diagnostic [skip ci]'
+          git pull --rebase origin main
+          git push origin main
