@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 11 Sep 2026 00:07:11 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 11 Sep 2026 04:33:54 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears vs Carolina Panthers: Matchups, best bets, and more</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs Carolina Panthers: Matchups, best bets, and more</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-vs-carolina-panthers-023452776.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-26921d29f8e539884d9e</guid>
+      <pubDate>Fri, 11 Sep 2026 02:34:52 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>5 things we learned from Bears coordinators</title>
@@ -17,6 +27,16 @@
       <pubDate>Thu, 10 Sep 2026 19:24:23 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears’ New Addition Tabbed Among Top ‘Out of Nowhere’ Breakout Players of 2026</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ New Addition Tabbed Among Top ‘Out of Nowhere’ Breakout Players of 2026</description>
+      <link>https://sports.yahoo.com/articles/bears-addition-tabbed-among-top-014906021.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f82651785494b0ef650f</guid>
+      <pubDate>Thu, 10 Sep 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -30,23 +50,13 @@
     </item>
 
     <item>
-      <title>Bears Hit With Unexpected Injury News Regarding Defensive Starter</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Hit With Unexpected Injury News Regarding Defensive Starter</description>
-      <link>https://sports.yahoo.com/articles/bears-hit-unexpected-injury-news-223840993.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0487180767bc7b0af6c0</guid>
-      <pubDate>Thu, 10 Sep 2026 15:38:00 GMT</pubDate>
+      <title>Bears, Panthers look to continue to progress under still-developing No. 1 overall draft picks</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears, Panthers look to continue to progress under still-developing No. 1 overall draft picks</description>
+      <link>https://www.espn.com/nfl/story/_/id/3489%E2%80%A6</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a73a30074a6d95d26716</guid>
+      <pubDate>Thu, 10 Sep 2026 16:13:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears Offense Weighs in on Panthers Defensive Tackle Derrick Brown</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Offense Weighs in on Panthers Defensive Tackle Derrick Brown</description>
-      <link>https://sports.yahoo.com/articles/bears-offense-weighs-panthers-defensive-223355167.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-220ffb5a81b0a6bce6fd</guid>
-      <pubDate>Thu, 10 Sep 2026 15:34:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
@@ -77,16 +87,6 @@
       <pubDate>Thu, 10 Sep 2026 14:48:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Rome Odunze: Limited again Thursday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Rome Odunze: Limited again Thursday</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-rome-odunze-limited-again-thursday/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-628e3e2d25df2ee366fa</guid>
-      <pubDate>Thu, 10 Sep 2026 12:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
