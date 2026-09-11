@@ -1,0 +1,51 @@
+name: Probe YouTube Reencode Headroom
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-youtube-reencode-headroom.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read-only capacity probe
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo "NPROC=$(nproc)"
+          echo "LOADAVG=$(cat /proc/loadavg)"
+          free -m
+          master=$(systemctl show -p MainPID --value fgbears-live.service)
+          yt=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          echo "MASTER_PID=$master YOUTUBE_PID=$yt"
+          ps -p "$master,$yt" -o pid,pcpu,pmem,rss,etime,cmd --no-headers || true
+          ffpid=$(pgrep -P "$master" -x ffmpeg | head -n1 || true)
+          if [[ -n "$ffpid" ]]; then
+            echo "MASTER_FFMPEG_PID=$ffpid"
+            ps -p "$ffpid" -o pid,pcpu,pmem,rss,etime,cmd --no-headers
+          fi
+          REMOTE
