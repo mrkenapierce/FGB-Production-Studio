@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 11 Sep 2026 21:55:35 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 11 Sep 2026 23:42:49 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears-Panthers: Keys to a Chicago victory</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears-Panthers: Keys to a Chicago victory</description>
+      <link>https://sports.yahoo.com/articles/bears-panthers-keys-chicago-victory-220000658.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-be48e7c4a74cb93b10cd</guid>
+      <pubDate>Fri, 11 Sep 2026 22:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>&apos;We are different&apos;: Ben Johnson, players ready to write &apos;a new chapter of Chicago Bears football&apos;</title>
@@ -30,16 +40,6 @@
     </item>
 
     <item>
-      <title>NFL Week 1 injuries: Bears wideout Rome Odunze, Saints running back Alvin Kamara listed as questionable</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 1 injuries: Bears wideout Rome Odunze, Saints running back Alvin Kamara listed as questionable</description>
-      <link>https://www.cbssports.com/nfl/news/nfl-week-1-injuries-tracker-rome-odunze-alvin-kamara/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-be3a20db0261eca84f31</guid>
-      <pubDate>Fri, 11 Sep 2026 20:00:14 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
       <title>Chicago Bears at Carolina Panthers: 3 Props to Play</title>
       <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears at Carolina Panthers: 3 Props to Play</description>
       <link>https://sports.yahoo.com/articles/chicago-bears-carolina-panthers-3-200000670.html</link>
@@ -50,23 +50,43 @@
     </item>
 
     <item>
-      <title>RB D&apos;Andre Swift becomes latest key Bears player to earn a big extension</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: RB D&apos;Andre Swift becomes latest key Bears player to earn a big extension</description>
-      <link>https://sports.yahoo.com/nfl/article/rb-dandre-swift-becomes-latest-key-bears-player-to-earn-a-big-extension-195342263.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f3bd14a4fa985be82d96</guid>
-      <pubDate>Fri, 11 Sep 2026 19:53:42 GMT</pubDate>
+      <title>Bears&apos; Odunze feels &apos;ready&apos; for Panthers despite questionable tag</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; Odunze feels &apos;ready&apos; for Panthers despite questionable tag</description>
+      <link>https://www.espn.com/nhl/story/_/id/39608081%E2%80%A6</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-929a06e7ae504dadadd2</guid>
+      <pubDate>Fri, 11 Sep 2026 15:46:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
-      <title>5 things we learned from Bears coordinators</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 5 things we learned from Bears coordinators</description>
-      <link>https://www.chicagobears.com/news/5-things-we-learned-from-bears-coordinators-week-1-2026</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-aeacfcd62dcddc5536aa</guid>
-      <pubDate>Thu, 10 Sep 2026 19:24:23 GMT</pubDate>
+      <title>The Bears Have Already Answered Ben Johnson&apos;s Greatest Test From 2025 Campaign</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Bears Have Already Answered Ben Johnson&apos;s Greatest Test From 2025 Campaign</description>
+      <link>https://www.si.com/nfl/bears/onsi/the-bears-have-already-answered-ben-johnson-s-greatest-test-from-2025-campaign</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-867170f9b3c77502f30a</guid>
+      <pubDate>Fri, 11 Sep 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams, Bryce Young square off as Bears visit Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Caleb Williams, Bryce Young square off as Bears visit Panthers</description>
+      <link>https://www.cbssports.com/nfl/news/caleb-williams-bryce-young-square-off-as-bears-visit-panthers/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f8da21313b161b521b5f</guid>
+      <pubDate>Fri, 11 Sep 2026 14:51:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Sources: Bears, RB Swift agree to 3-year, $33.75M extension</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Sources: Bears, RB Swift agree to 3-year, $33.75M extension</description>
+      <link>https://www.espn.com/nfl/story/_/id/49906474/bears-rb-swift-agree-3-year-3375m-extension</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9b28f942c6bde9f9f378</guid>
+      <pubDate>Fri, 11 Sep 2026 14:06:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
