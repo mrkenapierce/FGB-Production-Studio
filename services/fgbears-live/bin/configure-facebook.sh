@@ -27,7 +27,9 @@ import os, sys
 src, dst = map(Path, sys.argv[1:])
 updates = {
     "FACEBOOK_RELAY_ENABLED": "1",
+    "FACEBOOK_LIVE_API_ENABLED": "0",
     "FACEBOOK_LOCAL_UDP_URL": "udp://127.0.0.1:1944?pkt_size=1316",
+    "FACEBOOK_DYNAMIC_TARGET_FILE": "/srv/fgbears-live/runtime/facebook-secure-stream-url",
     "FACEBOOK_RTMP_BASE": os.environ["FACEBOOK_RTMP_BASE_VALUE"],
     "FACEBOOK_STREAM_KEY": os.environ["FACEBOOK_STREAM_KEY_VALUE"],
     "FACEBOOK_SCHEDULE_TIMEZONE": "America/Chicago",
@@ -36,8 +38,7 @@ updates = {
     "FACEBOOK_LIVE_WINDOWS": "05-14,25-34,45-54",
 }
 retired = {"FACEBOOK_ROLLOVER_TIMES", "FACEBOOK_FIRST_START"}
-seen = set()
-out = []
+seen = set(); out = []
 for line in src.read_text(encoding="utf-8").splitlines():
     key = line.split("=", 1)[0] if "=" in line and not line.lstrip().startswith("#") else None
     if key in retired:
@@ -65,9 +66,10 @@ systemctl stop fgbears-facebook-rollover.service >/dev/null 2>&1 || true
 systemctl reset-failed fgbears-facebook-relay.service fgbears-facebook-window-sync.service || true
 systemctl disable fgbears-facebook-relay.service >/dev/null 2>&1 || true
 systemctl enable --now fgbears-facebook-window-sync.timer
+rm -f /srv/fgbears-live/runtime/facebook-secure-stream-url /srv/fgbears-live/runtime/facebook-live-id
 
 # Align immediately with the current Central 10-minute block rather than waiting
 # for the next :05/:15/:25/:35/:45/:55 boundary.
 systemctl start fgbears-facebook-window-sync.service
 
-echo "Facebook relay configured for alternating 10-minute live/off windows all day in America/Chicago: LIVE :05-:14, :25-:34, :45-:54; OFF :15-:24, :35-:44, :55-:04."
+echo "Facebook persistent-key mode configured for alternating 10-minute live/off windows: LIVE :05-:14, :25-:34, :45-:54; OFF :15-:24, :35-:44, :55-:04."

@@ -1,0 +1,185 @@
+name: Activate FGB Facebook Public Live API
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fgb-facebook-live-api-activation
+  cancel-in-progress: false
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate source and :05 schedule invariants
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/facebook-relay.sh
+          bash -n services/fgbears-live/bin/facebook-window-sync.sh
+          bash -n services/fgbears-live/bin/configure-facebook-live-api.sh
+          grep -Fq -- '-c copy' services/fgbears-live/bin/facebook-relay.sh
+          ! grep -Eq 'libx264|libx265|overlay=|filter_complex' services/fgbears-live/bin/facebook-relay.sh
+          grep -Fq '/me/live_videos' services/fgbears-live/bin/facebook-window-sync.sh
+          grep -Fq 'status": "LIVE_NOW"' services/fgbears-live/bin/facebook-window-sync.sh
+          grep -Fq 'stop_on_delete_stream' services/fgbears-live/bin/facebook-window-sync.sh
+          grep -Fq 'status": "UNPUBLISHED"' services/fgbears-live/bin/configure-facebook-live-api.sh
+          grep -Fq 'publish_video' services/fgbears-live/bin/configure-facebook-live-api.sh
+          grep -Fq 'FACEBOOK_LIVE_WINDOWS=05-14,25-34,45-54' services/fgbears-live/bin/configure-facebook.sh
+
+      - name: Select protected Meta user token and require Oracle secrets
+        id: auth
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          A1: ${{ secrets.FGB_FACEBOOK_USER_ACCESS_TOKEN }}
+          A2: ${{ secrets.FGB_FACEBOOK_ACCESS_TOKEN }}
+          A3: ${{ secrets.FACEBOOK_ACCESS_TOKEN }}
+          A4: ${{ secrets.META_ACCESS_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" || { echo 'Missing ORACLE_HOST secret'; exit 1; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+          selected=''
+          source_name=''
+          for pair in 'A1:FGB_FACEBOOK_USER_ACCESS_TOKEN' 'A2:FGB_FACEBOOK_ACCESS_TOKEN' 'A3:FACEBOOK_ACCESS_TOKEN' 'A4:META_ACCESS_TOKEN'; do
+            var=${pair%%:*}; name=${pair#*:}
+            value=${!var}
+            if [[ -n "$value" ]]; then selected=$value; source_name=$name; break; fi
+          done
+          [[ -n "$selected" ]] || {
+            echo 'No Meta user access token secret is available. Add FGB_FACEBOOK_USER_ACCESS_TOKEN after authorizing the Facebook account with Live Video API + publish_video.' >&2
+            exit 1
+          }
+          printf '%s' "$selected" > "$RUNNER_TEMP/meta-user-token"
+          chmod 600 "$RUNNER_TEMP/meta-user-token"
+          echo "source_name=$source_name" >> "$GITHUB_OUTPUT"
+          echo "Selected protected Meta token source: $source_name"
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Preflight protected production
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          main_pid=$(systemctl show -p MainPID --value fgbears-live.service)
+          youtube_pid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          [[ "$main_pid" =~ ^[1-9][0-9]*$ ]]
+          [[ "$youtube_pid" =~ ^[1-9][0-9]*$ ]]
+          printf '%s\n' "$main_pid" > /tmp/fgb-main-pid-before-meta-live
+          echo 'Preflight passed: master and YouTube copy relay are active.'
+          REMOTE
+
+      - name: Stage Meta Live API scripts only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/facebook-relay.sh \
+            services/fgbears-live/bin/facebook-window-sync.sh \
+            services/fgbears-live/bin/configure-facebook-live-api.sh \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+
+      - name: Install scripts without restarting any media service
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          install -m 0755 /tmp/facebook-relay.sh /usr/local/bin/fgbears-facebook-relay
+          install -m 0755 /tmp/facebook-window-sync.sh /usr/local/bin/fgbears-facebook-window-sync
+          install -m 0755 /tmp/configure-facebook-live-api.sh /usr/local/bin/fgbears-configure-facebook-live-api
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          before=$(cat /tmp/fgb-main-pid-before-meta-live)
+          after=$(systemctl show -p MainPID --value fgbears-live.service)
+          [[ "$before" == "$after" ]] || { echo 'Safety failure: master PID changed while installing Meta Live API scripts.' >&2; exit 1; }
+          echo 'Scripts installed; master PID unchanged.'
+          REMOTE
+
+      - name: Validate Meta account and activate public-live mode transactionally
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          cat "$RUNNER_TEMP/meta-user-token" | ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo /usr/local/bin/fgbears-configure-facebook-live-api'
+          rm -f "$RUNNER_TEMP/meta-user-token"
+
+      - name: Verify armed schedule and public LiveVideo when in a live window
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          ENV_FILE=/etc/fgbears-live/stream.env
+          TOKEN_FILE=/etc/fgbears-live/meta-user-access-token
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          systemctl is-active --quiet fgbears-facebook-window-sync.timer
+          test "$(systemctl is-enabled fgbears-facebook-window-sync.timer)" = enabled
+          grep -Fqx 'FACEBOOK_LIVE_API_ENABLED=1' "$ENV_FILE"
+          grep -Fqx 'FACEBOOK_LIVE_WINDOWS=05-14,25-34,45-54' "$ENV_FILE"
+          [[ -s "$TOKEN_FILE" ]]
+          [[ "$(stat -c '%a' "$TOKEN_FILE")" == 600 ]]
+
+          before=$(cat /tmp/fgb-main-pid-before-meta-live)
+          after=$(systemctl show -p MainPID --value fgbears-live.service)
+          [[ "$before" == "$after" ]] || { echo 'Safety failure: master PID changed during Meta activation.' >&2; exit 1; }
+
+          minute=$(TZ=America/Chicago date +%M); minute=$((10#$minute))
+          shifted=$(((minute + 55) % 60)); slot=$((shifted / 10))
+          if (( slot % 2 == 0 )); then
+            for _ in $(seq 1 30); do
+              systemctl is-active --quiet fgbears-facebook-relay.service && [[ -s /srv/fgbears-live/runtime/facebook-live-id ]] && break
+              sleep 1
+            done
+            systemctl is-active --quiet fgbears-facebook-relay.service
+            live_id=$(cat /srv/fgbears-live/runtime/facebook-live-id)
+            token=$(cat "$TOKEN_FILE")
+            LIVE_ID="$live_id" META_TOKEN="$token" python3 - <<'PY'
+import json, os, urllib.parse, urllib.request
+live_id = os.environ['LIVE_ID']
+token = os.environ['META_TOKEN']
+url = 'https://graph.facebook.com/v26.0/' + urllib.parse.quote(live_id, safe='') + '?' + urllib.parse.urlencode({'fields':'id,status,permalink_url'})
+req = urllib.request.Request(url, headers={'Authorization':f'Bearer {token}', 'User-Agent':'FGB-Production-Studio/1.0'})
+with urllib.request.urlopen(req, timeout=20) as response:
+    data = json.loads(response.read().decode('utf-8'))
+if str(data.get('id')) != str(live_id):
+    raise SystemExit('Meta verification returned the wrong LiveVideo id.')
+permalink = data.get('permalink_url')
+if not permalink:
+    raise SystemExit('Meta LiveVideo exists but no permalink_url was returned.')
+print('Verified public Facebook LiveVideo object and permalink for the current live window.')
+PY
+            relay_pid=$(systemctl show -p MainPID --value fgbears-facebook-relay.service)
+            [[ "$relay_pid" =~ ^[1-9][0-9]*$ ]]
+            ss -ntpH state established | grep "pid=$relay_pid" | grep -q ':443'
+          else
+            ! systemctl is-active --quiet fgbears-facebook-relay.service
+            echo 'Meta public-live mode is armed; current interval is an OFF window, so first/next public creation occurs at :05/:25/:45.'
+          fi
+          echo 'Meta Live API activation verified without restarting the FGB master or YouTube relay.'
+          REMOTE
