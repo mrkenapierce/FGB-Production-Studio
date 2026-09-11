@@ -11,8 +11,12 @@ source "$ENV_FILE"
 : "${META_GRAPH_VERSION:=v26.0}"
 : "${FACEBOOK_DYNAMIC_TARGET_FILE:=/srv/fgbears-live/runtime/facebook-secure-stream-url}"
 : "${FACEBOOK_LIVE_ID_FILE:=/srv/fgbears-live/runtime/facebook-live-id}"
-: "${FACEBOOK_LIVE_TITLE:=Football's Greatest Bears Live}"
-: "${FACEBOOK_LIVE_DESCRIPTION:=Football's Greatest Bears live stream. Bear Down and FGB.}"
+if [[ -z ${FACEBOOK_LIVE_TITLE+x} ]]; then
+  FACEBOOK_LIVE_TITLE="Football's Greatest Bears Live"
+fi
+if [[ -z ${FACEBOOK_LIVE_DESCRIPTION+x} ]]; then
+  FACEBOOK_LIVE_DESCRIPTION="Football's Greatest Bears live stream. Bear Down and FGB."
+fi
 
 truthy() {
   case "${1,,}" in 1|true|yes|on) return 0 ;; *) return 1 ;; esac
