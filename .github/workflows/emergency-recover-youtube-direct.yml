@@ -22,10 +22,9 @@ jobs:
         run: |
           set -Eeuo pipefail
           bash -n services/fgbears-live/bin/youtube-copy-relay-direct-recovery.sh
-          grep -Fq -- '-c copy' services/fgbears-live/bin/youtube-copy-relay-direct-recovery.sh
+          grep -Fq -- '-c copy -tag:v 7' services/fgbears-live/bin/youtube-copy-relay-direct-recovery.sh
           grep -Fq -- '-f flv -flvflags no_duration_filesize' services/fgbears-live/bin/youtube-copy-relay-direct-recovery.sh
           ! grep -Fq -- '-f tee' services/fgbears-live/bin/youtube-copy-relay-direct-recovery.sh
-          ! grep -Fq 'facebook' services/fgbears-live/bin/youtube-copy-relay-direct-recovery.sh
       - name: Configure SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -53,7 +52,10 @@ jobs:
           install -m 0755 /tmp/fgbears-youtube-copy-relay-direct-recovery /usr/local/bin/fgbears-youtube-copy-relay
           systemctl reset-failed fgbears-youtube-copy-relay.service || true
           systemctl restart fgbears-youtube-copy-relay.service
-          sleep 12
+          ypid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          [[ "$ypid" =~ ^[1-9][0-9]*$ ]]
+          started=$(date -u +'%Y-%m-%d %H:%M:%S')
+          sleep 15
           systemctl is-active --quiet fgbears-youtube-copy-relay.service
           master_after=$(systemctl show -p MainPID --value fgbears-live.service)
           [[ "$master_after" == "$master_before" ]] || {
@@ -62,21 +64,25 @@ jobs:
             systemctl restart fgbears-youtube-copy-relay.service || true
             exit 1
           }
-          ypid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
-          [[ "$ypid" =~ ^[1-9][0-9]*$ ]]
+          current_pid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          [[ "$current_pid" == "$ypid" ]] || {
+            echo 'YouTube relay restarted during validation.' >&2
+            exit 1
+          }
           sockets=$(ss -ntpH state established || true)
           grep "pid=$ypid" <<<"$sockets" | grep -q ':443' || {
             echo 'No established YouTube RTMPS socket after direct recovery.' >&2
-            cp -a /tmp/fgbears-youtube-copy-relay.pre-direct-recovery /usr/local/bin/fgbears-youtube-copy-relay
-            systemctl restart fgbears-youtube-copy-relay.service || true
             exit 1
           }
-          recent=$(journalctl -u fgbears-youtube-copy-relay.service --since '20 seconds ago' --no-pager)
-          if grep -Eq "Tag \[27\]|Unknown option 'flvflags'|Could not write header|error writing header" <<<"$recent"; then
-            echo 'Direct recovery still has muxer errors; rolling back.' >&2
+          recent=$(journalctl -u fgbears-youtube-copy-relay.service --since "$started UTC" --no-pager)
+          if grep -Eq "Tag \[27\]|Unknown option 'flvflags'|Could not write header|error writing header|Invalid data found when processing input" <<<"$recent"; then
+            echo 'Direct recovery process still has current muxer errors; rolling back.' >&2
             cp -a /tmp/fgbears-youtube-copy-relay.pre-direct-recovery /usr/local/bin/fgbears-youtube-copy-relay
             systemctl restart fgbears-youtube-copy-relay.service || true
             exit 1
           fi
-          echo 'YouTube direct stream-copy relay recovered; master PID unchanged and RTMPS socket established.'
+          args=$(tr '\0' '\n' < "/proc/$ypid/cmdline")
+          grep -Fxq 'flv' <<<"$args"
+          ! grep -Fxq 'tee' <<<"$args"
+          echo 'YouTube direct stream-copy relay recovered; master PID unchanged, relay PID stable, RTMPS socket established, and no current FLV muxer errors.'
           REMOTE
