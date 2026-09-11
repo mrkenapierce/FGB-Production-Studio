@@ -1,0 +1,82 @@
+name: Emergency Recover YouTube Direct Relay
+
+on:
+  push:
+    branches: [diagnose-youtube-outage-20260910]
+    paths:
+      - '.github/workflows/emergency-recover-youtube-direct.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate recovery script
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/youtube-copy-relay-direct-recovery.sh
+          grep -Fq -- '-c copy' services/fgbears-live/bin/youtube-copy-relay-direct-recovery.sh
+          grep -Fq -- '-f flv -flvflags no_duration_filesize' services/fgbears-live/bin/youtube-copy-relay-direct-recovery.sh
+          ! grep -Fq -- '-f tee' services/fgbears-live/bin/youtube-copy-relay-direct-recovery.sh
+          ! grep -Fq 'facebook' services/fgbears-live/bin/youtube-copy-relay-direct-recovery.sh
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Stage direct relay
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-copy-relay-direct-recovery.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-youtube-copy-relay-direct-recovery"
+      - name: Replace only YouTube relay and verify
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]]
+          cp -a /usr/local/bin/fgbears-youtube-copy-relay /tmp/fgbears-youtube-copy-relay.pre-direct-recovery
+          install -m 0755 /tmp/fgbears-youtube-copy-relay-direct-recovery /usr/local/bin/fgbears-youtube-copy-relay
+          systemctl reset-failed fgbears-youtube-copy-relay.service || true
+          systemctl restart fgbears-youtube-copy-relay.service
+          sleep 12
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          master_after=$(systemctl show -p MainPID --value fgbears-live.service)
+          [[ "$master_after" == "$master_before" ]] || {
+            echo 'Master PID changed; refusing recovery.' >&2
+            cp -a /tmp/fgbears-youtube-copy-relay.pre-direct-recovery /usr/local/bin/fgbears-youtube-copy-relay
+            systemctl restart fgbears-youtube-copy-relay.service || true
+            exit 1
+          }
+          ypid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          [[ "$ypid" =~ ^[1-9][0-9]*$ ]]
+          sockets=$(ss -ntpH state established || true)
+          grep "pid=$ypid" <<<"$sockets" | grep -q ':443' || {
+            echo 'No established YouTube RTMPS socket after direct recovery.' >&2
+            cp -a /tmp/fgbears-youtube-copy-relay.pre-direct-recovery /usr/local/bin/fgbears-youtube-copy-relay
+            systemctl restart fgbears-youtube-copy-relay.service || true
+            exit 1
+          }
+          recent=$(journalctl -u fgbears-youtube-copy-relay.service --since '20 seconds ago' --no-pager)
+          if grep -Eq "Tag \[27\]|Unknown option 'flvflags'|Could not write header|error writing header" <<<"$recent"; then
+            echo 'Direct recovery still has muxer errors; rolling back.' >&2
+            cp -a /tmp/fgbears-youtube-copy-relay.pre-direct-recovery /usr/local/bin/fgbears-youtube-copy-relay
+            systemctl restart fgbears-youtube-copy-relay.service || true
+            exit 1
+          fi
+          echo 'YouTube direct stream-copy relay recovered; master PID unchanged and RTMPS socket established.'
+          REMOTE
