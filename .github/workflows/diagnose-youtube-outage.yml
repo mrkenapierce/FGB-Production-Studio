@@ -1,0 +1,64 @@
+name: Diagnose YouTube Outage
+
+on:
+  push:
+    branches: [diagnose-youtube-outage-20260910]
+    paths:
+      - '.github/workflows/diagnose-youtube-outage.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Inspect master and YouTube relay read-only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set +e
+          echo '=== NOW ==='
+          date -u
+          TZ=America/Chicago date
+          echo '=== MASTER ==='
+          systemctl status --no-pager -l fgbears-live.service | tail -n 35
+          echo '=== YOUTUBE RELAY ==='
+          systemctl status --no-pager -l fgbears-youtube-copy-relay.service | tail -n 60
+          echo '=== YOUTUBE JOURNAL ==='
+          journalctl -u fgbears-youtube-copy-relay.service --since '2026-09-10 23:45:00 UTC' --no-pager | tail -n 160
+          echo '=== MASTER JOURNAL ==='
+          journalctl -u fgbears-live.service --since '2026-09-10 23:45:00 UTC' --no-pager | tail -n 80
+          echo '=== SOCKETS ==='
+          ypid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          mpid=$(systemctl show -p MainPID --value fgbears-live.service)
+          echo "master_pid=$mpid youtube_pid=$ypid"
+          if [[ "$ypid" =~ ^[1-9][0-9]*$ ]]; then
+            ss -ntpH state established | grep "pid=$ypid" || true
+            echo '--- youtube cmdline redacted ---'
+            tr '\0' '\n' < "/proc/$ypid/cmdline" | sed -E 's#(rtmps://[^/]+/live2/).*#\1[REDACTED]#'
+          fi
+          echo '=== CONFIG PRESENCE ==='
+          awk -F= '
+            /^YOUTUBE_STREAM_KEY=/{print "YOUTUBE_STREAM_KEY_present=" (length(substr($0,index($0,"=")+1))>0 ? "true":"false")}
+            /^YOUTUBE_UPSTREAM_RTMP_BASE=/{print $1"="$2}
+            /^YOUTUBE_COPY_LOCAL_UDP_URL=/{print $1"="$2}
+          ' /etc/fgbears-live/stream.env
+          echo '=== PROCESS TREE ==='
+          ps -eo pid,ppid,lstart,cmd | grep -E 'fgbears-(live|youtube)|ffmpeg' | grep -v grep | sed -E 's#(rtmps://[^/]+/live2/)[^ ]+#\1[REDACTED]#g'
+          REMOTE
