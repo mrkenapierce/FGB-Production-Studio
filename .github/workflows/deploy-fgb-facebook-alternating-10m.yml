@@ -45,7 +45,8 @@ jobs:
           grep -Fq 'FACEBOOK_MIRROR_SLAVE=' services/fgbears-live/bin/youtube-copy-relay.sh
           grep -Fq 'onfail=ignore' services/fgbears-live/bin/youtube-copy-relay.sh
           grep -Fq 'shifted=$(((minute + 55) % 60))' services/fgbears-live/bin/facebook-window-sync.sh
-          grep -Fq 'slot % 2 == 0' services/fgbears-live/bin/facebook-window-sync.sh
+          grep -Fq 'slot % 2 != 0' services/fgbears-live/bin/facebook-window-sync.sh
+          grep -Fq 'FACEBOOK_LIVE_API_ENABLED' services/fgbears-live/bin/facebook-window-sync.sh
           grep -Fq 'ExecStart=/usr/local/bin/fgbears-facebook-relay' services/fgbears-live/systemd/fgbears-facebook-relay.service
           grep -Fq 'ExecStart=/usr/local/bin/fgbears-facebook-window-sync' services/fgbears-live/systemd/fgbears-facebook-window-sync.service
           grep -Fq 'Unit=fgbears-facebook-window-sync.service' services/fgbears-live/systemd/fgbears-facebook-window-sync.timer
@@ -176,6 +177,7 @@ jobs:
           systemctl is-active --quiet fgbears-facebook-window-sync.timer
           test "$(systemctl is-enabled fgbears-facebook-window-sync.timer)" = enabled
           sudo grep -Fqx 'FACEBOOK_RELAY_ENABLED=1' /etc/fgbears-live/stream.env
+          sudo grep -Fqx 'FACEBOOK_LIVE_API_ENABLED=0' /etc/fgbears-live/stream.env
           sudo grep -Fqx 'FACEBOOK_LOCAL_UDP_URL=udp://127.0.0.1:1944?pkt_size=1316' /etc/fgbears-live/stream.env
           sudo grep -Fqx 'FACEBOOK_SCHEDULE_TIMEZONE=America/Chicago' /etc/fgbears-live/stream.env
           sudo grep -Fqx 'FACEBOOK_LIVE_MINUTES=10' /etc/fgbears-live/stream.env
@@ -209,5 +211,5 @@ jobs:
             args=$(sudo tr '\0' '\n' < "/proc/$pid/cmdline")
             ! grep -Fq 'live-api-s.facebook.com' <<<"$args"
           done
-          echo 'Verified: Facebook alternates 10 minutes live / 10 minutes off on the 5s; master and YouTube remain active.'
+          echo 'Verified: Facebook persistent-key fallback alternates 10 minutes live / 10 minutes off on the 5s; master and YouTube remain active.'
           REMOTE
