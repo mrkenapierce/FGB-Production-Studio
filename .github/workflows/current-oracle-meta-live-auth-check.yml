@@ -1,0 +1,72 @@
+name: Current Oracle Meta Live Auth Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/current-oracle-meta-live-auth-check.yml'
+
+permissions:
+  contents: write
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Check Oracle protected config without exposing values
+        id: probe
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' > /tmp/meta-presence.env <<'REMOTE'
+          set -Eeuo pipefail
+          token=false; user=false; page=false
+          for file in /etc/fgbears-live/stream.env /etc/fgbears-live/meta-live.env; do
+            [[ -r "$file" ]] || continue
+            if grep -Eq '^(FGB_FACEBOOK_USER_ACCESS_TOKEN|FGB_FACEBOOK_PAGE_ACCESS_TOKEN|FGB_FACEBOOK_ACCESS_TOKEN|FACEBOOK_ACCESS_TOKEN|FGB_META_PAGE_ACCESS_TOKEN|META_PAGE_ACCESS_TOKEN|META_ACCESS_TOKEN)=.+' "$file"; then token=true; fi
+            if grep -Eq '^(FGB_FACEBOOK_USER_ID|FACEBOOK_USER_ID|FGB_META_USER_ID|META_USER_ID)=.+' "$file"; then user=true; fi
+            if grep -Eq '^(FGB_FACEBOOK_PAGE_ID|FACEBOOK_PAGE_ID|FGB_META_PAGE_ID|META_PAGE_ID)=.+' "$file"; then page=true; fi
+          done
+          printf 'token=%s\nuser=%s\npage=%s\n' "$token" "$user" "$page"
+          REMOTE
+          cat /tmp/meta-presence.env >> "$GITHUB_OUTPUT"
+
+      - name: Record redacted result
+        env:
+          TOKEN: ${{ steps.probe.outputs.token }}
+          USERID: ${{ steps.probe.outputs.user }}
+          PAGEID: ${{ steps.probe.outputs.page }}
+        run: |
+          set -Eeuo pipefail
+          mkdir -p .github/deployment-status
+          jq -n --argjson token "$TOKEN" --argjson user "$USERID" --argjson page "$PAGEID" --arg checkedAt "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            '{oracleMetaAccessTokenPresent:$token,oracleMetaUserIdPresent:$user,oracleMetaPageIdPresent:$page,checkedAt:$checkedAt}' \
+            > .github/deployment-status/current-oracle-meta-live-auth.json
+          git config user.name 'FGBears Deploy Bot'
+          git config user.email 'actions@github.com'
+          git add .github/deployment-status/current-oracle-meta-live-auth.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record Oracle Meta Live auth presence [skip ci]'
+          git pull --rebase origin main
+          git push origin main
