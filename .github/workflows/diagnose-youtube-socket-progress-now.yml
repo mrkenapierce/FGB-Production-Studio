@@ -13,6 +13,7 @@ permissions:
 env:
   ORACLE_USER: ubuntu
 
+# Post-FLV-config-fix read-only verification after the September 10 preparing-state repair.
 jobs:
   diagnose:
     runs-on: ubuntu-latest
@@ -47,7 +48,7 @@ jobs:
           started=$(ps -o lstart= -p "$ypid" | sed 's/^ *//')
           echo "YOUTUBE_PROCESS_STARTED=$started"
           echo 'YOUTUBE_CMD_MODE:'
-          tr '\0' '\n' < "/proc/$ypid/cmdline" | grep -E '^(flv|tee|copy|7)$' || true
+          tr '\0' '\n' < "/proc/$ypid/cmdline" | grep -E '^(flv|copy|7|extract_extradata|aac_adtstoasc)$' || true
           socket_line() {
             ss -tinp state established | awk -v p="pid=$ypid" '
               index($0,p){line=$0; getline detail; print line "\n" detail; exit}
@@ -70,6 +71,6 @@ jobs:
             echo 'YOUTUBE_SOCKET_PROGRESS=FAIL'
           fi
           echo 'CURRENT_RELAY_JOURNAL:'
-          journalctl -u "$yunit" _PID="$ypid" --no-pager -o cat | tail -n 80 \
+          journalctl -u "$yunit" _PID="$ypid" --no-pager -o cat | tail -n 100 \
             | sed -E 's#rtmps://[^ ]+/live2/[^ ]+#rtmps://[REDACTED]/live2/[REDACTED]#g'
           REMOTE
