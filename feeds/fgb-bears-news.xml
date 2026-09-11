@@ -5,18 +5,38 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 11 Sep 2026 13:31:50 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 11 Sep 2026 17:12:48 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Can the 2026 Bears Measure Up to the Greatest Scoring Offense of All-Time?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Can the 2026 Bears Measure Up to the Greatest Scoring Offense of All-Time?</description>
-      <link>https://sports.yahoo.com/articles/2026-bears-measure-greatest-scoring-110000453.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-bd89e05d81343a85a128</guid>
-      <pubDate>Fri, 11 Sep 2026 11:00:00 GMT</pubDate>
+      <title>Drew Brees thinks Bears Caleb Williams is closer to a breakthrough than you think</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Drew Brees thinks Bears Caleb Williams is closer to a breakthrough than you think</description>
+      <link>https://sports.yahoo.com/articles/drew-brees-thinks-bears-caleb-161500616.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c718054071564ae7cc5e</guid>
+      <pubDate>Fri, 11 Sep 2026 16:15:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>4 key matchups to watch in Bears vs. Panthers Week 1 game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 4 key matchups to watch in Bears vs. Panthers Week 1 game</description>
+      <link>https://sports.yahoo.com/articles/4-key-matchups-watch-bears-162937451.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-59bdc221ef59294e95c9</guid>
+      <pubDate>Fri, 11 Sep 2026 09:29:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>4 Chicago Bears Rookies Set to Be Thrown Into the Fire Vs. Panthers in Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 4 Chicago Bears Rookies Set to Be Thrown Into the Fire Vs. Panthers in Week 1</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-rookies-thrown-fire-panthers-week-1</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-79b25c1f649c60737974</guid>
+      <pubDate>Fri, 11 Sep 2026 07:31:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -30,21 +50,21 @@
     </item>
 
     <item>
-      <title>Carolina Panthers week 1 fan mailbag: Bears/Panthers, Bryce Young, Brad Idzik, Fall happenings and more!</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Carolina Panthers week 1 fan mailbag: Bears/Panthers, Bryce Young, Brad Idzik, Fall happenings and more!</description>
-      <link>https://sports.yahoo.com/articles/carolina-panthers-week-1-fan-120000307.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1efab3aa64d34a75e99d</guid>
-      <pubDate>Fri, 11 Sep 2026 05:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>How important is it for Chicago Bears to start fast? Plus Week 1 picks</title>
       <description>Football&apos;s Greatest Bears news brief from The Athletic: How important is it for Chicago Bears to start fast? Plus Week 1 picks</description>
       <link>https://www.nytimes.com/athletic/7582719/2026/09/11/bears-mailbag-panthers-week-1-fast-start/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-462f14f4303887dd68da</guid>
       <pubDate>Fri, 11 Sep 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>How to watch Bears vs. Panthers: TV channel and streaming options for September 13</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: How to watch Bears vs. Panthers: TV channel and streaming options for September 13</description>
+      <link>https://www.nytimes.com/athletic/7583856/2026/09/11/how-to-watch-bears-vs-panthers-tv-channel-and-streaming-options-for-september-13/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3665950ccedc0aa98213</guid>
+      <pubDate>Thu, 10 Sep 2026 23:13:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
@@ -60,16 +80,6 @@
     </item>
 
     <item>
-      <title>Bears vs. Panthers Week 1 Expert Prediction Roundup: Which Team Has the Edge?</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears vs. Panthers Week 1 Expert Prediction Roundup: Which Team Has the Edge?</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-vs-panthers-week-1-expert-prediction-roundup-which-team-has-the-edge</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-aa964fb8b730cb82cda0</guid>
-      <pubDate>Thu, 10 Sep 2026 16:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Caleb Williams, Bears clash with Bryce Young, Panthers in opener</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Caleb Williams, Bears clash with Bryce Young, Panthers in opener</description>
       <link>https://www.cbssports.com/nfl/news/caleb-williams-bears-clash-with-bryce-young-panthers-in-opener/</link>
@@ -77,16 +87,6 @@
       <pubDate>Thu, 10 Sep 2026 15:15:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>How to watch, listen to, stream Bears-Panthers Week 1 game</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: How to watch, listen to, stream Bears-Panthers Week 1 game</description>
-      <link>https://www.chicagobears.com/news/how-to-watch-chicago-bears-carolina-panthers-2026-week-1-listen-stream-tv-radio-football-online-nfl</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-80bb34e8a07e018af47c</guid>
-      <pubDate>Thu, 10 Sep 2026 14:48:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
