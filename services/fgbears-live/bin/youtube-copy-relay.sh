@@ -32,17 +32,22 @@ LOCAL_BASE=${YOUTUBE_COPY_LOCAL_UDP_URL%%\?*}
 LOCAL_INPUT="${LOCAL_BASE}?fifo_size=1000000&overrun_nonfatal=1&reuse=1"
 UPSTREAM_TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 
-# Direct copy/remux only. Do not route YouTube through the tee muxer: MPEG-TS
-# H.264 arrives with codec tag 27 (0x1b), while FLV requires tag 7. Explicitly
-# reset the output tag without re-encoding. Platform-specific mirrors must be
-# implemented outside this YouTube relay so they cannot take YouTube offline.
+# YouTube receives a low-CPU stream copy from the already encoded master.
+# The master handoff is MPEG-TS while YouTube RTMPS uses FLV. Make both codec
+# configuration records explicit during that container conversion:
+#   * extract_extradata promotes in-band H.264 SPS/PPS to codec extradata so
+#     the FLV AVC sequence header is complete.
+#   * aac_adtstoasc converts MPEG-TS AAC/ADTS to the AudioSpecificConfig/raw
+#     AAC representation required by FLV.
+# No video or audio re-encoding occurs here.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -fflags +genpts+discardcorrupt -err_detect ignore_err \
   -probesize 10000000 -analyzeduration 10000000 \
   -i "$LOCAL_INPUT" \
   -map 0:v:0 -map 0:a:0 \
-  -c copy -tag:v 7 \
+  -c:v copy -tag:v 7 -bsf:v extract_extradata \
+  -c:a copy -bsf:a aac_adtstoasc \
   -rw_timeout 15000000 \
   -f flv -flvflags no_duration_filesize \
   "$UPSTREAM_TARGET"
