@@ -5,18 +5,48 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 11 Sep 2026 09:07:56 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 11 Sep 2026 13:31:50 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears vs Carolina Panthers: Matchups, best bets, and more</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs Carolina Panthers: Matchups, best bets, and more</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-vs-carolina-panthers-023452776.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-26921d29f8e539884d9e</guid>
-      <pubDate>Fri, 11 Sep 2026 02:34:52 GMT</pubDate>
+      <title>Can the 2026 Bears Measure Up to the Greatest Scoring Offense of All-Time?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Can the 2026 Bears Measure Up to the Greatest Scoring Offense of All-Time?</description>
+      <link>https://sports.yahoo.com/articles/2026-bears-measure-greatest-scoring-110000453.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-bd89e05d81343a85a128</guid>
+      <pubDate>Fri, 11 Sep 2026 11:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Former Nemesis Shows Love to Bears Fanbase</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Former Nemesis Shows Love to Bears Fanbase</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-former-nemesis-shows-love-to-bears-fanbase</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-345aab0d36651745d020</guid>
+      <pubDate>Fri, 11 Sep 2026 05:22:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Carolina Panthers week 1 fan mailbag: Bears/Panthers, Bryce Young, Brad Idzik, Fall happenings and more!</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Carolina Panthers week 1 fan mailbag: Bears/Panthers, Bryce Young, Brad Idzik, Fall happenings and more!</description>
+      <link>https://sports.yahoo.com/articles/carolina-panthers-week-1-fan-120000307.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1efab3aa64d34a75e99d</guid>
+      <pubDate>Fri, 11 Sep 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>How important is it for Chicago Bears to start fast? Plus Week 1 picks</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: How important is it for Chicago Bears to start fast? Plus Week 1 picks</description>
+      <link>https://www.nytimes.com/athletic/7582719/2026/09/11/bears-mailbag-panthers-week-1-fast-start/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-462f14f4303887dd68da</guid>
+      <pubDate>Fri, 11 Sep 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -30,31 +60,11 @@
     </item>
 
     <item>
-      <title>Bears’ New Addition Tabbed Among Top ‘Out of Nowhere’ Breakout Players of 2026</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ New Addition Tabbed Among Top ‘Out of Nowhere’ Breakout Players of 2026</description>
-      <link>https://sports.yahoo.com/articles/bears-addition-tabbed-among-top-014906021.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f82651785494b0ef650f</guid>
-      <pubDate>Thu, 10 Sep 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Bears vs. Panthers Week 1 Expert Prediction Roundup: Which Team Has the Edge?</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears vs. Panthers Week 1 Expert Prediction Roundup: Which Team Has the Edge?</description>
       <link>https://www.si.com/nfl/bears/onsi/bears-vs-panthers-week-1-expert-prediction-roundup-which-team-has-the-edge</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-aa964fb8b730cb82cda0</guid>
       <pubDate>Thu, 10 Sep 2026 16:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>How Bears Offensive Line Starts at a Higher Launching Point This TIme</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: How Bears Offensive Line Starts at a Higher Launching Point This TIme</description>
-      <link>https://www.si.com/nfl/bears/onsi/how-bears-offensive-line-starts-at-a-higher-launching-point-this-time</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d478617c9cc19af2183a</guid>
-      <pubDate>Thu, 10 Sep 2026 15:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -77,16 +87,6 @@
       <pubDate>Thu, 10 Sep 2026 14:48:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Rome Odunze: Limited again Thursday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Rome Odunze: Limited again Thursday</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-rome-odunze-limited-again-thursday/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-628e3e2d25df2ee366fa</guid>
-      <pubDate>Thu, 10 Sep 2026 12:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
