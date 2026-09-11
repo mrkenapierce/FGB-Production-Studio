@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 11 Sep 2026 04:33:54 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 11 Sep 2026 09:07:56 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -50,16 +50,6 @@
     </item>
 
     <item>
-      <title>Bears, Panthers look to continue to progress under still-developing No. 1 overall draft picks</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears, Panthers look to continue to progress under still-developing No. 1 overall draft picks</description>
-      <link>https://www.espn.com/nfl/story/_/id/3489%E2%80%A6</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a73a30074a6d95d26716</guid>
-      <pubDate>Thu, 10 Sep 2026 16:13:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
       <title>How Bears Offensive Line Starts at a Higher Launching Point This TIme</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: How Bears Offensive Line Starts at a Higher Launching Point This TIme</description>
       <link>https://www.si.com/nfl/bears/onsi/how-bears-offensive-line-starts-at-a-higher-launching-point-this-time</link>
@@ -87,6 +77,16 @@
       <pubDate>Thu, 10 Sep 2026 14:48:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Rome Odunze: Limited again Thursday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Rome Odunze: Limited again Thursday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-rome-odunze-limited-again-thursday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-628e3e2d25df2ee366fa</guid>
+      <pubDate>Thu, 10 Sep 2026 12:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
