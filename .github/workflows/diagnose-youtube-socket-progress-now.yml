@@ -13,7 +13,7 @@ permissions:
 env:
   ORACLE_USER: ubuntu
 
-# Post-FLV-config-fix read-only verification after the September 10 preparing-state repair.
+# Read-only steady-state verification after the September 10 YouTube preparing-state repair.
 jobs:
   diagnose:
     runs-on: ubuntu-latest
@@ -30,7 +30,7 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Sample YouTube socket and relay state read-only
+      - name: Verify steady-state YouTube relay read-only
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -45,32 +45,39 @@ jobs:
           echo "MASTER_PID=$mpid"
           echo "YOUTUBE_PID=$ypid"
           [[ "$ypid" =~ ^[1-9][0-9]*$ ]]
-          started=$(ps -o lstart= -p "$ypid" | sed 's/^ *//')
-          echo "YOUTUBE_PROCESS_STARTED=$started"
-          echo 'YOUTUBE_CMD_MODE:'
-          tr '\0' '\n' < "/proc/$ypid/cmdline" | grep -E '^(flv|copy|7|extract_extradata|aac_adtstoasc)$' || true
-          socket_line() {
-            ss -tinp state established | awk -v p="pid=$ypid" '
-              index($0,p){line=$0; getline detail; print line "\n" detail; exit}
-            '
+          age=$(ps -o etimes= -p "$ypid" | tr -d ' ')
+          echo "YOUTUBE_PROCESS_AGE_SECONDS=$age"
+
+          # Do not print the process command line because it contains the protected stream key.
+          printf 'FILTER_MARKERS='
+          tr '\0' '\n' < "/proc/$ypid/cmdline" | grep -E '^(extract_extradata|aac_adtstoasc)$' | paste -sd, -
+
+          socket_stats() {
+            ss -tinp state established | awk -v p="pid=$ypid" 'index($0,p){getline; print; exit}'
           }
-          echo 'SOCKET_SAMPLE_1:'
-          s1=$(socket_line || true); printf '%s\n' "$s1"
+          s1=$(socket_stats || true)
           b1=$(printf '%s\n' "$s1" | grep -oE 'bytes_sent:[0-9]+' | head -n1 | cut -d: -f2 || true)
           a1=$(printf '%s\n' "$s1" | grep -oE 'bytes_acked:[0-9]+' | head -n1 | cut -d: -f2 || true)
           sleep 8
-          echo 'SOCKET_SAMPLE_2:'
-          s2=$(socket_line || true); printf '%s\n' "$s2"
+          s2=$(socket_stats || true)
           b2=$(printf '%s\n' "$s2" | grep -oE 'bytes_sent:[0-9]+' | head -n1 | cut -d: -f2 || true)
           a2=$(printf '%s\n' "$s2" | grep -oE 'bytes_acked:[0-9]+' | head -n1 | cut -d: -f2 || true)
-          echo "BYTES_SENT_8S_DELTA=$(( ${b2:-0} - ${b1:-0} ))"
-          echo "BYTES_ACKED_8S_DELTA=$(( ${a2:-0} - ${a1:-0} ))"
-          if (( ${b2:-0} > ${b1:-0} && ${a2:-0} > ${a1:-0} )); then
-            echo 'YOUTUBE_SOCKET_PROGRESS=PASS'
-          else
-            echo 'YOUTUBE_SOCKET_PROGRESS=FAIL'
-          fi
-          echo 'CURRENT_RELAY_JOURNAL:'
-          journalctl -u "$yunit" _PID="$ypid" --no-pager -o cat | tail -n 100 \
-            | sed -E 's#rtmps://[^ ]+/live2/[^ ]+#rtmps://[REDACTED]/live2/[REDACTED]#g'
+          sent=$(( ${b2:-0} - ${b1:-0} ))
+          acked=$(( ${a2:-0} - ${a1:-0} ))
+          echo "YOUTUBE_BYTES_SENT_8S_DELTA=$sent"
+          echo "YOUTUBE_BYTES_ACKED_8S_DELTA=$acked"
+          (( sent > 0 && acked > 0 )) && echo 'YOUTUBE_SOCKET_PROGRESS=PASS' || echo 'YOUTUBE_SOCKET_PROGRESS=FAIL'
+
+          echo '=== STEADY STATE JOURNAL LAST 20 SECONDS ==='
+          recent=$(journalctl -u "$yunit" _PID="$ypid" --since '-20 seconds' --no-pager -o short-iso 2>/dev/null || true)
+          printf '%s\n' "$recent" | sed -E 's#rtmps://[^ ]+/live2/[^ ]+#rtmps://[REDACTED]/live2/[REDACTED]#g'
+          pps=$(printf '%s\n' "$recent" | grep -Eci 'non-existing PPS' || true)
+          slice=$(printf '%s\n' "$recent" | grep -Eci 'decode_slice_header error' || true)
+          noframe=$(printf '%s\n' "$recent" | grep -Eci 'no frame!' || true)
+          fatal=$(printf '%s\n' "$recent" | grep -Eci 'Invalid argument|Conversion failed|Broken pipe|Connection refused|Server error|Failed with result' || true)
+          echo "STEADY_STATE_PPS_ERRORS=$pps"
+          echo "STEADY_STATE_SLICE_ERRORS=$slice"
+          echo "STEADY_STATE_NO_FRAME_ERRORS=$noframe"
+          echo "STEADY_STATE_FATAL_ERRORS=$fatal"
+          systemctl is-active --quiet "$munit"
           REMOTE
