@@ -1,4 +1,4 @@
-name: Diagnose YouTube Preparing State
+name: Repair YouTube Preparing State
 
 on:
   push:
@@ -13,87 +13,125 @@ permissions:
 env:
   ORACLE_USER: ubuntu
 
-# Re-run requested after the September 10, 2026 public-live outage.
 jobs:
-  diagnose:
+  repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 8
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate low-CPU TS-to-FLV repair
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/youtube-copy-relay.sh
+          grep -Fq -- '-c:v copy -tag:v 7 -bsf:v extract_extradata' services/fgbears-live/bin/youtube-copy-relay.sh
+          grep -Fq -- '-c:a copy -bsf:a aac_adtstoasc' services/fgbears-live/bin/youtube-copy-relay.sh
+          ! grep -Eq 'libx264|libx265|filter_complex' services/fgbears-live/bin/youtube-copy-relay.sh
+
       - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
           set -Eeuo pipefail
-          test -n "$ORACLE_HOST"
-          test -n "$ORACLE_SSH_KEY"
+          test -n "$ORACLE_HOST"; test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Verify protected key synchronization without exposing key
+      - name: Verify key sync and preflight without exposing secrets
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           GH_YT_KEY: ${{ secrets.FGB_YOUTUBE_STREAM_KEY }}
         run: |
           set -Eeuo pipefail
+          test -n "$GH_YT_KEY"
           local_hash=$(printf '%s' "$GH_YT_KEY" | sha256sum | awk '{print $1}')
           remote_hash=$(ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "sudo bash -lc 'source /etc/fgbears-live/stream.env; printf %s \"\$YOUTUBE_STREAM_KEY\" | sha256sum | awk '\''{print \$1}'\'''" )
           [[ "$local_hash" == "$remote_hash" ]]
-          echo 'ORACLE_GITHUB_STREAM_KEY_MATCH=PASS'
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          ffmpeg -hide_banner -bsfs 2>/dev/null | grep -Fxq 'extract_extradata'
+          ffmpeg -hide_banner -bsfs 2>/dev/null | grep -Fxq 'aac_adtstoasc'
+          master=$(systemctl show -p MainPID --value fgbears-live.service)
+          [[ "$master" =~ ^[1-9][0-9]*$ ]]
+          echo "MASTER_PID_BEFORE=$master"
+          echo 'YOUTUBE_REPAIR_PREFLIGHT=PASS'
+          REMOTE
 
-      - name: Read-only ingest and codec diagnostics
+      - name: Stage corrected relay
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/youtube-copy-relay.sh "$ORACLE_USER@$ORACLE_HOST:/tmp/fgbears-youtube-copy-relay.new"
+
+      - name: Restart only the YouTube sidecar
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          master_unit=fgbears-live.service
-          yt_unit=fgbears-youtube-copy-relay.service
-          pid() { systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
-          master_pid=$(pid "$master_unit")
-          yt_pid=$(pid "$yt_unit")
-          echo "MASTER_ACTIVE=$(systemctl is-active "$master_unit" || true)"
-          echo "YOUTUBE_ACTIVE=$(systemctl is-active "$yt_unit" || true)"
-          echo "MASTER_PID=$master_pid"
-          echo "YOUTUBE_PID=$yt_pid"
-          [[ "$master_pid" =~ ^[1-9][0-9]*$ ]]
-          [[ "$yt_pid" =~ ^[1-9][0-9]*$ ]]
-
-          echo '=== YOUTUBE TCP ==='
-          sudo ss -tinp | grep -A1 "pid=$yt_pid" || true
-          io1=$(sudo awk '/^wchar:/ {print $2}' "/proc/$yt_pid/io")
-          sleep 5
-          io2=$(sudo awk '/^wchar:/ {print $2}' "/proc/$yt_pid/io")
-          echo "YOUTUBE_RELAY_WCHAR_DELTA_5S=$((io2-io1))"
-          (( io2 > io1 )) && echo 'YOUTUBE_NETWORK_WRITE_PROGRESS=PASS' || echo 'YOUTUBE_NETWORK_WRITE_PROGRESS=FAIL'
-
-          echo '=== RELAY ERRORS ==='
-          sudo journalctl -u "$yt_unit" --since '-30 minutes' --no-pager -o cat \
-            | sed -E 's#rtmps://[^ ]+/live2/[^ ]+#rtmps://[REDACTED]/live2/[REDACTED]#g' \
-            | grep -Ei 'error|failed|broken|invalid|non-monoton|disconnect|reset|timed out|timeout|server|404|403|401|warning' \
-            | tail -n 80 || true
-
-          echo '=== MASTER FFMPEG CHILD ==='
-          ffpid=$(pgrep -P "$master_pid" -x ffmpeg | head -n1 || true)
-          if [[ -z "$ffpid" ]]; then
-            ffpid=$(pgrep -f 'ffmpeg.*127\.0\.0\.1:1940' | grep -v "^$yt_pid$" | head -n1 || true)
-          fi
-          echo "MASTER_FFMPEG_PID=${ffpid:-NONE}"
-          if [[ -n "$ffpid" ]]; then
-            tr '\0' ' ' < "/proc/$ffpid/cmdline" | sed -E 's#rtmps://[^ ]+/live2/[^ ]+#rtmps://[REDACTED]/live2/[REDACTED]#g'
-            echo
-            echo '=== MASTER OPEN MEDIA ==='
-            sudo lsof -p "$ffpid" 2>/dev/null | grep -Ei '\.(mp4|m4a|mp3|wav|aac)( |$)' | tail -n 20 || true
-            video=$(sudo lsof -Fn -p "$ffpid" 2>/dev/null | sed -n 's/^n//p' | grep -E '\.(mp4|mkv|mov)$' | head -n1 || true)
-            if [[ -n "$video" && -r "$video" ]]; then
-              echo "VIDEO_FILE=$video"
-              ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,profile,width,height,pix_fmt,r_frame_rate,avg_frame_rate,bit_rate -of default=nw=1 "$video" || true
-              echo 'KEYFRAME_TIMES_FIRST_12:'
-              ffprobe -v error -select_streams v:0 -skip_frame nokey -show_entries frame=pts_time -of csv=p=0 "$video" 2>/dev/null | head -n 12 || true
+          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]]
+          install -m 0755 -o root -g root /tmp/fgbears-youtube-copy-relay.new /usr/local/bin/fgbears-youtube-copy-relay
+          rm -f /tmp/fgbears-youtube-copy-relay.new
+          systemctl restart fgbears-youtube-copy-relay.service
+          for _ in $(seq 1 30); do
+            ypid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+            if systemctl is-active --quiet fgbears-youtube-copy-relay.service && [[ "$ypid" =~ ^[1-9][0-9]*$ ]]; then
+              break
             fi
-          fi
-          echo 'YOUTUBE_PREPARING_DIAGNOSTIC=COMPLETE'
+            sleep 1
+          done
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          master_after=$(systemctl show -p MainPID --value fgbears-live.service)
+          test "$master_after" = "$master_before"
+          echo "MASTER_PID_PRESERVED=$master_after"
+          echo 'YOUTUBE_SIDECAR_ONLY_RESTART=PASS'
+          REMOTE
+
+      - name: Verify corrected transport and clean startup
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          yunit=fgbears-youtube-copy-relay.service
+          ypid=$(systemctl show -p MainPID --value "$yunit")
+          [[ "$ypid" =~ ^[1-9][0-9]*$ ]]
+          args=$(tr '\0' '\n' < "/proc/$ypid/cmdline")
+          printf '%s\n' "$args" | grep -Fxq 'extract_extradata'
+          printf '%s\n' "$args" | grep -Fxq 'aac_adtstoasc'
+          ! printf '%s\n' "$args" | grep -Eq '^libx264$|^libx265$'
+
+          socket_stats() {
+            ss -tinp state established | awk -v p="pid=$ypid" 'index($0,p){getline; print; exit}'
+          }
+          s1=$(socket_stats || true)
+          b1=$(printf '%s\n' "$s1" | grep -oE 'bytes_sent:[0-9]+' | head -n1 | cut -d: -f2 || true)
+          a1=$(printf '%s\n' "$s1" | grep -oE 'bytes_acked:[0-9]+' | head -n1 | cut -d: -f2 || true)
+          sleep 8
+          s2=$(socket_stats || true)
+          b2=$(printf '%s\n' "$s2" | grep -oE 'bytes_sent:[0-9]+' | head -n1 | cut -d: -f2 || true)
+          a2=$(printf '%s\n' "$s2" | grep -oE 'bytes_acked:[0-9]+' | head -n1 | cut -d: -f2 || true)
+          sent=$(( ${b2:-0} - ${b1:-0} ))
+          acked=$(( ${a2:-0} - ${a1:-0} ))
+          echo "YOUTUBE_BYTES_SENT_8S_DELTA=$sent"
+          echo "YOUTUBE_BYTES_ACKED_8S_DELTA=$acked"
+          (( sent > 0 && acked > 0 ))
+
+          since=$(systemctl show -p ActiveEnterTimestamp --value "$yunit")
+          sleep 4
+          recent=$(journalctl -u "$yunit" --since "$since" --no-pager -o cat 2>/dev/null || true)
+          fatal=$(printf '%s\n' "$recent" | grep -Eci 'Invalid argument|Conversion failed|Broken pipe|Connection refused|Server error|Failed with result' || true)
+          pps=$(printf '%s\n' "$recent" | grep -Eci 'non-existing PPS|decode_slice_header error' || true)
+          echo "YOUTUBE_POST_FIX_FATAL_ERRORS=$fatal"
+          echo "YOUTUBE_POST_FIX_PARAMETER_SET_ERRORS=$pps"
+          (( fatal == 0 ))
+          systemctl is-active --quiet fgbears-live.service
+          echo 'YOUTUBE_PREPARING_STATE_REPAIR=PASS'
           REMOTE
