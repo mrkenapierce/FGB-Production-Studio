@@ -5,46 +5,56 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 11 Sep 2026 17:12:48 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 11 Sep 2026 19:42:00 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Drew Brees thinks Bears Caleb Williams is closer to a breakthrough than you think</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Drew Brees thinks Bears Caleb Williams is closer to a breakthrough than you think</description>
-      <link>https://sports.yahoo.com/articles/drew-brees-thinks-bears-caleb-161500616.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c718054071564ae7cc5e</guid>
-      <pubDate>Fri, 11 Sep 2026 16:15:00 GMT</pubDate>
+      <title>Rome Odunze, Xavier Woods questionable for Bears vs. Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Rome Odunze, Xavier Woods questionable for Bears vs. Panthers</description>
+      <link>https://sports.yahoo.com/articles/rome-odunze-xavier-woods-questionable-191232243.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e01a83ed8c8cfc37ee5d</guid>
+      <pubDate>Fri, 11 Sep 2026 19:12:32 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>4 key matchups to watch in Bears vs. Panthers Week 1 game</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 4 key matchups to watch in Bears vs. Panthers Week 1 game</description>
-      <link>https://sports.yahoo.com/articles/4-key-matchups-watch-bears-162937451.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-59bdc221ef59294e95c9</guid>
-      <pubDate>Fri, 11 Sep 2026 09:29:00 GMT</pubDate>
+      <title>Latest on Rome Odunze, Xavier Woods in Bears&apos; final injury report</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Latest on Rome Odunze, Xavier Woods in Bears&apos; final injury report</description>
+      <link>https://sports.yahoo.com/articles/latest-rome-odunze-xavier-woods-192132508.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f4c8e4995f950849d1d8</guid>
+      <pubDate>Fri, 11 Sep 2026 12:21:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>4 Chicago Bears Rookies Set to Be Thrown Into the Fire Vs. Panthers in Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 4 Chicago Bears Rookies Set to Be Thrown Into the Fire Vs. Panthers in Week 1</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-rookies-thrown-fire-panthers-week-1</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-79b25c1f649c60737974</guid>
-      <pubDate>Fri, 11 Sep 2026 07:31:00 GMT</pubDate>
+      <title>Cole Kmet Has Two-Word Goal for the 2026 Bears in Letter to Fans</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Cole Kmet Has Two-Word Goal for the 2026 Bears in Letter to Fans</description>
+      <link>https://www.si.com/nfl/bears/onsi/cole-kmet-has-two-word-goal-for-the-2026-bears-in-letter-to-fans</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8b01350e677852cc7501</guid>
+      <pubDate>Fri, 11 Sep 2026 12:06:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Chicago Bears Former Nemesis Shows Love to Bears Fanbase</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Former Nemesis Shows Love to Bears Fanbase</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-former-nemesis-shows-love-to-bears-fanbase</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-345aab0d36651745d020</guid>
-      <pubDate>Fri, 11 Sep 2026 05:22:00 GMT</pubDate>
+      <title>Panthers RB Jonathon Brooks to play vs. Bears without limitations</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Panthers RB Jonathon Brooks to play vs. Bears without limitations</description>
+      <link>https://www.espn.com/nfl/story/_/id/49905351/panthers-rb-jonathon-brooks-play-vs-bears-limitations</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e70d5634584dbaf6b964</guid>
+      <pubDate>Fri, 11 Sep 2026 11:21:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Rome Odunze Injury Update From Ben Johnson Leaves Open Possibility Bears WR Sits in Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Rome Odunze Injury Update From Ben Johnson Leaves Open Possibility Bears WR Sits in Week 1</description>
+      <link>https://www.si.com/nfl/bears/onsi/rome-odunze-injury-update-ben-johnson-possiility-bears-sits-week-1</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1ad8cbbdd874bbabc210</guid>
+      <pubDate>Fri, 11 Sep 2026 10:41:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -77,16 +87,6 @@
       <pubDate>Thu, 10 Sep 2026 19:24:23 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams, Bears clash with Bryce Young, Panthers in opener</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Caleb Williams, Bears clash with Bryce Young, Panthers in opener</description>
-      <link>https://www.cbssports.com/nfl/news/caleb-williams-bears-clash-with-bryce-young-panthers-in-opener/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-de92999277fe8c62f1a7</guid>
-      <pubDate>Thu, 10 Sep 2026 15:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
