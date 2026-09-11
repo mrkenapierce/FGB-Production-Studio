@@ -13,6 +13,7 @@ permissions:
 env:
   ORACLE_USER: ubuntu
 
+# Re-run requested after the September 10, 2026 public-live outage.
 jobs:
   diagnose:
     runs-on: ubuntu-latest
