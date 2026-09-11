@@ -10,6 +10,7 @@ on:
 permissions:
   contents: read
 
+# Re-run requested after the September 10, 2026 YouTube public-live outage.
 jobs:
   probe:
     runs-on: ubuntu-latest
