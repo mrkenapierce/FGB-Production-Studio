@@ -42,10 +42,11 @@ jobs:
           master=$(systemctl show -p MainPID --value fgbears-live.service)
           yt=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
           echo "MASTER_PID=$master YOUTUBE_PID=$yt"
-          ps -p "$master,$yt" -o pid,pcpu,pmem,rss,etime,cmd --no-headers || true
+          # Never emit full process arguments: the YouTube RTMPS URL contains a protected stream key.
+          ps -p "$master,$yt" -o pid,pcpu,pmem,rss,etime,comm --no-headers || true
           ffpid=$(pgrep -P "$master" -x ffmpeg | head -n1 || true)
           if [[ -n "$ffpid" ]]; then
             echo "MASTER_FFMPEG_PID=$ffpid"
-            ps -p "$ffpid" -o pid,pcpu,pmem,rss,etime,cmd --no-headers
+            ps -p "$ffpid" -o pid,pcpu,pmem,rss,etime,comm --no-headers
           fi
           REMOTE
