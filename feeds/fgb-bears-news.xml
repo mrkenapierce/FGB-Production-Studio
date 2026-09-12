@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 12 Sep 2026 17:06:22 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 12 Sep 2026 19:16:57 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears announce roster moves</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears announce roster moves</description>
+      <link>https://www.chicagobears.com/news/chicago-bears-announce-roster-moves-september-12-2026</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8878237f3c877d44dea7</guid>
+      <pubDate>Sat, 12 Sep 2026 17:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
 
     <item>
       <title>Bears Looking to Turn Offseason Work Into Results in Week 1</title>
@@ -40,53 +50,43 @@
     </item>
 
     <item>
-      <title>Game Preview: Bears at Panthers | 2026 Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Preview: Bears at Panthers | 2026 Week 1</description>
-      <link>https://www.chicagobears.com/news/game-preview-bears-at-panthers-2026-week-1</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c688e483db91b7215765</guid>
-      <pubDate>Sat, 12 Sep 2026 13:32:00 GMT</pubDate>
+      <title>Bears Roster Moves Could Be Bad Sign for Rome Odunze&apos;s &amp; Tyson Bagent&apos;s Week 1 Statuses</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Roster Moves Could Be Bad Sign for Rome Odunze&apos;s &amp; Tyson Bagent&apos;s Week 1 Statuses</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-roster-rome-odunze-status</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-025c4589187d51632e40</guid>
+      <pubDate>Sat, 12 Sep 2026 10:51:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>NFL Week 1 injuries: Giants&apos; Malik Nabers, Bears&apos; Rome Odunze listed as questionable</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 1 injuries: Giants&apos; Malik Nabers, Bears&apos; Rome Odunze listed as questionable</description>
-      <link>https://www.cbssports.com/nfl/news/nfl-week-1-injuries-tracker-rome-odunze-alvin-kamara/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-be3a20db0261eca84f31</guid>
-      <pubDate>Fri, 11 Sep 2026 23:50:55 GMT</pubDate>
+      <title>Ben Johnson, Ryan Poles Explain Bears&apos; Decision to Sign D&apos;Andre Swift to Contract Extension</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson, Ryan Poles Explain Bears&apos; Decision to Sign D&apos;Andre Swift to Contract Extension</description>
+      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-ryan-poles-explain-bears-decision-to-sign-d-andre-swift-to-contract-extension</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6a23ff15777883147584</guid>
+      <pubDate>Sat, 12 Sep 2026 09:49:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Ben Johnson sees Bears practicing at a championship level, unlike last year</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Ben Johnson sees Bears practicing at a championship level, unlike last year</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/ben-johnson-sees-bears-practicing-at-a-championship-level-unlike-last-year</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1ad7e57b447bc5c187a5</guid>
-      <pubDate>Fri, 11 Sep 2026 21:46:00 GMT</pubDate>
+      <title>The Bears hear your ‘regression’ talk, and they have two words in response</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: The Bears hear your ‘regression’ talk, and they have two words in response</description>
+      <link>https://www.nytimes.com/athletic/7585799/2026/09/12/chicago-bears-comebacks-lamar-jackson-contract/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f6123ae791f6802b9437</guid>
+      <pubDate>Sat, 12 Sep 2026 04:30:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
-      <title>Bears extend RB D&apos;Andre Swift to three-year, $33.75 million deal, per report</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears extend RB D&apos;Andre Swift to three-year, $33.75 million deal, per report</description>
-      <link>https://www.cbssports.com/nfl/news/bears-re-sign-dandre-swift-to-three-year-deal/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cfeb796b0861f3067ee4</guid>
-      <pubDate>Fri, 11 Sep 2026 20:03:55 GMT</pubDate>
+      <title>Three things Bears QB Caleb Williams wants to improve on</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Three things Bears QB Caleb Williams wants to improve on</description>
+      <link>https://www.espn.com/nfl/story/_/id/49897273/chicago-bears-caleb-williams-2026-outlook</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-65b215339b2648d886fc</guid>
+      <pubDate>Sat, 12 Sep 2026 04:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>D&apos;Andre Swift and Chicago Bears reach agreement on 3 year, $33 million extension | &apos;The NFL Report&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: D&apos;Andre Swift and Chicago Bears reach agreement on 3 year, $33 million extension | &apos;The NFL Report&apos;</description>
-      <link>https://www.nfl.com/videos/d-andre-swift-and-chicago-bears-reach-agreement-on-3-year-33-million-extension-the-nfl-report</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-27a80cebf7c9d93e64da</guid>
-      <pubDate>Fri, 11 Sep 2026 17:02:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
