@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 11 Sep 2026 23:42:49 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 12 Sep 2026 01:33:43 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>NFL Week 1 Bears-Panthers Predictions: Which run defense will step up?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Week 1 Bears-Panthers Predictions: Which run defense will step up?</description>
+      <link>https://sports.yahoo.com/articles/nfl-week-1-bears-panthers-000000284.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9bb621b67c021e8c4f30</guid>
+      <pubDate>Sat, 12 Sep 2026 00:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>NFL Week 1 injuries: Giants&apos; Malik Nabers, Bears&apos; Rome Odunze listed as questionable</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 1 injuries: Giants&apos; Malik Nabers, Bears&apos; Rome Odunze listed as questionable</description>
+      <link>https://www.cbssports.com/nfl/news/nfl-week-1-injuries-tracker-rome-odunze-alvin-kamara/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-be3a20db0261eca84f31</guid>
+      <pubDate>Fri, 11 Sep 2026 23:50:55 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
 
     <item>
       <title>Bears-Panthers: Keys to a Chicago victory</title>
@@ -40,13 +60,23 @@
     </item>
 
     <item>
-      <title>Chicago Bears at Carolina Panthers: 3 Props to Play</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears at Carolina Panthers: 3 Props to Play</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-carolina-panthers-3-200000670.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6982965abb05a0139df9</guid>
-      <pubDate>Fri, 11 Sep 2026 20:00:00 GMT</pubDate>
+      <title>D&apos;Andre Swift and Chicago Bears reach agreement on 3 year, $33 million extension | &apos;The NFL Report&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: D&apos;Andre Swift and Chicago Bears reach agreement on 3 year, $33 million extension | &apos;The NFL Report&apos;</description>
+      <link>https://www.nfl.com/videos/d-andre-swift-and-chicago-bears-reach-agreement-on-3-year-33-million-extension-the-nfl-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-27a80cebf7c9d93e64da</guid>
+      <pubDate>Fri, 11 Sep 2026 17:08:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
+      <title>What D&apos;Andre Swift&apos;s Extension Means for the Next Bears Waiting in Line</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: What D&apos;Andre Swift&apos;s Extension Means for the Next Bears Waiting in Line</description>
+      <link>https://www.si.com/nfl/bears/onsi/what-d-andre-swift-s-extension-means-for-the-next-bears-waiting-in-line</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c36e2cc344e1f3441ab4</guid>
+      <pubDate>Fri, 11 Sep 2026 16:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -55,36 +85,6 @@
       <link>https://www.espn.com/nhl/story/_/id/39608081%E2%80%A6</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-929a06e7ae504dadadd2</guid>
       <pubDate>Fri, 11 Sep 2026 15:46:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>The Bears Have Already Answered Ben Johnson&apos;s Greatest Test From 2025 Campaign</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Bears Have Already Answered Ben Johnson&apos;s Greatest Test From 2025 Campaign</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-bears-have-already-answered-ben-johnson-s-greatest-test-from-2025-campaign</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-867170f9b3c77502f30a</guid>
-      <pubDate>Fri, 11 Sep 2026 15:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams, Bryce Young square off as Bears visit Panthers</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Caleb Williams, Bryce Young square off as Bears visit Panthers</description>
-      <link>https://www.cbssports.com/nfl/news/caleb-williams-bryce-young-square-off-as-bears-visit-panthers/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f8da21313b161b521b5f</guid>
-      <pubDate>Fri, 11 Sep 2026 14:51:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Sources: Bears, RB Swift agree to 3-year, $33.75M extension</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Sources: Bears, RB Swift agree to 3-year, $33.75M extension</description>
-      <link>https://www.espn.com/nfl/story/_/id/49906474/bears-rb-swift-agree-3-year-3375m-extension</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9b28f942c6bde9f9f378</guid>
-      <pubDate>Fri, 11 Sep 2026 14:06:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
