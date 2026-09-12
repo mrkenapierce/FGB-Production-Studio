@@ -5,28 +5,48 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 12 Sep 2026 14:04:55 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 12 Sep 2026 17:06:22 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears vs Carolina Panthers Preview: Bears need to slow Chuba Hubbard</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs Carolina Panthers Preview: Bears need to slow Chuba Hubbard</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-vs-carolina-panthers-120000928.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f0d786e92fcdbd5b5327</guid>
-      <pubDate>Sat, 12 Sep 2026 12:00:00 GMT</pubDate>
+      <title>Bears Looking to Turn Offseason Work Into Results in Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Looking to Turn Offseason Work Into Results in Week 1</description>
+      <link>https://sports.yahoo.com/articles/bears-looking-turn-offseason-results-160000803.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b68161dcdc3daccddcec</guid>
+      <pubDate>Sat, 12 Sep 2026 16:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Rome Odunze Sends Clear Message on Bears Week 1 Injury Status</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Rome Odunze Sends Clear Message on Bears Week 1 Injury Status</description>
-      <link>https://sports.yahoo.com/articles/rome-odunze-sends-clear-message-114203543.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d5a5e3986ecb38d02d22</guid>
-      <pubDate>Sat, 12 Sep 2026 04:43:00 GMT</pubDate>
+      <title>Daily Norseman Roundtable: Know Your Enemy — The Chicago Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Daily Norseman Roundtable: Know Your Enemy — The Chicago Bears</description>
+      <link>https://sports.yahoo.com/articles/daily-norseman-roundtable-know-enemy-145359520.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-63be477a5b34c1e6002c</guid>
+      <pubDate>Sat, 12 Sep 2026 14:53:59 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Roster Moves: Chicago Bears sign RB D&apos;Andre Swift to three-year extension</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Roster Moves: Chicago Bears sign RB D&apos;Andre Swift to three-year extension</description>
+      <link>https://www.chicagobears.com/news/roster-moves-chicago-bears-sign-rb-d-andre-swift-to-three-year-extension</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8a79971207e084f4f2af</guid>
+      <pubDate>Sat, 12 Sep 2026 14:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Game Preview: Bears at Panthers | 2026 Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Preview: Bears at Panthers | 2026 Week 1</description>
+      <link>https://www.chicagobears.com/news/game-preview-bears-at-panthers-2026-week-1</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c688e483db91b7215765</guid>
+      <pubDate>Sat, 12 Sep 2026 13:32:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
@@ -50,16 +70,6 @@
     </item>
 
     <item>
-      <title>&apos;We are different&apos;: Ben Johnson, players ready to write &apos;a new chapter of Chicago Bears football&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: &apos;We are different&apos;: Ben Johnson, players ready to write &apos;a new chapter of Chicago Bears football&apos;</description>
-      <link>https://www.chicagobears.com/news/we-are-different-ben-johnson-players-ready-to-write-a-new-chapter-of-chicago-bears-football</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c96a6cfe87344930b81d</guid>
-      <pubDate>Fri, 11 Sep 2026 20:28:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
       <title>Bears extend RB D&apos;Andre Swift to three-year, $33.75 million deal, per report</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears extend RB D&apos;Andre Swift to three-year, $33.75 million deal, per report</description>
       <link>https://www.cbssports.com/nfl/news/bears-re-sign-dandre-swift-to-three-year-deal/</link>
@@ -77,16 +87,6 @@
       <pubDate>Fri, 11 Sep 2026 17:02:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Bears, D’Andre Swift agree to three-year contract extension</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears, D’Andre Swift agree to three-year contract extension</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-dandre-swift-agree-to-three-year-contract-extension</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d5631a25b0f02c8308c9</guid>
-      <pubDate>Fri, 11 Sep 2026 08:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
