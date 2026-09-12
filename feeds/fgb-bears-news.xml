@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 12 Sep 2026 01:33:43 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 12 Sep 2026 06:29:54 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -30,11 +30,11 @@
     </item>
 
     <item>
-      <title>Bears-Panthers: Keys to a Chicago victory</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears-Panthers: Keys to a Chicago victory</description>
-      <link>https://sports.yahoo.com/articles/bears-panthers-keys-chicago-victory-220000658.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-be48e7c4a74cb93b10cd</guid>
-      <pubDate>Fri, 11 Sep 2026 22:00:00 GMT</pubDate>
+      <title>D’Andre Swift signing hefty $33.75 million Bears extension</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: D’Andre Swift signing hefty $33.75 million Bears extension</description>
+      <link>https://sports.yahoo.com/articles/d-andre-swift-signing-hefty-224019602.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6101a0f3f3b99c4b2e85</guid>
+      <pubDate>Fri, 11 Sep 2026 22:40:19 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -80,13 +80,13 @@
     </item>
 
     <item>
-      <title>Bears&apos; Odunze feels &apos;ready&apos; for Panthers despite questionable tag</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; Odunze feels &apos;ready&apos; for Panthers despite questionable tag</description>
-      <link>https://www.espn.com/nhl/story/_/id/39608081%E2%80%A6</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-929a06e7ae504dadadd2</guid>
-      <pubDate>Fri, 11 Sep 2026 15:46:00 GMT</pubDate>
+      <title>The Bears Have Already Answered Ben Johnson&apos;s Greatest Test From 2025 Campaign</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Bears Have Already Answered Ben Johnson&apos;s Greatest Test From 2025 Campaign</description>
+      <link>https://www.si.com/nfl/bears/onsi/the-bears-have-already-answered-ben-johnson-s-greatest-test-from-2025-campaign</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-867170f9b3c77502f30a</guid>
+      <pubDate>Fri, 11 Sep 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
