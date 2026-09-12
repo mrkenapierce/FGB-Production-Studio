@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 12 Sep 2026 19:16:57 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 12 Sep 2026 21:30:44 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears make roster moves ahead of Carolina Panthers game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears make roster moves ahead of Carolina Panthers game</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-roster-moves-ahead-200000532.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7078252e9f87f3e94c08</guid>
+      <pubDate>Sat, 12 Sep 2026 20:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears sign QB Miller Moss to practice squad, elevate him for Sunday&apos;s game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears sign QB Miller Moss to practice squad, elevate him for Sunday&apos;s game</description>
+      <link>https://sports.yahoo.com/articles/bears-sign-qb-miller-moss-193447523.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-eaa33d7c733cd0c1010f</guid>
+      <pubDate>Sat, 12 Sep 2026 19:34:47 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Chicago Bears announce roster moves</title>
@@ -17,26 +37,6 @@
       <pubDate>Sat, 12 Sep 2026 17:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears Looking to Turn Offseason Work Into Results in Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Looking to Turn Offseason Work Into Results in Week 1</description>
-      <link>https://sports.yahoo.com/articles/bears-looking-turn-offseason-results-160000803.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b68161dcdc3daccddcec</guid>
-      <pubDate>Sat, 12 Sep 2026 16:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Daily Norseman Roundtable: Know Your Enemy — The Chicago Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Daily Norseman Roundtable: Know Your Enemy — The Chicago Bears</description>
-      <link>https://sports.yahoo.com/articles/daily-norseman-roundtable-know-enemy-145359520.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-63be477a5b34c1e6002c</guid>
-      <pubDate>Sat, 12 Sep 2026 14:53:59 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -50,23 +50,33 @@
     </item>
 
     <item>
-      <title>Bears Roster Moves Could Be Bad Sign for Rome Odunze&apos;s &amp; Tyson Bagent&apos;s Week 1 Statuses</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Roster Moves Could Be Bad Sign for Rome Odunze&apos;s &amp; Tyson Bagent&apos;s Week 1 Statuses</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-roster-rome-odunze-status</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-025c4589187d51632e40</guid>
-      <pubDate>Sat, 12 Sep 2026 10:51:00 GMT</pubDate>
+      <title>3 Positive Bears Repercussions After D&apos;Andre Swift&apos;s Re-Signing (And 2 Negatives)</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 3 Positive Bears Repercussions After D&apos;Andre Swift&apos;s Re-Signing (And 2 Negatives)</description>
+      <link>https://www.si.com/nfl/bears/onsi/3-positive-bears-repercussions-after-d-andre-swift-s-re-signing-and-2-negatives</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-074c7aa234c246759a22</guid>
+      <pubDate>Sat, 12 Sep 2026 14:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Ben Johnson, Ryan Poles Explain Bears&apos; Decision to Sign D&apos;Andre Swift to Contract Extension</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson, Ryan Poles Explain Bears&apos; Decision to Sign D&apos;Andre Swift to Contract Extension</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-ryan-poles-explain-bears-decision-to-sign-d-andre-swift-to-contract-extension</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6a23ff15777883147584</guid>
-      <pubDate>Sat, 12 Sep 2026 09:49:00 GMT</pubDate>
+      <title>Ben Johnson Reveals the Study That Fixed the Bears&apos; Worst In-Game Habit</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Reveals the Study That Fixed the Bears&apos; Worst In-Game Habit</description>
+      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-reveals-the-study-that-fixed-the-bears-worst-in-game-habit</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-13f93abaa4650b1c1f2a</guid>
+      <pubDate>Sat, 12 Sep 2026 13:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears sign QB Miller Moss to practice squad, elevate him for Sunday’s game</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears sign QB Miller Moss to practice squad, elevate him for Sunday’s game</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-sign-qb-miller-moss-to-practice-squad-elevate-him-for-sundays-game</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-651bc73746afbc0585e1</guid>
+      <pubDate>Sat, 12 Sep 2026 08:34:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
@@ -77,16 +87,6 @@
       <pubDate>Sat, 12 Sep 2026 04:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Three things Bears QB Caleb Williams wants to improve on</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Three things Bears QB Caleb Williams wants to improve on</description>
-      <link>https://www.espn.com/nfl/story/_/id/49897273/chicago-bears-caleb-williams-2026-outlook</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-65b215339b2648d886fc</guid>
-      <pubDate>Sat, 12 Sep 2026 04:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
