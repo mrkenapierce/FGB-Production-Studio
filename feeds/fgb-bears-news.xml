@@ -5,16 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 12 Sep 2026 06:29:54 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 12 Sep 2026 14:04:55 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>NFL Week 1 Bears-Panthers Predictions: Which run defense will step up?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Week 1 Bears-Panthers Predictions: Which run defense will step up?</description>
-      <link>https://sports.yahoo.com/articles/nfl-week-1-bears-panthers-000000284.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9bb621b67c021e8c4f30</guid>
-      <pubDate>Sat, 12 Sep 2026 00:00:00 GMT</pubDate>
+      <title>Chicago Bears vs Carolina Panthers Preview: Bears need to slow Chuba Hubbard</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs Carolina Panthers Preview: Bears need to slow Chuba Hubbard</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-vs-carolina-panthers-120000928.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f0d786e92fcdbd5b5327</guid>
+      <pubDate>Sat, 12 Sep 2026 12:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Rome Odunze Sends Clear Message on Bears Week 1 Injury Status</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Rome Odunze Sends Clear Message on Bears Week 1 Injury Status</description>
+      <link>https://sports.yahoo.com/articles/rome-odunze-sends-clear-message-114203543.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d5a5e3986ecb38d02d22</guid>
+      <pubDate>Sat, 12 Sep 2026 04:43:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -30,13 +40,13 @@
     </item>
 
     <item>
-      <title>D’Andre Swift signing hefty $33.75 million Bears extension</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: D’Andre Swift signing hefty $33.75 million Bears extension</description>
-      <link>https://sports.yahoo.com/articles/d-andre-swift-signing-hefty-224019602.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6101a0f3f3b99c4b2e85</guid>
-      <pubDate>Fri, 11 Sep 2026 22:40:19 GMT</pubDate>
+      <title>Ben Johnson sees Bears practicing at a championship level, unlike last year</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Ben Johnson sees Bears practicing at a championship level, unlike last year</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/ben-johnson-sees-bears-practicing-at-a-championship-level-unlike-last-year</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1ad7e57b447bc5c187a5</guid>
+      <pubDate>Fri, 11 Sep 2026 21:46:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
@@ -64,29 +74,19 @@
       <description>Football&apos;s Greatest Bears news brief from NFL.com: D&apos;Andre Swift and Chicago Bears reach agreement on 3 year, $33 million extension | &apos;The NFL Report&apos;</description>
       <link>https://www.nfl.com/videos/d-andre-swift-and-chicago-bears-reach-agreement-on-3-year-33-million-extension-the-nfl-report</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-27a80cebf7c9d93e64da</guid>
-      <pubDate>Fri, 11 Sep 2026 17:08:00 GMT</pubDate>
+      <pubDate>Fri, 11 Sep 2026 17:02:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
-      <title>What D&apos;Andre Swift&apos;s Extension Means for the Next Bears Waiting in Line</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: What D&apos;Andre Swift&apos;s Extension Means for the Next Bears Waiting in Line</description>
-      <link>https://www.si.com/nfl/bears/onsi/what-d-andre-swift-s-extension-means-for-the-next-bears-waiting-in-line</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c36e2cc344e1f3441ab4</guid>
-      <pubDate>Fri, 11 Sep 2026 16:30:00 GMT</pubDate>
+      <title>Bears, D’Andre Swift agree to three-year contract extension</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears, D’Andre Swift agree to three-year contract extension</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-dandre-swift-agree-to-three-year-contract-extension</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d5631a25b0f02c8308c9</guid>
+      <pubDate>Fri, 11 Sep 2026 08:45:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>The Bears Have Already Answered Ben Johnson&apos;s Greatest Test From 2025 Campaign</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Bears Have Already Answered Ben Johnson&apos;s Greatest Test From 2025 Campaign</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-bears-have-already-answered-ben-johnson-s-greatest-test-from-2025-campaign</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-867170f9b3c77502f30a</guid>
-      <pubDate>Fri, 11 Sep 2026 15:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
