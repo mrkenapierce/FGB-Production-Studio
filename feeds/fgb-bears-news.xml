@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 13 Sep 2026 01:14:17 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 13 Sep 2026 06:11:05 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears vs. Carolina Panthers Game Picks and Predictions</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. Carolina Panthers Game Picks and Predictions</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-vs-carolina-panthers-035146959.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d344fa18121b97869c21</guid>
+      <pubDate>Sun, 13 Sep 2026 03:51:46 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears fans are confident the team is headed in the right direction</title>
@@ -20,13 +30,13 @@
     </item>
 
     <item>
-      <title>Cal 21, Syracuse 18: Orange collapse against Golden Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Cal 21, Syracuse 18: Orange collapse against Golden Bears</description>
-      <link>https://sports.yahoo.com/articles/cal-21-syracuse-18-orange-232637622.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7d63886f7ce6f1b3597d</guid>
-      <pubDate>Sat, 12 Sep 2026 23:26:37 GMT</pubDate>
+      <title>Bears vs. Panthers predictions: Promos, NFL picks at Kalshi, Polymarket for NFL Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears vs. Panthers predictions: Promos, NFL picks at Kalshi, Polymarket for NFL Week 1</description>
+      <link>https://www.cbssports.com/prediction/news/bears-vs-panthers-predictions-promos-nfl-picks-at-kalshi-polymarket-for-nfl-week-1/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ffe4d506b1288da23c53</guid>
+      <pubDate>Sat, 12 Sep 2026 22:34:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -77,16 +87,6 @@
       <pubDate>Sat, 12 Sep 2026 08:34:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
-      <title>The Bears hear your ‘regression’ talk, and they have two words in response</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: The Bears hear your ‘regression’ talk, and they have two words in response</description>
-      <link>https://www.nytimes.com/athletic/7585799/2026/09/12/chicago-bears-comebacks-lamar-jackson-contract/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f6123ae791f6802b9437</guid>
-      <pubDate>Sat, 12 Sep 2026 04:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
