@@ -5,28 +5,38 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 13 Sep 2026 06:11:05 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 13 Sep 2026 11:47:10 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears vs. Carolina Panthers Game Picks and Predictions</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. Carolina Panthers Game Picks and Predictions</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-vs-carolina-panthers-035146959.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d344fa18121b97869c21</guid>
-      <pubDate>Sun, 13 Sep 2026 03:51:46 GMT</pubDate>
+      <title>The Chicago Bears are trying to defy history</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Chicago Bears are trying to defy history</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-trying-defy-history-110000244.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b40b9c3681bf8a191693</guid>
+      <pubDate>Sun, 13 Sep 2026 11:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears fans are confident the team is headed in the right direction</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears fans are confident the team is headed in the right direction</description>
-      <link>https://sports.yahoo.com/articles/bears-fans-confident-team-headed-000000099.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5cfc2e8525dce3ddb661</guid>
-      <pubDate>Sun, 13 Sep 2026 00:00:00 GMT</pubDate>
+      <title>Bears vs. Panthers: How to watch and listen, previews, odds, and more</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Panthers: How to watch and listen, previews, odds, and more</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-panthers-watch-listen-100000292.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d2f27b70ca4e84874a9e</guid>
+      <pubDate>Sun, 13 Sep 2026 10:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Is Rome Odunze Playing Today? Latest Injury Update For Bears Wide Receiver in Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Is Rome Odunze Playing Today? Latest Injury Update For Bears Wide Receiver in Week 1</description>
+      <link>https://www.si.com/nfl/bears/onsi/is-rome-odunze-playing-today-injury-update-bears-wide-receiver</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6dc439edc1f899acaef9</guid>
+      <pubDate>Sun, 13 Sep 2026 04:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -34,7 +44,7 @@
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears vs. Panthers predictions: Promos, NFL picks at Kalshi, Polymarket for NFL Week 1</description>
       <link>https://www.cbssports.com/prediction/news/bears-vs-panthers-predictions-promos-nfl-picks-at-kalshi-polymarket-for-nfl-week-1/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-ffe4d506b1288da23c53</guid>
-      <pubDate>Sat, 12 Sep 2026 22:34:00 GMT</pubDate>
+      <pubDate>Sat, 12 Sep 2026 21:35:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
@@ -65,16 +75,6 @@
       <link>https://www.si.com/nfl/bears/onsi/3-positive-bears-repercussions-after-d-andre-swift-s-re-signing-and-2-negatives</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-074c7aa234c246759a22</guid>
       <pubDate>Sat, 12 Sep 2026 14:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson Reveals the Study That Fixed the Bears&apos; Worst In-Game Habit</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Reveals the Study That Fixed the Bears&apos; Worst In-Game Habit</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-reveals-the-study-that-fixed-the-bears-worst-in-game-habit</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-13f93abaa4650b1c1f2a</guid>
-      <pubDate>Sat, 12 Sep 2026 13:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
