@@ -5,28 +5,58 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 13 Sep 2026 11:47:10 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 13 Sep 2026 15:17:47 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>The Chicago Bears are trying to defy history</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Chicago Bears are trying to defy history</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-trying-defy-history-110000244.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b40b9c3681bf8a191693</guid>
-      <pubDate>Sun, 13 Sep 2026 11:00:00 GMT</pubDate>
+      <title>WCG Sunday Livestream: NFL Week 1 – Chicago Bears vs Carolina Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: WCG Sunday Livestream: NFL Week 1 – Chicago Bears vs Carolina Panthers</description>
+      <link>https://sports.yahoo.com/articles/wcg-sunday-livestream-nfl-week-140542255.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3bb588238f20ad27847e</guid>
+      <pubDate>Sun, 13 Sep 2026 14:05:42 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears vs. Panthers: How to watch and listen, previews, odds, and more</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Panthers: How to watch and listen, previews, odds, and more</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-panthers-watch-listen-100000292.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d2f27b70ca4e84874a9e</guid>
-      <pubDate>Sun, 13 Sep 2026 10:00:00 GMT</pubDate>
+      <title>Kalshi promo code CBSSPORTS: Get $25 bonus for NFL Week 1, Bears-Panthers, Eagles-Commanders, Giants-Cowboys</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Kalshi promo code CBSSPORTS: Get $25 bonus for NFL Week 1, Bears-Panthers, Eagles-Commanders, Giants-Cowboys</description>
+      <link>https://www.cbssports.com/prediction/news/kalshi-promo-code-cbssports-get-25-bonus-nfl-week-1-bears-panthers-eagles-commanders-giants-cowboys/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0597131bff5143ef4138</guid>
+      <pubDate>Sun, 13 Sep 2026 08:04:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears vs. Panthers predictions: Promos, NFL picks at Kalshi, Polymarket for NFL Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears vs. Panthers predictions: Promos, NFL picks at Kalshi, Polymarket for NFL Week 1</description>
+      <link>https://www.cbssports.com/prediction/news/bears-panthers-predictions-promos-nfl-picks-at-kalshi-polymarket-nfl-week-1/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-eef1a94cb795c73863b4</guid>
+      <pubDate>Sun, 13 Sep 2026 07:36:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears news: Is Rome Odunze playing vs. Panthers? Ian Rapoport reveals status</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears news: Is Rome Odunze playing vs. Panthers? Ian Rapoport reveals status</description>
+      <link>https://sports.yahoo.com/articles/bears-news-rome-odunze-playing-142109606.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9ccec639ba87865c64af</guid>
+      <pubDate>Sun, 13 Sep 2026 07:20:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears Rookies Lead the Way in Keys to Week 1 Victory vs Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Rookies Lead the Way in Keys to Week 1 Victory vs Panthers</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-rookies-lead-the-way-in-keys-to-week-1-victory-vs-panthers</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-467073542f7ac927e557</guid>
+      <pubDate>Sun, 13 Sep 2026 06:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -37,16 +67,6 @@
       <pubDate>Sun, 13 Sep 2026 04:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears vs. Panthers predictions: Promos, NFL picks at Kalshi, Polymarket for NFL Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears vs. Panthers predictions: Promos, NFL picks at Kalshi, Polymarket for NFL Week 1</description>
-      <link>https://www.cbssports.com/prediction/news/bears-vs-panthers-predictions-promos-nfl-picks-at-kalshi-polymarket-for-nfl-week-1/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ffe4d506b1288da23c53</guid>
-      <pubDate>Sat, 12 Sep 2026 21:35:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -67,26 +87,6 @@
       <pubDate>Sat, 12 Sep 2026 14:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>3 Positive Bears Repercussions After D&apos;Andre Swift&apos;s Re-Signing (And 2 Negatives)</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 3 Positive Bears Repercussions After D&apos;Andre Swift&apos;s Re-Signing (And 2 Negatives)</description>
-      <link>https://www.si.com/nfl/bears/onsi/3-positive-bears-repercussions-after-d-andre-swift-s-re-signing-and-2-negatives</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-074c7aa234c246759a22</guid>
-      <pubDate>Sat, 12 Sep 2026 14:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears sign QB Miller Moss to practice squad, elevate him for Sunday’s game</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears sign QB Miller Moss to practice squad, elevate him for Sunday’s game</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-sign-qb-miller-moss-to-practice-squad-elevate-him-for-sundays-game</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-651bc73746afbc0585e1</guid>
-      <pubDate>Sat, 12 Sep 2026 08:34:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
