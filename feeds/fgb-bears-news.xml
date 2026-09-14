@@ -5,28 +5,78 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 14 Sep 2026 10:50:21 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 14 Sep 2026 16:42:14 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>The Bear’s Den: Bears offense dominates Carolina Panthers</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: Bears offense dominates Carolina Panthers</description>
-      <link>https://sports.yahoo.com/articles/bear-den-bears-offense-dominates-100000912.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-279039fb9deaf220824c</guid>
-      <pubDate>Mon, 14 Sep 2026 10:00:00 GMT</pubDate>
+      <title>Schefter: Kyler Murray Not Likely To Play Against Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Schefter: Kyler Murray Not Likely To Play Against Bears</description>
+      <link>https://sports.yahoo.com/articles/schefter-kyler-murray-not-likely-163135831.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5a880a5b4a858917e4e1</guid>
+      <pubDate>Mon, 14 Sep 2026 16:31:35 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Monday Morning JB: Bears&apos; statement and more that stood out in NFL Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Monday Morning JB: Bears&apos; statement and more that stood out in NFL Week 1</description>
-      <link>https://sports.yahoo.com/articles/monday-morning-jb-bears-statement-095033258.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d237aaf5624bed0c1ce2</guid>
-      <pubDate>Mon, 14 Sep 2026 09:50:33 GMT</pubDate>
+      <title>10 Bears Takes: Run Game Dominance, Caleb Williams Improvement, History Made</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 10 Bears Takes: Run Game Dominance, Caleb Williams Improvement, History Made</description>
+      <link>https://sports.yahoo.com/articles/10-bears-takes-run-game-160000317.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-80d3cdfb3ce60b3a3ad8</guid>
+      <pubDate>Mon, 14 Sep 2026 16:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Rookie Report: How Did the Draft Class Perform in the Season Opener</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Rookie Report: How Did the Draft Class Perform in the Season Opener</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-rookie-report-week-1</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-61b3847062ad615f394a</guid>
+      <pubDate>Mon, 14 Sep 2026 08:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Grading Every Bears Position Group After Week 1 Win Over Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Grading Every Bears Position Group After Week 1 Win Over Panthers</description>
+      <link>https://www.si.com/nfl/bears/onsi/grading-every-bears-position-group-week-1-panthers</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-59220d76bc1da5b67cba</guid>
+      <pubDate>Mon, 14 Sep 2026 07:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>NFL Week 1 offense explosion: Bears, Ravens, Bills, Jaguars</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: NFL Week 1 offense explosion: Bears, Ravens, Bills, Jaguars</description>
+      <link>https://www.espn.com/nfl/story/_/id/49930014/week-1-offenses-bears-ravens-bills-jaguars-barnwell</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7bd25480e7c24c25eb64</guid>
+      <pubDate>Mon, 14 Sep 2026 05:55:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Bears’ D’Andre Swift celebrates new contract with 3-TD day: ‘He can do everything’</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears’ D’Andre Swift celebrates new contract with 3-TD day: ‘He can do everything’</description>
+      <link>https://www.nytimes.com/athletic/7591748/2026/09/14/bears-dandre-swift-three-touchdown-game/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3c1a7fa9eff0a4026379</guid>
+      <pubDate>Mon, 14 Sep 2026 04:35:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Bears’ future is now after they put up 59 points in wild season opener</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears’ future is now after they put up 59 points in wild season opener</description>
+      <link>https://www.nytimes.com/athletic/7591944/2026/09/14/bears-panthers-wild-season-opener/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-aa4b4c5597a48e23defb</guid>
+      <pubDate>Mon, 14 Sep 2026 03:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -37,56 +87,6 @@
       <pubDate>Mon, 14 Sep 2026 00:32:44 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>NFL Week 1 winners, losers: Deshaun Watson disastrous in Browns offense, Bears light up scoreboard</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 1 winners, losers: Deshaun Watson disastrous in Browns offense, Bears light up scoreboard</description>
-      <link>https://www.cbssports.com/nfl/news/nfl-week-1-winners-losers-deshaun-watson/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3cf63623c346582b036d</guid>
-      <pubDate>Mon, 14 Sep 2026 00:00:35 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Game Recap: Bears open season with record-setting victory over Panthers</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Recap: Bears open season with record-setting victory over Panthers</description>
-      <link>https://www.chicagobears.com/news/game-recap-bears-offense-shines-in-season-opening-win-over-panthers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-bb67f412dab14521c563</guid>
-      <pubDate>Sun, 13 Sep 2026 20:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; offense makes statement with &apos;amazing&apos; 59-point opener</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; offense makes statement with &apos;amazing&apos; 59-point opener</description>
-      <link>https://www.espn.com/nfl/story/_/id/49935313/bears-call-59-point-opener-amazing-offense-makes-statement</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-53a81002858dd0ce20ab</guid>
-      <pubDate>Sun, 13 Sep 2026 18:53:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Key NFL Week 1 stats on Bears, Bills, Texans, Bucs, Cardinals</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Key NFL Week 1 stats on Bears, Bills, Texans, Bucs, Cardinals</description>
-      <link>https://www.espn.com/nfl/story/_/id/49881588/week-1-five-key-stats-numbers-solak</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b2fd8a4a930cc6aee2e3</guid>
-      <pubDate>Sun, 13 Sep 2026 18:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson Gives Electric Postgame Speech After Bears&apos; Dominant Win Over Panthers</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Gives Electric Postgame Speech After Bears&apos; Dominant Win Over Panthers</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-gives-electric-postgame-speech-after-bears-dominant-win-over-panthers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f73e4b01e6ebccefc235</guid>
-      <pubDate>Sun, 13 Sep 2026 17:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
