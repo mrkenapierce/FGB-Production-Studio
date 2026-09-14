@@ -5,16 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 14 Sep 2026 05:25:52 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 14 Sep 2026 10:50:21 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>NFL Week 2 Odds: Bears open as a favorite over Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Week 2 Odds: Bears open as a favorite over Vikings</description>
-      <link>https://sports.yahoo.com/articles/nfl-week-2-odds-bears-035220341.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1242a78afae435e3e186</guid>
-      <pubDate>Mon, 14 Sep 2026 03:52:20 GMT</pubDate>
+      <title>The Bear’s Den: Bears offense dominates Carolina Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: Bears offense dominates Carolina Panthers</description>
+      <link>https://sports.yahoo.com/articles/bear-den-bears-offense-dominates-100000912.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-279039fb9deaf220824c</guid>
+      <pubDate>Mon, 14 Sep 2026 10:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Monday Morning JB: Bears&apos; statement and more that stood out in NFL Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Monday Morning JB: Bears&apos; statement and more that stood out in NFL Week 1</description>
+      <link>https://sports.yahoo.com/articles/monday-morning-jb-bears-statement-095033258.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d237aaf5624bed0c1ce2</guid>
+      <pubDate>Mon, 14 Sep 2026 09:50:33 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -60,33 +70,23 @@
     </item>
 
     <item>
-      <title>Bears call 59-point opener &apos;amazing&apos; as offense makes statement</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears call 59-point opener &apos;amazing&apos; as offense makes statement</description>
-      <link>https://www.espn.com/nba/story/_/id/24931...</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3b9d5abe5e48fb37cdab</guid>
-      <pubDate>Sun, 13 Sep 2026 18:53:00 GMT</pubDate>
+      <title>Key NFL Week 1 stats on Bears, Bills, Texans, Bucs, Cardinals</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Key NFL Week 1 stats on Bears, Bills, Texans, Bucs, Cardinals</description>
+      <link>https://www.espn.com/nfl/story/_/id/49881588/week-1-five-key-stats-numbers-solak</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b2fd8a4a930cc6aee2e3</guid>
+      <pubDate>Sun, 13 Sep 2026 18:15:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
-      <title>What Bears coach Ben Johnson is most excited about after their 59-point outburst</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: What Bears coach Ben Johnson is most excited about after their 59-point outburst</description>
-      <link>https://www.nfl.com/news/what-bears-coach-ben-johnson-is-most-excited-about-after-their-59-point-outburst</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-451e149b26a0854a7eae</guid>
-      <pubDate>Sun, 13 Sep 2026 17:00:00 GMT</pubDate>
+      <title>Ben Johnson Gives Electric Postgame Speech After Bears&apos; Dominant Win Over Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Gives Electric Postgame Speech After Bears&apos; Dominant Win Over Panthers</description>
+      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-gives-electric-postgame-speech-after-bears-dominant-win-over-panthers</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f73e4b01e6ebccefc235</guid>
+      <pubDate>Sun, 13 Sep 2026 17:45:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>3 Positives From Panthers&apos; Blowout Week 1 Loss to Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 3 Positives From Panthers&apos; Blowout Week 1 Loss to Bears</description>
-      <link>https://sports.yahoo.com/articles/3-positives-panthers-blowout-week-014448191.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9bf42835e7b0b430a8fc</guid>
-      <pubDate>Sun, 13 Sep 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
