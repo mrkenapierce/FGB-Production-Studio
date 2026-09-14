@@ -5,19 +5,9 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 14 Sep 2026 20:35:04 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 14 Sep 2026 23:27:27 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
-
-    <item>
-      <title>Bears vs. Panthers Game Balls: 2026 Campaign Opens With Historic Start</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Panthers Game Balls: 2026 Campaign Opens With Historic Start</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-panthers-game-balls-200753031.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-61459d8ec9e4bda3f924</guid>
-      <pubDate>Mon, 14 Sep 2026 20:07:53 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
 
     <item>
       <title>NFL Week 1 overreactions: Bears to score most and allow most points in NFL? Lamar Jackson for MVP?</title>
@@ -40,11 +30,31 @@
     </item>
 
     <item>
-      <title>Panthers news: Orlovsky blasts &apos;putrid&apos; defense after Week 1 clash vs. Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Panthers news: Orlovsky blasts &apos;putrid&apos; defense after Week 1 clash vs. Bears</description>
-      <link>https://sports.yahoo.com/articles/panthers-news-orlovsky-blasts-putrid-193108328.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-357c290f61f637d229c6</guid>
-      <pubDate>Mon, 14 Sep 2026 12:31:00 GMT</pubDate>
+      <title>Key Observations From the Chicago Bears&apos; Snap Count Against Carolina Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Key Observations From the Chicago Bears&apos; Snap Count Against Carolina Panthers</description>
+      <link>https://www.si.com/nfl/bears/onsi/key-observations-from-the-chicago-bears-snap-count-against-carolina-panthers</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2e237b958178738aa2ea</guid>
+      <pubDate>Mon, 14 Sep 2026 14:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Good, bad and ugly from Bears&apos; big win vs. Panthers in Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Good, bad and ugly from Bears&apos; big win vs. Panthers in Week 1</description>
+      <link>https://sports.yahoo.com/articles/good-bad-ugly-bears-big-201536510.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3790a018c05874c9212e</guid>
+      <pubDate>Mon, 14 Sep 2026 13:15:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>How much are tickets to Chicago Bears&apos; home opener vs. Minnesota Vikings?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: How much are tickets to Chicago Bears&apos; home opener vs. Minnesota Vikings?</description>
+      <link>https://sports.yahoo.com/articles/much-tickets-chicago-bears-home-201034949.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5d787c095ea2ef4def4c</guid>
+      <pubDate>Mon, 14 Sep 2026 13:10:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -55,16 +65,6 @@
       <link>https://www.si.com/nfl/bears/onsi/bears-defensive-rut-says-they-badly-need-a-boost-from-trade-market</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-268c9478fc07820bed40</guid>
       <pubDate>Mon, 14 Sep 2026 12:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Everything That Went Wrong For Chicago Bears in Week 1 Win Over Carolina Panthers</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Everything That Went Wrong For Chicago Bears in Week 1 Win Over Carolina Panthers</description>
-      <link>https://www.si.com/nfl/bears/onsi/everything-that-went-wrong-for-chicago-bears-in-week-1-win-over-carolina-panthers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-01c95c8ffe91e11d759e</guid>
-      <pubDate>Mon, 14 Sep 2026 11:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
