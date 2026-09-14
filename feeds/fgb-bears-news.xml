@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 13 Sep 2026 22:54:25 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 14 Sep 2026 00:31:48 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>NFL Week 1 winners, losers: Deshaun Watson disastrous in Browns offense, Bears light up scoreboard</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 1 winners, losers: Deshaun Watson disastrous in Browns offense, Bears light up scoreboard</description>
+      <link>https://www.cbssports.com/nfl/news/nfl-week-1-winners-losers-deshaun-watson/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3cf63623c346582b036d</guid>
+      <pubDate>Mon, 14 Sep 2026 00:00:35 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears-Panthers was historic for a Week 1 game, Scorigami and more</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears-Panthers was historic for a Week 1 game, Scorigami and more</description>
+      <link>https://sports.yahoo.com/articles/bears-panthers-historic-week-1-225229216.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-444b7b6ed928ea908e33</guid>
+      <pubDate>Sun, 13 Sep 2026 22:52:29 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>NFL Week 1 overreactions: Bears to score most and allow most points in NFL? Lamar Jackson for MVP?</title>
@@ -20,43 +40,43 @@
     </item>
 
     <item>
-      <title>Fantasy Football Week 1 Booms and Busts: Ravens, Bears impress in historic, high-scoring start to 2026</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Fantasy Football Week 1 Booms and Busts: Ravens, Bears impress in historic, high-scoring start to 2026</description>
-      <link>https://sports.yahoo.com/fantasy/article/fantasy-football-week-1-booms-and-busts-ravens-bears-impress-in-historic-high-scoring-start-to-2026-221207478.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-83c9246b1b4d68d78429</guid>
-      <pubDate>Sun, 13 Sep 2026 22:12:07 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears-Panthers was highest-scoring Week 1 game in NFL history</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears-Panthers was highest-scoring Week 1 game in NFL history</description>
-      <link>https://sports.yahoo.com/articles/bears-panthers-highest-scoring-week-214922249.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8ec05e731acd202df4bd</guid>
-      <pubDate>Sun, 13 Sep 2026 21:49:22 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; wild win over Panthers ends with final score that&apos;s never happened before in NFL history</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; wild win over Panthers ends with final score that&apos;s never happened before in NFL history</description>
-      <link>https://www.cbssports.com/nfl/news/bears-panthers-final-score-scorigami/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2fcf60b311e41b80ba61</guid>
-      <pubDate>Sun, 13 Sep 2026 21:31:43 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Game Recap: Bears offense shines in season-opening win over Panthers</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Recap: Bears offense shines in season-opening win over Panthers</description>
+      <title>Game Recap: Bears open season with record-setting victory over Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Recap: Bears open season with record-setting victory over Panthers</description>
       <link>https://www.chicagobears.com/news/game-recap-bears-offense-shines-in-season-opening-win-over-panthers</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-bb67f412dab14521c563</guid>
       <pubDate>Sun, 13 Sep 2026 20:59:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>NFL Week 1 Winners and Losers: Bears&apos; offense looks every bit as good as Ben Johnson said it would be</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Week 1 Winners and Losers: Bears&apos; offense looks every bit as good as Ben Johnson said it would be</description>
+      <link>https://sports.yahoo.com/nfl/article/nfl-week-1-winners-and-losers-bears-offense-looks-every-bit-as-good-as-ben-johnson-said-it-would-be-203550128.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ecd383b72dccf6bc1ecf</guid>
+      <pubDate>Sun, 13 Sep 2026 20:35:50 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams and Bears Say Offense Can Be Even Better Than 59 Points</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams and Bears Say Offense Can Be Even Better Than 59 Points</description>
+      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-and-bears-say-offense-can-be-even-better-than-59-points</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-aeda0c3eac04c163f68d</guid>
+      <pubDate>Sun, 13 Sep 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Luther Burden Talks Smack on Social Media After Bears Crush Panthers in Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Luther Burden Talks Smack on Social Media After Bears Crush Panthers in Week 1</description>
+      <link>https://www.si.com/nfl/bears/onsi/luther-burden-talks-smack-on-social-media-after-bears-crush-panthers</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3f30ff2fb7be2aa7990d</guid>
+      <pubDate>Sun, 13 Sep 2026 16:08:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -67,26 +87,6 @@
       <pubDate>Sun, 13 Sep 2026 14:59:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>5 Winners and 4 Losers From the Chicago Bears Shootout Victory Over the Panthers</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 5 Winners and 4 Losers From the Chicago Bears Shootout Victory Over the Panthers</description>
-      <link>https://www.si.com/nfl/bears/onsi/5-winners-and-4-losers-from-the-chicago-bears-shootout-victory-over-the-panthers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-746225bb379f84694156</guid>
-      <pubDate>Sun, 13 Sep 2026 14:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; top plays vs. Panthers | Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears&apos; top plays vs. Panthers | Week 1</description>
-      <link>https://www.nfl.com/videos/bears-top-plays-vs-panthers-week-1</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d915248afadf1293620c</guid>
-      <pubDate>Sun, 13 Sep 2026 14:50:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
   </channel>
 </rss>
