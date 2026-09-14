@@ -5,46 +5,66 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 14 Sep 2026 16:42:14 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 14 Sep 2026 20:35:04 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Schefter: Kyler Murray Not Likely To Play Against Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Schefter: Kyler Murray Not Likely To Play Against Bears</description>
-      <link>https://sports.yahoo.com/articles/schefter-kyler-murray-not-likely-163135831.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5a880a5b4a858917e4e1</guid>
-      <pubDate>Mon, 14 Sep 2026 16:31:35 GMT</pubDate>
+      <title>Bears vs. Panthers Game Balls: 2026 Campaign Opens With Historic Start</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Panthers Game Balls: 2026 Campaign Opens With Historic Start</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-panthers-game-balls-200753031.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-61459d8ec9e4bda3f924</guid>
+      <pubDate>Mon, 14 Sep 2026 20:07:53 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>10 Bears Takes: Run Game Dominance, Caleb Williams Improvement, History Made</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 10 Bears Takes: Run Game Dominance, Caleb Williams Improvement, History Made</description>
-      <link>https://sports.yahoo.com/articles/10-bears-takes-run-game-160000317.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-80d3cdfb3ce60b3a3ad8</guid>
-      <pubDate>Mon, 14 Sep 2026 16:00:00 GMT</pubDate>
+      <title>NFL Week 1 overreactions: Bears to score most and allow most points in NFL? Lamar Jackson for MVP?</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 1 overreactions: Bears to score most and allow most points in NFL? Lamar Jackson for MVP?</description>
+      <link>https://www.cbssports.com/nfl/news/nfl-week-1-overreactions-bears-lamar-jackson-mvp/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9fd50874aca5f0442f59</guid>
+      <pubDate>Mon, 14 Sep 2026 17:57:07 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>By the Numbers: Bears&apos; Week 1 win over Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: By the Numbers: Bears&apos; Week 1 win over Panthers</description>
+      <link>https://www.chicagobears.com/news/by-the-numbers-bears-week-1-win-over-panthers</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e9e9964badc88f421302</guid>
+      <pubDate>Mon, 14 Sep 2026 16:54:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Panthers news: Orlovsky blasts &apos;putrid&apos; defense after Week 1 clash vs. Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Panthers news: Orlovsky blasts &apos;putrid&apos; defense after Week 1 clash vs. Bears</description>
+      <link>https://sports.yahoo.com/articles/panthers-news-orlovsky-blasts-putrid-193108328.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-357c290f61f637d229c6</guid>
+      <pubDate>Mon, 14 Sep 2026 12:31:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Chicago Bears Rookie Report: How Did the Draft Class Perform in the Season Opener</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Rookie Report: How Did the Draft Class Perform in the Season Opener</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-rookie-report-week-1</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-61b3847062ad615f394a</guid>
-      <pubDate>Mon, 14 Sep 2026 08:00:00 GMT</pubDate>
+      <title>Bears Defensive Rut Says They Badly Need a Boost from Trade Market</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Defensive Rut Says They Badly Need a Boost from Trade Market</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-defensive-rut-says-they-badly-need-a-boost-from-trade-market</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-268c9478fc07820bed40</guid>
+      <pubDate>Mon, 14 Sep 2026 12:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Grading Every Bears Position Group After Week 1 Win Over Panthers</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Grading Every Bears Position Group After Week 1 Win Over Panthers</description>
-      <link>https://www.si.com/nfl/bears/onsi/grading-every-bears-position-group-week-1-panthers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-59220d76bc1da5b67cba</guid>
-      <pubDate>Mon, 14 Sep 2026 07:00:00 GMT</pubDate>
+      <title>Everything That Went Wrong For Chicago Bears in Week 1 Win Over Carolina Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Everything That Went Wrong For Chicago Bears in Week 1 Win Over Carolina Panthers</description>
+      <link>https://www.si.com/nfl/bears/onsi/everything-that-went-wrong-for-chicago-bears-in-week-1-win-over-carolina-panthers</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-01c95c8ffe91e11d759e</guid>
+      <pubDate>Mon, 14 Sep 2026 11:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -67,26 +87,6 @@
       <pubDate>Mon, 14 Sep 2026 04:35:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Bears’ future is now after they put up 59 points in wild season opener</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears’ future is now after they put up 59 points in wild season opener</description>
-      <link>https://www.nytimes.com/athletic/7591944/2026/09/14/bears-panthers-wild-season-opener/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-aa4b4c5597a48e23defb</guid>
-      <pubDate>Mon, 14 Sep 2026 03:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>NFL Week 1 overreactions: Bears to score most and allow most points in NFL? Lamar Jackson for MVP?</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 1 overreactions: Bears to score most and allow most points in NFL? Lamar Jackson for MVP?</description>
-      <link>https://www.cbssports.com/nfl/news/nfl-week-1-overreactions-bears-lamar-jackson-mvp/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9fd50874aca5f0442f59</guid>
-      <pubDate>Mon, 14 Sep 2026 00:32:44 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
