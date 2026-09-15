@@ -1,0 +1,88 @@
+name: Emergency Recover FGB Master
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/emergency-recover-master.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Recover master and report exact status
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          MASTER=fgbears-live.service
+          AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
+
+          echo '=== BEFORE ==='
+          systemctl status "$MASTER" --no-pager || true
+          journalctl -u "$MASTER" -n 80 --no-pager || true
+          echo '=== AUDIO ==='
+          ffprobe -v error -select_streams a:0 \
+            -show_entries stream=codec_name,sample_rate,channels:format=duration \
+            -of default=noprint_wrappers=1 "$AUDIO" || true
+
+          sudo systemctl reset-failed "$MASTER" || true
+          sleep 5
+          if ! sudo systemctl start "$MASTER"; then
+            echo '=== START FAILED ==='
+            systemctl status "$MASTER" --no-pager || true
+            journalctl -u "$MASTER" -n 120 --no-pager || true
+            exit 1
+          fi
+
+          for i in $(seq 1 60); do
+            if systemctl is-active --quiet "$MASTER"; then
+              main=$(systemctl show -p MainPID --value "$MASTER")
+              ffpid=$(pgrep -P "$main" -x ffmpeg | head -1 || true)
+              if [ -n "$ffpid" ] && sudo ls -l "/proc/$ffpid/fd" 2>/dev/null | grep -Fq "$AUDIO"; then
+                break
+              fi
+            fi
+            sleep 1
+          done
+
+          systemctl is-active --quiet "$MASTER" || {
+            systemctl status "$MASTER" --no-pager || true
+            journalctl -u "$MASTER" -n 120 --no-pager || true
+            exit 1
+          }
+          main=$(systemctl show -p MainPID --value "$MASTER")
+          ffpid=$(pgrep -P "$main" -x ffmpeg | head -1)
+          sudo ls -l "/proc/$ffpid/fd" | grep -F "$AUDIO"
+          sleep 8
+          progress=$(awk -F= '/^out_time_ms=/{v=$2} END{print v+0}' /srv/fgbears-live/logs/ffmpeg-progress.log)
+          test "$progress" -gt 0
+
+          echo '=== ACTIVE DESTINATIONS ==='
+          systemctl list-units --type=service --state=running --no-legend --no-pager 'fgbears-*' \
+            | awk '{print $1}' | grep -E 'youtube|rumble|facebook|relay|uplink' || true
+          echo "MASTER_RECOVERY=PASS"
+          echo "MASTER_PROGRESS_US=$progress"
+          echo "AUTO_SYNC_TIMER=$(systemctl is-enabled fgbears-lovable-audio-sync.timer 2>/dev/null || true)"
+          REMOTE
