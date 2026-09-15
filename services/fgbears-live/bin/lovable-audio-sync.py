@@ -14,7 +14,6 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-import sys
 import tempfile
 import time
 import urllib.parse
@@ -34,14 +33,8 @@ MAX_SOURCE_BYTES = 50 * 1024 * 1024
 HTTP_TIMEOUT = 25
 
 
-def run(cmd: list[str], *, check: bool = True, capture: bool = True) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        cmd,
-        check=check,
-        text=True,
-        capture_output=capture,
-        timeout=120,
-    )
+def run(cmd: list[str], *, check: bool = True, capture: bool = True, timeout: int = 120) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(cmd, check=check, text=True, capture_output=capture, timeout=timeout)
 
 
 def log(message: str) -> None:
@@ -66,10 +59,7 @@ def fetch_contract() -> tuple[str, dict]:
     last_error = ""
     for endpoint in ENDPOINTS:
         try:
-            req = urllib.request.Request(
-                endpoint,
-                headers={"User-Agent": "FGB-Oracle-Audio-Sync/1.0", "Accept": "application/json"},
-            )
+            req = urllib.request.Request(endpoint, headers={"User-Agent": "FGB-Oracle-Audio-Sync/1.0", "Accept": "application/json"})
             with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as response:
                 data = json.loads(response.read().decode("utf-8"))
             audio = data.get("presentation", {}).get("audio")
@@ -98,11 +88,7 @@ def download(url: str, destination: Path) -> None:
 
 
 def ffprobe_audio(path: Path) -> dict:
-    cp = run([
-        "ffprobe", "-v", "error", "-select_streams", "a:0",
-        "-show_entries", "stream=codec_name,sample_rate,channels:format=duration",
-        "-of", "json", str(path),
-    ])
+    cp = run(["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_entries", "stream=codec_name,sample_rate,channels:format=duration", "-of", "json", str(path)])
     data = json.loads(cp.stdout)
     streams = data.get("streams") or []
     if not streams:
@@ -110,33 +96,23 @@ def ffprobe_audio(path: Path) -> dict:
     duration = float((data.get("format") or {}).get("duration") or 0)
     if duration <= 0:
         raise RuntimeError("Selected audio has no positive duration.")
-    return {
-        "codec": str(streams[0].get("codec_name") or ""),
-        "rate": int(streams[0].get("sample_rate") or 0),
-        "channels": int(streams[0].get("channels") or 0),
-        "duration": duration,
-    }
+    return {"codec": str(streams[0].get("codec_name") or ""), "rate": int(streams[0].get("sample_rate") or 0), "channels": int(streams[0].get("channels") or 0), "duration": duration}
 
 
 def build_canonical(source: Path | None, destination: Path, gain_db: float, muted: bool) -> dict:
     if muted:
-        cmd = [
-            "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
-            "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo",
-            "-t", "2", "-c:a", "aac", "-b:a", "256k", str(destination),
-        ]
+        cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", "2", "-c:a", "aac", "-b:a", "256k", str(destination)]
     else:
         assert source is not None
-        af = f"volume={gain_db:.1f}dB,aresample=48000"
-        cmd = [
-            "ffmpeg", "-hide_banner", "-loglevel", "error", "-y",
-            "-i", str(source), "-vn", "-af", af,
-            "-ar", "48000", "-ac", "2", "-c:a", "aac", "-b:a", "256k",
-            str(destination),
-        ]
-    run(cmd)
+        source_meta = ffprobe_audio(source)
+        if source_meta["codec"] == "aac" and source_meta["channels"] == 2 and abs(gain_db) < 0.05:
+            cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(source), "-vn", "-map", "0:a:0", "-c:a", "copy", str(destination)]
+        else:
+            af = f"volume={gain_db:.1f}dB,aresample=48000"
+            cmd = ["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(source), "-vn", "-af", af, "-ar", "48000", "-ac", "2", "-c:a", "aac", "-b:a", "256k", str(destination)]
+    run(cmd, timeout=600)
     meta = ffprobe_audio(destination)
-    if meta["codec"] != "aac" or meta["rate"] != 48000 or meta["channels"] != 2:
+    if meta["codec"] != "aac" or meta["channels"] != 2:
         raise RuntimeError(f"Canonical audio validation failed: {meta}")
     return meta
 
@@ -154,10 +130,7 @@ def service_active(unit: str) -> bool:
 
 
 def running_destination_units() -> list[str]:
-    cp = run([
-        "systemctl", "list-units", "--type=service", "--state=running",
-        "--no-legend", "--no-pager", "fgbears-*",
-    ], check=False)
+    cp = run(["systemctl", "list-units", "--type=service", "--state=running", "--no-legend", "--no-pager", "fgbears-*"], check=False)
     units: list[str] = []
     for line in cp.stdout.splitlines():
         unit = line.split(maxsplit=1)[0] if line.strip() else ""
@@ -180,14 +153,10 @@ def master_ffmpeg_pid() -> int:
     return int(pids[0])
 
 
-def shlex_quote(value: str) -> str:
-    import shlex
-    return shlex.quote(value)
-
-
 def verify_master_uses_audio() -> None:
+    import shlex
     pid = master_ffmpeg_pid()
-    cp = run(["bash", "-lc", f"ls -l /proc/{pid}/fd 2>/dev/null | grep -F -- {shlex_quote(str(AUDIO_FILE))}"], check=False)
+    cp = run(["bash", "-lc", f"ls -l /proc/{pid}/fd 2>/dev/null | grep -F -- {shlex.quote(str(AUDIO_FILE))}"], check=False)
     if cp.returncode != 0:
         raise RuntimeError(f"Master FFmpeg is not reading {AUDIO_FILE}.")
 
@@ -206,7 +175,7 @@ def progress_value() -> int:
 
 
 def restart_and_verify(previous_destinations: list[str]) -> None:
-    run(["systemctl", "restart", MASTER_SERVICE], capture=True)
+    run(["systemctl", "restart", MASTER_SERVICE])
     deadline = time.time() + 60
     last = ""
     while time.time() < deadline:
@@ -219,13 +188,11 @@ def restart_and_verify(previous_destinations: list[str]) -> None:
         time.sleep(1)
     else:
         raise RuntimeError(f"Master did not reopen selected audio: {last}")
-
     before = progress_value()
     time.sleep(7)
     after = progress_value()
     if before <= 0 or after <= before:
         raise RuntimeError(f"Program clock did not advance after audio switch ({before} -> {after}).")
-
     deadline = time.time() + 30
     missing: list[str] = []
     while time.time() < deadline:
@@ -258,13 +225,11 @@ def promote(canonical: Path, audio: dict, endpoint: str, meta: dict) -> None:
     had_old = AUDIO_FILE.exists()
     if had_old:
         shutil.copy2(AUDIO_FILE, backup)
-
     staged = AUDIO_FILE.with_suffix(".new")
     shutil.copy2(canonical, staged)
     os.chown(staged, _uid("fgbears"), _gid("fgbears"))
     os.chmod(staged, 0o644)
     os.replace(staged, AUDIO_FILE)
-
     try:
         restart_and_verify(previous_destinations)
     except Exception:
@@ -277,23 +242,7 @@ def promote(canonical: Path, audio: dict, endpoint: str, meta: dict) -> None:
             os.replace(rollback, AUDIO_FILE)
             run(["systemctl", "restart", MASTER_SERVICE], check=False)
         raise
-
-    write_state({
-        "appliedRevision": revision,
-        "activeTrackId": audio.get("activeTrackId"),
-        "activeTrackName": audio.get("activeTrackName"),
-        "mode": audio.get("mode"),
-        "enabled": bool(audio.get("enabled")),
-        "loop": bool(audio.get("loop", True)),
-        "volumeGainDb": float(audio.get("volumeGainDb") or 0),
-        "canonicalSha256": sha256(AUDIO_FILE),
-        "canonical": meta,
-        "controlEndpoint": endpoint,
-        "appliedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "destinationsObserved": previous_destinations,
-        "rollbackBackup": str(backup) if had_old else None,
-        "status": "applied",
-    })
+    write_state({"appliedRevision": revision, "activeTrackId": audio.get("activeTrackId"), "activeTrackName": audio.get("activeTrackName"), "mode": audio.get("mode"), "enabled": bool(audio.get("enabled")), "loop": bool(audio.get("loop", True)), "volumeGainDb": float(audio.get("volumeGainDb") or 0), "canonicalSha256": sha256(AUDIO_FILE), "canonical": meta, "controlEndpoint": endpoint, "appliedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "destinationsObserved": previous_destinations, "rollbackBackup": str(backup) if had_old else None, "status": "applied"})
 
 
 def main() -> int:
@@ -304,14 +253,12 @@ def main() -> int:
         except BlockingIOError:
             log("already_running")
             return 0
-
         endpoint, audio = fetch_contract()
         revision = int(audio["revision"])
         previous = read_state()
         if int(previous.get("appliedRevision", -1)) == revision:
             log(f"no_change revision={revision}")
             return 0
-
         if audio.get("mode") == "track" and audio.get("enabled") is True:
             asset = audio.get("assetUrl")
             if not isinstance(asset, str) or not asset:
@@ -321,16 +268,12 @@ def main() -> int:
             asset_url = urllib.parse.urljoin(endpoint, asset)
             gain = float(audio.get("volumeGainDb") or 0)
             with tempfile.TemporaryDirectory(prefix="fgb-audio-sync-") as td:
-                td_path = Path(td)
-                source = td_path / "source"
-                canonical = td_path / "canonical.m4a"
+                source = Path(td) / "source"
+                canonical = Path(td) / "canonical.m4a"
                 download(asset_url, source)
                 source_meta = ffprobe_audio(source)
                 meta = build_canonical(source, canonical, gain, muted=False)
-                log(
-                    f"candidate revision={revision} track={audio.get('activeTrackName')!r} "
-                    f"source={source_meta['codec']}/{source_meta['rate']}Hz/{source_meta['channels']}ch"
-                )
+                log(f"candidate revision={revision} track={audio.get('activeTrackName')!r} source={source_meta['codec']}/{source_meta['rate']}Hz/{source_meta['channels']}ch")
                 promote(canonical, audio, endpoint, meta)
         else:
             with tempfile.TemporaryDirectory(prefix="fgb-audio-sync-") as td:
@@ -338,7 +281,6 @@ def main() -> int:
                 meta = build_canonical(None, canonical, 0, muted=True)
                 log(f"candidate revision={revision} mode=muted")
                 promote(canonical, audio, endpoint, meta)
-
         log(f"applied revision={revision} all_active_destinations_preserved")
         return 0
 
