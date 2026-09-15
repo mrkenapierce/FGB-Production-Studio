@@ -1,0 +1,54 @@
+name: Pause Audio Poller for Episode 034 Recovery
+
+on:
+  push:
+    branches: [probe-episode-034-activation]
+    paths:
+      - '.github/workflows/pause-audio-poller-for-episode-034-recovery.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  pause:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Pause poller without touching live master
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MASTER=fgbears-live.service
+          AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
+          TIMER=fgbears-lovable-audio-sync.timer
+          WORKER=fgbears-lovable-audio-sync.service
+          before_pid=$(systemctl show -p MainPID --value "$MASTER")
+          before_sha=$(sha256sum "$AUDIO" | awk '{print $1}')
+          systemctl is-active --quiet "$MASTER"
+          sudo systemctl disable --now "$TIMER"
+          sudo systemctl stop "$WORKER" || true
+          after_pid=$(systemctl show -p MainPID --value "$MASTER")
+          after_sha=$(sha256sum "$AUDIO" | awk '{print $1}')
+          test "$before_pid" = "$after_pid"
+          test "$before_sha" = "$after_sha"
+          ! systemctl is-active --quiet "$TIMER"
+          echo "AUDIO_POLLER=PAUSED"
+          echo "MASTER_UNCHANGED=PASS pid=$after_pid sha256=$after_sha"
+          sudo cat /srv/fgbears-live/runtime/lovable-audio-pipeline.json
+          REMOTE
