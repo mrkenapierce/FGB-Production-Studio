@@ -1,0 +1,99 @@
+name: Probe Episode 034 Activation
+
+on:
+  push:
+    branches: [probe-episode-034-activation]
+    paths:
+      - '.github/workflows/probe-episode-034-activation.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Wait for revision 4 and verify live audio
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          STATE=/srv/fgbears-live/runtime/lovable-audio-pipeline.json
+          AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
+          EXPECTED_SOURCE=c5c53890601ee446fe38d267f7cf5dba5dd899fba45006a8ddbb60d88654e66c
+          EXPECTED_TRACK='Episode 034'
+          TARGET_REVISION=4
+
+          for i in $(seq 1 60); do
+            test -s "$STATE"
+            status=$(sudo python3 -c 'import json; print(json.load(open("/srv/fgbears-live/runtime/lovable-audio-pipeline.json")).get("status", ""))')
+            applied=$(sudo python3 -c 'import json; print(json.load(open("/srv/fgbears-live/runtime/lovable-audio-pipeline.json")).get("appliedRevision", ""))')
+            candidate=$(sudo python3 -c 'import json; print(json.load(open("/srv/fgbears-live/runtime/lovable-audio-pipeline.json")).get("candidateRevision", ""))')
+            echo "probe=$i status=$status candidate=$candidate applied=$applied"
+            if [ "$status" = "failed" ] || [ "$status" = "rolled_back" ]; then
+              sudo cat "$STATE"
+              exit 1
+            fi
+            if [ "$status" = "live" ] && [ "$applied" = "$TARGET_REVISION" ]; then
+              break
+            fi
+            sleep 5
+          done
+
+          sudo cat "$STATE"
+          python3 - <<'PY'
+          import json, sys
+          p='/srv/fgbears-live/runtime/lovable-audio-pipeline.json'
+          s=json.load(open(p))
+          assert s.get('status') == 'live', s
+          assert int(s.get('appliedRevision', -1)) == 4, s
+          assert s.get('activeTrackName') == 'Episode 034', s
+          assert s.get('sourceSha256') == 'c5c53890601ee446fe38d267f7cf5dba5dd899fba45006a8ddbb60d88654e66c', s
+          ratio=float(s.get('pacingRatio'))
+          assert 0.98 <= ratio <= 1.02, ratio
+          print(f'PIPELINE_STATE=PASS revision=4 pacing={ratio:.4f}')
+          PY
+
+          systemctl is-active --quiet fgbears-live.service
+          ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels -of default=nw=1 "$AUDIO"
+          codec=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1:nk=1 "$AUDIO")
+          rate=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nw=1:nk=1 "$AUDIO")
+          channels=$(ffprobe -v error -select_streams a:0 -show_entries stream=channels -of default=nw=1:nk=1 "$AUDIO")
+          test "$codec" = "aac"
+          test "$rate" = "48000"
+          test "$channels" = "2"
+
+          canonical=$(sudo python3 -c 'import json; print(json.load(open("/srv/fgbears-live/runtime/lovable-audio-pipeline.json"))["canonicalSha256"])')
+          actual=$(sha256sum "$AUDIO" | awk '{print $1}')
+          test "$actual" = "$canonical"
+
+          master_pid=$(systemctl show -p MainPID --value fgbears-live.service)
+          ffpid=$(pgrep -P "$master_pid" -x ffmpeg | head -1)
+          test -n "$ffpid"
+          sudo ls -l "/proc/$ffpid/fd" | grep -Fq "$AUDIO"
+
+          echo "MASTER_AUDIO=PASS pid=$master_pid ffmpeg=$ffpid sha256=$actual"
+          echo "ACTIVE_DESTINATIONS:"
+          systemctl list-units --type=service --state=running --no-legend --no-pager 'fgbears-*' \
+            | awk '{print $1}' | grep -E 'youtube|rumble|facebook|relay|uplink' || true
+          echo "EPISODE_034_ACTIVATION=PASS"
+          REMOTE
