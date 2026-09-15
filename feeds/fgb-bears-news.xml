@@ -5,19 +5,9 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 15 Sep 2026 01:40:57 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 15 Sep 2026 06:41:36 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
-
-    <item>
-      <title>Reviewing the Bears’ PFN grades from Week 1 vs. Panthers</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Reviewing the Bears’ PFN grades from Week 1 vs. Panthers</description>
-      <link>https://sports.yahoo.com/articles/reviewing-bears-pfn-grades-week-000000148.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d677ac82d86323f776b8</guid>
-      <pubDate>Tue, 15 Sep 2026 00:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
 
     <item>
       <title>NFL Week 1 overreactions: Bears to score most and allow most points in NFL? Lamar Jackson for MVP?</title>
@@ -37,6 +27,16 @@
       <pubDate>Mon, 14 Sep 2026 17:10:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears’ HC Sent Clear Message to Loveland, Burden, Odunze in Week 1 Win</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ HC Sent Clear Message to Loveland, Burden, Odunze in Week 1 Win</description>
+      <link>https://sports.yahoo.com/articles/bears-hc-sent-clear-message-035605660.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5cbf5d290417fed54373</guid>
+      <pubDate>Mon, 14 Sep 2026 16:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -60,16 +60,6 @@
     </item>
 
     <item>
-      <title>Bears HC Ben Johnson Spoke With Veteran CBs After Performance vs. Panthers</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears HC Ben Johnson Spoke With Veteran CBs After Performance vs. Panthers</description>
-      <link>https://sports.yahoo.com/articles/bears-hc-ben-johnson-spoke-231256025.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a043e0caf8db761e5acc</guid>
-      <pubDate>Mon, 14 Sep 2026 16:12:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Key Observations From the Chicago Bears&apos; Snap Count Against Carolina Panthers</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Key Observations From the Chicago Bears&apos; Snap Count Against Carolina Panthers</description>
       <link>https://www.si.com/nfl/bears/onsi/key-observations-from-the-chicago-bears-snap-count-against-carolina-panthers</link>
@@ -77,6 +67,16 @@
       <pubDate>Mon, 14 Sep 2026 14:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>How much are tickets to Chicago Bears&apos; home opener vs. Minnesota Vikings?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: How much are tickets to Chicago Bears&apos; home opener vs. Minnesota Vikings?</description>
+      <link>https://sports.yahoo.com/articles/much-tickets-chicago-bears-home-201034949.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5d787c095ea2ef4def4c</guid>
+      <pubDate>Mon, 14 Sep 2026 13:10:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
