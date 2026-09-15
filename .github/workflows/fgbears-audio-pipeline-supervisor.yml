@@ -1,0 +1,68 @@
+name: FGBears Audio Pipeline Supervisor
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fgbears-audio-pipeline-supervisor.yml'
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+concurrency:
+  group: fgbears-audio-pipeline-supervisor
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Verify audio pipeline control loop
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          TIMER=fgbears-lovable-audio-sync.timer
+          SERVICE=fgbears-lovable-audio-sync.service
+          MASTER=fgbears-live.service
+          STATE=/srv/fgbears-live/runtime/lovable-audio-pipeline.json
+
+          systemctl is-enabled --quiet "$TIMER"
+          systemctl is-active --quiet "$TIMER"
+          systemctl is-active --quiet "$MASTER"
+          test -x /usr/local/bin/fgbears-lovable-audio-pipeline
+          test -x /usr/local/lib/fgbears-live/prepare-audio-track-v3.py
+          test -s "$STATE"
+
+          echo "TIMER_ENABLED=PASS"
+          echo "TIMER_ACTIVE=PASS"
+          systemctl show "$TIMER" -p ActiveState -p SubState -p LastTriggerUSec -p NextElapseUSecRealtime --no-pager
+          echo "PIPELINE_STATE:"
+          sudo cat "$STATE"
+          echo "ACTIVE_DESTINATIONS:"
+          systemctl list-units --type=service --state=running --no-legend --no-pager 'fgbears-*' \
+            | awk '{print $1}' | grep -E 'youtube|rumble|facebook|relay|uplink' || true
+          echo "MASTER_PID=$(systemctl show -p MainPID --value "$MASTER")"
+          REMOTE
