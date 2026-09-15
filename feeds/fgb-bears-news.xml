@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 15 Sep 2026 06:41:36 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 15 Sep 2026 12:07:39 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>The Bear’s Den: Bears victory of Carolina Panthers big in many ways</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: Bears victory of Carolina Panthers big in many ways</description>
+      <link>https://sports.yahoo.com/articles/bear-den-bears-victory-carolina-100000819.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ddaf032b790d28120ff9</guid>
+      <pubDate>Tue, 15 Sep 2026 10:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>The Bears scored 59 points and still found plenty to fix. That’s exactly what Ben Johnson wants</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: The Bears scored 59 points and still found plenty to fix. That’s exactly what Ben Johnson wants</description>
+      <link>https://www.nytimes.com/athletic/7595097/2026/09/15/chicago-bears-offense-ben-johnson/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e3248d3381218dad6a95</guid>
+      <pubDate>Tue, 15 Sep 2026 04:35:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
 
     <item>
       <title>NFL Week 1 overreactions: Bears to score most and allow most points in NFL? Lamar Jackson for MVP?</title>
@@ -27,16 +47,6 @@
       <pubDate>Mon, 14 Sep 2026 17:10:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears’ HC Sent Clear Message to Loveland, Burden, Odunze in Week 1 Win</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ HC Sent Clear Message to Loveland, Burden, Odunze in Week 1 Win</description>
-      <link>https://sports.yahoo.com/articles/bears-hc-sent-clear-message-035605660.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5cbf5d290417fed54373</guid>
-      <pubDate>Mon, 14 Sep 2026 16:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -60,6 +70,16 @@
     </item>
 
     <item>
+      <title>Vikings&apos; next task? Slowing a Bears offense that dropped 59 points in Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Vikings&apos; next task? Slowing a Bears offense that dropped 59 points in Week 1</description>
+      <link>https://sports.yahoo.com/articles/vikings-next-task-slowing-bears-215118552.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ea270dee3f89be62b47b</guid>
+      <pubDate>Mon, 14 Sep 2026 14:51:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
       <title>Key Observations From the Chicago Bears&apos; Snap Count Against Carolina Panthers</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Key Observations From the Chicago Bears&apos; Snap Count Against Carolina Panthers</description>
       <link>https://www.si.com/nfl/bears/onsi/key-observations-from-the-chicago-bears-snap-count-against-carolina-panthers</link>
@@ -67,26 +87,6 @@
       <pubDate>Mon, 14 Sep 2026 14:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>How much are tickets to Chicago Bears&apos; home opener vs. Minnesota Vikings?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: How much are tickets to Chicago Bears&apos; home opener vs. Minnesota Vikings?</description>
-      <link>https://sports.yahoo.com/articles/much-tickets-chicago-bears-home-201034949.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5d787c095ea2ef4def4c</guid>
-      <pubDate>Mon, 14 Sep 2026 13:10:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>NFL Week 1 offense explosion: Bears, Ravens, Bills, Jaguars</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: NFL Week 1 offense explosion: Bears, Ravens, Bills, Jaguars</description>
-      <link>https://www.espn.com/nfl/story/_/id/49930014/week-1-offenses-bears-ravens-bills-jaguars-barnwell</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7bd25480e7c24c25eb64</guid>
-      <pubDate>Mon, 14 Sep 2026 05:55:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
