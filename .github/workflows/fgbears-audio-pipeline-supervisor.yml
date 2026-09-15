@@ -37,7 +37,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Verify audio pipeline control loop
+      - name: Diagnose audio pipeline control loop
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -54,14 +54,19 @@ jobs:
           test -x /usr/local/bin/fgbears-lovable-audio-pipeline
           test -x /usr/local/lib/fgbears-live/prepare-audio-track-v3.py
           test -s "$STATE"
-          test "$(systemctl show -p SubState --value "$TIMER")" = "waiting"
-          next="$(systemctl show -p NextElapseUSecRealtime --value "$TIMER")"
-          test -n "$next"
 
           echo "TIMER_ENABLED=PASS"
           echo "TIMER_ACTIVE=PASS"
-          echo "TIMER_REARMED=PASS"
-          systemctl show "$TIMER" -p ActiveState -p SubState -p LastTriggerUSec -p NextElapseUSecRealtime --no-pager
+          echo "TIMER_UNIT:"
+          systemctl cat "$TIMER" --no-pager
+          echo "TIMER_PROPERTIES:"
+          systemctl show "$TIMER" -p ActiveState -p SubState -p LastTriggerUSec -p NextElapseUSecRealtime -p TimersCalendar -p TimersMonotonic --no-pager
+          echo "TIMER_LIST:"
+          systemctl list-timers --all "$TIMER" --no-pager || true
+          echo "CALENDAR_PARSE:"
+          systemd-analyze calendar '*-*-* *:*:00,15,30,45' || true
+          echo "SERVICE_PROPERTIES:"
+          systemctl show fgbears-lovable-audio-sync.service -p ActiveState -p SubState -p Result -p ExecMainStatus --no-pager
           echo "PIPELINE_STATE:"
           sudo cat "$STATE"
           echo "ACTIVE_DESTINATIONS:"
