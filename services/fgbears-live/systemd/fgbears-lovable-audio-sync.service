@@ -7,7 +7,7 @@ ConditionPathExists=/usr/local/bin/fgbears-lovable-audio-sync
 [Service]
 Type=oneshot
 ExecStart=/usr/local/bin/fgbears-lovable-audio-sync
-TimeoutStartSec=300
+TimeoutStartSec=840
 Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=7
