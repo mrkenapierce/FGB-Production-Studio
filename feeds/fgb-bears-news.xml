@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 14 Sep 2026 23:27:27 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 15 Sep 2026 01:40:57 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Reviewing the Bears’ PFN grades from Week 1 vs. Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Reviewing the Bears’ PFN grades from Week 1 vs. Panthers</description>
+      <link>https://sports.yahoo.com/articles/reviewing-bears-pfn-grades-week-000000148.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d677ac82d86323f776b8</guid>
+      <pubDate>Tue, 15 Sep 2026 00:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>NFL Week 1 overreactions: Bears to score most and allow most points in NFL? Lamar Jackson for MVP?</title>
@@ -17,6 +27,26 @@
       <pubDate>Mon, 14 Sep 2026 17:57:07 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Cairo Santos: Makes eight PATs in dominant win</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Cairo Santos: Makes eight PATs in dominant win</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-cairo-santos-makes-eight-pats-in-dominant-win/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ef226eeef726400ccdb0</guid>
+      <pubDate>Mon, 14 Sep 2026 17:10:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Remarkable Bears Stat Says Opposing Secondaries Face a Long Year</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Remarkable Bears Stat Says Opposing Secondaries Face a Long Year</description>
+      <link>https://www.si.com/nfl/bears/onsi/remarkable-bears-stat-says-opposing-secondaries-face-a-long-year</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c10332374ac3207dcf07</guid>
+      <pubDate>Mon, 14 Sep 2026 16:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -30,41 +60,21 @@
     </item>
 
     <item>
+      <title>Bears HC Ben Johnson Spoke With Veteran CBs After Performance vs. Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears HC Ben Johnson Spoke With Veteran CBs After Performance vs. Panthers</description>
+      <link>https://sports.yahoo.com/articles/bears-hc-ben-johnson-spoke-231256025.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a043e0caf8db761e5acc</guid>
+      <pubDate>Mon, 14 Sep 2026 16:12:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
       <title>Key Observations From the Chicago Bears&apos; Snap Count Against Carolina Panthers</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Key Observations From the Chicago Bears&apos; Snap Count Against Carolina Panthers</description>
       <link>https://www.si.com/nfl/bears/onsi/key-observations-from-the-chicago-bears-snap-count-against-carolina-panthers</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-2e237b958178738aa2ea</guid>
       <pubDate>Mon, 14 Sep 2026 14:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Good, bad and ugly from Bears&apos; big win vs. Panthers in Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Good, bad and ugly from Bears&apos; big win vs. Panthers in Week 1</description>
-      <link>https://sports.yahoo.com/articles/good-bad-ugly-bears-big-201536510.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3790a018c05874c9212e</guid>
-      <pubDate>Mon, 14 Sep 2026 13:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>How much are tickets to Chicago Bears&apos; home opener vs. Minnesota Vikings?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: How much are tickets to Chicago Bears&apos; home opener vs. Minnesota Vikings?</description>
-      <link>https://sports.yahoo.com/articles/much-tickets-chicago-bears-home-201034949.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5d787c095ea2ef4def4c</guid>
-      <pubDate>Mon, 14 Sep 2026 13:10:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears Defensive Rut Says They Badly Need a Boost from Trade Market</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Defensive Rut Says They Badly Need a Boost from Trade Market</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-defensive-rut-says-they-badly-need-a-boost-from-trade-market</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-268c9478fc07820bed40</guid>
-      <pubDate>Mon, 14 Sep 2026 12:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -77,16 +87,6 @@
       <pubDate>Mon, 14 Sep 2026 05:55:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Bears’ D’Andre Swift celebrates new contract with 3-TD day: ‘He can do everything’</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears’ D’Andre Swift celebrates new contract with 3-TD day: ‘He can do everything’</description>
-      <link>https://www.nytimes.com/athletic/7591748/2026/09/14/bears-dandre-swift-three-touchdown-game/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3c1a7fa9eff0a4026379</guid>
-      <pubDate>Mon, 14 Sep 2026 04:35:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
