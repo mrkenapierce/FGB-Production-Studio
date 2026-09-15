@@ -1,0 +1,89 @@
+name: Safely Accelerate Episode 034 Prep
+
+on:
+  push:
+    branches: [probe-episode-034-activation]
+    paths:
+      - '.github/workflows/accelerate-episode-034-prep-safely.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  adjust:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Raise prep CPU only if master pacing is healthy
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          STATE=/srv/fgbears-live/runtime/lovable-audio-pipeline.json
+          PROGRESS=/srv/fgbears-live/logs/ffmpeg-progress.log
+          SERVICE=fgbears-lovable-audio-sync.service
+
+          status=$(sudo python3 -c 'import json; print(json.load(open("/srv/fgbears-live/runtime/lovable-audio-pipeline.json")).get("status", ""))')
+          revision=$(sudo python3 -c 'import json; print(json.load(open("/srv/fgbears-live/runtime/lovable-audio-pipeline.json")).get("candidateRevision", ""))')
+          if [ "$revision" != "4" ] || [ "$status" != "processing" ]; then
+            echo "No CPU adjustment needed: revision=$revision status=$status"
+            exit 0
+          fi
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet "$SERVICE"
+
+          progress_us() {
+            awk -F= '/^out_time_(us|ms)=/{v=$2} END{print v+0}' "$PROGRESS"
+          }
+          pacing() {
+            local a b t0 t1
+            a=$(progress_us); t0=$(date +%s%N)
+            sleep 12
+            b=$(progress_us); t1=$(date +%s%N)
+            python3 - "$a" "$b" "$t0" "$t1" <<'PY'
+          import sys
+          a,b,t0,t1=map(int,sys.argv[1:])
+          print(((b-a)/1_000_000)/((t1-t0)/1_000_000_000))
+          PY
+          }
+
+          before=$(pacing)
+          python3 - "$before" <<'PY'
+          import sys
+          r=float(sys.argv[1]); assert 0.98 <= r <= 1.02, r
+          PY
+          echo "MASTER_PACING_BEFORE=$before"
+
+          sudo systemctl set-property --runtime "$SERVICE" CPUQuota=50%
+          echo "PREP_CPU_QUOTA=50%"
+          systemctl show "$SERVICE" -p CPUQuotaPerSecUSec -p CPUWeight --no-pager
+
+          after=$(pacing)
+          if ! python3 - "$after" <<'PY'
+          import sys
+          r=float(sys.argv[1]); raise SystemExit(0 if 0.98 <= r <= 1.02 else 1)
+          PY
+          then
+            echo "Master pacing degraded at 50%; reverting prep quota to 25%" >&2
+            sudo systemctl set-property --runtime "$SERVICE" CPUQuota=25%
+            exit 1
+          fi
+          echo "MASTER_PACING_AFTER=$after"
+          echo "SAFE_PREP_ACCELERATION=PASS"
+          REMOTE
