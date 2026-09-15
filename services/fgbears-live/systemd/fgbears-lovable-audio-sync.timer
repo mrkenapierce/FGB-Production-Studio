@@ -2,8 +2,7 @@
 Description=Poll Lovable for explicitly approved FGB audio every 15 seconds
 
 [Timer]
-OnBootSec=15s
-OnUnitInactiveSec=15s
+OnCalendar=*-*-* *:*:00,15,30,45
 AccuracySec=1s
 RandomizedDelaySec=0
 Persistent=true
