@@ -6,6 +6,7 @@ on:
     paths:
       - 'services/fgbears-live/bin/lovable-audio-pipeline.py'
       - 'services/fgbears-live/tools/prepare-audio-track-v3.py'
+      - 'services/fgbears-live/tests/test_lovable_audio_pipeline.py'
       - 'services/fgbears-live/systemd/fgbears-lovable-audio-sync.service'
       - 'services/fgbears-live/systemd/fgbears-lovable-audio-sync.timer'
       - '.github/workflows/deploy-lovable-audio-auto-sync.yml'
@@ -33,6 +34,7 @@ jobs:
           set -Eeuo pipefail
           python3 -m py_compile services/fgbears-live/bin/lovable-audio-pipeline.py
           python3 -m py_compile services/fgbears-live/tools/prepare-audio-track-v3.py
+          python3 -m unittest services/fgbears-live/tests/test_lovable_audio_pipeline.py
           grep -q 'approvalState' services/fgbears-live/bin/lovable-audio-pipeline.py
           grep -q 'sourceSha256' services/fgbears-live/bin/lovable-audio-pipeline.py
           grep -q '0.98' services/fgbears-live/bin/lovable-audio-pipeline.py
