@@ -1,0 +1,13 @@
+[Unit]
+Description=Poll Lovable FGB audio intent every 30 seconds
+
+[Timer]
+OnBootSec=15s
+OnUnitInactiveSec=30s
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=true
+Unit=fgbears-lovable-audio-sync.service
+
+[Install]
+WantedBy=timers.target
