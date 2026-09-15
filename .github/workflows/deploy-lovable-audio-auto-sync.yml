@@ -127,8 +127,10 @@ jobs:
           sudo systemctl restart "$TIMER"
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet "$TIMER"
-          test "$(systemctl show -p SubState --value "$TIMER")" = "waiting"
-          test -n "$(systemctl show -p NextElapseUSecRealtime --value "$TIMER")"
+          substate="$(systemctl show -p SubState --value "$TIMER")"
+          case "$substate" in waiting|running) ;; *) echo "Unexpected timer substate: $substate" >&2; exit 1;; esac
+          systemctl show -p TimersCalendar --value "$TIMER" | grep -Fq 'OnCalendar=*-*-* *:*:00,15,30,45'
+          systemd-analyze calendar '*-*-* *:*:00,15,30,45' >/dev/null
 
           echo "PIPELINE_INSTALL=PASS"
           echo "LEGACY_STATE_PROTECTION=PASS"
@@ -138,5 +140,5 @@ jobs:
           echo "EXECUTION_PLANE=Oracle"
           echo "DEPLOYMENT_SCOPE=shared-master/all-active-destinations"
           sudo cat /srv/fgbears-live/runtime/lovable-audio-pipeline.json || true
-          systemctl show "$TIMER" -p ActiveState -p SubState -p LastTriggerUSec -p NextElapseUSecRealtime --no-pager
+          systemctl show "$TIMER" -p ActiveState -p SubState -p LastTriggerUSec -p NextElapseUSecRealtime -p TimersCalendar --no-pager
           REMOTE
