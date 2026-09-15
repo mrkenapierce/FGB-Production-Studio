@@ -45,7 +45,6 @@ jobs:
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
           TIMER=fgbears-lovable-audio-sync.timer
-          SERVICE=fgbears-lovable-audio-sync.service
           MASTER=fgbears-live.service
           STATE=/srv/fgbears-live/runtime/lovable-audio-pipeline.json
 
@@ -55,9 +54,13 @@ jobs:
           test -x /usr/local/bin/fgbears-lovable-audio-pipeline
           test -x /usr/local/lib/fgbears-live/prepare-audio-track-v3.py
           test -s "$STATE"
+          test "$(systemctl show -p SubState --value "$TIMER")" = "waiting"
+          next="$(systemctl show -p NextElapseUSecRealtime --value "$TIMER")"
+          test -n "$next"
 
           echo "TIMER_ENABLED=PASS"
           echo "TIMER_ACTIVE=PASS"
+          echo "TIMER_REARMED=PASS"
           systemctl show "$TIMER" -p ActiveState -p SubState -p LastTriggerUSec -p NextElapseUSecRealtime --no-pager
           echo "PIPELINE_STATE:"
           sudo cat "$STATE"

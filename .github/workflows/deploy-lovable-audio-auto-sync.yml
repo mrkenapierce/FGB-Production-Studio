@@ -39,7 +39,7 @@ jobs:
           grep -q 'sourceSha256' services/fgbears-live/bin/lovable-audio-pipeline.py
           grep -q '0.98' services/fgbears-live/bin/lovable-audio-pipeline.py
           grep -q 'CPUQuota=25%' services/fgbears-live/systemd/fgbears-lovable-audio-sync.service
-          grep -q 'OnUnitInactiveSec=15s' services/fgbears-live/systemd/fgbears-lovable-audio-sync.timer
+          grep -q 'OnCalendar=.*00,15,30,45' services/fgbears-live/systemd/fgbears-lovable-audio-sync.timer
 
       - name: Configure Oracle SSH
         env:
@@ -103,9 +103,10 @@ jobs:
           set -Eeuo pipefail
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
           set -Eeuo pipefail
+          TIMER=fgbears-lovable-audio-sync.timer
           before_master=$(systemctl show -p MainPID --value fgbears-live.service)
           before_audio=$(sha256sum /srv/fgbears-live/audio/fgb-music-loop.m4a | awk '{print $1}')
-          sudo systemctl disable --now fgbears-lovable-audio-sync.timer >/dev/null 2>&1 || true
+          sudo systemctl disable --now "$TIMER" >/dev/null 2>&1 || true
           sudo install -o root -g root -m 0755 /tmp/fgbears-lovable-audio-pipeline /usr/local/bin/fgbears-lovable-audio-pipeline
           sudo install -d -o root -g root -m 0755 /usr/local/lib/fgbears-live
           sudo install -o root -g root -m 0755 /tmp/prepare-audio-track-v3.py /usr/local/lib/fgbears-live/prepare-audio-track-v3.py
@@ -115,23 +116,27 @@ jobs:
           sudo install -d -o root -g root -m 0755 /srv/fgbears-live/quarantine/lovable-audio-pipeline
           sudo systemctl daemon-reload
 
-          # Legacy Lovable state has no explicit approvalState/sourceSha256.
-          # The new worker must therefore take no action on install.
+          # Current production intent must remain non-actionable during installation.
           sudo systemctl start fgbears-lovable-audio-sync.service
           after_master=$(systemctl show -p MainPID --value fgbears-live.service)
           after_audio=$(sha256sum /srv/fgbears-live/audio/fgb-music-loop.m4a | awk '{print $1}')
           test "$before_master" = "$after_master"
           test "$before_audio" = "$after_audio"
 
-          sudo systemctl enable --now fgbears-lovable-audio-sync.timer
+          sudo systemctl enable "$TIMER"
+          sudo systemctl restart "$TIMER"
           systemctl is-active --quiet fgbears-live.service
-          systemctl is-active --quiet fgbears-lovable-audio-sync.timer
+          systemctl is-active --quiet "$TIMER"
+          test "$(systemctl show -p SubState --value "$TIMER")" = "waiting"
+          test -n "$(systemctl show -p NextElapseUSecRealtime --value "$TIMER")"
+
           echo "PIPELINE_INSTALL=PASS"
           echo "LEGACY_STATE_PROTECTION=PASS"
+          echo "RECURRING_TIMER=PASS"
           echo "POLL_INTERVAL=15s"
           echo "CONTROL_PLANE=Lovable"
           echo "EXECUTION_PLANE=Oracle"
           echo "DEPLOYMENT_SCOPE=shared-master/all-active-destinations"
           sudo cat /srv/fgbears-live/runtime/lovable-audio-pipeline.json || true
-          systemctl list-timers fgbears-lovable-audio-sync.timer --no-pager
+          systemctl show "$TIMER" -p ActiveState -p SubState -p LastTriggerUSec -p NextElapseUSecRealtime --no-pager
           REMOTE
