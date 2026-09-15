@@ -1,0 +1,13 @@
+[Unit]
+Description=FGB Lovable audio intent sync
+After=network-online.target fgbears-live.service
+Wants=network-online.target
+ConditionPathExists=/usr/local/bin/fgbears-lovable-audio-sync
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/fgbears-lovable-audio-sync
+TimeoutStartSec=300
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
