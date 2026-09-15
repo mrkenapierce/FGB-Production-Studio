@@ -1,0 +1,49 @@
+name: Probe Episode 034 State Now
+
+on:
+  push:
+    branches: [probe-episode-034-activation]
+    paths:
+      - '.github/workflows/probe-episode-034-state-now.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read current audio pipeline state
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo 'PIPELINE_STATE:'
+          sudo cat /srv/fgbears-live/runtime/lovable-audio-pipeline.json || true
+          echo 'SYNC_SERVICE:'
+          systemctl show fgbears-lovable-audio-sync.service -p ActiveState -p SubState -p Result -p ExecMainStatus --no-pager
+          echo 'SYNC_TIMER:'
+          systemctl show fgbears-lovable-audio-sync.timer -p ActiveState -p SubState -p LastTriggerUSec -p NextElapseUSecRealtime --no-pager
+          echo 'RECENT_PIPELINE_LOG:'
+          sudo journalctl -u fgbears-lovable-audio-sync.service --since '10 minutes ago' --no-pager -n 120 || true
+          echo 'MASTER:'
+          systemctl show fgbears-live.service -p ActiveState -p SubState -p MainPID --no-pager
+          echo 'ACTIVE_DESTINATIONS:'
+          systemctl list-units --type=service --state=running --no-legend --no-pager 'fgbears-*' | awk '{print $1}' | grep -E 'youtube|rumble|facebook|relay|uplink' || true
+          REMOTE
