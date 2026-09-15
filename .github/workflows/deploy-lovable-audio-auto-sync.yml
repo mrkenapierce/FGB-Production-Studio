@@ -16,6 +16,10 @@ permissions:
 env:
   ORACLE_USER: ubuntu
 
+concurrency:
+  group: fgbears-lovable-audio-sync-deploy
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
