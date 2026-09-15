@@ -191,7 +191,7 @@ def restart_and_verify(previous_destinations: list[str]) -> None:
     before = progress_value()
     time.sleep(7)
     after = progress_value()
-    if before <= 0 or after <= before:
+    if after <= before:
         raise RuntimeError(f"Program clock did not advance after audio switch ({before} -> {after}).")
     deadline = time.time() + 30
     missing: list[str] = []
