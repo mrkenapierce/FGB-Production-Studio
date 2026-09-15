@@ -46,7 +46,8 @@ jobs:
             exit 0
           fi
           systemctl is-active --quiet fgbears-live.service
-          systemctl is-active --quiet "$SERVICE"
+          worker_state=$(systemctl show -p ActiveState --value "$SERVICE")
+          case "$worker_state" in active|activating) ;; *) echo "Unexpected worker state: $worker_state" >&2; exit 1;; esac
 
           progress_us() {
             awk -F= '/^out_time_(us|ms)=/{v=$2} END{print v+0}' "$PROGRESS"
