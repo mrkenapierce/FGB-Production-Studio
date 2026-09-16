@@ -1,4 +1,4 @@
-name: Deploy Master-Owned FGB Audio Clock and Episode 034
+name: Deploy Episode 034 via Isolated Safe Audio v4
 
 on:
   push:
@@ -19,19 +19,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Validate master-clock sources
+      - name: Validate isolated v4 sources
         run: |
           set -Eeuo pipefail
           bash -n services/fgbears-live/bin/start-stream.sh
-          bash -n services/fgbears-live/bin/install-audio-standard-v4.sh
           python3 -m py_compile services/fgbears-live/bin/lovable-audio-pipeline-v4.py
           python3 -m py_compile services/fgbears-live/bin/lovable-audio-pipeline-v4-runner.py
           python3 -m py_compile services/fgbears-live/bin/audio-health-standard-v4.py
           grep -Fq 'aresample=44100:async=1:first_pts=0,asetpts=N/SR/TB' services/fgbears-live/bin/start-stream.sh
           grep -Fq -- '-c:a aac -b:a 128k -ar 44100 -ac 2' services/fgbears-live/bin/start-stream.sh
-          ! grep -Fq -- '-c:a copy' services/fgbears-live/bin/start-stream.sh
+          grep -Fq 'ExecStart=/usr/local/bin/fgbears-lovable-audio-v4-sync' services/fgbears-live/systemd/fgbears-lovable-audio-v4-sync.service
+          grep -Fq 'Unit=fgbears-lovable-audio-v4-sync.service' services/fgbears-live/systemd/fgbears-lovable-audio-v4-sync.timer
+          grep -Fq 'UNQUARANTINE_LEGACY_AUDIO_PREPARATION' services/fgbears-live/systemd/fgbears-lovable-audio-sync.service
           ! grep -Eq 'loudnorm|acompressor|alimiter|afftdn|equalizer=' services/fgbears-live/bin/lovable-audio-pipeline-v4.py services/fgbears-live/bin/start-stream.sh
-          echo MASTER_AUDIO_CLOCK_SOURCE_VALIDATION=PASS
+          echo SAFE_AUDIO_V4_SOURCE_VALIDATION=PASS
 
       - name: Configure Oracle SSH
         env:
@@ -44,7 +45,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Stage new master and v4.1 runtime
+      - name: Stage safe v4 runtime
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -54,11 +55,11 @@ jobs:
             services/fgbears-live/bin/lovable-audio-pipeline-v4.py \
             services/fgbears-live/bin/lovable-audio-pipeline-v4-runner.py \
             services/fgbears-live/bin/audio-health-standard-v4.py \
-            services/fgbears-live/systemd/fgbears-lovable-audio-sync.service \
-            services/fgbears-live/systemd/fgbears-lovable-audio-sync.timer \
+            services/fgbears-live/systemd/fgbears-lovable-audio-v4-sync.service \
+            services/fgbears-live/systemd/fgbears-lovable-audio-v4-sync.timer \
             "$ORACLE_USER@$ORACLE_HOST:/tmp/"
 
-      - name: Revalidate approval, save rollback set, and shadow-test the new mux
+      - name: Revalidate approval and hard-quarantine legacy pathway
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -68,8 +69,8 @@ jobs:
           EXPECTED_SHA=c6bb57ad24bd8f06bc60c12afa534093e07afffb17ac7bf6c241f092d36d9ebd
           OLD_SHA=c8391464ae77eec19b85270d67522300202fe5494232581c55433f934b172a12
           AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
-          STATE=/srv/fgbears-live/runtime/lovable-audio-pipeline.json
-          START=/usr/local/bin/fgbears-start-stream
+          LEGACY_BIN=/usr/local/bin/fgbears-lovable-audio-pipeline
+          LEGACY_Q=/srv/fgbears-live/quarantine/legacy-lovable-audio-preparation
 
           curl -fsS --max-time 20 "$CONTRACT" -o /tmp/fgb-rev11-contract.json
           test "$(jq -r '.presentation.audio.revision' /tmp/fgb-rev11-contract.json)" = 11
@@ -80,14 +81,42 @@ jobs:
           test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$OLD_SHA"
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet fgbears-youtube-copy-relay.service
+
+          before_pid=$(systemctl show -p MainPID --value fgbears-live.service)
           systemctl disable --now fgbears-lovable-audio-sync.timer >/dev/null 2>&1 || true
+          systemctl stop fgbears-lovable-audio-sync.service >/dev/null 2>&1 || true
+          rm -f /etc/fgbears-live/UNQUARANTINE_LEGACY_AUDIO_PREPARATION
+          install -d -m 0755 "$LEGACY_Q"
+          if [[ -f "$LEGACY_BIN" ]] && ! grep -Fq 'QUARANTINED. Refusing execution' "$LEGACY_BIN"; then
+            cp -a "$LEGACY_BIN" "$LEGACY_Q/fgbears-lovable-audio-pipeline.legacy.$(date -u +%Y%m%dT%H%M%SZ)"
+          fi
+          printf '%s\n' '#!/usr/bin/env bash' "echo 'FGB legacy Lovable 48 kHz audio preparation pathway is QUARANTINED. Refusing execution.' >&2" 'exit 78' > "$LEGACY_BIN"
+          chmod 0755 "$LEGACY_BIN"
+          test ! -e /etc/fgbears-live/UNQUARANTINE_LEGACY_AUDIO_PREPARATION
+          test "$(systemctl is-active fgbears-lovable-audio-sync.timer 2>/dev/null || true)" != active
+          test "$(systemctl is-active fgbears-lovable-audio-sync.service 2>/dev/null || true)" != active
+          test "$(systemctl show -p MainPID --value fgbears-live.service)" = "$before_pid"
+          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$OLD_SHA"
+          echo LEGACY_AUDIO_PATHWAY=QUARANTINED
+          REMOTE
+
+      - name: Save rollback set and shadow-test revision 11
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          EXPECTED_SHA=c6bb57ad24bd8f06bc60c12afa534093e07afffb17ac7bf6c241f092d36d9ebd
+          OLD_SHA=c8391464ae77eec19b85270d67522300202fe5494232581c55433f934b172a12
+          AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
+          START=/usr/local/bin/fgbears-start-stream
 
           stamp=$(date -u +%Y%m%dT%H%M%SZ)
-          qdir=/srv/fgbears-live/quarantine/master-audio-clock/${stamp}-rev11
+          qdir=/srv/fgbears-live/quarantine/safe-audio-v4/${stamp}-rev11
           install -d -m 0755 "$qdir"
           cp -a "$AUDIO" "$qdir/fgb-music-loop.m4a"
           cp -a "$START" "$qdir/fgbears-start-stream"
-          printf '%s\n' "$qdir" > /tmp/fgb-master-clock-qdir
+          printf '%s\n' "$qdir" > /tmp/fgb-safe-v4-qdir
           test "$(sha256sum "$qdir/fgb-music-loop.m4a" | awk '{print $1}')" = "$OLD_SHA"
 
           asset=$(jq -r '.presentation.audio.assetUrl' /tmp/fgb-rev11-contract.json)
@@ -96,33 +125,46 @@ jobs:
             /*) asset_url="https://epiccontentcreatorgrants.org${asset}" ;;
             *) echo "Unexpected asset URL: $asset" >&2; exit 1 ;;
           esac
-          curl -fsSL --max-time 60 "$asset_url" -o /tmp/fgb-rev11-shadow.m4a
-          test "$(sha256sum /tmp/fgb-rev11-shadow.m4a | awk '{print $1}')" = "$EXPECTED_SHA"
+          curl -fsSL --max-time 90 "$asset_url" -o /tmp/fgb-rev11-approved.m4a
+          test "$(sha256sum /tmp/fgb-rev11-approved.m4a | awk '{print $1}')" = "$EXPECTED_SHA"
+          test "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nk=1:nw=1 /tmp/fgb-rev11-approved.m4a)" = aac
+          test "$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nk=1:nw=1 /tmp/fgb-rev11-approved.m4a)" = 44100
+          test "$(ffprobe -v error -select_streams a:0 -show_entries stream=channels -of default=nk=1:nw=1 /tmp/fgb-rev11-approved.m4a)" = 2
+          test "$(ffprobe -v error -select_streams a:0 -show_entries stream=start_time -of default=nk=1:nw=1 /tmp/fgb-rev11-approved.m4a)" = 0.000000
+          first_pts=$(ffprobe -v error -read_intervals '%+0.10' -select_streams a:0 -show_packets -show_entries packet=pts_time -of csv=p=0 /tmp/fgb-rev11-approved.m4a | head -1 | cut -d, -f1)
+          test "$first_pts" = 0.000000
+          ffmpeg -hide_banner -nostdin -v error -xerror -i /tmp/fgb-rev11-approved.m4a -map 0:a:0 -vn -f null -
 
-          rm -f /tmp/fgb-master-clock-shadow.ts /tmp/fgb-master-clock-shadow-packets.csv
+          rm -f /tmp/fgb-safe-v4-shadow.ts /tmp/fgb-safe-v4-packets.csv
           ffmpeg -hide_banner -nostdin -v error \
             -re -f lavfi -i color=c=black:s=320x180:r=30 \
-            -thread_queue_size 512 -re -stream_loop -1 -i /tmp/fgb-rev11-shadow.m4a \
-            -t 30 -map 0:v:0 -map 1:a:0 \
+            -thread_queue_size 512 -re -stream_loop -1 -i /tmp/fgb-rev11-approved.m4a \
+            -t 20 -map 0:v:0 -map 1:a:0 \
             -c:v libx264 -preset ultrafast -tune zerolatency -g 60 -r 30 -fps_mode cfr \
             -af 'aresample=44100:async=1:first_pts=0,asetpts=N/SR/TB' \
             -c:a aac -b:a 128k -ar 44100 -ac 2 \
-            -f mpegts /tmp/fgb-master-clock-shadow.ts
-          ffprobe -v error -select_streams a:0 -show_packets -show_entries packet=pts_time,duration_time -of csv=p=0 /tmp/fgb-master-clock-shadow.ts > /tmp/fgb-master-clock-shadow-packets.csv
-          python3 -c 'import csv,sys; rows=[]
+            -f mpegts /tmp/fgb-safe-v4-shadow.ts
+          ffprobe -v error -select_streams a:0 -show_packets -show_entries packet=pts_time,duration_time -of csv=p=0 /tmp/fgb-safe-v4-shadow.ts > /tmp/fgb-safe-v4-packets.csv
+          python3 - /tmp/fgb-safe-v4-packets.csv <<'PY'
+import csv,sys
+rows=[]
 for r in csv.reader(open(sys.argv[1])):
     try: rows.append((float(r[0]),float(r[1])))
     except Exception: pass
-assert len(rows)>100, len(rows)
-gaps=[rows[i][0]-rows[i-1][0] for i in range(1,len(rows)) if rows[i][0]-rows[i-1][0] > max(0.08, rows[i-1][1]*3)]
-regs=[rows[i][0]-rows[i-1][0] for i in range(1,len(rows)) if rows[i][0]-rows[i-1][0] < -0.001]
-print(f"SHADOW_PACKETS={len(rows)} SHADOW_GAPS={len(gaps)} SHADOW_REGRESSIONS={len(regs)} SHADOW_MAX_GAP={max(gaps) if gaps else 0}")
-assert not gaps and not regs' /tmp/fgb-master-clock-shadow-packets.csv
-          ffmpeg -hide_banner -nostdin -v error -xerror -i /tmp/fgb-master-clock-shadow.ts -map 0:a:0 -vn -f null -
-          echo MASTER_AUDIO_CLOCK_SHADOW=PASS
+assert len(rows) > 100, len(rows)
+regs=[]; gaps=[]
+for i in range(1,len(rows)):
+    d=rows[i][0]-rows[i-1][0]
+    if d < -0.001: regs.append(d)
+    if d > max(0.08,rows[i-1][1]*3): gaps.append(d)
+print(f'SHADOW_PACKETS={len(rows)} SHADOW_REGRESSIONS={len(regs)} SHADOW_GAPS={len(gaps)}')
+assert not regs and not gaps
+PY
+          ffmpeg -hide_banner -nostdin -v error -xerror -i /tmp/fgb-safe-v4-shadow.ts -map 0:a:0 -vn -f null -
+          echo SAFE_AUDIO_V4_SHADOW=PASS
           REMOTE
 
-      - name: Install new master executable without interrupting current process
+      - name: Install isolated v4 runtime without restarting master
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -131,28 +173,26 @@ assert not gaps and not regs' /tmp/fgb-master-clock-shadow-packets.csv
           OLD_SHA=c8391464ae77eec19b85270d67522300202fe5494232581c55433f934b172a12
           AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
           STATE=/srv/fgbears-live/runtime/lovable-audio-pipeline.json
-          master_before=$(systemctl show -p MainPID --value fgbears-live.service)
+          before_pid=$(systemctl show -p MainPID --value fgbears-live.service)
 
           install -m 0755 /tmp/start-stream.sh /usr/local/bin/fgbears-start-stream
           install -d -m 0755 /usr/local/lib/fgbears-live
           install -m 0644 /tmp/lovable-audio-pipeline-v4.py /usr/local/lib/fgbears-live/lovable-audio-pipeline-v4.py
-          install -m 0755 /tmp/lovable-audio-pipeline-v4-runner.py /usr/local/bin/fgbears-lovable-audio-pipeline
+          install -m 0755 /tmp/lovable-audio-pipeline-v4-runner.py /usr/local/bin/fgbears-lovable-audio-v4-sync
           install -m 0755 /tmp/audio-health-standard-v4.py /usr/local/bin/fgbears-audio-health
-          install -m 0644 /tmp/fgbears-lovable-audio-sync.service /etc/systemd/system/fgbears-lovable-audio-sync.service
-          install -m 0644 /tmp/fgbears-lovable-audio-sync.timer /etc/systemd/system/fgbears-lovable-audio-sync.timer
+          install -m 0644 /tmp/fgbears-lovable-audio-v4-sync.service /etc/systemd/system/fgbears-lovable-audio-v4-sync.service
+          install -m 0644 /tmp/fgbears-lovable-audio-v4-sync.timer /etc/systemd/system/fgbears-lovable-audio-v4-sync.timer
           systemctl daemon-reload
-
-          test "$(systemctl show -p MainPID --value fgbears-live.service)" = "$master_before"
+          test "$(systemctl show -p MainPID --value fgbears-live.service)" = "$before_pid"
           test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$OLD_SHA"
 
           tmp=$(mktemp)
-          jq '.failedRevisions = ([.failedRevisions[]? | select(. != 11)]) | .status="retry_armed" | .message="Revision 11 armed for master-owned audio-clock cutover"' "$STATE" > "$tmp"
+          jq '.failedRevisions = ([.failedRevisions[]? | select(. != 11)]) | .status="retry_armed" | .message="Revision 11 armed for isolated safe audio v4 cutover"' "$STATE" > "$tmp"
           mv -f "$tmp" "$STATE"
-          test "$(jq '[.failedRevisions[]? | select(. == 11)] | length' "$STATE")" = 0
-          echo MASTER_CLOCK_INSTALL_NO_INTERRUPTION=PASS
+          echo SAFE_AUDIO_V4_INSTALL_NO_INTERRUPTION=PASS
           REMOTE
 
-      - name: Cut over revision 11 and verify master-owned AAC command
+      - name: Cut over revision 11 and verify outgoing transport
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -163,31 +203,29 @@ assert not gaps and not regs' /tmp/fgb-master-clock-shadow-packets.csv
           AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
           STATE=/srv/fgbears-live/runtime/lovable-audio-pipeline.json
           START=/usr/local/bin/fgbears-start-stream
-          qdir=$(cat /tmp/fgb-master-clock-qdir)
+          qdir=$(cat /tmp/fgb-safe-v4-qdir)
 
           rollback_all() {
             rc=$?
             set +e
-            systemctl disable --now fgbears-lovable-audio-sync.timer >/dev/null 2>&1 || true
+            systemctl disable --now fgbears-lovable-audio-v4-sync.timer >/dev/null 2>&1 || true
             cp -f "$qdir/fgbears-start-stream" "$START"
             chmod 0755 "$START"
-            cp -f "$qdir/fgb-music-loop.m4a" "${AUDIO}.rollback-master-clock"
-            chown fgbears:fgbears "${AUDIO}.rollback-master-clock"
-            chmod 0644 "${AUDIO}.rollback-master-clock"
-            mv -f "${AUDIO}.rollback-master-clock" "$AUDIO"
+            cp -f "$qdir/fgb-music-loop.m4a" "${AUDIO}.rollback-safe-v4"
+            chown fgbears:fgbears "${AUDIO}.rollback-safe-v4"
+            chmod 0644 "${AUDIO}.rollback-safe-v4"
+            mv -f "${AUDIO}.rollback-safe-v4" "$AUDIO"
             systemctl restart fgbears-live.service
             sleep 10
             test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$OLD_SHA"
             tmp=$(mktemp)
-            jq '.failedRevisions = ((.failedRevisions // []) + [11] | unique) | .status="rolled_back" | .message="Revision 11 master-owned audio-clock cutover failed; old audio/master restored"' "$STATE" > "$tmp" && mv -f "$tmp" "$STATE"
-            echo MASTER_AUDIO_CLOCK_ROLLBACK=COMPLETE
+            jq '.failedRevisions = ((.failedRevisions // []) + [11] | unique) | .status="rolled_back" | .message="Revision 11 isolated v4 cutover failed; prior audio/master restored"' "$STATE" > "$tmp" && mv -f "$tmp" "$STATE"
+            echo SAFE_AUDIO_V4_ROLLBACK=COMPLETE
             exit "$rc"
           }
           trap rollback_all ERR
-          start_epoch=$(date +%s)
-          printf '%s\n' "$start_epoch" > /tmp/fgb-master-clock-start-epoch
 
-          /usr/local/bin/fgbears-lovable-audio-pipeline
+          /usr/local/bin/fgbears-lovable-audio-v4-sync
           test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED_SHA"
           test "$(jq -r '.appliedRevision' "$STATE")" = 11
           test "$(jq -r '.canonicalSha256' "$STATE")" = "$EXPECTED_SHA"
@@ -198,72 +236,32 @@ assert not gaps and not regs' /tmp/fgb-master-clock-shadow-packets.csv
           main=$(systemctl show -p MainPID --value fgbears-live.service)
           ffpid=$(pgrep -P "$main" -x ffmpeg | head -1)
           test -n "$ffpid"
-          tr '\0' ' ' < "/proc/$ffpid/cmdline" > /tmp/fgb-master-clock-cmdline
-          grep -Fq -- '-c:a aac' /tmp/fgb-master-clock-cmdline
-          grep -Fq -- '-b:a 128k' /tmp/fgb-master-clock-cmdline
-          grep -Fq -- '-ar 44100' /tmp/fgb-master-clock-cmdline
-          grep -Fq -- 'aresample=44100:async=1:first_pts=0,asetpts=N/SR/TB' /tmp/fgb-master-clock-cmdline
-          ! grep -Fq -- '-c:a copy' /tmp/fgb-master-clock-cmdline
-          trap - ERR
-          echo MASTER_AUDIO_CLOCK_CUTOVER=PASS
-          REMOTE
-
-      - name: Run two platform-bound audio health gates with automatic rollback
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          EXPECTED_SHA=c6bb57ad24bd8f06bc60c12afa534093e07afffb17ac7bf6c241f092d36d9ebd
-          OLD_SHA=c8391464ae77eec19b85270d67522300202fe5494232581c55433f934b172a12
-          AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
-          STATE=/srv/fgbears-live/runtime/lovable-audio-pipeline.json
-          START=/usr/local/bin/fgbears-start-stream
-          qdir=$(cat /tmp/fgb-master-clock-qdir)
-          start_epoch=$(cat /tmp/fgb-master-clock-start-epoch)
-
-          rollback_all() {
-            rc=$?
-            set +e
-            systemctl disable --now fgbears-lovable-audio-sync.timer >/dev/null 2>&1 || true
-            cp -f "$qdir/fgbears-start-stream" "$START"
-            chmod 0755 "$START"
-            cp -f "$qdir/fgb-music-loop.m4a" "${AUDIO}.rollback-master-clock"
-            chown fgbears:fgbears "${AUDIO}.rollback-master-clock"
-            chmod 0644 "${AUDIO}.rollback-master-clock"
-            mv -f "${AUDIO}.rollback-master-clock" "$AUDIO"
-            systemctl restart fgbears-live.service
-            sleep 10
-            test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$OLD_SHA"
-            tmp=$(mktemp)
-            jq '.failedRevisions = ((.failedRevisions // []) + [11] | unique) | .status="rolled_back" | .message="Revision 11 failed platform-bound health gate; old audio/master restored"' "$STATE" > "$tmp" && mv -f "$tmp" "$STATE"
-            echo MASTER_AUDIO_CLOCK_HEALTH_ROLLBACK=COMPLETE
-            exit "$rc"
-          }
-          trap rollback_all ERR
+          tr '\0' ' ' < "/proc/$ffpid/cmdline" > /tmp/fgb-safe-v4-master-cmdline
+          grep -Fq -- '-c:a aac' /tmp/fgb-safe-v4-master-cmdline
+          grep -Fq -- '-b:a 128k' /tmp/fgb-safe-v4-master-cmdline
+          grep -Fq -- '-ar 44100' /tmp/fgb-safe-v4-master-cmdline
+          grep -Fq -- 'aresample=44100:async=1:first_pts=0,asetpts=N/SR/TB' /tmp/fgb-safe-v4-master-cmdline
+          ! grep -Fq -- '-c:a copy' /tmp/fgb-safe-v4-master-cmdline
 
           sleep 12
+          health_epoch=$(date +%s)
           for pass in 1 2; do
-            /usr/local/bin/fgbears-audio-health --capture-seconds 20 | tee "/tmp/fgb-master-clock-health-${pass}.txt"
-            grep -Fqx 'audio_sample_rate=44100' "/tmp/fgb-master-clock-health-${pass}.txt"
-            grep -Fqx 'audio_pts_regressions=0' "/tmp/fgb-master-clock-health-${pass}.txt"
-            grep -Fqx 'audio_large_pts_gaps=0' "/tmp/fgb-master-clock-health-${pass}.txt"
-            grep -Fqx 'AUDIO_WARNINGS=NONE' "/tmp/fgb-master-clock-health-${pass}.txt"
-            grep -Fqx 'OVERALL_STATUS=OK' "/tmp/fgb-master-clock-health-${pass}.txt"
-            sleep 5
+            /usr/local/bin/fgbears-audio-health --capture-seconds 15 | tee "/tmp/fgb-safe-v4-health-${pass}.txt"
+            grep -Fqx 'audio_sample_rate=44100' "/tmp/fgb-safe-v4-health-${pass}.txt"
+            grep -Fqx 'audio_pts_regressions=0' "/tmp/fgb-safe-v4-health-${pass}.txt"
+            grep -Fqx 'audio_large_pts_gaps=0' "/tmp/fgb-safe-v4-health-${pass}.txt"
+            grep -Fqx 'AUDIO_WARNINGS=NONE' "/tmp/fgb-safe-v4-health-${pass}.txt"
+            grep -Fqx 'OVERALL_STATUS=OK' "/tmp/fgb-safe-v4-health-${pass}.txt"
+            sleep 4
           done
-
-          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED_SHA"
-          systemctl is-active --quiet fgbears-live.service
-          systemctl is-active --quiet fgbears-youtube-copy-relay.service
-          if journalctl -u fgbears-youtube-copy-relay.service --since "@$start_epoch" --no-pager | grep -Ei 'timestamp discontinuity|DTS .* out of order|Packet corrupt|dropping it|non.monoton'; then
+          if journalctl -u fgbears-youtube-copy-relay.service --since "@$health_epoch" --no-pager | grep -Ei 'timestamp discontinuity|DTS .* out of order|Packet corrupt|dropping it|non.monoton'; then
             false
           fi
           trap - ERR
-          echo MASTER_AUDIO_CLOCK_HEALTH=PASS
+          echo SAFE_AUDIO_V4_CUTOVER=PASS
           REMOTE
 
-      - name: Enable automatic future Lovable audio approvals under v4.1
+      - name: Enable only the isolated v4 approval timer
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -273,19 +271,25 @@ assert not gaps and not regs' /tmp/fgb-master-clock-shadow-packets.csv
           AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
           STATE=/srv/fgbears-live/runtime/lovable-audio-pipeline.json
 
-          systemctl enable --now fgbears-lovable-audio-sync.timer
-          test "$(systemctl is-enabled fgbears-lovable-audio-sync.timer)" = enabled
-          systemctl is-active --quiet fgbears-lovable-audio-sync.timer
-          systemctl start fgbears-lovable-audio-sync.service
+          test ! -e /etc/fgbears-live/UNQUARANTINE_LEGACY_AUDIO_PREPARATION
+          test "$(systemctl is-active fgbears-lovable-audio-sync.timer 2>/dev/null || true)" != active
+          test "$(systemctl is-active fgbears-lovable-audio-sync.service 2>/dev/null || true)" != active
+          grep -Fq 'QUARANTINED. Refusing execution' /usr/local/bin/fgbears-lovable-audio-pipeline
+
+          systemctl enable --now fgbears-lovable-audio-v4-sync.timer
+          test "$(systemctl is-enabled fgbears-lovable-audio-v4-sync.timer)" = enabled
+          systemctl is-active --quiet fgbears-lovable-audio-v4-sync.timer
+          systemctl start fgbears-lovable-audio-v4-sync.service
           sleep 3
           test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED_SHA"
           test "$(jq -r '.appliedRevision' "$STATE")" = 11
-          journalctl -u fgbears-lovable-audio-sync.service --since '-2 minutes' --no-pager | grep -Fq 'FGB_AUDIO_PIPELINE_V4 no_change revision=11 already_live'
+          journalctl -u fgbears-lovable-audio-v4-sync.service --since '-2 minutes' --no-pager | grep -Fq 'FGB_AUDIO_PIPELINE_V4 no_change revision=11 already_live'
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet fgbears-youtube-copy-relay.service
           echo LIVE_SHA=$(sha256sum "$AUDIO" | awk '{print $1}')
           echo APPLIED_REVISION=$(jq -r '.appliedRevision' "$STATE")
           echo INGEST_MODE=$(jq -r '.ingestMode' "$STATE")
-          echo AUDIO_SYNC_TIMER=$(systemctl is-active fgbears-lovable-audio-sync.timer)
-          echo FGB_MASTER_AUDIO_CLOCK_V41=PASS
+          echo SAFE_AUDIO_V4_TIMER=$(systemctl is-active fgbears-lovable-audio-v4-sync.timer)
+          echo LEGACY_AUDIO_PATHWAY=QUARANTINED
+          echo FGB_SAFE_AUDIO_V4=PASS
           REMOTE
