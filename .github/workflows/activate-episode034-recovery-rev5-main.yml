@@ -1,4 +1,4 @@
-name: Probe Episode 034 Live Audio Transport
+name: Probe Episode 034 Relay Buffers
 
 on:
   push:
@@ -15,9 +15,8 @@ env:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 4
     steps:
-      - uses: actions/checkout@v4
       - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -28,42 +27,29 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Stage read-only audio-health probe
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/audio-health.py "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-audio-health.py"
-      - name: Probe exact outgoing MPEG-TS audio and clocks
+      - name: Read-only relay and UDP diagnostics
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          EXPECTED=c04e4fa32a5acc4200c2ef88e8bf43f7618998768ad8c58a716f7869a35a9e7a
-          AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
-          MASTER=fgbears-live.service
-          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED"
-          systemctl is-active --quiet "$MASTER"
-          printf '%s\n' 'YOUTUBE_LOCAL_UDP_URL=udp://127.0.0.1:1940?pkt_size=1316' > /tmp/fgb-audio-health.env
-          echo '=== AUDIO_HEALTH_CAPTURE_1 ==='
-          python3 /tmp/fgb-audio-health.py --capture-seconds 20 --env-file /tmp/fgb-audio-health.env || true
-          echo '=== AUDIO_HEALTH_CAPTURE_2 ==='
-          python3 /tmp/fgb-audio-health.py --capture-seconds 20 --env-file /tmp/fgb-audio-health.env || true
-          echo '=== MASTER_PROGRESS_PACING ==='
-          p=/srv/fgbears-live/logs/ffmpeg-progress.log
-          a=$(awk -F= '/^out_time_(us|ms)=/{v=$2} END{print v+0}' "$p")
-          t0=$(date +%s%N)
-          sleep 20
-          b=$(awk -F= '/^out_time_(us|ms)=/{v=$2} END{print v+0}' "$p")
-          t1=$(date +%s%N)
-          awk -v a="$a" -v b="$b" -v t0="$t0" -v t1="$t1" 'BEGIN { wall=(t1-t0)/1000000000; media=(b-a)/1000000; printf "progress_start_us=%d\nprogress_end_us=%d\nwall_seconds=%.6f\nmedia_seconds=%.6f\npacing_ratio=%.8f\n",a,b,wall,media,media/wall }'
-          echo '=== MASTER_RECENT_AUDIO_WARNINGS ==='
-          journalctl -u "$MASTER" --since '30 minutes ago' --no-pager | grep -Ei 'audio|aac|timestamp|dts|pts|non.monoton|queue|drop|error|warning' | tail -100 || true
-          echo '=== RELAY_PROCESSES ==='
-          systemctl is-active fgbears-youtube-copy-relay.service || true
-          systemctl show fgbears-youtube-copy-relay.service -p MainPID -p ActiveState -p SubState --no-pager
+          echo '=== YOUTUBE_RELAY_LOGS ==='
+          journalctl -u fgbears-youtube-copy-relay.service --since '90 minutes ago' --no-pager | grep -Ei 'error|warning|drop|overrun|corrupt|timestamp|dts|pts|aac|queue|fifo|buffer|non.monoton' | tail -200 || true
+          echo '=== MASTER_LOGS ==='
+          journalctl -u fgbears-live.service --since '90 minutes ago' --no-pager | grep -Ei 'error|warning|drop|overrun|corrupt|timestamp|dts|pts|aac|queue|fifo|buffer|non.monoton' | tail -200 || true
+          echo '=== UDP_SOCKET_1940 ==='
+          ss -u -n -a -m -p | grep -A2 -B2 ':1940' || true
+          echo '=== UDP_KERNEL_COUNTERS ==='
+          netstat -su 2>/dev/null | sed -n '/Udp:/,/UdpLite:/p' || true
+          echo '=== PROCESS_STATS ==='
+          mpid=$(systemctl show -p MainPID --value fgbears-live.service)
           ypid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
-          if [[ "$ypid" =~ ^[1-9][0-9]*$ ]]; then ps -o pid,ppid,etime,%cpu,%mem,args -p "$ypid" --forest; pgrep -P "$ypid" -a || true; fi
-          echo LIVE_SHA=$(sha256sum "$AUDIO" | awk '{print $1}')
-          echo MASTER=$(systemctl is-active "$MASTER")
+          ps -o pid,ppid,etime,%cpu,%mem,nlwp,stat,args -p "$mpid","$ypid" --forest || true
+          echo '=== SYSTEM_LOAD ==='
+          uptime
+          free -m
+          echo '=== CURRENT_HASH_AND_SERVICES ==='
+          sha256sum /srv/fgbears-live/audio/fgb-music-loop.m4a
+          systemctl is-active fgbears-live.service
+          systemctl is-active fgbears-youtube-copy-relay.service
           REMOTE
