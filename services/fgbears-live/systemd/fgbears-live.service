@@ -11,9 +11,10 @@ User=fgbears
 Group=fgbears
 EnvironmentFile=/etc/fgbears-live/stream.env
 ExecStart=/usr/local/bin/fgbears-start-stream
-# This is a 24/7 master. Any process exit, including FFmpeg status 0, is an
-# outage and must be recovered automatically. The deployment guard captures
-# service and overlay diagnostics if a restart cannot remain active.
+# The YouTube copy relay carries MPEG-TS timeline state. Every new master
+# process starts a fresh timeline, so force the relay to attach fresh as well.
+# --no-block avoids an ordering deadlock because the relay starts After= this unit.
+ExecStartPost=+/usr/bin/systemctl --no-block restart fgbears-youtube-copy-relay.service
 Restart=always
 RestartSec=15
 TimeoutStopSec=20
