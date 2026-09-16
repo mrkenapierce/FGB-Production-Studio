@@ -1,4 +1,4 @@
-name: Probe Episode 034 Relay Buffers
+name: Reset YouTube Relay Timestamp State
 
 on:
   push:
@@ -13,9 +13,9 @@ env:
   ORACLE_USER: ubuntu
 
 jobs:
-  probe:
+  repair:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 5
     steps:
       - name: Configure Oracle SSH
         env:
@@ -27,29 +27,48 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Read-only relay and UDP diagnostics
+      - name: Reset relay only and verify clean state
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
-          echo '=== YOUTUBE_RELAY_LOGS ==='
-          journalctl -u fgbears-youtube-copy-relay.service --since '90 minutes ago' --no-pager | grep -Ei 'error|warning|drop|overrun|corrupt|timestamp|dts|pts|aac|queue|fifo|buffer|non.monoton' | tail -200 || true
-          echo '=== MASTER_LOGS ==='
-          journalctl -u fgbears-live.service --since '90 minutes ago' --no-pager | grep -Ei 'error|warning|drop|overrun|corrupt|timestamp|dts|pts|aac|queue|fifo|buffer|non.monoton' | tail -200 || true
-          echo '=== UDP_SOCKET_1940 ==='
-          ss -u -n -a -m -p | grep -A2 -B2 ':1940' || true
-          echo '=== UDP_KERNEL_COUNTERS ==='
-          netstat -su 2>/dev/null | sed -n '/Udp:/,/UdpLite:/p' || true
-          echo '=== PROCESS_STATS ==='
-          mpid=$(systemctl show -p MainPID --value fgbears-live.service)
-          ypid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
-          ps -o pid,ppid,etime,%cpu,%mem,nlwp,stat,args -p "$mpid","$ypid" --forest || true
-          echo '=== SYSTEM_LOAD ==='
-          uptime
-          free -m
-          echo '=== CURRENT_HASH_AND_SERVICES ==='
-          sha256sum /srv/fgbears-live/audio/fgb-music-loop.m4a
-          systemctl is-active fgbears-live.service
-          systemctl is-active fgbears-youtube-copy-relay.service
+          MASTER=fgbears-live.service
+          RELAY=fgbears-youtube-copy-relay.service
+          AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
+          EXPECTED=c04e4fa32a5acc4200c2ef88e8bf43f7618998768ad8c58a716f7869a35a9e7a
+          systemctl is-active --quiet "$MASTER"
+          systemctl is-active --quiet "$RELAY"
+          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED"
+          master_before=$(systemctl show -p MainPID --value "$MASTER")
+          relay_before=$(systemctl show -p MainPID --value "$RELAY")
+          start_epoch=$(date +%s)
+          systemctl restart "$RELAY"
+          deadline=$((SECONDS+45))
+          while (( SECONDS < deadline )); do
+            systemctl is-active --quiet "$RELAY" && break
+            sleep 1
+          done
+          systemctl is-active --quiet "$RELAY"
+          sleep 12
+          master_after=$(systemctl show -p MainPID --value "$MASTER")
+          relay_after=$(systemctl show -p MainPID --value "$RELAY")
+          test "$master_before" = "$master_after"
+          test "$relay_before" != "$relay_after"
+          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED"
+          echo MASTER_PID_UNCHANGED=$master_after
+          echo RELAY_PID_BEFORE=$relay_before
+          echo RELAY_PID_AFTER=$relay_after
+          echo LIVE_SHA=$(sha256sum "$AUDIO" | awk '{print $1}')
+          echo '=== NEW_RELAY_LOGS ==='
+          journalctl -u "$RELAY" --since "@$start_epoch" --no-pager | tail -120
+          echo '=== NEW_RELAY_TIMESTAMP_WARNINGS ==='
+          if journalctl -u "$RELAY" --since "@$start_epoch" --no-pager | grep -Ei 'timestamp discontinuity|DTS .* out of order|Packet corrupt|dropping it|non.monoton'; then
+            echo CLEAN_TIMESTAMP_STATE=FAIL
+            exit 1
+          fi
+          echo CLEAN_TIMESTAMP_STATE=PASS
+          systemctl is-active --quiet "$MASTER"
+          systemctl is-active --quiet "$RELAY"
+          echo YOUTUBE_RELAY_TIMESTAMP_RESET=PASS
           REMOTE
