@@ -71,7 +71,7 @@ test "$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of
 test "$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nk=1:nw=1 /tmp/fgb-rev11-approved.m4a)" = 44100
 test "$(ffprobe -v error -select_streams a:0 -show_entries stream=channels -of default=nk=1:nw=1 /tmp/fgb-rev11-approved.m4a)" = 2
 test "$(ffprobe -v error -select_streams a:0 -show_entries stream=start_time -of default=nk=1:nw=1 /tmp/fgb-rev11-approved.m4a)" = 0.000000
-first_pts=$(ffprobe -v error -read_intervals '%+0.10' -select_streams a:0 -show_packets -show_entries packet=pts_time -of csv=p=0 /tmp/fgb-rev11-approved.m4a | head -1 | cut -d, -f1)
+first_pts=$(ffprobe -v error -read_intervals '%+0.10' -select_streams a:0 -show_packets -show_entries packet=pts_time -of csv=p=0 /tmp/fgb-rev11-approved.m4a | sed -n '1p' | cut -d, -f1)
 test "$first_pts" = 0.000000
 ffmpeg -hide_banner -nostdin -v error -xerror -i /tmp/fgb-rev11-approved.m4a -map 0:a:0 -vn -f null -
 ffprobe -v error -select_streams a:0 -show_packets -show_entries packet=pts_time,duration_time -of csv=p=0 /tmp/fgb-rev11-approved.m4a > /tmp/fgb-rev11-source-packets.csv
@@ -161,7 +161,7 @@ systemctl is-active --quiet fgbears-live.service
 systemctl is-active --quiet fgbears-youtube-copy-relay.service
 
 main=$(systemctl show -p MainPID --value fgbears-live.service)
-ffpid=$(pgrep -P "$main" -x ffmpeg | head -1)
+ffpid=$(pgrep -P "$main" -x ffmpeg | sed -n '1p')
 test -n "$ffpid"
 tr '\0' ' ' < "/proc/$ffpid/cmdline" > /tmp/fgb-safe-v4-master-cmdline
 grep -Fq -- '-c:a aac' /tmp/fgb-safe-v4-master-cmdline
