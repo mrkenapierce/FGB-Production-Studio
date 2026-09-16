@@ -1,12 +1,10 @@
-name: Read-Only Audio Compatibility Assessment
+name: Quarantine Legacy Lovable Audio Pathway
 
-# Current approved-audio deployment probe.
 on:
   push:
     branches: [main]
     paths:
       - '.github/workflows/audio-compatibility-assessment.yml'
-      - 'scripts/audio-compatibility-assessment.sh'
 
 permissions:
   contents: read
@@ -15,7 +13,7 @@ env:
   ORACLE_USER: ubuntu
 
 jobs:
-  assess:
+  quarantine:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -30,7 +28,40 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Run read-only compatibility assessment on Oracle
+      - name: Stage quarantined unit definitions
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' < scripts/audio-compatibility-assessment.sh
+        run: |
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/systemd/fgbears-lovable-audio-sync.service \
+            services/fgbears-live/systemd/fgbears-lovable-audio-sync.timer \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+      - name: Quarantine old preparation pathway without touching live media
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
+          before_pid=$(systemctl show -p MainPID --value fgbears-live.service)
+          before_sha=$(sha256sum "$AUDIO" | awk '{print $1}')
+          install -m 0644 /tmp/fgbears-lovable-audio-sync.service /etc/systemd/system/fgbears-lovable-audio-sync.service
+          install -m 0644 /tmp/fgbears-lovable-audio-sync.timer /etc/systemd/system/fgbears-lovable-audio-sync.timer
+          rm -f /etc/fgbears-live/UNQUARANTINE_LEGACY_AUDIO_PREPARATION
+          systemctl disable --now fgbears-lovable-audio-sync.timer || true
+          systemctl stop fgbears-lovable-audio-sync.service || true
+          systemctl daemon-reload
+          systemctl mask --now fgbears-lovable-audio-sync.timer
+          systemctl mask --now fgbears-lovable-audio-sync.service
+          after_pid=$(systemctl show -p MainPID --value fgbears-live.service)
+          after_sha=$(sha256sum "$AUDIO" | awk '{print $1}')
+          test "$before_pid" = "$after_pid"
+          test "$before_sha" = "$after_sha"
+          test "$(systemctl is-enabled fgbears-lovable-audio-sync.timer 2>/dev/null || true)" = masked
+          test "$(systemctl is-enabled fgbears-lovable-audio-sync.service 2>/dev/null || true)" = masked
+          echo MASTER_PID_UNCHANGED=$after_pid
+          echo LIVE_SHA_UNCHANGED=$after_sha
+          echo LEGACY_AUDIO_SYNC_TIMER=$(systemctl is-enabled fgbears-lovable-audio-sync.timer 2>/dev/null || true)
+          echo LEGACY_AUDIO_SYNC_SERVICE=$(systemctl is-enabled fgbears-lovable-audio-sync.service 2>/dev/null || true)
+          echo LEGACY_AUDIO_PATHWAY=QUARANTINED
+          REMOTE
