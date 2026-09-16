@@ -1,0 +1,19 @@
+[Unit]
+Description=FGB Lovable audio standard v4 direct/safe approval pipeline
+After=network-online.target fgbears-live.service
+Wants=network-online.target
+ConditionPathExists=/usr/local/bin/fgbears-lovable-audio-v4-sync
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/fgbears-lovable-audio-v4-sync
+TimeoutStartSec=1200
+Nice=19
+IOSchedulingClass=idle
+CPUWeight=1
+CPUQuota=25%
+MemoryMax=384M
+NoNewPrivileges=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/srv/fgbears-live /run
