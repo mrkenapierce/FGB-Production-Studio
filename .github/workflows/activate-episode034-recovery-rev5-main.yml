@@ -1,4 +1,4 @@
-name: Re-enable Episode 034 Audio Sync Safely
+name: Probe Episode 034 Live Audio Transport
 
 on:
   push:
@@ -13,10 +13,11 @@ env:
   ORACLE_USER: ubuntu
 
 jobs:
-  verify:
+  probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
+      - uses: actions/checkout@v4
       - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -27,7 +28,12 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Enable sync and verify revision 9 remains untouched
+      - name: Stage read-only audio-health probe
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          scp -i ~/.ssh/oracle_key services/fgbears-live/bin/audio-health.py "$ORACLE_USER@$ORACLE_HOST:/tmp/fgb-audio-health.py"
+      - name: Probe exact outgoing MPEG-TS audio and clocks
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -35,21 +41,39 @@ jobs:
           set -Eeuo pipefail
           EXPECTED=c04e4fa32a5acc4200c2ef88e8bf43f7618998768ad8c58a716f7869a35a9e7a
           AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
-          TIMER=fgbears-lovable-audio-sync.timer
-          SERVICE=fgbears-lovable-audio-sync.service
           MASTER=fgbears-live.service
           test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED"
-          systemctl enable --now "$TIMER"
-          systemctl is-enabled --quiet "$TIMER"
-          systemctl is-active --quiet "$TIMER"
-          systemctl start "$SERVICE"
           systemctl is-active --quiet "$MASTER"
-          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED"
-          state=$(cat /srv/fgbears-live/runtime/lovable-audio-pipeline.json)
-          echo "$state" | jq -e '.appliedRevision==9 and .status=="live" and .sourceSha256=="c04e4fa32a5acc4200c2ef88e8bf43f7618998768ad8c58a716f7869a35a9e7a"' >/dev/null
-          echo TIMER=$(systemctl is-active "$TIMER")
-          echo MASTER=$(systemctl is-active "$MASTER")
+          printf '%s\n' 'YOUTUBE_LOCAL_UDP_URL=udp://127.0.0.1:1940?pkt_size=1316' > /tmp/fgb-audio-health.env
+          echo '=== AUDIO_HEALTH_CAPTURE_1 ==='
+          python3 /tmp/fgb-audio-health.py --capture-seconds 20 --env-file /tmp/fgb-audio-health.env || true
+          echo '=== AUDIO_HEALTH_CAPTURE_2 ==='
+          python3 /tmp/fgb-audio-health.py --capture-seconds 20 --env-file /tmp/fgb-audio-health.env || true
+          echo '=== MASTER_PROGRESS_PACING ==='
+          p=/srv/fgbears-live/logs/ffmpeg-progress.log
+          a=$(awk -F= '/^out_time_(us|ms)=/{v=$2} END{print v+0}' "$p")
+          t0=$(date +%s%N)
+          sleep 20
+          b=$(awk -F= '/^out_time_(us|ms)=/{v=$2} END{print v+0}' "$p")
+          t1=$(date +%s%N)
+          python3 - "$a" "$b" "$t0" "$t1" <<'PY'
+import sys
+a,b,t0,t1=map(int,sys.argv[1:])
+wall=(t1-t0)/1e9
+media=(b-a)/1e6
+print(f'progress_start_us={a}')
+print(f'progress_end_us={b}')
+print(f'wall_seconds={wall:.6f}')
+print(f'media_seconds={media:.6f}')
+print(f'pacing_ratio={media/wall:.8f}')
+PY
+          echo '=== MASTER_RECENT_AUDIO_WARNINGS ==='
+          journalctl -u "$MASTER" --since '30 minutes ago' --no-pager | grep -Ei 'audio|aac|timestamp|dts|pts|non.monoton|queue|drop|error|warning' | tail -100 || true
+          echo '=== RELAY_PROCESSES ==='
+          systemctl is-active fgbears-youtube-copy-relay.service || true
+          systemctl show fgbears-youtube-copy-relay.service -p MainPID -p ActiveState -p SubState --no-pager
+          ypid=$(systemctl show -p MainPID --value fgbears-youtube-copy-relay.service)
+          if [[ "$ypid" =~ ^[1-9][0-9]*$ ]]; then ps -o pid,ppid,etime,%cpu,%mem,args -p "$ypid" --forest; pgrep -P "$ypid" -a || true; fi
           echo LIVE_SHA=$(sha256sum "$AUDIO" | awk '{print $1}')
-          journalctl -u "$SERVICE" -n 8 --no-pager | tail -8
-          echo EPISODE_034_SYNC_REENABLE=PASS
+          echo MASTER=$(systemctl is-active "$MASTER")
           REMOTE
