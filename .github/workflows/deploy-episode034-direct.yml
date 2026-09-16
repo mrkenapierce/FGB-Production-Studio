@@ -1,28 +1,19 @@
-name: Deploy Episode 034 Direct
+name: Quarantined Episode 034 Direct Deployment
+
+# The c04e4fa3... Episode 034 production-ready candidate was rejected by the
+# user after live playback. This workflow is intentionally inert so that
+# editing the old direct-deploy script cannot put that candidate back on air.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'scripts/deploy-episode034-direct.sh'
+  workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
-  deploy:
+  quarantined:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
-      - name: Configure Oracle SSH
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+      - name: Refuse rejected candidate deployment
         run: |
-          set -Eeuo pipefail
-          install -d -m 700 ~/.ssh
-          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
-          chmod 600 ~/.ssh/oracle_key
-          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Deploy exact uploaded M4A
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: ssh -i ~/.ssh/oracle_key ubuntu@$ORACLE_HOST 'sudo bash -s' < scripts/deploy-episode034-direct.sh
+          echo 'BLOCKED: Episode 034 candidate c04e4fa32a5acc4200c2ef88e8bf43f7618998768ad8c58a716f7869a35a9e7a was rejected after live playback.'
+          echo 'A new, independently validated source and explicit deployment path are required before Episode 034 can replace the restored known-good audio.'
