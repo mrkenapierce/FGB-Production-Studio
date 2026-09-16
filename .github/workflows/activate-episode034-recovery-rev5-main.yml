@@ -88,7 +88,6 @@ jobs:
           systemd-analyze verify /etc/systemd/system/fgbears-lovable-audio-sync.service /etc/systemd/system/fgbears-lovable-audio-sync.timer
           systemctl daemon-reload
 
-          # Installation itself must not change live media.
           test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$OLD_SHA"
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet fgbears-youtube-copy-relay.service
@@ -121,13 +120,9 @@ jobs:
           test "$(jq -r '.streams[0].channels' <<<"$meta")" = 2
           test "$(jq -r '.streams[0].start_time' <<<"$meta")" = 0.000000
           first_pts=$(ffprobe -v error -read_intervals '%+0.05' -select_streams a:0 -show_packets -show_entries packet=pts_time -of csv=p=0 "$AUDIO" | sed -n '1p' | cut -d, -f1)
-          python3 - "$first_pts" <<'PY'
-import sys
-assert abs(float(sys.argv[1])) <= 0.001, sys.argv[1]
-PY
+          python3 -c 'import sys; assert abs(float(sys.argv[1])) <= 0.001, sys.argv[1]' "$first_pts"
           ffmpeg -hide_banner -nostdin -v error -xerror -i "$AUDIO" -map 0:a:0 -vn -f null -
 
-          # Fresh relay must be clean after the master timeline reset.
           if journalctl -u fgbears-youtube-copy-relay.service --since "@$start_epoch" --no-pager | grep -Ei 'timestamp discontinuity|DTS .* out of order|Packet corrupt|dropping it|non.monoton'; then
             echo REV11_RELAY_TIMELINE=FAIL
             exit 1
