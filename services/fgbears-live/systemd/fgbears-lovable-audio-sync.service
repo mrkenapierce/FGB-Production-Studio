@@ -1,7 +1,11 @@
 [Unit]
-Description=FGB staged Lovable audio approval pipeline
+Description=QUARANTINED - legacy FGB Lovable 48 kHz audio preparation pipeline
 After=network-online.target fgbears-live.service
 Wants=network-online.target
+# This legacy pathway performed 48 kHz mastering/preparation and is not permitted
+# to touch production. It remains only for incident forensics. A deliberate
+# break-glass marker would be required even if the systemd mask were removed.
+ConditionPathExists=/etc/fgbears-live/UNQUARANTINE_LEGACY_AUDIO_PREPARATION
 ConditionPathExists=/usr/local/bin/fgbears-lovable-audio-pipeline
 
 [Service]
