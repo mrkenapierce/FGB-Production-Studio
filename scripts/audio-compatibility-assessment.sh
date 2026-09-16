@@ -9,6 +9,9 @@ test "$(sha256sum "$GOOD" | awk '{print $1}')" = "$GOOD_SHA"
 test -n "$BAD"
 test "$(sha256sum "$BAD" | awk '{print $1}')" = "$BAD_SHA"
 
+echo '=== SAFE EFFECTIVE LOCAL-TRANSPORT SETTINGS ==='
+grep -E '^(YOUTUBE_LOCAL_UDP_URL|YOUTUBE_COPY_LOCAL_UDP_URL|RUMBLE_LOCAL_UDP_URL|FGB_AUDIO_HEALTH_INTERVAL_SECONDS|FGB_AUDIO_HEALTH_SAMPLE_SECONDS)=' /etc/fgbears-live/stream.env || true
+
 echo '=== EFFECTIVE MASTER AUDIO COMMAND ==='
 systemctl cat fgbears-live.service
 ps -eo pid=,ppid=,etimes=,args= | grep '[f]fmpeg' | grep -E 'fgb-music-loop|youtube|facebook' || true
@@ -20,9 +23,11 @@ inspect() {
   ffprobe -v error -select_streams a:0 \
     -show_entries stream=codec_name,profile,codec_tag_string,sample_rate,channels,channel_layout,time_base,start_pts,start_time,duration_ts,duration,bit_rate,nb_frames,extradata_size:format=format_name,start_time,duration,size,bit_rate,tags \
     -of json "$file"
+  echo "=== ${label}: EXTRADATA ==="
+  ffprobe -v error -select_streams a:0 -show_entries stream=extradata -show_data -of default=nw=1 "$file" || true
   echo "=== ${label}: FIRST PACKETS ==="
   ffprobe -v error -read_intervals '%+0.25' -select_streams a:0 -show_packets \
-    -show_entries packet=pts,dts,pts_time,dts_time,duration,duration_time,size,flags -of csv=p=0 "$file" | head -20
+    -show_entries packet=pts,dts,pts_time,dts_time,duration,duration_time,size,flags -of csv=p=0 "$file" | sed -n '1,20p'
   echo "=== ${label}: DECODE CHECK ==="
   ffmpeg -hide_banner -nostdin -v error -xerror -i "$file" -map 0:a:0 -vn -f null -
   echo "${label}_DECODE=PASS"
@@ -78,13 +83,42 @@ remux_test() {
   echo "${label}_REMUX_DECODE=PASS"
 }
 
+sanitize_test() {
+  rate=$1; label="SANITIZED_${rate}"; out=/tmp/${label}.ts
+  rm -f "$out" /tmp/${label}-packets.csv
+  echo "=== ${label}: DECODE -> CLOCK RESET -> AAC TEST ==="
+  start=$(date +%s%N)
+  ffmpeg -hide_banner -nostdin -v warning -t 30 -i "$BAD" \
+    -map 0:a:0 -af "aresample=${rate}:first_pts=0,asetpts=N/SR/TB" \
+    -c:a aac -b:a 192k -ar "$rate" -ac 2 -avoid_negative_ts make_zero -f mpegts "$out"
+  end=$(date +%s%N)
+  elapsed=$(python3 -c "print((${end}-${start})/1e9)")
+  echo "${label}_ENCODE_ELAPSED=$elapsed"
+  ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,time_base,start_time,duration -of json "$out"
+  ffprobe -v error -select_streams a:0 -show_packets -show_entries packet=pts_time,dts_time,duration_time -of csv=p=0 "$out" > /tmp/${label}-packets.csv
+  analyze_packets "$label" /tmp/${label}-packets.csv
+  ffmpeg -hide_banner -nostdin -v error -xerror -i "$out" -map 0:a:0 -vn -f null -
+  echo "${label}_DECODE=PASS"
+}
+
 remux_test GOOD "$GOOD"
 remux_test EP34_REJECTED "$BAD"
+sanitize_test 44100
+sanitize_test 48000
+
+echo '=== DEPLOYED AUDIO HEALTH MONITOR ==='
+for f in /srv/fgbears-live/health/audio-health-status /srv/fgbears-live/health/audio-health-warning; do
+  if [[ -f "$f" ]]; then echo "--- $f"; cat "$f"; else echo "--- $f MISSING"; fi
+done
+if [[ -x /usr/local/bin/fgbears-audio-health ]]; then
+  /usr/local/bin/fgbears-audio-health --capture-seconds 5 || true
+fi
 
 echo '=== CURRENT LIVE PATH HEALTH ==='
-systemctl is-active fgbears-live.service
-systemctl is-active fgbears-youtube-copy-relay.service
-systemctl is-active fgbears-facebook-relay.service
+echo MASTER=$(systemctl is-active fgbears-live.service 2>/dev/null || true)
+echo YOUTUBE=$(systemctl is-active fgbears-youtube-copy-relay.service 2>/dev/null || true)
+echo FACEBOOK=$(systemctl is-active fgbears-facebook-relay.service 2>/dev/null || true)
+echo RUMBLE=$(systemctl is-active fgbears-rumble-relay.service 2>/dev/null || true)
 echo AUDIO_SYNC_TIMER=$(systemctl is-active fgbears-lovable-audio-sync.timer 2>/dev/null || true)
 echo AUDIO_SYNC_SERVICE=$(systemctl is-active fgbears-lovable-audio-sync.service 2>/dev/null || true)
 echo AUDIO_COMPATIBILITY_ASSESSMENT=PASS
