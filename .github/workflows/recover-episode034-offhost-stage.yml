@@ -1,0 +1,160 @@
+name: Recover Episode 034 Off-host Stage
+
+on:
+  push:
+    branches: [episode034-offhost-recovery]
+    paths:
+      - '.github/workflows/recover-episode034-offhost-stage.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+  EXPECTED_SOURCE_SHA: c5c53890601ee446fe38d267f7cf5dba5dd899fba45006a8ddbb60d88654e66c
+  SOURCE_PATH: /srv/fgbears-live/audio/incoming/rev-4/source
+  STAGE_DIR: /srv/fgbears-live/audio/incoming/recovery-episode034
+
+jobs:
+  master-and-stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install media tools
+        run: |
+          set -Eeuo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg jq
+          ffmpeg -hide_banner -version | head -1
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Read-only production preflight and fetch exact approved source
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          before_pid=$(ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "systemctl show -p MainPID --value fgbears-live.service")
+          test -n "$before_pid" && test "$before_pid" != 0
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<REMOTE
+          set -Eeuo pipefail
+          systemctl is-active --quiet fgbears-live.service
+          test "\$(systemctl is-active fgbears-lovable-audio-sync.timer || true)" = inactive
+          sudo test -s "$SOURCE_PATH"
+          actual=\$(sudo sha256sum "$SOURCE_PATH" | awk '{print \$1}')
+          test "\$actual" = "$EXPECTED_SOURCE_SHA"
+          echo "ORACLE_SOURCE=PASS sha256=\$actual"
+          REMOTE
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "sudo cat '$SOURCE_PATH'" > /tmp/episode034-source
+          test "$(sha256sum /tmp/episode034-source | awk '{print $1}')" = "$EXPECTED_SOURCE_SHA"
+          printf '%s\n' "$before_pid" > /tmp/master-pid-before
+          echo "SOURCE_FETCH=PASS bytes=$(stat -c%s /tmp/episode034-source)"
+
+      - name: Master Episode 034 off-host with canonical v3 profile
+        run: |
+          set -Eeuo pipefail
+          mkdir -p /tmp/episode034-output
+          python3 services/fgbears-live/tools/prepare-audio-track-v3.py \
+            --source /tmp/episode034-source \
+            --output /tmp/episode034-output/episode034.m4a \
+            --source-kind new_original \
+            --source-label 'Episode 034' \
+            --source-file-sha256 "$EXPECTED_SOURCE_SHA"
+
+      - name: Validate canonical candidate completely
+        run: |
+          set -Eeuo pipefail
+          SRC=/tmp/episode034-source
+          OUT=/tmp/episode034-output/episode034.m4a
+          MARKER="$OUT.audio-profile.json"
+          test -s "$OUT" && test -s "$MARKER"
+          ffmpeg -hide_banner -nostdin -v error -xerror -i "$OUT" -map 0:a:0 -vn -f null -
+          codec=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name -of default=nw=1:nk=1 "$OUT")
+          rate=$(ffprobe -v error -select_streams a:0 -show_entries stream=sample_rate -of default=nw=1:nk=1 "$OUT")
+          channels=$(ffprobe -v error -select_streams a:0 -show_entries stream=channels -of default=nw=1:nk=1 "$OUT")
+          test "$codec" = aac && test "$rate" = 48000 && test "$channels" = 2
+          python3 - "$SRC" "$OUT" "$MARKER" "$EXPECTED_SOURCE_SHA" <<'PY'
+          import json, subprocess, sys
+          src,out,marker,expected=sys.argv[1:]
+          def dur(p):
+              return float(subprocess.check_output(['ffprobe','-v','error','-show_entries','format=duration','-of','default=nw=1:nk=1',p], text=True).strip())
+          sd,od=dur(src),dur(out)
+          tol=max(0.5,sd*0.0025)
+          assert abs(od-sd) <= tol, (sd,od,tol)
+          m=json.load(open(marker))
+          assert m['profile']=='fgb-clean-static-v3',m
+          assert m['quality_verified'] is True,m
+          assert m['dynamic_processing'] is False,m
+          assert m['source_sha256']==expected,m
+          assert m['audio_codec']=='aac' and m['sample_rate_hz']==48000 and m['channels']==2,m
+          assert float(m['output_metrics']['tp_dbtp']) <= -1.5,m
+          assert -18.0 <= float(m['output_metrics']['i_lufs']) <= -14.5,m
+          print(f'DURATION_VALIDATION=PASS source={sd:.3f} output={od:.3f} tolerance={tol:.3f}')
+          print(f"LOUDNESS_VALIDATION=PASS I={m['output_metrics']['i_lufs']} TP={m['output_metrics']['tp_dbtp']}")
+          PY
+          ffprobe -v error -select_streams a:0 -show_packets -show_entries packet=pts_time,dts_time -of csv=p=0 "$OUT" > /tmp/episode034-packets.csv
+          python3 - <<'PY'
+          last_pts=last_dts=None; count=0
+          for line in open('/tmp/episode034-packets.csv'):
+              parts=[x.strip() for x in line.strip().split(',')]
+              vals=[]
+              for x in parts[:2]:
+                  try: vals.append(float(x))
+                  except: vals.append(None)
+              pts=vals[0] if vals else None; dts=vals[1] if len(vals)>1 else None
+              if pts is not None and last_pts is not None: assert pts+1e-6>=last_pts,(count,pts,last_pts)
+              if dts is not None and last_dts is not None: assert dts+1e-6>=last_dts,(count,dts,last_dts)
+              if pts is not None: last_pts=pts
+              if dts is not None: last_dts=dts
+              count+=1
+          assert count>0
+          print(f'TIMESTAMP_VALIDATION=PASS packets={count}')
+          PY
+          sha256sum "$OUT" | tee /tmp/episode034-output/canonical.sha256
+          echo OFFHOST_MASTERING=PASS
+
+      - name: Upload only validated candidate to isolated Oracle staging
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key /tmp/episode034-output/episode034.m4a "$ORACLE_USER@$ORACLE_HOST:/tmp/episode034-recovery.m4a"
+          scp -i ~/.ssh/oracle_key /tmp/episode034-output/episode034.m4a.audio-profile.json "$ORACLE_USER@$ORACLE_HOST:/tmp/episode034-recovery.audio-profile.json"
+          scp -i ~/.ssh/oracle_key /tmp/episode034-output/canonical.sha256 "$ORACLE_USER@$ORACLE_HOST:/tmp/episode034-recovery.sha256"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<REMOTE
+          set -Eeuo pipefail
+          sudo rm -rf "$STAGE_DIR"
+          sudo install -d -o fgbears -g fgbears -m 0755 "$STAGE_DIR"
+          sudo install -o fgbears -g fgbears -m 0644 /tmp/episode034-recovery.m4a "$STAGE_DIR/candidate.m4a"
+          sudo install -o fgbears -g fgbears -m 0644 /tmp/episode034-recovery.audio-profile.json "$STAGE_DIR/candidate.m4a.audio-profile.json"
+          sudo install -o fgbears -g fgbears -m 0644 /tmp/episode034-recovery.sha256 "$STAGE_DIR/canonical.sha256"
+          expected=\$(awk '{print \$1}' "$STAGE_DIR/canonical.sha256")
+          actual=\$(sha256sum "$STAGE_DIR/candidate.m4a" | awk '{print \$1}')
+          test "\$expected" = "\$actual"
+          jq -e --arg source "$EXPECTED_SOURCE_SHA" '.profile=="fgb-clean-static-v3" and .quality_verified==true and .dynamic_processing==false and .source_sha256==\$source and .audio_codec=="aac" and .sample_rate_hz==48000 and .channels==2 and .output_metrics.tp_dbtp<=-1.5' "$STAGE_DIR/candidate.m4a.audio-profile.json" >/dev/null
+          echo "ORACLE_STAGE=PASS canonical_sha256=\$actual"
+          REMOTE
+
+      - name: Prove live master was untouched
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          before=$(cat /tmp/master-pid-before)
+          after=$(ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "systemctl show -p MainPID --value fgbears-live.service")
+          test "$before" = "$after"
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" "systemctl is-active --quiet fgbears-live.service"
+          echo "LIVE_MASTER_UNTOUCHED=PASS pid=$after"
+          echo EPISODE_034_STAGE_READY=PASS
