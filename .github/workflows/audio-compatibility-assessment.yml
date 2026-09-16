@@ -1,5 +1,6 @@
 name: Read-Only Audio Compatibility Assessment
 
+# Current approved-audio deployment probe.
 on:
   push:
     branches: [main]
