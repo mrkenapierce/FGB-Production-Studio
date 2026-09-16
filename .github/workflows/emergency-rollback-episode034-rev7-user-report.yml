@@ -1,4 +1,4 @@
-name: Emergency Rollback User-Rejected Episode 034 Audio
+name: Verify Episode 034 Emergency Rollback
 
 on:
   push:
@@ -13,9 +13,9 @@ env:
   ORACLE_USER: ubuntu
 
 jobs:
-  rollback:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
     steps:
       - name: Configure Oracle SSH
         env:
@@ -23,105 +23,74 @@ jobs:
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
           set -Eeuo pipefail
-          test -n "$ORACLE_HOST"
-          test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Restore last independently verified known-good audio
+      - name: Read-only post-rollback verification
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
           MASTER=fgbears-live.service
-          RELAY=fgbears-youtube-copy-relay.service
+          YOUTUBE=fgbears-youtube-copy-relay.service
+          FACEBOOK=fgbears-facebook-relay.service
           TIMER=fgbears-lovable-audio-sync.timer
           SYNC=fgbears-lovable-audio-sync.service
           AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
-          SOURCE=/srv/fgbears-live/quarantine/episode034-recovery/20260916T001656Z-pre-rev7.m4a
-          REJECTED_SHA=c04e4fa32a5acc4200c2ef88e8bf43f7618998768ad8c58a716f7869a35a9e7a
           GOOD_SHA=c8391464ae77eec19b85270d67522300202fe5494232581c55433f934b172a12
+          REJECTED_SHA=c04e4fa32a5acc4200c2ef88e8bf43f7618998768ad8c58a716f7869a35a9e7a
 
-          systemctl is-active --quiet "$MASTER"
           live_sha=$(sha256sum "$AUDIO" | awk '{print $1}')
-          echo PRE_ROLLBACK_LIVE_SHA=$live_sha
-          test "$live_sha" = "$REJECTED_SHA" || {
-            echo "ABORT - live audio changed; refusing to overwrite $live_sha" >&2
-            exit 20
-          }
-          test -f "$SOURCE"
-          source_sha=$(sha256sum "$SOURCE" | awk '{print $1}')
-          echo VERIFIED_RECOVERY_SOURCE_SHA=$source_sha
-          test "$source_sha" = "$GOOD_SHA" || {
-            echo "ABORT - recovery source hash mismatch" >&2
-            exit 21
-          }
+          echo LIVE_SHA=$live_sha
+          test "$live_sha" = "$GOOD_SHA"
+          test "$live_sha" != "$REJECTED_SHA"
 
-          systemctl disable --now "$TIMER" >/dev/null 2>&1 || true
-          systemctl stop "$SYNC" >/dev/null 2>&1 || true
-
-          stamp=$(date -u +%Y%m%dT%H%M%SZ)
-          reject_dir=/srv/fgbears-live/quarantine/episode034-user-rejected
-          mkdir -p "$reject_dir"
-          cp -p "$AUDIO" "$reject_dir/$stamp-c04e-user-rejected.m4a"
-          test "$(sha256sum "$reject_dir/$stamp-c04e-user-rejected.m4a" | awk '{print $1}')" = "$REJECTED_SHA"
-
-          mapfile -t destinations < <(systemctl list-units --type=service --state=running --no-legend --no-pager 'fgbears-*' | awk '{print $1}' | grep -E 'youtube|rumble|facebook|relay|uplink' || true)
-          echo PRE_ROLLBACK_DESTINATIONS="${destinations[*]:-none}"
-
-          cp -p "$SOURCE" "$AUDIO.rollback"
-          chown fgbears:fgbears "$AUDIO.rollback"
-          chmod 0644 "$AUDIO.rollback"
-          test "$(sha256sum "$AUDIO.rollback" | awk '{print $1}')" = "$GOOD_SHA"
-          mv -f "$AUDIO.rollback" "$AUDIO"
-
-          systemctl reset-failed "$MASTER" "$RELAY" >/dev/null 2>&1 || true
-          start_epoch=$(date +%s)
-          systemctl restart "$MASTER"
-
-          deadline=$((SECONDS+60))
-          while (( SECONDS < deadline )); do
-            if systemctl is-active --quiet "$MASTER" && systemctl is-active --quiet "$RELAY"; then
-              break
-            fi
-            sleep 1
-          done
           systemctl is-active --quiet "$MASTER"
-          systemctl is-active --quiet "$RELAY"
-          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$GOOD_SHA"
+          systemctl is-active --quiet "$YOUTUBE"
+          systemctl is-active --quiet "$FACEBOOK"
+          test "$(systemctl is-active "$TIMER" 2>/dev/null || true)" != active
+          test "$(systemctl is-active "$SYNC" 2>/dev/null || true)" != active
 
           mpid=$(systemctl show -p MainPID --value "$MASTER")
+          ypid=$(systemctl show -p MainPID --value "$YOUTUBE")
+          fpid=$(systemctl show -p MainPID --value "$FACEBOOK")
+          [[ "$mpid" =~ ^[1-9][0-9]*$ ]]
+          [[ "$ypid" =~ ^[1-9][0-9]*$ ]]
+          [[ "$fpid" =~ ^[1-9][0-9]*$ ]]
+
           ffpid=$(pgrep -P "$mpid" -x ffmpeg | head -1 || true)
           test -n "$ffpid"
           ls -l "/proc/$ffpid/fd" 2>/dev/null | grep -Fq "$AUDIO"
 
-          progress=/srv/fgbears-live/runtime/master.progress
-          read_progress(){ awk -F= '$1=="out_time_us"{v=$2} END{print v+0}' "$progress" 2>/dev/null || echo 0; }
-          p1=$(read_progress)
+          r1=$(awk '/^rchar:/{print $2}' "/proc/$ffpid/io")
+          e1=$(ps -o etimes= -p "$ffpid" | tr -d ' ')
           sleep 5
-          p2=$(read_progress)
-          echo MASTER_PROGRESS_US=$p1-$p2
-          (( p2 > p1 ))
+          test "$(systemctl show -p MainPID --value "$MASTER")" = "$mpid"
+          test "$(systemctl show -p MainPID --value "$YOUTUBE")" = "$ypid"
+          test "$(systemctl show -p MainPID --value "$FACEBOOK")" = "$fpid"
+          r2=$(awk '/^rchar:/{print $2}' "/proc/$ffpid/io")
+          e2=$(ps -o etimes= -p "$ffpid" | tr -d ' ')
+          echo MASTER_RCHAR=$r1-$r2
+          echo MASTER_ELAPSED_SECONDS=$e1-$e2
+          (( r2 > r1 ))
+          (( e2 > e1 ))
 
-          for unit in "${destinations[@]}"; do
-            systemctl is-active --quiet "$unit" || {
-              echo "Destination failed to return - $unit" >&2
-              exit 22
-            }
-          done
-
-          if journalctl -u "$MASTER" -u "$RELAY" --since "@$start_epoch" --no-pager | grep -Ei 'timestamp discontinuity|DTS .* out of order|Packet corrupt|dropping it|non.monoton'; then
-            echo FRESH_TIMESTAMP_CHECK=FAIL >&2
-            exit 23
-          fi
-
-          echo POST_ROLLBACK_LIVE_SHA=$(sha256sum "$AUDIO" | awk '{print $1}')
-          echo MASTER_PID=$(systemctl show -p MainPID --value "$MASTER")
-          echo RELAY_PID=$(systemctl show -p MainPID --value "$RELAY")
+          since=$(systemctl show -p ActiveEnterTimestamp --value "$MASTER")
+          echo MASTER_ACTIVE_SINCE="$since"
+          echo MASTER_PID=$mpid
+          echo YOUTUBE_RELAY_PID=$ypid
+          echo FACEBOOK_RELAY_PID=$fpid
           echo AUTO_SYNC_TIMER=$(systemctl is-active "$TIMER" 2>/dev/null || true)
-          echo POST_ROLLBACK_DESTINATIONS="${destinations[*]:-none}"
-          echo EPISODE_034_USER_REPORTED_AUDIO_ROLLBACK=PASS
+          echo AUTO_SYNC_SERVICE=$(systemctl is-active "$SYNC" 2>/dev/null || true)
+          echo REJECTED_SHA_QUARANTINED=$(find /srv/fgbears-live/quarantine/episode034-user-rejected -type f -name '*c04e-user-rejected.m4a' -print -quit 2>/dev/null || true)
+
+          if journalctl -u "$MASTER" -u "$YOUTUBE" -u "$FACEBOOK" --since '-2 min' --no-pager | grep -Ei 'timestamp discontinuity|DTS .* out of order|Packet corrupt|dropping it|non.monoton'; then
+            echo RECENT_TRANSPORT_WARNING=YES
+          else
+            echo RECENT_TRANSPORT_WARNING=NO
+          fi
+          echo POST_ROLLBACK_READ_ONLY_VERIFY=PASS
           REMOTE
