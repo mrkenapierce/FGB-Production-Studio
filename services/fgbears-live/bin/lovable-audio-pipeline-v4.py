@@ -492,8 +492,25 @@ def main() -> int:
         state = read_state()
         failed = {int(x) for x in state.get("failedRevisions", []) if str(x).isdigit()}
         if int(state.get("appliedRevision", -1)) == revision:
-            log(f"no_change revision={revision} already_live")
-            return 0
+            expected_source = str(audio.get("sourceSha256") or "").lower()
+            state_source = str(state.get("sourceSha256") or "").lower()
+            state_canonical = str(state.get("canonicalSha256") or "").lower()
+            state_track = str(state.get("activeTrackId") or state.get("trackId") or "")
+            contract_track = str(audio.get("activeTrackId") or "")
+            live_sha = sha256(AUDIO_FILE) if AUDIO_FILE.exists() else ""
+            if state_canonical and live_sha == state_canonical and state_source == expected_source and state_track == contract_track:
+                log(f"no_change revision={revision} already_live sha={live_sha}")
+                return 0
+            log(
+                f"stale_applied_state revision={revision} live_sha={live_sha} "
+                f"state_canonical={state_canonical} state_source={state_source} expected_source={expected_source}"
+            )
+            write_state(
+                status="stale_applied_state",
+                observedRevision=revision,
+                actualLiveSha256=live_sha,
+                message="Recorded applied revision does not match live audio; revalidating approved revision",
+            )
         if revision in failed:
             log(f"no_retry revision={revision} previously_failed")
             return 0
