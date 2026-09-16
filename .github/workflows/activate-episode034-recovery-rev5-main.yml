@@ -56,17 +56,7 @@ jobs:
           sleep 20
           b=$(awk -F= '/^out_time_(us|ms)=/{v=$2} END{print v+0}' "$p")
           t1=$(date +%s%N)
-          python3 - "$a" "$b" "$t0" "$t1" <<'PY'
-import sys
-a,b,t0,t1=map(int,sys.argv[1:])
-wall=(t1-t0)/1e9
-media=(b-a)/1e6
-print(f'progress_start_us={a}')
-print(f'progress_end_us={b}')
-print(f'wall_seconds={wall:.6f}')
-print(f'media_seconds={media:.6f}')
-print(f'pacing_ratio={media/wall:.8f}')
-PY
+          awk -v a="$a" -v b="$b" -v t0="$t0" -v t1="$t1" 'BEGIN { wall=(t1-t0)/1000000000; media=(b-a)/1000000; printf "progress_start_us=%d\nprogress_end_us=%d\nwall_seconds=%.6f\nmedia_seconds=%.6f\npacing_ratio=%.8f\n",a,b,wall,media,media/wall }'
           echo '=== MASTER_RECENT_AUDIO_WARNINGS ==='
           journalctl -u "$MASTER" --since '30 minutes ago' --no-pager | grep -Ei 'audio|aac|timestamp|dts|pts|non.monoton|queue|drop|error|warning' | tail -100 || true
           echo '=== RELAY_PROCESSES ==='
