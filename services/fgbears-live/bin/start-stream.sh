@@ -40,7 +40,7 @@ source "$ENV_FILE"
 }
 
 TEE_TARGETS="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${RUMBLE_LOCAL_UDP_URL}"
-printf 'FGBears Live output: YouTube-bound local UDP master with independent looped FGB music audio.\n'
+printf 'FGBears Live output: shared H.264 program with master-owned 44.1 kHz AAC audio clock.\n'
 
 python3 "$AD_OVERLAY_SCRIPT" &
 OVERLAY_PID=$!
@@ -100,8 +100,10 @@ progress_sink() {
 FFMPEG_PID=""
 
 # Input 0 remains the visual episode playlist. Its embedded audio is deliberately
-# ignored. Input 4 is the standalone FGB music bed and is looped indefinitely.
-# Therefore episode narration cannot enter the live output graph.
+# ignored. Input 4 is the standalone approved FGB audio and is looped indefinitely.
+# The master decodes that source and owns the outgoing AAC clock. This prevents
+# source-container AAC priming/timestamp conventions or dropped source packets from
+# propagating into MPEG-TS. Destination relays remain copy/remux only.
 ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
   -progress pipe:3 -stats_period 5 \
@@ -110,13 +112,14 @@ ffmpeg \
   -thread_queue_size 64 -re -loop 1 -framerate "$AD_OVERLAY_FPS" -i "$AD_FRAME_FILE" \
   -thread_queue_size 256 -f rawvideo -pixel_format rgba -video_size 1280x139 -framerate "$CRAWL_OVERLAY_FPS" -i "http://127.0.0.1:${CRAWL_OVERLAY_PORT}/overlay.rgba" \
   -thread_queue_size 256 -f rawvideo -pixel_format rgba -video_size 1280x104 -framerate "$BEARS_NEWS_OVERLAY_FPS" -i "http://127.0.0.1:${BEARS_NEWS_OVERLAY_PORT}/overlay.rgba" \
-  -thread_queue_size 64 -re -stream_loop -1 -i "$MUSIC_LOOP_FILE" \
+  -thread_queue_size 512 -re -stream_loop -1 -i "$MUSIC_LOOP_FILE" \
   -filter_complex "[1:v][3:v]overlay=x=0:y=0:shortest=0:repeatlast=1:eof_action=repeat[withnews];[withnews][2:v]overlay=x=0:y=574:shortest=0:repeatlast=1:eof_action=repeat,drawbox=x=0:y=0:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=713:w=1280:h=7:color=0xC83803:t=fill,drawbox=x=0:y=0:w=7:h=720:color=0xC83803:t=fill,drawbox=x=1273:y=0:w=7:h=720:color=0xC83803:t=fill,format=yuv420p[v]" \
   -map "[v]" -map 4:a:0 \
   -c:v libx264 -preset ultrafast -tune zerolatency -profile:v high \
   -b:v 5000k -maxrate 5500k -bufsize 10000k \
   -g "$VIDEO_GOP" -keyint_min "$VIDEO_GOP" -sc_threshold 0 -r "$OUTPUT_FPS" -fps_mode cfr -threads 0 \
-  -c:a copy \
+  -af "aresample=44100:async=1:first_pts=0,asetpts=N/SR/TB" \
+  -c:a aac -b:a 128k -ar 44100 -ac 2 \
   -f tee -use_fifo 1 -fifo_options "$TEE_FIFO_OPTIONS" \
   "$TEE_TARGETS" 3> >(progress_sink) &
 FFMPEG_PID=$!
