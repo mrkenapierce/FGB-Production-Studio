@@ -2,6 +2,7 @@
 Description=FGBears YouTube RTMPS copy-remux relay
 After=network-online.target fgbears-live.service
 Wants=network-online.target
+PartOf=fgbears-live.service
 StartLimitIntervalSec=30min
 StartLimitBurst=6
 
@@ -10,6 +11,7 @@ Type=simple
 User=fgbears
 Group=fgbears
 EnvironmentFile=/etc/fgbears-live/stream.env
+ExecStartPre=/usr/local/bin/fgbears-wait-master-media-ready
 ExecStart=/usr/local/bin/fgbears-youtube-copy-relay
 Restart=on-failure
 RestartSec=5
