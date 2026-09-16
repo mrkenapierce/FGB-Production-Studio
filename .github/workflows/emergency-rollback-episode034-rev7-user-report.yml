@@ -44,24 +44,22 @@ jobs:
           SOURCE=/srv/fgbears-live/quarantine/episode034-recovery/20260916T001656Z-pre-rev7.m4a
           REJECTED_SHA=c04e4fa32a5acc4200c2ef88e8bf43f7618998768ad8c58a716f7869a35a9e7a
           GOOD_SHA=c8391464ae77eec19b85270d67522300202fe5494232581c55433f934b172a12
-          STATE=/srv/fgbears-live/runtime/lovable-audio-pipeline.json
 
           systemctl is-active --quiet "$MASTER"
           live_sha=$(sha256sum "$AUDIO" | awk '{print $1}')
           echo PRE_ROLLBACK_LIVE_SHA=$live_sha
           test "$live_sha" = "$REJECTED_SHA" || {
-            echo "ABORT: live audio changed; refusing to overwrite $live_sha" >&2
+            echo "ABORT - live audio changed; refusing to overwrite $live_sha" >&2
             exit 20
           }
           test -f "$SOURCE"
           source_sha=$(sha256sum "$SOURCE" | awk '{print $1}')
           echo VERIFIED_RECOVERY_SOURCE_SHA=$source_sha
           test "$source_sha" = "$GOOD_SHA" || {
-            echo "ABORT: recovery source hash mismatch" >&2
+            echo "ABORT - recovery source hash mismatch" >&2
             exit 21
           }
 
-          # Freeze every automated audio mutation path before touching the live file.
           systemctl disable --now "$TIMER" >/dev/null 2>&1 || true
           systemctl stop "$SYNC" >/dev/null 2>&1 || true
 
@@ -74,7 +72,6 @@ jobs:
           mapfile -t destinations < <(systemctl list-units --type=service --state=running --no-legend --no-pager 'fgbears-*' | awk '{print $1}' | grep -E 'youtube|rumble|facebook|relay|uplink' || true)
           echo PRE_ROLLBACK_DESTINATIONS="${destinations[*]:-none}"
 
-          # Atomic byte-for-byte restore. No decode, normalization, gain, filtering, or re-encode.
           cp -p "$SOURCE" "$AUDIO.rollback"
           chown fgbears:fgbears "$AUDIO.rollback"
           chmod 0644 "$AUDIO.rollback"
@@ -96,56 +93,29 @@ jobs:
           systemctl is-active --quiet "$RELAY"
           test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$GOOD_SHA"
 
-          # Prove the master is actually reading the restored file.
           mpid=$(systemctl show -p MainPID --value "$MASTER")
           ffpid=$(pgrep -P "$mpid" -x ffmpeg | head -1 || true)
           test -n "$ffpid"
           ls -l "/proc/$ffpid/fd" 2>/dev/null | grep -Fq "$AUDIO"
 
-          # Prove the master media clock is advancing after restart.
           progress=/srv/fgbears-live/runtime/master.progress
           read_progress(){ awk -F= '$1=="out_time_us"{v=$2} END{print v+0}' "$progress" 2>/dev/null || echo 0; }
-          p1=$(read_progress); sleep 5; p2=$(read_progress)
+          p1=$(read_progress)
+          sleep 5
+          p2=$(read_progress)
           echo MASTER_PROGRESS_US=$p1-$p2
           (( p2 > p1 ))
 
           for unit in "${destinations[@]}"; do
             systemctl is-active --quiet "$unit" || {
-              echo "Destination failed to return: $unit" >&2
+              echo "Destination failed to return - $unit" >&2
               exit 22
             }
           done
 
-          # Fresh restart must not immediately reproduce known timestamp-corruption signatures.
           if journalctl -u "$MASTER" -u "$RELAY" --since "@$start_epoch" --no-pager | grep -Ei 'timestamp discontinuity|DTS .* out of order|Packet corrupt|dropping it|non.monoton'; then
             echo FRESH_TIMESTAMP_CHECK=FAIL >&2
             exit 23
-          fi
-
-          if [[ -f "$STATE" ]]; then
-            python3 - "$STATE" "$GOOD_SHA" "$REJECTED_SHA" <<'PY'
-import json, os, sys, time
-p, good, rejected = sys.argv[1:]
-try:
-    s=json.load(open(p))
-except Exception:
-    s={}
-failed={int(x) for x in s.get('failedRevisions',[]) if str(x).isdigit()}
-failed.update({4,7,9})
-s.update(
-    status='rolled_back_user_report',
-    shadow=False,
-    canonicalSha256=good,
-    rejectedCanonicalSha256=rejected,
-    restoredCanonicalSha256=good,
-    failedRevisions=sorted(failed),
-    message='Episode 034 c04e production-ready candidate rejected by user; restored independently verified known-good audio byte-for-byte',
-    completedAt=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())
-)
-t=p+'.tmp'
-open(t,'w').write(json.dumps(s,indent=2,sort_keys=True)+'\n')
-os.replace(t,p)
-PY
           fi
 
           echo POST_ROLLBACK_LIVE_SHA=$(sha256sum "$AUDIO" | awk '{print $1}')
