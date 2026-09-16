@@ -60,3 +60,4 @@ echo LIVE_SHA=$(sha256sum "$AUDIO" | awk '{print $1}')
 echo MASTER_PID=$(systemctl show -p MainPID --value "$MASTER")
 echo AUTO_SYNC_TIMER=$(systemctl is-active "$TIMER" || true)
 echo ACTIVE_DESTINATIONS=${destinations[*]:-none}
+# trigger direct deployment after workflow registration
