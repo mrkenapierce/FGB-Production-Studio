@@ -1,4 +1,4 @@
-name: Probe Known-Good FGB Audio Pacing
+name: Activate Episode 034 Revision 11 with Audio Standard v4.1
 
 on:
   push:
@@ -13,10 +13,23 @@ env:
   ORACLE_USER: ubuntu
 
 jobs:
-  probe:
+  deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate v4.1 sources
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile services/fgbears-live/bin/lovable-audio-pipeline-v4.py
+          python3 -m py_compile services/fgbears-live/bin/lovable-audio-pipeline-v4-runner.py
+          python3 -m py_compile services/fgbears-live/bin/audio-health-standard-v4.py
+          grep -Fq 'gate=advancing_only' services/fgbears-live/bin/lovable-audio-pipeline-v4-runner.py
+          grep -Fq 'TARGET_RATE = 44100' services/fgbears-live/bin/lovable-audio-pipeline-v4.py
+          ! grep -Eq 'loudnorm|acompressor|alimiter|afftdn|equalizer=' services/fgbears-live/bin/lovable-audio-pipeline-v4.py
+          echo AUDIO_V41_SOURCE_VALIDATION=PASS
+
       - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -28,36 +41,143 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Measure current known-good live pacing read-only
+      - name: Stage v4.1 runtime
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/lovable-audio-pipeline-v4.py \
+            services/fgbears-live/bin/lovable-audio-pipeline-v4-runner.py \
+            services/fgbears-live/bin/audio-health-standard-v4.py \
+            services/fgbears-live/systemd/fgbears-lovable-audio-sync.service \
+            services/fgbears-live/systemd/fgbears-lovable-audio-sync.timer \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+
+      - name: Revalidate revision 11 and arm retry
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
+          CONTRACT=https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing
+          EXPECTED_SHA=c6bb57ad24bd8f06bc60c12afa534093e07afffb17ac7bf6c241f092d36d9ebd
+          GOOD_SHA=c8391464ae77eec19b85270d67522300202fe5494232581c55433f934b172a12
           AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
-          GOOD=c8391464ae77eec19b85270d67522300202fe5494232581c55433f934b172a12
-          PROGRESS=/srv/fgbears-live/logs/ffmpeg-progress.log
-          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$GOOD"
+          STATE=/srv/fgbears-live/runtime/lovable-audio-pipeline.json
+
+          curl -fsS --max-time 20 "$CONTRACT" -o /tmp/fgb-rev11-contract.json
+          test "$(jq -r '.presentation.audio.revision' /tmp/fgb-rev11-contract.json)" = 11
+          test "$(jq -r '.presentation.audio.approvalState' /tmp/fgb-rev11-contract.json)" = approved
+          test "$(jq -r '.presentation.audio.sourceSha256' /tmp/fgb-rev11-contract.json)" = "$EXPECTED_SHA"
+          test "$(jq -r '.presentation.audio.activeTrackName' /tmp/fgb-rev11-contract.json)" = FGB_Episode_034_SOUNDS_GREAT_STANDARD.m4a
+          test "$(jq -r '.presentation.audio.volumeGainDb' /tmp/fgb-rev11-contract.json)" = 0
+          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$GOOD_SHA"
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          systemctl disable --now fgbears-lovable-audio-sync.timer >/dev/null 2>&1 || true
+
+          install -d -m 0755 /usr/local/lib/fgbears-live
+          install -m 0644 /tmp/lovable-audio-pipeline-v4.py /usr/local/lib/fgbears-live/lovable-audio-pipeline-v4.py
+          install -m 0755 /tmp/lovable-audio-pipeline-v4-runner.py /usr/local/bin/fgbears-lovable-audio-pipeline
+          install -m 0755 /tmp/audio-health-standard-v4.py /usr/local/bin/fgbears-audio-health
+          install -m 0644 /tmp/fgbears-lovable-audio-sync.service /etc/systemd/system/fgbears-lovable-audio-sync.service
+          install -m 0644 /tmp/fgbears-lovable-audio-sync.timer /etc/systemd/system/fgbears-lovable-audio-sync.timer
+          systemctl daemon-reload
+
+          # The prior failed marker came only from the superseded strict progress-ratio gate.
+          tmp=$(mktemp)
+          jq '.failedRevisions = ([.failedRevisions[]? | select(. != 11)]) | .status="retry_armed" | .message="Revision 11 retry armed under audio standard v4.1"' "$STATE" > "$tmp"
+          mv -f "$tmp" "$STATE"
+          test "$(jq '[.failedRevisions[]? | select(. == 11)] | length' "$STATE")" = 0
+          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$GOOD_SHA"
+          echo REV11_V41_RETRY_ARMED=PASS
+          REMOTE
+
+      - name: Activate revision 11 through v4.1
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          EXPECTED_SHA=c6bb57ad24bd8f06bc60c12afa534093e07afffb17ac7bf6c241f092d36d9ebd
+          AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
+          /usr/local/bin/fgbears-lovable-audio-pipeline
+          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED_SHA"
+          test "$(jq -r '.appliedRevision' /srv/fgbears-live/runtime/lovable-audio-pipeline.json)" = 11
+          test "$(jq -r '.ingestMode' /srv/fgbears-live/runtime/lovable-audio-pipeline.json)" = direct_byte_for_byte
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          echo REV11_V41_ACTIVATION=PASS
+          REMOTE
+
+      - name: Gate on actual outgoing audio and relay health
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          EXPECTED_SHA=c6bb57ad24bd8f06bc60c12afa534093e07afffb17ac7bf6c241f092d36d9ebd
+          OLD_SHA=c8391464ae77eec19b85270d67522300202fe5494232581c55433f934b172a12
+          AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
+          STATE=/srv/fgbears-live/runtime/lovable-audio-pipeline.json
+          start_epoch=$(date +%s)
+
+          rollback() {
+            rc=$?
+            set +e
+            backup=$(jq -r '.rollbackBackup // empty' "$STATE")
+            if [[ -n "$backup" && -f "$backup" ]]; then
+              cp -f "$backup" "${AUDIO}.rollback-v41"
+              chown fgbears:fgbears "${AUDIO}.rollback-v41"
+              chmod 0644 "${AUDIO}.rollback-v41"
+              mv -f "${AUDIO}.rollback-v41" "$AUDIO"
+              systemctl restart fgbears-live.service
+              sleep 8
+              test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$OLD_SHA"
+            fi
+            tmp=$(mktemp)
+            jq '.failedRevisions = ((.failedRevisions // []) + [11] | unique) | .status="rolled_back" | .message="Revision 11 failed post-cutover transport health gate"' "$STATE" > "$tmp" && mv -f "$tmp" "$STATE"
+            echo REV11_V41_POST_HEALTH_ROLLBACK=COMPLETE
+            exit "$rc"
+          }
+          trap rollback ERR
+
+          sleep 10
+          /usr/local/bin/fgbears-audio-health --capture-seconds 12 | tee /tmp/fgb-v41-health.txt
+          grep -Fqx 'audio_sample_rate=44100' /tmp/fgb-v41-health.txt
+          grep -Fqx 'audio_pts_regressions=0' /tmp/fgb-v41-health.txt
+          grep -Fqx 'audio_large_pts_gaps=0' /tmp/fgb-v41-health.txt
+          grep -Fqx 'AUDIO_WARNINGS=NONE' /tmp/fgb-v41-health.txt
+          grep -Fqx 'OVERALL_STATUS=OK' /tmp/fgb-v41-health.txt
+          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED_SHA"
+          systemctl is-active --quiet fgbears-live.service
+          systemctl is-active --quiet fgbears-youtube-copy-relay.service
+          if journalctl -u fgbears-youtube-copy-relay.service --since "@$start_epoch" --no-pager | grep -Ei 'timestamp discontinuity|DTS .* out of order|Packet corrupt|dropping it|non.monoton'; then
+            false
+          fi
+          trap - ERR
+          echo REV11_V41_OUTGOING_HEALTH=PASS
+          REMOTE
+
+      - name: Enable automatic future approved audio sync
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          EXPECTED_SHA=c6bb57ad24bd8f06bc60c12afa534093e07afffb17ac7bf6c241f092d36d9ebd
+          AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
+          systemctl enable --now fgbears-lovable-audio-sync.timer
+          test "$(systemctl is-enabled fgbears-lovable-audio-sync.timer)" = enabled
+          systemctl is-active --quiet fgbears-lovable-audio-sync.timer
+          systemctl start fgbears-lovable-audio-sync.service
+          sleep 2
+          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED_SHA"
+          journalctl -u fgbears-lovable-audio-sync.service --since '-2 minutes' --no-pager | grep -Fq 'FGB_AUDIO_PIPELINE_V4 no_change revision=11 already_live'
           systemctl is-active --quiet fgbears-live.service
           systemctl is-active --quiet fgbears-youtube-copy-relay.service
           echo LIVE_SHA=$(sha256sum "$AUDIO" | awk '{print $1}')
-          echo TIMER_ACTIVE=$(systemctl is-active fgbears-lovable-audio-sync.timer 2>/dev/null || true)
-          echo TIMER_ENABLED=$(systemctl is-enabled fgbears-lovable-audio-sync.timer 2>/dev/null || true)
-
-          progress_us() {
-            sed -n -e 's/^out_time_us=\([0-9]*\)$/\1/p' -e 's/^out_time_ms=\([0-9]*\)$/\1/p' "$PROGRESS" | tail -n1
-          }
-          m0=$(progress_us); t0=$(date +%s%N)
-          sleep 15
-          m1=$(progress_us); t1=$(date +%s%N)
-          ratio=$(python3 -c 'import sys; m0,m1,t0,t1=map(int,sys.argv[1:]); print(((m1-m0)/1e6)/((t1-t0)/1e9))' "$m0" "$m1" "$t0" "$t1")
-          echo GOOD_PROGRESS_M0=$m0
-          echo GOOD_PROGRESS_M1=$m1
-          echo GOOD_PROGRESS_RATIO=$ratio
-
-          echo '=== CURRENT V4 HEALTH WRAPPER ==='
-          /usr/local/bin/fgbears-audio-health --capture-seconds 8 || true
-          echo '=== PIPELINE STATE ==='
-          cat /srv/fgbears-live/runtime/lovable-audio-pipeline.json
-          echo KNOWN_GOOD_PACING_PROBE=PASS
+          echo AUDIO_SYNC_TIMER=$(systemctl is-active fgbears-lovable-audio-sync.timer)
+          echo FGB_AUDIO_STANDARD_V41=PASS
           REMOTE
