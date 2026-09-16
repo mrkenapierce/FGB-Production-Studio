@@ -1,5 +1,8 @@
 [Unit]
-Description=Poll Lovable for explicitly approved FGB audio every 15 seconds
+Description=QUARANTINED - legacy Lovable audio preparation poller
+# No production activation is allowed. This unit is retained only for incident
+# history and must remain masked on Oracle.
+ConditionPathExists=/etc/fgbears-live/UNQUARANTINE_LEGACY_AUDIO_PREPARATION
 
 [Timer]
 OnCalendar=*-*-* *:*:00,15,30,45
