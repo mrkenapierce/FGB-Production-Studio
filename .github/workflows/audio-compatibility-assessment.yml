@@ -1,5 +1,6 @@
 name: Read-Only Audio Compatibility Assessment
 
+# Registered workflow; this edit triggers the read-only assessment.
 on:
   push:
     branches: [main]
