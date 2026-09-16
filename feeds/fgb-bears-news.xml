@@ -5,28 +5,78 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 16 Sep 2026 05:28:33 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 16 Sep 2026 14:56:42 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears Week 2 NFL Power Rankings Roundup</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Week 2 NFL Power Rankings Roundup</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-week-2-nfl-034030751.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c4f4f3fa13aed108daca</guid>
-      <pubDate>Wed, 16 Sep 2026 03:40:30 GMT</pubDate>
+      <title>How to watch, listen to, stream Bears-Vikings Week 2 game</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: How to watch, listen to, stream Bears-Vikings Week 2 game</description>
+      <link>https://www.chicagobears.com/news/how-to-watch-chicago-bears-minnesota-vikings-2026-week-2-listen-stream-tv-radio-football-online-nfl</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4ce548887c3cbdf7cee3</guid>
+      <pubDate>Wed, 16 Sep 2026 14:48:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears-Panthers Upon Further Review: A Closer Look at the Referees</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears-Panthers Upon Further Review: A Closer Look at the Referees</description>
+      <link>https://sports.yahoo.com/articles/bears-panthers-upon-further-review-140000210.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d41b18fabb1b96126260</guid>
+      <pubDate>Wed, 16 Sep 2026 14:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>How confident are you in the Chicago Bears?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: How confident are you in the Chicago Bears?</description>
-      <link>https://sports.yahoo.com/articles/confident-chicago-bears-030000743.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2cad12b7f85fd8d392c9</guid>
-      <pubDate>Wed, 16 Sep 2026 03:00:00 GMT</pubDate>
+      <title>Midweek Musings: Buckle Up, Bears Fans</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Midweek Musings: Buckle Up, Bears Fans</description>
+      <link>https://sports.yahoo.com/articles/midweek-musings-buckle-bears-fans-120000738.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9b0ac96454a1b8c4d9c8</guid>
+      <pubDate>Wed, 16 Sep 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Brian Flores-Ben Johnson showdown takes center stage in Vikings-Bears Week 2 matchup</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Brian Flores-Ben Johnson showdown takes center stage in Vikings-Bears Week 2 matchup</description>
+      <link>https://www.nytimes.com/athletic/7597818/2026/09/16/brian-flores-ben-johnson-vikings-bears-nfc-north/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5d1c8fbdb36c72116b7c</guid>
+      <pubDate>Wed, 16 Sep 2026 05:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Behind the Chicago Bears’ 59 points: Four moments that changed the game</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Behind the Chicago Bears’ 59 points: Four moments that changed the game</description>
+      <link>https://www.nytimes.com/athletic/7597037/2026/09/16/bears-59-points-key-moments-panthers/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cf77453b14e640a1c06e</guid>
+      <pubDate>Wed, 16 Sep 2026 04:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>&apos;No block, no rock&apos; is not just a mantra for Bears&apos; offense</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: &apos;No block, no rock&apos; is not just a mantra for Bears&apos; offense</description>
+      <link>https://www.espn.com/nfl/story/_/id/49952527/chicago-bears-blocking-schemes</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-36f3bd3f2a45bc15533a</guid>
+      <pubDate>Wed, 16 Sep 2026 04:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Brian Flores-Ben Johnson showdown takes center stage in Vikings-Bears Week 2 matchup</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Brian Flores-Ben Johnson showdown takes center stage in Vikings-Bears Week 2 matchup</description>
+      <link>https://www.nfl.com/news/brian-flores-ben-johnson-showdown-takes-center-stage-in-vikings-bears-week-2-matchup</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-77592ec2a2b8cc23000a</guid>
+      <pubDate>Tue, 15 Sep 2026 22:16:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
@@ -37,56 +87,6 @@
       <pubDate>Tue, 15 Sep 2026 19:45:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Dillon Thieneman: Busy in NFL debut</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Dillon Thieneman: Busy in NFL debut</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-dillon-thieneman-busy-in-nfl-debut/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dc4b46133a61937d5e71</guid>
-      <pubDate>Tue, 15 Sep 2026 18:19:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Sophia&apos;s Cleaning Service named first Chicago Bears 2026 Small Business All-Pro, presented by PNC</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Sophia&apos;s Cleaning Service named first Chicago Bears 2026 Small Business All-Pro, presented by PNC</description>
-      <link>https://www.chicagobears.com/news/sophia-s-cleaning-service-named-first-chicago-bears-2026-small-business-all-pro-presented-by-pnc</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1afbbf3b1ac00b88cb6d</guid>
-      <pubDate>Tue, 15 Sep 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson suggests he wanted Bears to score 60 points at Carolina</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Ben Johnson suggests he wanted Bears to score 60 points at Carolina</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/ben-johnson-suggests-he-wanted-bears-to-score-60-points-at-carolina</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1c6d13f33221eadaef36</guid>
-      <pubDate>Tue, 15 Sep 2026 16:35:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears kick off Latino Heritage Month by recognizing Alison Segarra and Alejandro Gonzalez as 2026 Latino Heritage Month Youth Leaders</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears kick off Latino Heritage Month by recognizing Alison Segarra and Alejandro Gonzalez as 2026 Latino Heritage Month Youth Leaders</description>
-      <link>https://www.chicagobears.com/news/chicago-bears-kick-off-latino-heritage-month-by-recognizing-alison-segarra-and-alejandro-gonzalez-as-2026-latino-heritage-month-youth-leaders</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-07e308a908757bfa8769</guid>
-      <pubDate>Tue, 15 Sep 2026 15:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Ranking Dillon Thieneman’s Debut Among Bears’ Defensive First-Round Picks Since 2000</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ranking Dillon Thieneman’s Debut Among Bears’ Defensive First-Round Picks Since 2000</description>
-      <link>https://www.si.com/nfl/bears/onsi/ranking-dillon-thieneman-bears-defensive-first-round-picks-since-2000</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ea3fb4845ed41261e8c6</guid>
-      <pubDate>Tue, 15 Sep 2026 12:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
