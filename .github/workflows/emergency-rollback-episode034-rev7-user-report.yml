@@ -1,0 +1,89 @@
+name: Emergency Rollback Episode 034 Revision 7 User Report
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/emergency-rollback-episode034-rev7-user-report.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Restore pre-revision-7 known-good audio immediately
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          MASTER=fgbears-live.service
+          AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
+          Q=/srv/fgbears-live/quarantine/episode034-recovery
+          STATE=/srv/fgbears-live/runtime/lovable-audio-pipeline.json
+
+          systemctl disable --now fgbears-lovable-audio-sync.timer >/dev/null 2>&1 || true
+          backup=$(find "$Q" -maxdepth 1 -type f -name '*-pre-rev7.m4a' -printf '%T@ %p\n' | sort -nr | head -1 | cut -d' ' -f2-)
+          test -n "$backup" && test -s "$backup"
+          backup_sha=$(sha256sum "$backup" | awk '{print $1}')
+          bad_sha=$(sha256sum "$AUDIO" | awk '{print $1}')
+          echo "ROLLBACK_SOURCE=$backup"
+          echo "ROLLBACK_SOURCE_SHA=$backup_sha"
+          echo "BAD_LIVE_SHA=$bad_sha"
+
+          cp -p "$backup" "$AUDIO.rollback"
+          chown fgbears:fgbears "$AUDIO.rollback"
+          chmod 0644 "$AUDIO.rollback"
+          mv -f "$AUDIO.rollback" "$AUDIO"
+
+          systemctl reset-failed "$MASTER" || true
+          systemctl restart "$MASTER"
+
+          deadline=$((SECONDS+60)); opened=no
+          while (( SECONDS < deadline )); do
+            if systemctl is-active --quiet "$MASTER"; then
+              mpid=$(systemctl show -p MainPID --value "$MASTER")
+              ffpid=$(pgrep -P "$mpid" -x ffmpeg | head -1 || true)
+              if [[ -n "$ffpid" ]] && ls -l "/proc/$ffpid/fd" 2>/dev/null | grep -Fq "$AUDIO"; then opened=yes; break; fi
+            fi
+            sleep 1
+          done
+          test "$opened" = yes
+          restored_sha=$(sha256sum "$AUDIO" | awk '{print $1}')
+          test "$restored_sha" = "$backup_sha"
+
+          python3 - "$STATE" "$bad_sha" "$backup_sha" <<'PY'
+          import json,sys,time,os
+          p,bad,restored=sys.argv[1:]
+          try: s=json.load(open(p))
+          except: s={}
+          failed={int(x) for x in s.get('failedRevisions',[]) if str(x).isdigit()}
+          failed.add(7)
+          s.update(status='rolled_back',candidateRevision=7,failedRevisions=sorted(failed),message='Revision 7 rejected by user due to bad audio; restored pre-revision-7 known-good audio',rejectedCanonicalSha256=bad,restoredCanonicalSha256=restored,completedAt=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()))
+          t=p+'.tmp'; open(t,'w').write(json.dumps(s,indent=2,sort_keys=True)+'\n'); os.replace(t,p)
+          PY
+
+          echo "MASTER=$(systemctl is-active "$MASTER")"
+          echo "AUTO_SYNC_TIMER=$(systemctl is-active fgbears-lovable-audio-sync.timer || true)"
+          echo "RESTORED_SHA=$restored_sha"
+          echo "EPISODE_034_USER_REPORT_ROLLBACK=PASS"
+          REMOTE
