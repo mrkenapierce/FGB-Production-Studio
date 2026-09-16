@@ -43,25 +43,53 @@ jobs:
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
           set -Eeuo pipefail
           AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
+          Q=/srv/fgbears-live/quarantine/legacy-lovable-audio-preparation
+          BIN=/usr/local/bin/fgbears-lovable-audio-pipeline
+          SERVICE=/etc/systemd/system/fgbears-lovable-audio-sync.service
+          TIMER=/etc/systemd/system/fgbears-lovable-audio-sync.timer
           before_pid=$(systemctl show -p MainPID --value fgbears-live.service)
           before_sha=$(sha256sum "$AUDIO" | awk '{print $1}')
-          install -m 0644 /tmp/fgbears-lovable-audio-sync.service /etc/systemd/system/fgbears-lovable-audio-sync.service
-          install -m 0644 /tmp/fgbears-lovable-audio-sync.timer /etc/systemd/system/fgbears-lovable-audio-sync.timer
+
+          mkdir -p "$Q"
           rm -f /etc/fgbears-live/UNQUARANTINE_LEGACY_AUDIO_PREPARATION
           systemctl disable --now fgbears-lovable-audio-sync.timer || true
           systemctl stop fgbears-lovable-audio-sync.service || true
+
+          # Preserve the legacy implementation for forensics, but remove every
+          # executable production entry point.
+          install -m 0644 /tmp/fgbears-lovable-audio-sync.service "$Q/fgbears-lovable-audio-sync.service"
+          install -m 0644 /tmp/fgbears-lovable-audio-sync.timer "$Q/fgbears-lovable-audio-sync.timer"
+          if [[ -f "$BIN" && ! -f "$Q/fgbears-lovable-audio-pipeline.legacy" ]]; then
+            cp -a "$BIN" "$Q/fgbears-lovable-audio-pipeline.legacy"
+          fi
+          cat > "$BIN" <<'STUB'
+#!/usr/bin/env bash
+echo 'FGB legacy Lovable 48 kHz audio preparation pathway is QUARANTINED. Refusing execution.' >&2
+exit 78
+STUB
+          chmod 0755 "$BIN"
+
+          rm -f "$SERVICE" "$TIMER"
+          ln -s /dev/null "$SERVICE"
+          ln -s /dev/null "$TIMER"
           systemctl daemon-reload
-          systemctl mask --now fgbears-lovable-audio-sync.timer
-          systemctl mask --now fgbears-lovable-audio-sync.service
+          systemctl reset-failed fgbears-lovable-audio-sync.service fgbears-lovable-audio-sync.timer || true
+
           after_pid=$(systemctl show -p MainPID --value fgbears-live.service)
           after_sha=$(sha256sum "$AUDIO" | awk '{print $1}')
           test "$before_pid" = "$after_pid"
           test "$before_sha" = "$after_sha"
+          test -L "$SERVICE" && test "$(readlink "$SERVICE")" = /dev/null
+          test -L "$TIMER" && test "$(readlink "$TIMER")" = /dev/null
           test "$(systemctl is-enabled fgbears-lovable-audio-sync.timer 2>/dev/null || true)" = masked
           test "$(systemctl is-enabled fgbears-lovable-audio-sync.service 2>/dev/null || true)" = masked
+          test "$(systemctl is-active fgbears-lovable-audio-sync.timer 2>/dev/null || true)" != active
+          test "$(systemctl is-active fgbears-lovable-audio-sync.service 2>/dev/null || true)" != active
+
           echo MASTER_PID_UNCHANGED=$after_pid
           echo LIVE_SHA_UNCHANGED=$after_sha
-          echo LEGACY_AUDIO_SYNC_TIMER=$(systemctl is-enabled fgbears-lovable-audio-sync.timer 2>/dev/null || true)
-          echo LEGACY_AUDIO_SYNC_SERVICE=$(systemctl is-enabled fgbears-lovable-audio-sync.service 2>/dev/null || true)
+          echo LEGACY_AUDIO_SYNC_TIMER=masked
+          echo LEGACY_AUDIO_SYNC_SERVICE=masked
+          echo LEGACY_PIPELINE_EXECUTABLE=refusal_stub
           echo LEGACY_AUDIO_PATHWAY=QUARANTINED
           REMOTE
