@@ -1,0 +1,48 @@
+name: Probe Episode 034 Revision 5 Preflight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-episode034-rev5-preflight.yml'
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Print protected preflight facts
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -u
+          echo '=== CONTRACT AUDIO ==='
+          curl -fsS --max-time 20 https://epiccontentcreatorgrants.org/api/public/fgbears/stream-routing | jq '.presentation.audio'
+          echo '=== TIMER ==='
+          systemctl show fgbears-lovable-audio-sync.timer -p ActiveState -p SubState --no-pager
+          echo '=== MASTER ==='
+          systemctl show fgbears-live.service -p ActiveState -p SubState -p MainPID --no-pager
+          echo '=== STAGE ==='
+          sudo ls -l /srv/fgbears-live/audio/incoming/recovery-episode034 || true
+          sudo sha256sum /srv/fgbears-live/audio/incoming/recovery-episode034/candidate.m4a || true
+          sudo cat /srv/fgbears-live/audio/incoming/recovery-episode034/canonical.sha256 || true
+          sudo jq '{profile,quality_verified,dynamic_processing,source_sha256,audio_codec,sample_rate_hz,channels,output_metrics}' /srv/fgbears-live/audio/incoming/recovery-episode034/candidate.m4a.audio-profile.json || true
+          echo REV5_PREFLIGHT_PROBE=COMPLETE
+          REMOTE
