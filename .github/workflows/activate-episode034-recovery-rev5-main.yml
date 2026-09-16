@@ -1,4 +1,4 @@
-name: Probe Episode 034 Direct Cutover State
+name: Re-enable Episode 034 Audio Sync Safely
 
 on:
   push:
@@ -13,7 +13,7 @@ env:
   ORACLE_USER: ubuntu
 
 jobs:
-  probe:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -27,28 +27,29 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Read only direct cutover state
+      - name: Enable sync and verify revision 9 remains untouched
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
-          set -u
+          set -Eeuo pipefail
+          EXPECTED=c04e4fa32a5acc4200c2ef88e8bf43f7618998768ad8c58a716f7869a35a9e7a
           AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
-          STAGE=/srv/fgbears-live/audio/incoming/episode034-production-ready-direct.m4a
-          echo MASTER_STATE=$(systemctl is-active fgbears-live.service || true)
-          echo MASTER_PID=$(systemctl show -p MainPID --value fgbears-live.service)
-          echo TIMER=$(systemctl is-active fgbears-lovable-audio-sync.timer || true)
+          TIMER=fgbears-lovable-audio-sync.timer
+          SERVICE=fgbears-lovable-audio-sync.service
+          MASTER=fgbears-live.service
+          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED"
+          systemctl enable --now "$TIMER"
+          systemctl is-enabled --quiet "$TIMER"
+          systemctl is-active --quiet "$TIMER"
+          systemctl start "$SERVICE"
+          systemctl is-active --quiet "$MASTER"
+          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED"
+          state=$(cat /srv/fgbears-live/runtime/lovable-audio-pipeline.json)
+          echo "$state" | jq -e '.appliedRevision==9 and .status=="live" and .sourceSha256=="c04e4fa32a5acc4200c2ef88e8bf43f7618998768ad8c58a716f7869a35a9e7a"' >/dev/null
+          echo TIMER=$(systemctl is-active "$TIMER")
+          echo MASTER=$(systemctl is-active "$MASTER")
           echo LIVE_SHA=$(sha256sum "$AUDIO" | awk '{print $1}')
-          echo STAGE_SHA=$(sha256sum "$STAGE" 2>/dev/null | awk '{print $1}')
-          echo LIVE_PROBE=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,start_time -of csv=p=0 "$AUDIO" 2>/dev/null || true)
-          echo STAGE_PROBE=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,start_time -of csv=p=0 "$STAGE" 2>/dev/null || true)
-          mpid=$(systemctl show -p MainPID --value fgbears-live.service)
-          echo PROCESS_TREE
-          ps -eo pid=,ppid=,comm=,args= | awk -v p="$mpid" '$1==p || $2==p {print}'
-          echo FFMPEG_OPEN_AUDIO
-          for f in $(pgrep -x ffmpeg || true); do ls -l /proc/$f/fd 2>/dev/null | grep -F "$AUDIO" && echo FFMPEG_PID=$f; done
-          echo ACTIVE_DESTINATIONS
-          systemctl list-units --type=service --state=running --no-legend --no-pager 'fgbears-*' | awk '{print $1}' | grep -E 'youtube|rumble|facebook|relay|uplink' || true
-          echo PIPELINE_STATE
-          cat /srv/fgbears-live/runtime/lovable-audio-pipeline.json || true
+          journalctl -u "$SERVICE" -n 8 --no-pager | tail -8
+          echo EPISODE_034_SYNC_REENABLE=PASS
           REMOTE
