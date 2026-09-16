@@ -1,4 +1,4 @@
-name: Reset YouTube Relay Timestamp State
+name: Deploy Permanent YouTube Relay Resync Guard
 
 on:
   push:
@@ -13,10 +13,23 @@ env:
   ORACLE_USER: ubuntu
 
 jobs:
-  repair:
+  deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate resync guard files
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/wait-master-media-ready.sh
+          bash -n services/fgbears-live/bin/install.sh
+          grep -Fq 'ExecStartPost=+/usr/bin/systemctl --no-block restart fgbears-youtube-copy-relay.service' services/fgbears-live/systemd/fgbears-live.service
+          grep -Fq 'PartOf=fgbears-live.service' services/fgbears-live/systemd/fgbears-youtube-copy-relay.service
+          grep -Fq 'ExecStartPre=/usr/local/bin/fgbears-wait-master-media-ready' services/fgbears-live/systemd/fgbears-youtube-copy-relay.service
+          grep -Fq 'fgbears-wait-master-media-ready' services/fgbears-live/bin/install.sh
+          echo RESYNC_GUARD_SOURCE_VALIDATION=PASS
+
       - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -27,7 +40,19 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Reset relay only and verify clean state
+
+      - name: Stage resync guard files
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          scp -i ~/.ssh/oracle_key \
+            services/fgbears-live/bin/wait-master-media-ready.sh \
+            services/fgbears-live/systemd/fgbears-live.service \
+            services/fgbears-live/systemd/fgbears-youtube-copy-relay.service \
+            "$ORACLE_USER@$ORACLE_HOST:/tmp/"
+
+      - name: Install without restarting master and verify
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -37,38 +62,52 @@ jobs:
           RELAY=fgbears-youtube-copy-relay.service
           AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
           EXPECTED=c04e4fa32a5acc4200c2ef88e8bf43f7618998768ad8c58a716f7869a35a9e7a
+
           systemctl is-active --quiet "$MASTER"
           systemctl is-active --quiet "$RELAY"
           test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED"
           master_before=$(systemctl show -p MainPID --value "$MASTER")
           relay_before=$(systemctl show -p MainPID --value "$RELAY")
+
+          install -m 0755 /tmp/wait-master-media-ready.sh /usr/local/bin/fgbears-wait-master-media-ready
+          install -m 0644 /tmp/fgbears-live.service /etc/systemd/system/fgbears-live.service
+          install -m 0644 /tmp/fgbears-youtube-copy-relay.service /etc/systemd/system/fgbears-youtube-copy-relay.service
+          systemd-analyze verify /etc/systemd/system/fgbears-live.service /etc/systemd/system/fgbears-youtube-copy-relay.service
+          systemctl daemon-reload
+
+          # Installing/reloading the unit definitions must not interrupt live media.
+          test "$(systemctl show -p MainPID --value "$MASTER")" = "$master_before"
+          test "$(systemctl show -p MainPID --value "$RELAY")" = "$relay_before"
+          test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED"
+
+          # Prove the readiness gate can observe a genuinely advancing master clock.
+          sudo -u fgbears /usr/local/bin/fgbears-wait-master-media-ready
+
+          systemctl show "$RELAY" -p PartOf --value | tr ' ' '\n' | grep -Fxq 'fgbears-live.service'
+          systemctl cat "$RELAY" | grep -Fq 'ExecStartPre=/usr/local/bin/fgbears-wait-master-media-ready'
+          systemctl cat "$MASTER" | grep -Fq 'ExecStartPost=+/usr/bin/systemctl --no-block restart fgbears-youtube-copy-relay.service'
+
+          # Activate the new relay pre-start gate. Do not restart the master.
           start_epoch=$(date +%s)
           systemctl restart "$RELAY"
-          deadline=$((SECONDS+45))
-          while (( SECONDS < deadline )); do
-            systemctl is-active --quiet "$RELAY" && break
-            sleep 1
-          done
           systemctl is-active --quiet "$RELAY"
-          sleep 12
+          sleep 15
+
           master_after=$(systemctl show -p MainPID --value "$MASTER")
           relay_after=$(systemctl show -p MainPID --value "$RELAY")
-          test "$master_before" = "$master_after"
-          test "$relay_before" != "$relay_after"
+          test "$master_after" = "$master_before"
+          test "$relay_after" != "$relay_before"
           test "$(sha256sum "$AUDIO" | awk '{print $1}')" = "$EXPECTED"
+
+          # A freshly attached relay must not inherit stale MPEG-TS timestamp state.
+          if journalctl -u "$RELAY" --since "@$start_epoch" --no-pager | grep -Ei 'timestamp discontinuity|DTS .* out of order|Packet corrupt|dropping it|non.monoton'; then
+            echo PERMANENT_RELAY_RESYNC_GUARD=FAIL
+            exit 1
+          fi
+
           echo MASTER_PID_UNCHANGED=$master_after
           echo RELAY_PID_BEFORE=$relay_before
           echo RELAY_PID_AFTER=$relay_after
           echo LIVE_SHA=$(sha256sum "$AUDIO" | awk '{print $1}')
-          echo '=== NEW_RELAY_LOGS ==='
-          journalctl -u "$RELAY" --since "@$start_epoch" --no-pager | tail -120
-          echo '=== NEW_RELAY_TIMESTAMP_WARNINGS ==='
-          if journalctl -u "$RELAY" --since "@$start_epoch" --no-pager | grep -Ei 'timestamp discontinuity|DTS .* out of order|Packet corrupt|dropping it|non.monoton'; then
-            echo CLEAN_TIMESTAMP_STATE=FAIL
-            exit 1
-          fi
-          echo CLEAN_TIMESTAMP_STATE=PASS
-          systemctl is-active --quiet "$MASTER"
-          systemctl is-active --quiet "$RELAY"
-          echo YOUTUBE_RELAY_TIMESTAMP_RESET=PASS
+          echo PERMANENT_RELAY_RESYNC_GUARD=PASS
           REMOTE
