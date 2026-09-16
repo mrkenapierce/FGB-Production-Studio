@@ -1,4 +1,4 @@
-name: Activate Episode 034 Direct Production Ready
+name: Probe Episode 034 Direct Cutover State
 
 on:
   push:
@@ -13,27 +13,42 @@ env:
   ORACLE_USER: ubuntu
 
 jobs:
-  cutover:
+  probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-      - name: Validate direct deployment script syntax
-        run: bash -n scripts/deploy-episode034-direct.sh
       - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
           set -Eeuo pipefail
-          test -n "$ORACLE_HOST" && test -n "$ORACLE_SSH_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Deploy exact uploaded Episode 034 M4A without processing
+      - name: Read only direct cutover state
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
-          set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' < scripts/deploy-episode034-direct.sh
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
+          set -u
+          AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
+          STAGE=/srv/fgbears-live/audio/incoming/episode034-production-ready-direct.m4a
+          echo MASTER_STATE=$(systemctl is-active fgbears-live.service || true)
+          echo MASTER_PID=$(systemctl show -p MainPID --value fgbears-live.service)
+          echo TIMER=$(systemctl is-active fgbears-lovable-audio-sync.timer || true)
+          echo LIVE_SHA=$(sha256sum "$AUDIO" | awk '{print $1}')
+          echo STAGE_SHA=$(sha256sum "$STAGE" 2>/dev/null | awk '{print $1}')
+          echo LIVE_PROBE=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,start_time -of csv=p=0 "$AUDIO" 2>/dev/null || true)
+          echo STAGE_PROBE=$(ffprobe -v error -select_streams a:0 -show_entries stream=codec_name,sample_rate,channels,start_time -of csv=p=0 "$STAGE" 2>/dev/null || true)
+          mpid=$(systemctl show -p MainPID --value fgbears-live.service)
+          echo PROCESS_TREE
+          ps -eo pid=,ppid=,comm=,args= | awk -v p="$mpid" '$1==p || $2==p {print}'
+          echo FFMPEG_OPEN_AUDIO
+          for f in $(pgrep -x ffmpeg || true); do ls -l /proc/$f/fd 2>/dev/null | grep -F "$AUDIO" && echo FFMPEG_PID=$f; done
+          echo ACTIVE_DESTINATIONS
+          systemctl list-units --type=service --state=running --no-legend --no-pager 'fgbears-*' | awk '{print $1}' | grep -E 'youtube|rumble|facebook|relay|uplink' || true
+          echo PIPELINE_STATE
+          cat /srv/fgbears-live/runtime/lovable-audio-pipeline.json || true
+          REMOTE
