@@ -55,18 +55,12 @@ jobs:
           systemctl disable --now fgbears-lovable-audio-sync.timer || true
           systemctl stop fgbears-lovable-audio-sync.service || true
 
-          # Preserve the legacy implementation for forensics, but remove every
-          # executable production entry point.
           install -m 0644 /tmp/fgbears-lovable-audio-sync.service "$Q/fgbears-lovable-audio-sync.service"
           install -m 0644 /tmp/fgbears-lovable-audio-sync.timer "$Q/fgbears-lovable-audio-sync.timer"
           if [[ -f "$BIN" && ! -f "$Q/fgbears-lovable-audio-pipeline.legacy" ]]; then
             cp -a "$BIN" "$Q/fgbears-lovable-audio-pipeline.legacy"
           fi
-          cat > "$BIN" <<'STUB'
-#!/usr/bin/env bash
-echo 'FGB legacy Lovable 48 kHz audio preparation pathway is QUARANTINED. Refusing execution.' >&2
-exit 78
-STUB
+          printf '%s\n' '#!/usr/bin/env bash' "echo 'FGB legacy Lovable 48 kHz audio preparation pathway is QUARANTINED. Refusing execution.' >&2" 'exit 78' > "$BIN"
           chmod 0755 "$BIN"
 
           rm -f "$SERVICE" "$TIMER"
