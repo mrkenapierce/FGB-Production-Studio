@@ -1,0 +1,12 @@
+[Unit]
+Description=Poll Lovable for approved FGB audio using safe v4 pathway every 15 seconds
+
+[Timer]
+OnCalendar=*-*-* *:*:00,15,30,45
+AccuracySec=1s
+RandomizedDelaySec=0
+Persistent=true
+Unit=fgbears-lovable-audio-v4-sync.service
+
+[Install]
+WantedBy=timers.target
