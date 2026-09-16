@@ -1,10 +1,12 @@
-name: Quarantine Legacy Lovable Audio Pathway
+name: Read-Only Audio Compatibility Assessment
 
+# Current approved-audio deployment probe.
 on:
   push:
     branches: [main]
     paths:
       - '.github/workflows/audio-compatibility-assessment.yml'
+      - 'scripts/audio-compatibility-assessment.sh'
 
 permissions:
   contents: read
@@ -13,7 +15,7 @@ env:
   ORACLE_USER: ubuntu
 
 jobs:
-  quarantine:
+  assess:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -28,62 +30,7 @@ jobs:
           printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
-      - name: Stage quarantined unit definitions
+      - name: Run read-only compatibility assessment on Oracle
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          scp -i ~/.ssh/oracle_key \
-            services/fgbears-live/systemd/fgbears-lovable-audio-sync.service \
-            services/fgbears-live/systemd/fgbears-lovable-audio-sync.timer \
-            "$ORACLE_USER@$ORACLE_HOST:/tmp/"
-      - name: Quarantine old preparation pathway without touching live media
-        env:
-          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
-        run: |
-          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' <<'REMOTE'
-          set -Eeuo pipefail
-          AUDIO=/srv/fgbears-live/audio/fgb-music-loop.m4a
-          Q=/srv/fgbears-live/quarantine/legacy-lovable-audio-preparation
-          BIN=/usr/local/bin/fgbears-lovable-audio-pipeline
-          SERVICE=/etc/systemd/system/fgbears-lovable-audio-sync.service
-          TIMER=/etc/systemd/system/fgbears-lovable-audio-sync.timer
-          before_pid=$(systemctl show -p MainPID --value fgbears-live.service)
-          before_sha=$(sha256sum "$AUDIO" | awk '{print $1}')
-
-          mkdir -p "$Q"
-          rm -f /etc/fgbears-live/UNQUARANTINE_LEGACY_AUDIO_PREPARATION
-          systemctl disable --now fgbears-lovable-audio-sync.timer || true
-          systemctl stop fgbears-lovable-audio-sync.service || true
-
-          install -m 0644 /tmp/fgbears-lovable-audio-sync.service "$Q/fgbears-lovable-audio-sync.service"
-          install -m 0644 /tmp/fgbears-lovable-audio-sync.timer "$Q/fgbears-lovable-audio-sync.timer"
-          if [[ -f "$BIN" && ! -f "$Q/fgbears-lovable-audio-pipeline.legacy" ]]; then
-            cp -a "$BIN" "$Q/fgbears-lovable-audio-pipeline.legacy"
-          fi
-          printf '%s\n' '#!/usr/bin/env bash' "echo 'FGB legacy Lovable 48 kHz audio preparation pathway is QUARANTINED. Refusing execution.' >&2" 'exit 78' > "$BIN"
-          chmod 0755 "$BIN"
-
-          rm -f "$SERVICE" "$TIMER"
-          ln -s /dev/null "$SERVICE"
-          ln -s /dev/null "$TIMER"
-          systemctl daemon-reload
-          systemctl reset-failed fgbears-lovable-audio-sync.service fgbears-lovable-audio-sync.timer || true
-
-          after_pid=$(systemctl show -p MainPID --value fgbears-live.service)
-          after_sha=$(sha256sum "$AUDIO" | awk '{print $1}')
-          test "$before_pid" = "$after_pid"
-          test "$before_sha" = "$after_sha"
-          test -L "$SERVICE" && test "$(readlink "$SERVICE")" = /dev/null
-          test -L "$TIMER" && test "$(readlink "$TIMER")" = /dev/null
-          test "$(systemctl is-enabled fgbears-lovable-audio-sync.timer 2>/dev/null || true)" = masked
-          test "$(systemctl is-enabled fgbears-lovable-audio-sync.service 2>/dev/null || true)" = masked
-          test "$(systemctl is-active fgbears-lovable-audio-sync.timer 2>/dev/null || true)" != active
-          test "$(systemctl is-active fgbears-lovable-audio-sync.service 2>/dev/null || true)" != active
-
-          echo MASTER_PID_UNCHANGED=$after_pid
-          echo LIVE_SHA_UNCHANGED=$after_sha
-          echo LEGACY_AUDIO_SYNC_TIMER=masked
-          echo LEGACY_AUDIO_SYNC_SERVICE=masked
-          echo LEGACY_PIPELINE_EXECUTABLE=refusal_stub
-          echo LEGACY_AUDIO_PATHWAY=QUARANTINED
-          REMOTE
+        run: ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'sudo bash -s' < scripts/audio-compatibility-assessment.sh
