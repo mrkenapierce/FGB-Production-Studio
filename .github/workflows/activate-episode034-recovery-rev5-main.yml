@@ -6,6 +6,7 @@ on:
     paths:
       - '.github/workflows/activate-episode034-recovery-rev5-main.yml'
       - 'scripts/deploy-safe-audio-v4-rev11.sh'
+      - 'services/fgbears-live/bin/lovable-audio-pipeline-v4.py'
 
 permissions:
   contents: read
