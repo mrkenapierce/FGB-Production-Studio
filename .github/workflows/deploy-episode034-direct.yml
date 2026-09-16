@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - '.github/workflows/deploy-episode034-direct.yml'
+      - 'scripts/deploy-episode034-direct.sh'
 permissions:
   contents: read
 jobs:
@@ -26,4 +26,3 @@ jobs:
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: ssh -i ~/.ssh/oracle_key ubuntu@$ORACLE_HOST 'sudo bash -s' < scripts/deploy-episode034-direct.sh
-# trigger revision 9 direct deployment
