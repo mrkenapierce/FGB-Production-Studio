@@ -5,16 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 16 Sep 2026 21:42:16 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 16 Sep 2026 23:50:40 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears’ Caleb Williams wins FedEx Air &amp; Ground Player of the Week</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Caleb Williams wins FedEx Air &amp; Ground Player of the Week</description>
-      <link>https://sports.yahoo.com/articles/bears-caleb-williams-wins-fedex-210000011.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-aabbb62deae26995a4df</guid>
-      <pubDate>Wed, 16 Sep 2026 21:00:00 GMT</pubDate>
+      <title>D&apos;Andre Swift, Kyle Monangai limited in Bears practice</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: D&apos;Andre Swift, Kyle Monangai limited in Bears practice</description>
+      <link>https://sports.yahoo.com/articles/dandre-swift-kyle-monangai-limited-223759817.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f010e3abec08683445f0</guid>
+      <pubDate>Wed, 16 Sep 2026 22:37:59 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Vikings-Bears First Injury Report</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Vikings-Bears First Injury Report</description>
+      <link>https://sports.yahoo.com/articles/vikings-bears-first-injury-report-223736548.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-523d01217831558848f5</guid>
+      <pubDate>Wed, 16 Sep 2026 22:37:36 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -30,6 +40,36 @@
     </item>
 
     <item>
+      <title>Bears&apos; Malik Muhammad: Working through ankle injury</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Malik Muhammad: Working through ankle injury</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-malik-muhammad-working-through-ankle-injury/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cfc92d4ef8abcae22bb8</guid>
+      <pubDate>Wed, 16 Sep 2026 16:21:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Xavier Woods: Limited in Wednesday&apos;s practice</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Xavier Woods: Limited in Wednesday&apos;s practice</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-xavier-woods-limited-in-wednesdays-practice/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-83bb473c039225ca5f3c</guid>
+      <pubDate>Wed, 16 Sep 2026 16:18:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Ben Johnson Admits to Being on Torturous Path Before Showdown With Brian Flores, Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Ben Johnson Admits to Being on Torturous Path Before Showdown With Brian Flores, Vikings</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-ben-johnson-admits-to-being-on-torturous-path-before-showdown-with-brian-flores-vikings</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ca4772f320a8801c40ab</guid>
+      <pubDate>Wed, 16 Sep 2026 16:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>How to watch, listen to, stream Bears-Vikings Week 2 game</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: How to watch, listen to, stream Bears-Vikings Week 2 game</description>
       <link>https://www.chicagobears.com/news/how-to-watch-chicago-bears-minnesota-vikings-2026-week-2-listen-stream-tv-radio-football-online-nfl</link>
@@ -40,53 +80,13 @@
     </item>
 
     <item>
-      <title>3 Bold predictions for the Vikings Week 2 matchup with the Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 3 Bold predictions for the Vikings Week 2 matchup with the Bears</description>
-      <link>https://sports.yahoo.com/articles/3-bold-predictions-vikings-week-212516301.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-96a062cc1cb4b65714c1</guid>
-      <pubDate>Wed, 16 Sep 2026 14:25:00 GMT</pubDate>
+      <title>D&apos;Andre Swift, Kyle Monangai, Darnell Wright Among New Additions to Bears&apos; Injury Report</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: D&apos;Andre Swift, Kyle Monangai, Darnell Wright Among New Additions to Bears&apos; Injury Report</description>
+      <link>https://www.si.com/nfl/bears/onsi/d-andre-swift-kyle-monangai-darnell-wright-bears-injury-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a97c32f2f118dbcf2009</guid>
+      <pubDate>Wed, 16 Sep 2026 13:33:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson not celebrating Bears’ 59-point Week 1: We haven’t scored any points this week</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Ben Johnson not celebrating Bears’ 59-point Week 1: We haven’t scored any points this week</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/ben-johnson-not-celebrating-bears-59-point-week-1-we-havent-scored-any-points-this-week</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-84f45953e2f2edec88df</guid>
-      <pubDate>Wed, 16 Sep 2026 07:50:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
-      <title>Brian Flores-Ben Johnson showdown takes center stage in Vikings-Bears Week 2 matchup</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Brian Flores-Ben Johnson showdown takes center stage in Vikings-Bears Week 2 matchup</description>
-      <link>https://www.nytimes.com/athletic/7597818/2026/09/16/brian-flores-ben-johnson-vikings-bears-nfc-north/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5d1c8fbdb36c72116b7c</guid>
-      <pubDate>Wed, 16 Sep 2026 05:01:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Behind the Chicago Bears’ 59 points: Four moments that changed the game</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Behind the Chicago Bears’ 59 points: Four moments that changed the game</description>
-      <link>https://www.nytimes.com/athletic/7597037/2026/09/16/bears-59-points-key-moments-panthers/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cf77453b14e640a1c06e</guid>
-      <pubDate>Wed, 16 Sep 2026 04:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>&apos;No block, no rock&apos; is not just a mantra for Bears&apos; offense</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: &apos;No block, no rock&apos; is not just a mantra for Bears&apos; offense</description>
-      <link>https://www.espn.com/nfl/story/_/id/49952527/chicago-bears-blocking-schemes</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-36f3bd3f2a45bc15533a</guid>
-      <pubDate>Wed, 16 Sep 2026 04:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
