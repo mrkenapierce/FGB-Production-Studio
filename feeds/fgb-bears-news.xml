@@ -5,9 +5,49 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 17 Sep 2026 20:26:15 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 17 Sep 2026 22:57:45 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Vikings-Bears Second Injury Report</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Vikings-Bears Second Injury Report</description>
+      <link>https://sports.yahoo.com/articles/vikings-bears-second-injury-report-213841000.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c5a0505d0c46ef1a4d49</guid>
+      <pubDate>Thu, 17 Sep 2026 21:38:41 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>9 interesting things said by Bears coordinators in advance of home opener</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 9 interesting things said by Bears coordinators in advance of home opener</description>
+      <link>https://www.chicagobears.com/news/9-interesting-things-said-by-bears-coordinators-in-advance-of-home-opener</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c4a724971a1527fd1cfc</guid>
+      <pubDate>Thu, 17 Sep 2026 20:23:19 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bear Necessities: The Three Factors That Will Decide Bears vs. Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bear Necessities: The Three Factors That Will Decide Bears vs. Vikings</description>
+      <link>https://www.si.com/nfl/bears/onsi/bear-necessities-the-three-factors-that-will-decide-bears-vs-vikings</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f78a5c7a10df01269162</guid>
+      <pubDate>Thu, 17 Sep 2026 14:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Brian Baldinger says Bears QB Caleb Williams is a magician</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Brian Baldinger says Bears QB Caleb Williams is a magician</description>
+      <link>https://sports.yahoo.com/articles/brian-baldinger-says-bears-qb-203032202.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e6907e8c99aeddb336b5</guid>
+      <pubDate>Thu, 17 Sep 2026 13:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears Injury Report Confirms Darnell Wright Upgraded, D&apos;Andre Swift and Kyle Monangai Status Quo</title>
@@ -20,16 +60,6 @@
     </item>
 
     <item>
-      <title>Bears&apos; Kyle Monangai: Limited in Thursday&apos;s practice</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyle Monangai: Limited in Thursday&apos;s practice</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-kyle-monangai-limited-in-thursdays-practice/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7f92348554941c4a9ca7</guid>
-      <pubDate>Thu, 17 Sep 2026 12:47:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
       <title>Bears&apos; D&apos;Andre Swift: Limited again Thursday</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; D&apos;Andre Swift: Limited again Thursday</description>
       <link>https://www.cbssports.com/fantasy/football/news/bears-dandre-swift-limited-again-thursday-637747/</link>
@@ -37,36 +67,6 @@
       <pubDate>Thu, 17 Sep 2026 12:44:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Are Bears’ Kyler Gordon and Jaylon Johnson receiving bad medical advice?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Are Bears’ Kyler Gordon and Jaylon Johnson receiving bad medical advice?</description>
-      <link>https://sports.yahoo.com/articles/bears-kyler-gordon-jaylon-johnson-193609383.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b96c114ea2259b5a67f0</guid>
-      <pubDate>Thu, 17 Sep 2026 12:36:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears Announce Skyler Thomas Personal News Before Vikings Game</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Announce Skyler Thomas Personal News Before Vikings Game</description>
-      <link>https://sports.yahoo.com/articles/bears-announce-skyler-thomas-personal-192805938.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a28cd586e789321090ff</guid>
-      <pubDate>Thu, 17 Sep 2026 12:29:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Vikings Injury Could Clear Away Major Headache for Bears Defense</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Vikings Injury Could Clear Away Major Headache for Bears Defense</description>
-      <link>https://www.si.com/nfl/bears/onsi/vikings-injury-could-clear-away-major-headache-for-bears-defense</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6033c24bf85a3d0e78f4</guid>
-      <pubDate>Thu, 17 Sep 2026 12:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
