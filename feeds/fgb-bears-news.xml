@@ -5,58 +5,78 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 17 Sep 2026 17:22:11 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 17 Sep 2026 20:26:15 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Taking Stock of the Bears Offense After a 59-Point Debut in Carolina</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Taking Stock of the Bears Offense After a 59-Point Debut in Carolina</description>
-      <link>https://sports.yahoo.com/articles/taking-stock-bears-offense-59-170000984.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9e1fdf19b5a2130cdb8b</guid>
-      <pubDate>Thu, 17 Sep 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Best NFL games, Week 2: Vikings vs. Bears is must-watch because of Ben Johnson and Brian Flores</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Best NFL games, Week 2: Vikings vs. Bears is must-watch because of Ben Johnson and Brian Flores</description>
-      <link>https://sports.yahoo.com/articles/best-nfl-games-week-2-164238912.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-019f745377b4cb2a930c</guid>
-      <pubDate>Thu, 17 Sep 2026 16:42:38 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Everything Chicago Bears Have to Fear About Minnesota Vikings in Week 2</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Everything Chicago Bears Have to Fear About Minnesota Vikings in Week 2</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-vikings-nfl-week-2</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-808558074ec7a2711b90</guid>
-      <pubDate>Thu, 17 Sep 2026 07:00:00 GMT</pubDate>
+      <title>Bears Injury Report Confirms Darnell Wright Upgraded, D&apos;Andre Swift and Kyle Monangai Status Quo</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Injury Report Confirms Darnell Wright Upgraded, D&apos;Andre Swift and Kyle Monangai Status Quo</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-injury-report-darnell-wright-upgraded-d-andre-swift-kyle-monangai-status-quo</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-874a86b13f22e115a431</guid>
+      <pubDate>Thu, 17 Sep 2026 13:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Caleb Williams Spells Out Bears&apos; Offensive Definition of Perfect Game</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams Spells Out Bears&apos; Offensive Definition of Perfect Game</description>
-      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-spells-out-bears-offensive-definition-of-perfect-game</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dc7ba5bd58e46738b101</guid>
-      <pubDate>Thu, 17 Sep 2026 06:00:00 GMT</pubDate>
+      <title>Bears&apos; Kyle Monangai: Limited in Thursday&apos;s practice</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyle Monangai: Limited in Thursday&apos;s practice</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-kyle-monangai-limited-in-thursdays-practice/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7f92348554941c4a9ca7</guid>
+      <pubDate>Thu, 17 Sep 2026 12:47:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; D&apos;Andre Swift: Limited again Thursday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; D&apos;Andre Swift: Limited again Thursday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-dandre-swift-limited-again-thursday-637747/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c6516787af5da71ef920</guid>
+      <pubDate>Thu, 17 Sep 2026 12:44:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Are Bears’ Kyler Gordon and Jaylon Johnson receiving bad medical advice?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Are Bears’ Kyler Gordon and Jaylon Johnson receiving bad medical advice?</description>
+      <link>https://sports.yahoo.com/articles/bears-kyler-gordon-jaylon-johnson-193609383.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b96c114ea2259b5a67f0</guid>
+      <pubDate>Thu, 17 Sep 2026 12:36:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears Announce Skyler Thomas Personal News Before Vikings Game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Announce Skyler Thomas Personal News Before Vikings Game</description>
+      <link>https://sports.yahoo.com/articles/bears-announce-skyler-thomas-personal-192805938.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a28cd586e789321090ff</guid>
+      <pubDate>Thu, 17 Sep 2026 12:29:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Vikings Injury Could Clear Away Major Headache for Bears Defense</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Vikings Injury Could Clear Away Major Headache for Bears Defense</description>
+      <link>https://www.si.com/nfl/bears/onsi/vikings-injury-could-clear-away-major-headache-for-bears-defense</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6033c24bf85a3d0e78f4</guid>
+      <pubDate>Thu, 17 Sep 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Bears gear up to host Vikings in NFC North showdown</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears gear up to host Vikings in NFC North showdown</description>
-      <link>https://www.chicagobears.com/news/bears-gear-up-to-host-vikings-in-nfc-north-showdown</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-418175d5c2e6f674ea7c</guid>
-      <pubDate>Thu, 17 Sep 2026 00:54:00 GMT</pubDate>
+      <title>NFL staff predictions for Week 2: Vikings-Bears, Raiders-Chargers, Jags-Broncos and more</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: NFL staff predictions for Week 2: Vikings-Bears, Raiders-Chargers, Jags-Broncos and more</description>
+      <link>https://www.nytimes.com/athletic/7598396/2026/09/17/nfl-predictions-week-2-bets/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-eb58107b6c5dca34a530</guid>
+      <pubDate>Thu, 17 Sep 2026 10:15:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -64,29 +84,9 @@
       <description>Football&apos;s Greatest Bears news brief from NFL.com: Caleb Williams, Bears prepare for &apos;mental war&apos; against DC Brian Flores, Vikings</description>
       <link>https://www.nfl.com/news/caleb-williams-bears-mental-war-brian-flores-vikings</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-79b937ea2cb95745f98a</guid>
-      <pubDate>Wed, 16 Sep 2026 23:32:00 GMT</pubDate>
+      <pubDate>Thu, 17 Sep 2026 06:32:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Bears embodying Ben Johnson&apos;s &apos;no block, no rock&apos; mantra</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears embodying Ben Johnson&apos;s &apos;no block, no rock&apos; mantra</description>
-      <link>https://www.chicagobears.com/news/bears-embodying-ben-johnson-s-no-block-no-rock-mantra</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a8f7d4ffa83dc5b6b379</guid>
-      <pubDate>Wed, 16 Sep 2026 22:48:18 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears anticipate &apos;great challenge&apos; vs. Brian Flores&apos; Vikings defense</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears anticipate &apos;great challenge&apos; vs. Brian Flores&apos; Vikings defense</description>
-      <link>https://www.espn.com/nfl/story/_/id/49960740/bears-caleb-williams-prepare-great-challenge-facing-brian-flores-led-vikings-defense</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fb1a1a531f23c9f79e08</guid>
-      <pubDate>Wed, 16 Sep 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
