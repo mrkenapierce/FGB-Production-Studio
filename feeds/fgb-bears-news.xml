@@ -5,18 +5,48 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 17 Sep 2026 02:25:33 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 17 Sep 2026 12:52:52 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears Pass Protection Analysis on the Sacks Allowed vs Panthers</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Pass Protection Analysis on the Sacks Allowed vs Panthers</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-pass-protection-analysis-020000460.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7a83bc26636ed8cebd95</guid>
-      <pubDate>Thu, 17 Sep 2026 02:00:00 GMT</pubDate>
+      <title>Chicago Bears Stat Tracker Week 1: Chasing Big Records</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Stat Tracker Week 1: Chasing Big Records</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-stat-tracker-week-120000356.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3c07805793cf3041be16</guid>
+      <pubDate>Thu, 17 Sep 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears RB Kyle Monangai reacts to his 61-yard touchdown vs. Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears RB Kyle Monangai reacts to his 61-yard touchdown vs. Panthers</description>
+      <link>https://sports.yahoo.com/articles/bears-rb-kyle-monangai-reacts-122019917.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-975db2aa4d36198aae72</guid>
+      <pubDate>Thu, 17 Sep 2026 05:20:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Inside the Bears’ mission to improve Caleb Williams’ completion percentage in 2026</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Inside the Bears’ mission to improve Caleb Williams’ completion percentage in 2026</description>
+      <link>https://www.nytimes.com/athletic/7601861/2026/09/17/bears-caleb-williams-completion-percentage/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-288606f75e883dce376b</guid>
+      <pubDate>Thu, 17 Sep 2026 03:42:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>What last 4 Brian Flores-Ben Johnson matchups tell us about Vikings-Bears Week 2 clash</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: What last 4 Brian Flores-Ben Johnson matchups tell us about Vikings-Bears Week 2 clash</description>
+      <link>https://www.nytimes.com/athletic/7599419/2026/09/17/brian-flores-ben-johnson-bears-vikings-film-review/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6dc35bbf5378f10edb60</guid>
+      <pubDate>Thu, 17 Sep 2026 02:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -27,16 +57,6 @@
       <pubDate>Thu, 17 Sep 2026 00:54:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears Over Beers: Getting Ready For The Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Over Beers: Getting Ready For The Vikings</description>
-      <link>https://sports.yahoo.com/articles/bears-over-beers-getting-ready-004454259.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6a0fe64970f4929fb448</guid>
-      <pubDate>Thu, 17 Sep 2026 00:44:54 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -60,16 +80,6 @@
     </item>
 
     <item>
-      <title>Bears&apos; Malik Muhammad: Working through ankle injury</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Malik Muhammad: Working through ankle injury</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-malik-muhammad-working-through-ankle-injury/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cfc92d4ef8abcae22bb8</guid>
-      <pubDate>Wed, 16 Sep 2026 16:21:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
       <title>Bears&apos; Xavier Woods: Limited in Wednesday&apos;s practice</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Xavier Woods: Limited in Wednesday&apos;s practice</description>
       <link>https://www.cbssports.com/fantasy/football/news/bears-xavier-woods-limited-in-wednesdays-practice/</link>
@@ -77,16 +87,6 @@
       <pubDate>Wed, 16 Sep 2026 16:18:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Ben Johnson Admits to Being on Torturous Path Before Showdown With Brian Flores, Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Ben Johnson Admits to Being on Torturous Path Before Showdown With Brian Flores, Vikings</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-ben-johnson-admits-to-being-on-torturous-path-before-showdown-with-brian-flores-vikings</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ca4772f320a8801c40ab</guid>
-      <pubDate>Wed, 16 Sep 2026 16:01:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
