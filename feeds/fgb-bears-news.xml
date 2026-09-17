@@ -5,38 +5,58 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 16 Sep 2026 23:50:40 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 17 Sep 2026 02:25:33 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>D&apos;Andre Swift, Kyle Monangai limited in Bears practice</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: D&apos;Andre Swift, Kyle Monangai limited in Bears practice</description>
-      <link>https://sports.yahoo.com/articles/dandre-swift-kyle-monangai-limited-223759817.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f010e3abec08683445f0</guid>
-      <pubDate>Wed, 16 Sep 2026 22:37:59 GMT</pubDate>
+      <title>Chicago Bears Pass Protection Analysis on the Sacks Allowed vs Panthers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Pass Protection Analysis on the Sacks Allowed vs Panthers</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-pass-protection-analysis-020000460.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7a83bc26636ed8cebd95</guid>
+      <pubDate>Thu, 17 Sep 2026 02:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Vikings-Bears First Injury Report</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Vikings-Bears First Injury Report</description>
-      <link>https://sports.yahoo.com/articles/vikings-bears-first-injury-report-223736548.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-523d01217831558848f5</guid>
-      <pubDate>Wed, 16 Sep 2026 22:37:36 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears and Bears Care launch 2026 Real Bears Fans Wear Pink shirts</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears and Bears Care launch 2026 Real Bears Fans Wear Pink shirts</description>
-      <link>https://www.chicagobears.com/news/chicago-bears-and-bears-care-launch-2026-real-bears-fans-wear-pink-shirts</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-151ca9164663f84f8008</guid>
-      <pubDate>Wed, 16 Sep 2026 19:30:00 GMT</pubDate>
+      <title>Bears gear up to host Vikings in NFC North showdown</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears gear up to host Vikings in NFC North showdown</description>
+      <link>https://www.chicagobears.com/news/bears-gear-up-to-host-vikings-in-nfc-north-showdown</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-418175d5c2e6f674ea7c</guid>
+      <pubDate>Thu, 17 Sep 2026 00:54:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears Over Beers: Getting Ready For The Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Over Beers: Getting Ready For The Vikings</description>
+      <link>https://sports.yahoo.com/articles/bears-over-beers-getting-ready-004454259.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6a0fe64970f4929fb448</guid>
+      <pubDate>Thu, 17 Sep 2026 00:44:54 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears embodying Ben Johnson&apos;s &apos;no block, no rock&apos; mantra</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears embodying Ben Johnson&apos;s &apos;no block, no rock&apos; mantra</description>
+      <link>https://www.chicagobears.com/news/bears-embodying-ben-johnson-s-no-block-no-rock-mantra</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a8f7d4ffa83dc5b6b379</guid>
+      <pubDate>Wed, 16 Sep 2026 22:48:18 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears anticipate &apos;great challenge&apos; vs. Brian Flores&apos; Vikings defense</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears anticipate &apos;great challenge&apos; vs. Brian Flores&apos; Vikings defense</description>
+      <link>https://www.espn.com/nfl/story/_/id/49960740/bears-caleb-williams-prepare-great-challenge-facing-brian-flores-led-vikings-defense</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-fb1a1a531f23c9f79e08</guid>
+      <pubDate>Wed, 16 Sep 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
@@ -65,26 +85,6 @@
       <link>https://www.si.com/nfl/bears/onsi/bears-ben-johnson-admits-to-being-on-torturous-path-before-showdown-with-brian-flores-vikings</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-ca4772f320a8801c40ab</guid>
       <pubDate>Wed, 16 Sep 2026 16:01:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>How to watch, listen to, stream Bears-Vikings Week 2 game</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: How to watch, listen to, stream Bears-Vikings Week 2 game</description>
-      <link>https://www.chicagobears.com/news/how-to-watch-chicago-bears-minnesota-vikings-2026-week-2-listen-stream-tv-radio-football-online-nfl</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4ce548887c3cbdf7cee3</guid>
-      <pubDate>Wed, 16 Sep 2026 14:48:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>D&apos;Andre Swift, Kyle Monangai, Darnell Wright Among New Additions to Bears&apos; Injury Report</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: D&apos;Andre Swift, Kyle Monangai, Darnell Wright Among New Additions to Bears&apos; Injury Report</description>
-      <link>https://www.si.com/nfl/bears/onsi/d-andre-swift-kyle-monangai-darnell-wright-bears-injury-report</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a97c32f2f118dbcf2009</guid>
-      <pubDate>Wed, 16 Sep 2026 13:33:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
