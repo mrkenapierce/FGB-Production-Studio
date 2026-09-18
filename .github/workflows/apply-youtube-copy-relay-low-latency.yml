@@ -27,8 +27,9 @@ jobs:
         run: |
           set -Eeuo pipefail
           bash -n services/fgbears-live/bin/youtube-copy-relay.sh
-          grep -Fq -- '-fflags +genpts+discardcorrupt+nobuffer' services/fgbears-live/bin/youtube-copy-relay.sh
-          grep -Fq -- '-probesize 500000 -analyzeduration 500000 -max_delay 0' services/fgbears-live/bin/youtube-copy-relay.sh
+          grep -Fq -- '-fflags +genpts+discardcorrupt' services/fgbears-live/bin/youtube-copy-relay.sh
+          ! grep -Fq -- '+nobuffer' services/fgbears-live/bin/youtube-copy-relay.sh
+          grep -Fq -- '-probesize 3000000 -analyzeduration 3000000' services/fgbears-live/bin/youtube-copy-relay.sh
           grep -Fq -- '-flush_packets 1' services/fgbears-live/bin/youtube-copy-relay.sh
 
       - name: Configure Oracle SSH
@@ -56,7 +57,7 @@ jobs:
           connected(){
             local p=$1
             [[ "$p" =~ ^[1-9][0-9]*$ ]] || return 1
-            ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" 'index($0,q)&&index($0,":443"){ok=1} END{exit(ok?0:1)}'
+            sudo ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" 'index($0,q)&&index($0,":443"){ok=1} END{exit(ok?0:1)}'
           }
 
           MASTER=fgbears-live.service
@@ -73,6 +74,8 @@ jobs:
             echo "ROLLBACK_TRIGGERED=true rc=$rc"
             sudo install -m 0755 "$backup" /usr/local/bin/fgbears-youtube-copy-relay
             sudo systemctl restart "$YOUTUBE" || true
+            sleep 4
+            echo "ROLLBACK_RELAY_ACTIVE=$(systemctl is-active "$YOUTUBE" 2>/dev/null || true)"
             exit "$rc"
           }
           trap rollback ERR
@@ -82,9 +85,9 @@ jobs:
           bash -n /tmp/fgbears-youtube-low-latency/services/fgbears-live/bin/youtube-copy-relay.sh
           sudo install -m 0755 /tmp/fgbears-youtube-low-latency/services/fgbears-live/bin/youtube-copy-relay.sh /usr/local/bin/fgbears-youtube-copy-relay
 
-          # Restart ONLY the destination relay. The shared master remains untouched.
+          # Restart ONLY the YouTube destination. Shared master/game transport is untouched.
           sudo systemctl restart "$YOUTUBE"
-          sleep 6
+          sleep 8
           systemctl is-active --quiet "$YOUTUBE"
           youtube_after=$(pid "$YOUTUBE")
           master_after=$(pid "$MASTER")
@@ -92,11 +95,11 @@ jobs:
           test "$master_after" = "$master_before"
 
           args=$(tr '\0' ' ' < "/proc/$youtube_after/cmdline")
-          grep -Fq -- '-probesize 500000 -analyzeduration 500000 -max_delay 0' <<<"$args"
-          grep -Fq -- '+genpts+discardcorrupt+nobuffer' <<<"$args"
+          grep -Fq -- '-probesize 3000000 -analyzeduration 3000000' <<<"$args"
+          grep -Fq -- '+genpts+discardcorrupt' <<<"$args"
+          ! grep -Fq -- '+nobuffer' <<<"$args"
           grep -Fq -- '-flush_packets 1' <<<"$args"
 
-          # Allow RTMPS reconnect, then prove the new process is stable and connected.
           for _ in $(seq 1 20); do
             if connected "$youtube_after"; then break; fi
             sleep 1
@@ -118,10 +121,9 @@ jobs:
           echo "YOUTUBE_PID_BEFORE=$youtube_before"
           echo "YOUTUBE_PID_AFTER=$youtube_after"
           echo "YOUTUBE_RESTARTS=$(restarts "$YOUTUBE")"
-          echo 'COPY_RELAY_BUFFER_POLICY=nobuffer'
-          echo 'COPY_RELAY_PROBESIZE=500000'
-          echo 'COPY_RELAY_ANALYZEDURATION=500000'
-          echo 'COPY_RELAY_MAX_DELAY=0'
+          echo 'COPY_RELAY_BUFFER_POLICY=normal-demux-safe'
+          echo 'COPY_RELAY_PROBESIZE=3000000'
+          echo 'COPY_RELAY_ANALYZEDURATION=3000000'
           echo 'COPY_RELAY_FLUSH_PACKETS=1'
           REMOTE
 
@@ -140,7 +142,7 @@ jobs:
               if k in {
                   'ROLLOUT_OK','MASTER_PID_BEFORE','MASTER_PID_AFTER','YOUTUBE_PID_BEFORE','YOUTUBE_PID_AFTER',
                   'YOUTUBE_RESTARTS','COPY_RELAY_BUFFER_POLICY','COPY_RELAY_PROBESIZE',
-                  'COPY_RELAY_ANALYZEDURATION','COPY_RELAY_MAX_DELAY','COPY_RELAY_FLUSH_PACKETS'
+                  'COPY_RELAY_ANALYZEDURATION','COPY_RELAY_FLUSH_PACKETS'
               }:
                   values[k]=v
           body={
