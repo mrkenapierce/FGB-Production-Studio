@@ -20,25 +20,24 @@ jobs:
           set -Eeuo pipefail
           for i in $(seq 1 35); do
             printf '%s ' "$(date -u +%FT%T.%3NZ)"
-            python3 - <<'PY'
-import json, urllib.request
-for name,path in [('broadcast','game-screen'),('website','website-game-screen')]:
-    try:
-        req=urllib.request.Request('https://epiccontentcreatorgrants.org/api/public/fgbears/'+path, headers={'Cache-Control':'no-cache','User-Agent':'FGB-readonly-probe'})
-        with urllib.request.urlopen(req,timeout=8) as r:
-            raw=r.read().decode('utf-8','replace')
-        try:
-            d=json.loads(raw)
-            if name=='broadcast':
-                q=d.get('question') or {}
-                print(f"{name}: active={d.get('active')} round={d.get('roundId')} idx={d.get('questionIndex')} key={d.get('questionKey')} phase={d.get('phase')} start={d.get('phaseStartsAt')} end={d.get('phaseEndsAt')}", end=' | ')
-            else:
-                print(f"{name}: active={d.get('active')} waiting={d.get('waiting')} round={d.get('roundId')} idx={d.get('questionIndex')} key={d.get('questionKey')} phase={d.get('phase')} start={d.get('phaseStartsAt')} end={d.get('phaseEndsAt')}", end='')
-        except Exception:
-            print(f"{name}: nonjson status-body={raw[:120]!r}", end=' | ' if name=='broadcast' else '')
-    except Exception as e:
-        print(f"{name}: ERROR {type(e).__name__}:{e}", end=' | ' if name=='broadcast' else '')
-print()
-PY
+            b="$(curl -fsS --max-time 8 -H 'Cache-Control: no-cache' -A FGB-readonly-probe "https://epiccontentcreatorgrants.org/api/public/fgbears/game-screen?t=$(date +%s%N)" || printf '{}')"
+            w="$(curl -fsS --max-time 8 -H 'Cache-Control: no-cache' -A FGB-readonly-probe "https://epiccontentcreatorgrants.org/api/public/fgbears/website-game-screen?t=$(date +%s%N)" || printf '{}')"
+            printf 'broadcast: active=%s round=%s idx=%s key=%s phase=%s start=%s end=%s | ' \
+              "$(jq -r '.active // null' <<<"$b")" \
+              "$(jq -r '.roundId // null' <<<"$b")" \
+              "$(jq -r '.questionIndex // null' <<<"$b")" \
+              "$(jq -r '.questionKey // null' <<<"$b")" \
+              "$(jq -r '.phase // null' <<<"$b")" \
+              "$(jq -r '.phaseStartsAt // null' <<<"$b")" \
+              "$(jq -r '.phaseEndsAt // null' <<<"$b")"
+            printf 'website: active=%s waiting=%s round=%s idx=%s key=%s phase=%s start=%s end=%s\n' \
+              "$(jq -r '.active // null' <<<"$w")" \
+              "$(jq -r '.waiting // null' <<<"$w")" \
+              "$(jq -r '.roundId // null' <<<"$w")" \
+              "$(jq -r '.questionIndex // null' <<<"$w")" \
+              "$(jq -r '.questionKey // null' <<<"$w")" \
+              "$(jq -r '.phase // null' <<<"$w")" \
+              "$(jq -r '.phaseStartsAt // null' <<<"$w")" \
+              "$(jq -r '.phaseEndsAt // null' <<<"$w")"
             sleep 1
           done
