@@ -5,28 +5,78 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 18 Sep 2026 10:02:35 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 18 Sep 2026 14:28:55 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Vikes Views: Who Ya Got? Minnesota Vikings at Chicago Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Vikes Views: Who Ya Got? Minnesota Vikings at Chicago Bears</description>
-      <link>https://sports.yahoo.com/articles/vikes-views-ya-got-minnesota-062800705.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-106307df0b9e08d529f5</guid>
-      <pubDate>Fri, 18 Sep 2026 06:28:00 GMT</pubDate>
+      <title>Vikings at Bears Q&amp;A: Ben Johnson vs Brian Flores</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Vikings at Bears Q&amp;A: Ben Johnson vs Brian Flores</description>
+      <link>https://sports.yahoo.com/articles/vikings-bears-q-ben-johnson-140000877.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-014adba4077fb273b73a</guid>
+      <pubDate>Fri, 18 Sep 2026 14:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears vs. Vikings: How Chicago will keep the momentum going</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Vikings: How Chicago will keep the momentum going</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-vikings-chicago-keep-031442372.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1953530ab57ac3539e33</guid>
-      <pubDate>Fri, 18 Sep 2026 03:23:09 GMT</pubDate>
+      <title>NFL Week 2 odds, predictions, expert picks: Can blitz-heavy Vikings overtake Bears? Will Cards upset Seahawks?</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 2 odds, predictions, expert picks: Can blitz-heavy Vikings overtake Bears? Will Cards upset Seahawks?</description>
+      <link>https://www.cbssports.com/nfl/news/nfl-week-2-odds-predictions-expert-picks/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-489f49793f6ea19a6ba4</guid>
+      <pubDate>Fri, 18 Sep 2026 13:49:50 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears heading to UK for 5-city tour in October</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears heading to UK for 5-city tour in October</description>
+      <link>https://www.chicagobears.com/news/bears-heading-to-uk-for-5-city-tour-in-october</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e21970ddc2d58263f776</guid>
+      <pubDate>Fri, 18 Sep 2026 13:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Hunting Explosives: Revisiting the Bears’ Big Plays from Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Hunting Explosives: Revisiting the Bears’ Big Plays from Week 1</description>
+      <link>https://sports.yahoo.com/articles/hunting-explosives-revisiting-bears-big-120000453.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c9f66035398beab15f5a</guid>
+      <pubDate>Fri, 18 Sep 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears and Steelers Considered Ideal Trade Partners as Concern For Chicago&apos;s Defense Mounts</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears and Steelers Considered Ideal Trade Partners as Concern For Chicago&apos;s Defense Mounts</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-steelers-ideal-trade-partners-concern-chicago-defense</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9094884bbd4325ab9062</guid>
+      <pubDate>Fri, 18 Sep 2026 06:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Jaylon Johnson Creates Controversy With Answer on Facing Justin Jefferson, Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Jaylon Johnson Creates Controversy With Answer on Facing Justin Jefferson, Vikings</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-jaylon-johnson-creates-controversy-with-answer-on-facing-justin-jefferson-vikings</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-10b2055b71ee1aa38358</guid>
+      <pubDate>Fri, 18 Sep 2026 06:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears mailbag: Can their defense really turn things around against Justin Jefferson?</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears mailbag: Can their defense really turn things around against Justin Jefferson?</description>
+      <link>https://www.nytimes.com/athletic/7605402/2026/09/18/bears-defense-concerns-vikings-mailbag/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d7250a50e96fd003657c</guid>
+      <pubDate>Fri, 18 Sep 2026 03:45:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -37,56 +87,6 @@
       <pubDate>Thu, 17 Sep 2026 20:23:19 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bear Necessities: The Three Factors That Will Decide Bears vs. Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bear Necessities: The Three Factors That Will Decide Bears vs. Vikings</description>
-      <link>https://www.si.com/nfl/bears/onsi/bear-necessities-the-three-factors-that-will-decide-bears-vs-vikings</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f78a5c7a10df01269162</guid>
-      <pubDate>Thu, 17 Sep 2026 14:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears Injury Report Confirms Darnell Wright Upgraded, D&apos;Andre Swift and Kyle Monangai Status Quo</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Injury Report Confirms Darnell Wright Upgraded, D&apos;Andre Swift and Kyle Monangai Status Quo</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-injury-report-darnell-wright-upgraded-d-andre-swift-kyle-monangai-status-quo</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-874a86b13f22e115a431</guid>
-      <pubDate>Thu, 17 Sep 2026 13:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; D&apos;Andre Swift: Limited again Thursday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; D&apos;Andre Swift: Limited again Thursday</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-dandre-swift-limited-again-thursday-637747/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c6516787af5da71ef920</guid>
-      <pubDate>Thu, 17 Sep 2026 12:44:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson, Brian Flores match wits as Bears host Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Ben Johnson, Brian Flores match wits as Bears host Vikings</description>
-      <link>https://www.cbssports.com/nfl/news/ben-johnson-brian-flores-match-wits-as-bears-host-vikings/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5f052262d6c62196cd43</guid>
-      <pubDate>Thu, 17 Sep 2026 12:35:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>NFL staff predictions for Week 2: Vikings-Bears, Raiders-Chargers, Jags-Broncos and more</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: NFL staff predictions for Week 2: Vikings-Bears, Raiders-Chargers, Jags-Broncos and more</description>
-      <link>https://www.nytimes.com/athletic/7598396/2026/09/17/nfl-predictions-week-2-bets/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-eb58107b6c5dca34a530</guid>
-      <pubDate>Thu, 17 Sep 2026 10:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
