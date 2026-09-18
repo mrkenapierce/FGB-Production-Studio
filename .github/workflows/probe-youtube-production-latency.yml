@@ -28,7 +28,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
-      - name: Read production YouTube topology and latency-safe configuration
+      - name: Read production topology and active YouTube broadcast latency
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
@@ -42,24 +42,47 @@ jobs:
           echo "MASTER_ACTIVE=$(systemctl is-active fgbears-live.service 2>/dev/null || true)"
 
           ENV_FILE=/etc/fgbears-live/stream.env
-          if [[ -r "$ENV_FILE" ]]; then
-            # Print only non-secret operational values.
-            service=$(sed -n 's/^YOUTUBE_SERVICE=//p' "$ENV_FILE" | tail -1)
-            buffer=$(sed -n 's/^YOUTUBE_V3_BUFFER_SECONDS=//p' "$ENV_FILE" | tail -1)
+          if sudo test -r "$ENV_FILE"; then
+            service=$(sudo sed -n 's/^YOUTUBE_SERVICE=//p' "$ENV_FILE" | tail -1)
+            buffer=$(sudo sed -n 's/^YOUTUBE_V3_BUFFER_SECONDS=//p' "$ENV_FILE" | tail -1)
             echo "CONFIG_YOUTUBE_SERVICE=${service:-unset}"
             echo "CONFIG_V3_BUFFER_SECONDS=${buffer:-unset}"
             echo 'CONFIG_VARIABLE_NAMES_BEGIN'
-            grep -hE '^[A-Z][A-Z0-9_]*=' "$ENV_FILE" | cut -d= -f1 | sort -u | grep -E 'YOUTUBE|GOOGLE|OAUTH' || true
+            sudo grep -hE '^[A-Z][A-Z0-9_]*=' "$ENV_FILE" | cut -d= -f1 | sort -u | grep -E 'YOUTUBE|GOOGLE|OAUTH|FGB_' || true
             echo 'CONFIG_VARIABLE_NAMES_END'
           else
-            echo 'STREAM_ENV=UNREADABLE'
+            echo 'STREAM_ENV=UNREADABLE_EVEN_WITH_SUDO'
           fi
 
-          # Look only for OAuth VARIABLE NAMES in config files; never values.
-          echo 'OAUTH_VARIABLE_NAMES_BEGIN'
-          grep -RhsE '^[A-Z][A-Z0-9_]*=' /etc/fgbears-live 2>/dev/null \
-            | cut -d= -f1 | sort -u \
-            | grep -E '(^FGB_YOUTUBE_|YOUTUBE_.*(CLIENT|TOKEN|OAUTH)|GOOGLE_.*(CLIENT|TOKEN|OAUTH))' \
-            | grep -v 'STREAM_KEY' || true
-          echo 'OAUTH_VARIABLE_NAMES_END'
+          # Try the exact OAuth names expected by youtube-broadcast-control.py.
+          # Values are never printed. If present, query only non-secret broadcast metadata.
+          if sudo grep -q '^FGB_YOUTUBE_CLIENT_ID=' "$ENV_FILE" 2>/dev/null \
+             && sudo grep -q '^FGB_YOUTUBE_CLIENT_SECRET=' "$ENV_FILE" 2>/dev/null \
+             && sudo grep -q '^FGB_YOUTUBE_REFRESH_TOKEN=' "$ENV_FILE" 2>/dev/null; then
+            echo 'ORACLE_YOUTUBE_OAUTH=AVAILABLE'
+            sudo bash -c '
+              set -Eeuo pipefail
+              set -a
+              source /etc/fgbears-live/stream.env
+              set +a
+              token_json=$(curl -fsS -X POST https://oauth2.googleapis.com/token \
+                --data-urlencode "client_id=$FGB_YOUTUBE_CLIENT_ID" \
+                --data-urlencode "client_secret=$FGB_YOUTUBE_CLIENT_SECRET" \
+                --data-urlencode "refresh_token=$FGB_YOUTUBE_REFRESH_TOKEN" \
+                --data-urlencode grant_type=refresh_token)
+              access_token=$(jq -r ".access_token // empty" <<<"$token_json")
+              test -n "$access_token"
+              payload=$(curl -fsS -G https://www.googleapis.com/youtube/v3/liveBroadcasts \
+                -H "Authorization: Bearer $access_token" \
+                --data-urlencode "part=id,status,contentDetails" \
+                --data-urlencode "broadcastStatus=active" \
+                --data-urlencode "mine=true" \
+                --data-urlencode "maxResults=10")
+              count=$(jq ".items | length" <<<"$payload")
+              echo "ACTIVE_BROADCAST_COUNT=$count"
+              jq -r ".items[] | \"ACTIVE_BROADCAST_ID=\" + .id, \"LATENCY_PREFERENCE=\" + (.contentDetails.latencyPreference // \"unset\"), \"ENABLE_LOW_LATENCY=\" + ((.contentDetails.enableLowLatency // false)|tostring), \"MONITOR_DELAY_MS=\" + ((.contentDetails.monitorStream.broadcastStreamDelayMs // 0)|tostring), \"LIFECYCLE_STATUS=\" + (.status.lifeCycleStatus // \"unknown\")" <<<"$payload"
+            '
+          else
+            echo 'ORACLE_YOUTUBE_OAUTH=UNAVAILABLE'
+          fi
           REMOTE
