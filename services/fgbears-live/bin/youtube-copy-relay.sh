@@ -40,14 +40,22 @@ UPSTREAM_TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 #   * aac_adtstoasc converts MPEG-TS AAC/ADTS to the AudioSpecificConfig/raw
 #     AAC representation required by FLV.
 # No video or audio re-encoding occurs here.
+#
+# Latency policy: this input is a trusted loopback MPEG-TS feed with fixed
+# H.264/AAC codecs, so a multi-second probe/analyze reserve is unnecessary and
+# can leave the destination relay behind the master after startup. Keep enough
+# inspection for stream discovery while disabling FFmpeg's optional demux
+# buffering and flushing muxed packets promptly. The authoritative master and
+# Rumble path are unchanged.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
-  -fflags +genpts+discardcorrupt -err_detect ignore_err \
-  -probesize 10000000 -analyzeduration 10000000 \
+  -fflags +genpts+discardcorrupt+nobuffer -err_detect ignore_err \
+  -probesize 500000 -analyzeduration 500000 -max_delay 0 \
   -i "$LOCAL_INPUT" \
   -map 0:v:0 -map 0:a:0 \
   -c:v copy -tag:v 7 -bsf:v extract_extradata \
   -c:a copy -bsf:a aac_adtstoasc \
   -rw_timeout 15000000 \
+  -flush_packets 1 \
   -f flv -flvflags no_duration_filesize \
   "$UPSTREAM_TARGET"
