@@ -8,13 +8,18 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 # Read-only diagnostic. Never prints OAuth secret/token values.
 jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Check protected OAuth credential sets without exposing values
         env:
           YT_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
@@ -32,31 +37,32 @@ jobs:
           YT_ACCESS_TOKEN: ${{ secrets.YOUTUBE_ACCESS_TOKEN }}
         run: |
           set -Eeuo pipefail
+          : > /tmp/youtube-broadcast-auth-probe.txt
           available=0
           if [[ -n "$YT_CLIENT_ID" && -n "$YT_CLIENT_SECRET" && -n "$YT_REFRESH_TOKEN" ]]; then
-            echo 'YOUTUBE_API_AUTH_SET=YOUTUBE_STANDARD'
+            echo 'YOUTUBE_API_AUTH_SET=YOUTUBE_STANDARD' | tee -a /tmp/youtube-broadcast-auth-probe.txt
             available=1
           fi
           if [[ -n "$YTO_CLIENT_ID" && -n "$YTO_CLIENT_SECRET" && -n "$YTO_REFRESH_TOKEN" ]]; then
-            echo 'YOUTUBE_API_AUTH_SET=YOUTUBE_OAUTH'
+            echo 'YOUTUBE_API_AUTH_SET=YOUTUBE_OAUTH' | tee -a /tmp/youtube-broadcast-auth-probe.txt
             available=1
           fi
           if [[ -n "$G_CLIENT_ID" && -n "$G_CLIENT_SECRET" && -n "$G_REFRESH_TOKEN" ]]; then
-            echo 'YOUTUBE_API_AUTH_SET=GOOGLE_STANDARD'
+            echo 'YOUTUBE_API_AUTH_SET=GOOGLE_STANDARD' | tee -a /tmp/youtube-broadcast-auth-probe.txt
             available=1
           fi
           if [[ -n "$GO_CLIENT_ID" && -n "$GO_CLIENT_SECRET" && -n "$GO_REFRESH_TOKEN" ]]; then
-            echo 'YOUTUBE_API_AUTH_SET=GOOGLE_OAUTH'
+            echo 'YOUTUBE_API_AUTH_SET=GOOGLE_OAUTH' | tee -a /tmp/youtube-broadcast-auth-probe.txt
             available=1
           fi
           if [[ -n "$YT_ACCESS_TOKEN" ]]; then
-            echo 'YOUTUBE_API_ACCESS_TOKEN=AVAILABLE'
+            echo 'YOUTUBE_API_ACCESS_TOKEN=AVAILABLE' | tee -a /tmp/youtube-broadcast-auth-probe.txt
             available=1
           fi
           if (( available == 1 )); then
-            echo 'YOUTUBE_BROADCAST_API_AUTH=AVAILABLE'
+            echo 'YOUTUBE_BROADCAST_API_AUTH=AVAILABLE' | tee -a /tmp/youtube-broadcast-auth-probe.txt
           else
-            echo 'YOUTUBE_BROADCAST_API_AUTH=UNAVAILABLE'
+            echo 'YOUTUBE_BROADCAST_API_AUTH=UNAVAILABLE' | tee -a /tmp/youtube-broadcast-auth-probe.txt
           fi
 
       - name: Read active broadcast latency setting
@@ -76,7 +82,6 @@ jobs:
           YT_ACCESS_TOKEN: ${{ secrets.YOUTUBE_ACCESS_TOKEN }}
         run: |
           set -Eeuo pipefail
-
           client_id=''
           client_secret=''
           refresh_token=''
@@ -101,7 +106,7 @@ jobs:
           fi
 
           if [[ -z "$access_token" ]]; then
-            echo 'ACTIVE_BROADCAST_LATENCY_PROBE=SKIPPED_NO_USABLE_TOKEN'
+            echo 'ACTIVE_BROADCAST_LATENCY_PROBE=SKIPPED_NO_USABLE_TOKEN' | tee -a /tmp/youtube-broadcast-auth-probe.txt
             exit 0
           fi
           echo "::add-mask::$access_token"
@@ -114,10 +119,53 @@ jobs:
             --data-urlencode 'maxResults=10')
 
           count=$(jq '.items | length' <<<"$payload")
-          echo "ACTIVE_BROADCAST_COUNT=$count"
+          echo "ACTIVE_BROADCAST_COUNT=$count" | tee -a /tmp/youtube-broadcast-auth-probe.txt
           if (( count == 0 )); then
-            echo 'ACTIVE_BROADCAST_LATENCY_PROBE=NO_ACTIVE_BROADCAST'
+            echo 'ACTIVE_BROADCAST_LATENCY_PROBE=NO_ACTIVE_BROADCAST' | tee -a /tmp/youtube-broadcast-auth-probe.txt
             exit 0
           fi
 
-          jq -r '.items[] | "ACTIVE_BROADCAST_ID=" + .id, "LATENCY_PREFERENCE=" + (.contentDetails.latencyPreference // "unset"), "ENABLE_LOW_LATENCY=" + ((.contentDetails.enableLowLatency // false)|tostring), "MONITOR_DELAY_MS=" + ((.contentDetails.monitorStream.broadcastStreamDelayMs // 0)|tostring), "LIFECYCLE_STATUS=" + (.status.lifeCycleStatus // "unknown")' <<<"$payload"
+          jq -r '.items[] | "ACTIVE_BROADCAST_ID=" + .id, "LATENCY_PREFERENCE=" + (.contentDetails.latencyPreference // "unset"), "ENABLE_LOW_LATENCY=" + ((.contentDetails.enableLowLatency // false)|tostring), "MONITOR_DELAY_MS=" + ((.contentDetails.monitorStream.broadcastStreamDelayMs // 0)|tostring), "LIFECYCLE_STATUS=" + (.status.lifeCycleStatus // "unknown")' <<<"$payload" | tee -a /tmp/youtube-broadcast-auth-probe.txt
+
+      - name: Persist sanitized broadcast probe
+        run: |
+          set -Eeuo pipefail
+          mkdir -p .github/deployment-status
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          values = {}
+          auth_sets = []
+          for raw in Path('/tmp/youtube-broadcast-auth-probe.txt').read_text(encoding='utf-8').splitlines():
+              if '=' not in raw:
+                  continue
+              k, v = raw.split('=', 1)
+              if k == 'YOUTUBE_API_AUTH_SET':
+                  auth_sets.append(v)
+              elif k in {
+                  'YOUTUBE_API_ACCESS_TOKEN','YOUTUBE_BROADCAST_API_AUTH','ACTIVE_BROADCAST_LATENCY_PROBE',
+                  'ACTIVE_BROADCAST_COUNT','ACTIVE_BROADCAST_ID','LATENCY_PREFERENCE',
+                  'ENABLE_LOW_LATENCY','MONITOR_DELAY_MS','LIFECYCLE_STATUS'
+              }:
+                  values[k] = v
+          body = {
+              'checkedAt': datetime.now(timezone.utc).isoformat(),
+              'targetLatencyPreference': 'ultraLow',
+              'authSets': auth_sets,
+              'probe': values,
+          }
+          Path('.github/deployment-status/youtube-broadcast-latency.json').write_text(
+              json.dumps(body, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+          )
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/youtube-broadcast-latency.json
+          if git diff --cached --quiet; then
+            echo 'No probe-result change to commit.'
+          else
+            git commit -m 'Record active YouTube broadcast latency'
+            git push
+          fi
