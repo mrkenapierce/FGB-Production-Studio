@@ -19,6 +19,22 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
+      - name: Read-only public DNS and edge inventory
+        run: |
+          set -Eeuo pipefail
+          echo '=== NS ==='
+          dig +short NS epiccontentcreatorgrants.org || true
+          echo '=== A ==='
+          dig +short A epiccontentcreatorgrants.org || true
+          echo '=== AAAA ==='
+          dig +short AAAA epiccontentcreatorgrants.org || true
+          echo '=== WWW CNAME/A ==='
+          dig +short CNAME www.epiccontentcreatorgrants.org || true
+          dig +short A www.epiccontentcreatorgrants.org || true
+          echo '=== HTTPS HEADERS ==='
+          curl -sSIL --max-time 15 https://epiccontentcreatorgrants.org/ | sed -n '1,80p' || true
+          echo '=== WEBSITE FEED HEADERS ==='
+          curl -sSIL --max-time 15 https://epiccontentcreatorgrants.org/api/public/fgbears/website-game-screen | sed -n '1,80p' || true
       - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
