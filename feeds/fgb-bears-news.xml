@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 17 Sep 2026 22:57:45 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 18 Sep 2026 00:59:45 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -30,6 +30,16 @@
     </item>
 
     <item>
+      <title>Tom Brady Makes Bold Announcement Regarding Bears After Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Tom Brady Makes Bold Announcement Regarding Bears After Week 1</description>
+      <link>https://sports.yahoo.com/articles/tom-brady-makes-bold-announcement-211730797.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-07b8d5606c1056c10768</guid>
+      <pubDate>Thu, 17 Sep 2026 14:17:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
       <title>Bear Necessities: The Three Factors That Will Decide Bears vs. Vikings</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bear Necessities: The Three Factors That Will Decide Bears vs. Vikings</description>
       <link>https://www.si.com/nfl/bears/onsi/bear-necessities-the-three-factors-that-will-decide-bears-vs-vikings</link>
@@ -37,16 +47,6 @@
       <pubDate>Thu, 17 Sep 2026 14:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Brian Baldinger says Bears QB Caleb Williams is a magician</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Brian Baldinger says Bears QB Caleb Williams is a magician</description>
-      <link>https://sports.yahoo.com/articles/brian-baldinger-says-bears-qb-203032202.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e6907e8c99aeddb336b5</guid>
-      <pubDate>Thu, 17 Sep 2026 13:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -70,6 +70,16 @@
     </item>
 
     <item>
+      <title>Ben Johnson, Brian Flores match wits as Bears host Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Ben Johnson, Brian Flores match wits as Bears host Vikings</description>
+      <link>https://www.cbssports.com/nfl/news/ben-johnson-brian-flores-match-wits-as-bears-host-vikings/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5f052262d6c62196cd43</guid>
+      <pubDate>Thu, 17 Sep 2026 12:35:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
       <title>NFL staff predictions for Week 2: Vikings-Bears, Raiders-Chargers, Jags-Broncos and more</title>
       <description>Football&apos;s Greatest Bears news brief from The Athletic: NFL staff predictions for Week 2: Vikings-Bears, Raiders-Chargers, Jags-Broncos and more</description>
       <link>https://www.nytimes.com/athletic/7598396/2026/09/17/nfl-predictions-week-2-bets/</link>
@@ -77,16 +87,6 @@
       <pubDate>Thu, 17 Sep 2026 10:15:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams, Bears prepare for &apos;mental war&apos; against DC Brian Flores, Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Caleb Williams, Bears prepare for &apos;mental war&apos; against DC Brian Flores, Vikings</description>
-      <link>https://www.nfl.com/news/caleb-williams-bears-mental-war-brian-flores-vikings</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-79b937ea2cb95745f98a</guid>
-      <pubDate>Thu, 17 Sep 2026 06:32:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
   </channel>
 </rss>
