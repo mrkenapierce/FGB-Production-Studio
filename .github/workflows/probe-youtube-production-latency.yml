@@ -1,0 +1,65 @@
+name: Probe YouTube Production Latency
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-youtube-production-latency.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Read production YouTube topology and latency-safe configuration
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo "COPY_RELAY_ACTIVE=$(systemctl is-active fgbears-youtube-copy-relay.service 2>/dev/null || true)"
+          echo "COPY_RELAY_ENABLED=$(systemctl is-enabled fgbears-youtube-copy-relay.service 2>/dev/null || true)"
+          echo "V3_ACTIVE=$(systemctl is-active fgbears-youtube-v3.service 2>/dev/null || true)"
+          echo "V3_ENABLED=$(systemctl is-enabled fgbears-youtube-v3.service 2>/dev/null || true)"
+          echo "MASTER_ACTIVE=$(systemctl is-active fgbears-live.service 2>/dev/null || true)"
+
+          ENV_FILE=/etc/fgbears-live/stream.env
+          if [[ -r "$ENV_FILE" ]]; then
+            # Print only non-secret operational values.
+            service=$(sed -n 's/^YOUTUBE_SERVICE=//p' "$ENV_FILE" | tail -1)
+            buffer=$(sed -n 's/^YOUTUBE_V3_BUFFER_SECONDS=//p' "$ENV_FILE" | tail -1)
+            echo "CONFIG_YOUTUBE_SERVICE=${service:-unset}"
+            echo "CONFIG_V3_BUFFER_SECONDS=${buffer:-unset}"
+            echo 'CONFIG_VARIABLE_NAMES_BEGIN'
+            grep -hE '^[A-Z][A-Z0-9_]*=' "$ENV_FILE" | cut -d= -f1 | sort -u | grep -E 'YOUTUBE|GOOGLE|OAUTH' || true
+            echo 'CONFIG_VARIABLE_NAMES_END'
+          else
+            echo 'STREAM_ENV=UNREADABLE'
+          fi
+
+          # Look only for OAuth VARIABLE NAMES in config files; never values.
+          echo 'OAUTH_VARIABLE_NAMES_BEGIN'
+          grep -RhsE '^[A-Z][A-Z0-9_]*=' /etc/fgbears-live 2>/dev/null \
+            | cut -d= -f1 | sort -u \
+            | grep -E '(^FGB_YOUTUBE_|YOUTUBE_.*(CLIENT|TOKEN|OAUTH)|GOOGLE_.*(CLIENT|TOKEN|OAUTH))' \
+            | grep -v 'STREAM_KEY' || true
+          echo 'OAUTH_VARIABLE_NAMES_END'
+          REMOTE
