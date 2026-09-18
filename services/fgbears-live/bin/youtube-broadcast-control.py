@@ -20,6 +20,10 @@ import urllib.request
 API_BASE = "https://www.googleapis.com/youtube/v3"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 DEFAULT_TITLE = "Football’s Greatest Bears Live | 24/7 Chicago Bears Talk, Episodes & Updates"
+# FGB 50/50 Trivia is real-time interactive. New broadcasts created by this
+# controller must use YouTube's lowest-latency mode so the viewer clock stays
+# as close as possible to the authoritative trivia clock.
+DEFAULT_LATENCY_PREFERENCE = "ultraLow"
 
 
 class YouTubeAPIError(RuntimeError):
@@ -187,6 +191,7 @@ def create_broadcast(yt: YouTube, title: str, privacy: str) -> dict:
                 "enableAutoStop": False,
                 "enableDvr": True,
                 "recordFromStart": True,
+                "latencyPreference": DEFAULT_LATENCY_PREFERENCE,
             },
         },
     )
