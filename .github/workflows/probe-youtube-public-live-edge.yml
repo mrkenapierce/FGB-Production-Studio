@@ -1,0 +1,100 @@
+name: Probe YouTube Public Live Edge
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-youtube-public-live-edge.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Measure public HLS live edge
+        env:
+          VIDEO_ID: oSKfhIMEmtk
+        run: |
+          set -Eeuo pipefail
+          python3 -m pip install --quiet --disable-pip-version-check yt-dlp
+          python3 - <<'PY'
+          import json, os, re, subprocess, sys, time, urllib.request
+          from datetime import datetime, timezone
+          video_id=os.environ['VIDEO_ID']
+          url=f'https://www.youtube.com/watch?v={video_id}'
+          result={
+              'checkedAt': datetime.now(timezone.utc).isoformat(),
+              'videoId': video_id,
+              'probeOk': False,
+          }
+          try:
+              p=subprocess.run(['yt-dlp','-J','--no-warnings',url],capture_output=True,text=True,timeout=90)
+              if p.returncode != 0:
+                  result['error']='yt-dlp extraction failed'
+                  result['extractorStderr']=p.stderr[-500:]
+              else:
+                  info=json.loads(p.stdout)
+                  result['isLive']=bool(info.get('is_live'))
+                  result['liveStatus']=info.get('live_status')
+                  formats=info.get('formats') or []
+                  hls=[f for f in formats if 'm3u8' in str(f.get('protocol','')) and f.get('url')]
+                  # Prefer a normal video rendition rather than storyboards/audio-only.
+                  hls=[f for f in hls if f.get('vcodec') not in (None,'none')] or hls
+                  if not hls:
+                      result['error']='no public HLS rendition found'
+                  else:
+                      # Prefer a modest rendition to minimize transfer; all renditions share the live edge.
+                      hls.sort(key=lambda f: (f.get('height') or 9999, f.get('tbr') or 999999))
+                      manifest_url=hls[0]['url']
+                      req=urllib.request.Request(manifest_url,headers={'User-Agent':'Mozilla/5.0'})
+                      text=urllib.request.urlopen(req,timeout=20).read().decode('utf-8','replace')
+                      lines=text.splitlines()
+                      last_pdt=None
+                      last_duration=None
+                      current_pdt=None
+                      edges=[]
+                      for line in lines:
+                          if line.startswith('#EXT-X-PROGRAM-DATE-TIME:'):
+                              raw=line.split(':',1)[1].strip().replace('Z','+00:00')
+                              current_pdt=datetime.fromisoformat(raw).timestamp()
+                          elif line.startswith('#EXTINF:'):
+                              try: last_duration=float(line.split(':',1)[1].split(',',1)[0])
+                              except Exception: last_duration=None
+                          elif line and not line.startswith('#') and current_pdt is not None:
+                              dur=last_duration or 0.0
+                              edges.append(current_pdt+dur)
+                              current_pdt=current_pdt+dur
+                              last_duration=None
+                      if edges:
+                          edge=max(edges)
+                          now=time.time()
+                          result['publicHlsEdgeLagSeconds']=round(max(0.0,now-edge),3)
+                          result['edgeProgramDateTime']=datetime.fromtimestamp(edge,timezone.utc).isoformat()
+                          result['probeOk']=True
+                      else:
+                          result['error']='HLS playlist exposed no PROGRAM-DATE-TIME timestamps'
+          except Exception as exc:
+              result['error']=f'{type(exc).__name__}: {exc}'[:500]
+          os.makedirs('.github/deployment-status',exist_ok=True)
+          with open('.github/deployment-status/youtube-public-live-edge.json','w',encoding='utf-8') as f:
+              json.dump(result,f,indent=2,sort_keys=True)
+              f.write('\n')
+          print(json.dumps(result,sort_keys=True))
+          PY
+
+      - name: Persist sanitized live-edge result
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/youtube-public-live-edge.json
+          git commit -m 'Record YouTube public live-edge latency'
+          git push
