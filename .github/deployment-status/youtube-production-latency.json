@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-09-18T04:48:21.376457+00:00",
+  "production": {
+    "CONFIG_V3_BUFFER_SECONDS": "unset",
+    "CONFIG_YOUTUBE_SERVICE": "unset",
+    "COPY_RELAY_ACTIVE": "active",
+    "COPY_RELAY_ENABLED": "enabled",
+    "MASTER_ACTIVE": "active",
+    "ORACLE_YOUTUBE_OAUTH": "UNAVAILABLE",
+    "V3_ACTIVE": "inactive",
+    "V3_ENABLED": "masked"
+  },
+  "targetLatencyPreference": "ultraLow"
+}
