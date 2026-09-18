@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 18 Sep 2026 05:37:21 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 18 Sep 2026 10:02:35 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Vikes Views: Who Ya Got? Minnesota Vikings at Chicago Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Vikes Views: Who Ya Got? Minnesota Vikings at Chicago Bears</description>
+      <link>https://sports.yahoo.com/articles/vikes-views-ya-got-minnesota-062800705.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-106307df0b9e08d529f5</guid>
+      <pubDate>Fri, 18 Sep 2026 06:28:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears vs. Vikings: How Chicago will keep the momentum going</title>
@@ -27,16 +37,6 @@
       <pubDate>Thu, 17 Sep 2026 20:23:19 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears Message to Jaylon Johnson and Tyrique Stevenson: Simply Shake It Off</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Message to Jaylon Johnson and Tyrique Stevenson: Simply Shake It Off</description>
-      <link>https://sports.yahoo.com/articles/bears-message-jaylon-johnson-tyrique-003000008.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d9defeb8d008c05b6db3</guid>
-      <pubDate>Thu, 17 Sep 2026 17:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
