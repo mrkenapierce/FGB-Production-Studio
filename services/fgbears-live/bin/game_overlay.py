@@ -409,8 +409,16 @@ def render_game_screen(game: dict[str, Any], now: float | None = None) -> Image.
             if not isinstance(row, dict):
                 continue
             zip_code = str(row.get("zip") or "").strip()[:10]
-            score = _integer(row.get("score"), 0, 0, 1_000_000)
-            players = _integer(row.get("players") or row.get("participants"), 0, 0, 1_000_000)
+            # Current public contract uses teamScore/uniquePlayers. Keep the
+            # legacy names only as backward-compatible fallbacks.
+            score_value = row.get("teamScore") if row.get("teamScore") is not None else row.get("score")
+            players_value = (
+                row.get("uniquePlayers")
+                if row.get("uniquePlayers") is not None
+                else (row.get("players") if row.get("players") is not None else row.get("participants"))
+            )
+            score = _integer(score_value, 0, 0, 1_000_000)
+            players = _integer(players_value, 0, 0, 1_000_000)
             line = f"{rank}. {zip_code}   {score} PTS"
             if players:
                 line += f"   •   {players} PLAYERS"
