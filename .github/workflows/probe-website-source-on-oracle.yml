@@ -1,0 +1,58 @@
+name: Probe Website Source on Oracle
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-website-source-on-oracle.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  ORACLE_USER: ubuntu
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+      - name: Read-only source inventory
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          ssh -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          echo '=== HOST ==='
+          hostname
+          echo '=== TARGET FILE SEARCH ==='
+          sudo find /opt /home/ubuntu /srv /var/www -xdev -type f \( -name 'fgb-website-clock.ts' -o -name 'website-game-screen.ts' -o -name 'live-round-play.tsx' \) -print 2>/dev/null | head -100 || true
+          echo '=== GIT WORKTREES ==='
+          sudo find /opt /home/ubuntu /srv /var/www -xdev -type d -name .git -print 2>/dev/null | head -100 || true
+          echo '=== PACKAGE ROOTS WITH TANSTACK ==='
+          sudo find /opt /home/ubuntu /srv /var/www -xdev -type f -name package.json -print 2>/dev/null | while read -r f; do
+            if sudo grep -qi 'tanstack/react-start\|tanstack/react-router' "$f" 2>/dev/null; then echo "$f"; fi
+          done | head -100 || true
+          echo '=== WEB SERVER CONFIG ==='
+          for d in /etc/nginx /etc/caddy /etc/apache2; do
+            if [ -d "$d" ]; then echo "-- $d"; sudo find "$d" -maxdepth 3 -type f -print 2>/dev/null | head -80; fi
+          done
+          echo '=== LISTENERS ==='
+          sudo ss -ltnp 2>/dev/null | sed -n '1,120p' || true
+          echo '=== FGB SERVICES ==='
+          systemctl list-units --type=service --all 'fgbears*' --no-pager || true
+          REMOTE
