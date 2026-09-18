@@ -1,0 +1,16 @@
+{
+  "checkedAt": "2026-09-18T04:55:26.578340+00:00",
+  "current": {
+    "CURRENT_ACTIVE": "active",
+    "CURRENT_ENABLED": "enabled",
+    "CURRENT_PID": "660169",
+    "CURRENT_RESTARTS": "0",
+    "IMMEDIATE_FLUSH": "true",
+    "LOW_LATENCY_DISCOVERY": "true",
+    "MASTER_PID": "435211",
+    "MASTER_STABLE": "true",
+    "NOBUFFER_ACTIVE": "false",
+    "PID_STABLE": "true",
+    "YOUTUBE_RTMPS_CONNECTED": "true"
+  }
+}
