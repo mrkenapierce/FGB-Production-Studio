@@ -1,0 +1,71 @@
+name: Fix Game Overlay Standings Contract
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-game-overlay-standings-contract.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Patch renderer to canonical standings keys with legacy fallback
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          overlay = Path('services/fgbears-live/bin/game_overlay.py')
+          text = overlay.read_text()
+
+          marker = '\ndef render_game_screen(game: dict[str, Any], now: float | None = None) -> Image.Image:\n'
+          helpers = '''\ndef _standing_score(row: dict[str, Any]) -> int:\n    """Canonical standings score, with legacy feed compatibility."""\n    value = row.get("teamScore")\n    if value is None:\n        value = row.get("score")\n    return _integer(value, 0, 0, 1_000_000)\n\n\ndef _standing_players(row: dict[str, Any]) -> int:\n    """Canonical unique-player count, with legacy feed compatibility."""\n    value = row.get("uniquePlayers")\n    if value is None:\n        value = row.get("players")\n    if value is None:\n        value = row.get("participants")\n    return _integer(value, 0, 0, 1_000_000)\n\n'''
+          if '_standing_score(' not in text:
+              if marker not in text:
+                  raise SystemExit('render marker not found')
+              text = text.replace(marker, helpers + marker, 1)
+
+          old = '''            score = _integer(row.get("score"), 0, 0, 1_000_000)\n            players = _integer(row.get("players") or row.get("participants"), 0, 0, 1_000_000)'''
+          new = '''            score = _standing_score(row)\n            players = _standing_players(row)'''
+          if old in text:
+              text = text.replace(old, new, 1)
+          elif new not in text:
+              raise SystemExit('standings render snippet not found')
+          overlay.write_text(text)
+
+          test = Path('services/fgbears-live/tests/test-game-overlay.py')
+          t = test.read_text()
+          anchor = 'm.BASE = FakeBase\n'
+          block = '''\n# Broadcast standings use canonical web-contract keys. Legacy aliases remain supported.\nassert m._standing_score({"teamScore": 17, "score": 999}) == 17\nassert m._standing_players({"uniquePlayers": 4, "players": 999, "participants": 888}) == 4\nassert m._standing_score({"score": 9}) == 9\nassert m._standing_players({"players": 3}) == 3\nassert m._standing_players({"participants": 2}) == 2\n'''
+          if 'Broadcast standings use canonical web-contract keys' not in t:
+              if anchor not in t:
+                  raise SystemExit('test anchor not found')
+              t = t.replace(anchor, anchor + block, 1)
+          test.write_text(t)
+          PY
+      - name: Run focused overlay test and syntax check
+        run: |
+          set -Eeuo pipefail
+          python3 -m py_compile services/fgbears-live/bin/game_overlay.py
+          python3 services/fgbears-live/tests/test-game-overlay.py
+      - name: Commit source hardening
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add services/fgbears-live/bin/game_overlay.py services/fgbears-live/tests/test-game-overlay.py
+          if git diff --cached --quiet; then
+            echo 'No changes required.'
+            exit 0
+          fi
+          git commit -m 'Fix livestream standings score contract'
+          git push origin HEAD:main
