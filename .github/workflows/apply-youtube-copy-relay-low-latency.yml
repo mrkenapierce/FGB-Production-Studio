@@ -1,0 +1,159 @@
+name: Apply YouTube Copy Relay Low Latency
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-youtube-copy-relay-low-latency.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fgbears-youtube-copy-relay-low-latency
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate relay script
+        run: |
+          set -Eeuo pipefail
+          bash -n services/fgbears-live/bin/youtube-copy-relay.sh
+          grep -Fq -- '-fflags +genpts+discardcorrupt+nobuffer' services/fgbears-live/bin/youtube-copy-relay.sh
+          grep -Fq -- '-probesize 500000 -analyzeduration 500000 -max_delay 0' services/fgbears-live/bin/youtube-copy-relay.sh
+          grep -Fq -- '-flush_packets 1' services/fgbears-live/bin/youtube-copy-relay.sh
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy and restart YouTube destination only
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'bash -s' <<'REMOTE' | tee /tmp/youtube-low-latency-rollout.txt
+          set -Eeuo pipefail
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+          restarts(){ systemctl show -p NRestarts --value "$1" 2>/dev/null || echo 0; }
+          connected(){
+            local p=$1
+            [[ "$p" =~ ^[1-9][0-9]*$ ]] || return 1
+            ss -ntpH state established 2>/dev/null | awk -v q="pid=$p" 'index($0,q)&&index($0,":443"){ok=1} END{exit(ok?0:1)}'
+          }
+
+          MASTER=fgbears-live.service
+          YOUTUBE=fgbears-youtube-copy-relay.service
+          master_before=$(pid "$MASTER")
+          youtube_before=$(pid "$YOUTUBE")
+          [[ "$master_before" =~ ^[1-9][0-9]*$ ]] || { echo 'Master inactive before rollout' >&2; exit 1; }
+          [[ "$youtube_before" =~ ^[1-9][0-9]*$ ]] || { echo 'YouTube relay inactive before rollout' >&2; exit 1; }
+
+          backup=/tmp/fgbears-youtube-copy-relay.rollback.$$
+          sudo cp -a /usr/local/bin/fgbears-youtube-copy-relay "$backup"
+          rollback(){
+            rc=$?
+            echo "ROLLBACK_TRIGGERED=true rc=$rc"
+            sudo install -m 0755 "$backup" /usr/local/bin/fgbears-youtube-copy-relay
+            sudo systemctl restart "$YOUTUBE" || true
+            exit "$rc"
+          }
+          trap rollback ERR
+
+          rm -rf /tmp/fgbears-youtube-low-latency
+          git clone --depth 1 https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgbears-youtube-low-latency >/dev/null
+          bash -n /tmp/fgbears-youtube-low-latency/services/fgbears-live/bin/youtube-copy-relay.sh
+          sudo install -m 0755 /tmp/fgbears-youtube-low-latency/services/fgbears-live/bin/youtube-copy-relay.sh /usr/local/bin/fgbears-youtube-copy-relay
+
+          # Restart ONLY the destination relay. The shared master remains untouched.
+          sudo systemctl restart "$YOUTUBE"
+          sleep 6
+          systemctl is-active --quiet "$YOUTUBE"
+          youtube_after=$(pid "$YOUTUBE")
+          master_after=$(pid "$MASTER")
+          [[ "$youtube_after" =~ ^[1-9][0-9]*$ ]]
+          test "$master_after" = "$master_before"
+
+          args=$(tr '\0' ' ' < "/proc/$youtube_after/cmdline")
+          grep -Fq -- '-probesize 500000 -analyzeduration 500000 -max_delay 0' <<<"$args"
+          grep -Fq -- '+genpts+discardcorrupt+nobuffer' <<<"$args"
+          grep -Fq -- '-flush_packets 1' <<<"$args"
+
+          # Allow RTMPS reconnect, then prove the new process is stable and connected.
+          for _ in $(seq 1 20); do
+            if connected "$youtube_after"; then break; fi
+            sleep 1
+          done
+          connected "$youtube_after"
+          restarts_stable_start=$(restarts "$YOUTUBE")
+          sleep 20
+          systemctl is-active --quiet "$YOUTUBE"
+          test "$(pid "$YOUTUBE")" = "$youtube_after"
+          test "$(pid "$MASTER")" = "$master_before"
+          test "$(restarts "$YOUTUBE")" = "$restarts_stable_start"
+          connected "$youtube_after"
+
+          trap - ERR
+          rm -f "$backup"
+          echo 'ROLLOUT_OK=true'
+          echo "MASTER_PID_BEFORE=$master_before"
+          echo "MASTER_PID_AFTER=$master_after"
+          echo "YOUTUBE_PID_BEFORE=$youtube_before"
+          echo "YOUTUBE_PID_AFTER=$youtube_after"
+          echo "YOUTUBE_RESTARTS=$(restarts "$YOUTUBE")"
+          echo 'COPY_RELAY_BUFFER_POLICY=nobuffer'
+          echo 'COPY_RELAY_PROBESIZE=500000'
+          echo 'COPY_RELAY_ANALYZEDURATION=500000'
+          echo 'COPY_RELAY_MAX_DELAY=0'
+          echo 'COPY_RELAY_FLUSH_PACKETS=1'
+          REMOTE
+
+      - name: Persist sanitized rollout result
+        run: |
+          set -Eeuo pipefail
+          mkdir -p .github/deployment-status
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          values = {}
+          for raw in Path('/tmp/youtube-low-latency-rollout.txt').read_text(encoding='utf-8').splitlines():
+              if '=' not in raw: continue
+              k,v=raw.split('=',1)
+              if k in {
+                  'ROLLOUT_OK','MASTER_PID_BEFORE','MASTER_PID_AFTER','YOUTUBE_PID_BEFORE','YOUTUBE_PID_AFTER',
+                  'YOUTUBE_RESTARTS','COPY_RELAY_BUFFER_POLICY','COPY_RELAY_PROBESIZE',
+                  'COPY_RELAY_ANALYZEDURATION','COPY_RELAY_MAX_DELAY','COPY_RELAY_FLUSH_PACKETS'
+              }:
+                  values[k]=v
+          body={
+              'checkedAt': datetime.now(timezone.utc).isoformat(),
+              'production': values,
+              'scope': 'youtube-copy-relay-only',
+          }
+          Path('.github/deployment-status/youtube-copy-relay-low-latency.json').write_text(
+              json.dumps(body, indent=2, sort_keys=True)+'\n', encoding='utf-8'
+          )
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/youtube-copy-relay-low-latency.json
+          git commit -m 'Record YouTube low-latency relay rollout'
+          git push
