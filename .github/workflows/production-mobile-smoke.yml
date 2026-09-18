@@ -1,0 +1,107 @@
+name: Production Mobile Smoke
+
+on:
+  push:
+    branches: [probe-external-db-access]
+    paths:
+      - '.github/workflows/production-mobile-smoke.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Public endpoint checks
+        run: |
+          set -Eeuo pipefail
+          echo '=== PAGE HEADERS ==='
+          curl -sSIL --max-time 20 https://epiccontentcreatorgrants.org/fgb-trivia | sed -n '1,80p'
+          echo '=== WEBSITE FEED ==='
+          curl -fsSL --max-time 20 'https://epiccontentcreatorgrants.org/api/public/fgbears/website-game-screen?t='$(date +%s%N) | tee /tmp/web.json
+          echo
+          echo '=== SOURCE FEED ==='
+          curl -fsSL --max-time 20 'https://epiccontentcreatorgrants.org/api/public/fgbears/game-screen?t='$(date +%s%N) | tee /tmp/src.json
+          echo
+          test "$(jq -r '.delaySeconds // -1' /tmp/web.json)" = "20"
+          test "$(jq -r 'has("delaySeconds")' /tmp/src.json)" = "false"
+      - name: Install Playwright
+        run: |
+          set -Eeuo pipefail
+          mkdir -p /tmp/fgb-smoke
+          cd /tmp/fgb-smoke
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium >/dev/null 2>&1
+      - name: Phone-width production browser smoke
+        run: |
+          set -Eeuo pipefail
+          cd /tmp/fgb-smoke
+          cat > smoke.cjs <<'NODE'
+          const { chromium } = require('playwright');
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+            const page = await context.newPage();
+            const pageErrors = [];
+            const consoleErrors = [];
+            page.on('pageerror', e => pageErrors.push(String(e)));
+            page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text()); });
+            await page.goto('https://epiccontentcreatorgrants.org/fgb-trivia', { waitUntil: 'domcontentloaded', timeout: 60000 });
+            await page.waitForTimeout(12000);
+
+            let observation = null;
+            for (let i = 0; i < 25; i++) {
+              observation = await page.evaluate(() => {
+                const sec = document.querySelector('section[aria-label="Livestream play"]');
+                const text = sec?.innerText || '';
+                const gate = text.includes('Register to answer this live question');
+                const preparing = text.includes('Preparing your free guest session');
+                const cta = Array.from(sec?.querySelectorAll('button') || []).find(b => (b.textContent || '').includes('Register now to answer')) || null;
+                const allButtons = Array.from(sec?.querySelectorAll('button') || []);
+                const answerButtons = allButtons.filter(b => /^[A-D]\./.test((b.textContent || '').trim()));
+                const gatedList = sec?.querySelector('[aria-label="Answer choices (registration required)"]');
+                const anchor = document.getElementById('fgb-daily-registration');
+                return {
+                  gate,
+                  preparing,
+                  cta: !!cta,
+                  answerButtonCount: answerButtons.length,
+                  gatedChoiceCount: gatedList ? gatedList.querySelectorAll('li').length : 0,
+                  anchor: !!anchor,
+                  liveText: text.slice(0, 1200),
+                  dailyAttempts: document.body.innerText.toLowerCase().includes('daily attempts mode'),
+                };
+              });
+              if (observation.gate || observation.preparing) break;
+              await page.waitForTimeout(1500);
+            }
+
+            console.log('FINAL_URL', page.url());
+            console.log('OBSERVATION', JSON.stringify(observation));
+            console.log('PAGE_ERRORS', JSON.stringify(pageErrors));
+            console.log('CONSOLE_ERRORS', JSON.stringify(consoleErrors.slice(0, 20)));
+
+            if (!observation) throw new Error('No observation');
+            if (!observation.dailyAttempts) throw new Error('Daily Attempts section missing');
+            if (observation.gate) {
+              if (!observation.cta) throw new Error('Registration gate missing CTA');
+              if (!observation.anchor) throw new Error('Registration CTA anchor missing');
+              if (observation.answerButtonCount !== 0) throw new Error('Unregistered visitor still has answer buttons');
+              if (observation.gatedChoiceCount < 2) throw new Error('Registration-gated choices missing');
+              console.log('PASS_MODE registration_gate');
+            } else if (observation.preparing) {
+              if (observation.cta) throw new Error('Preparing state incorrectly shows registration CTA');
+              if (observation.answerButtonCount !== 0) throw new Error('Preparing state exposes answer buttons');
+              if (observation.gatedChoiceCount !== 0) throw new Error('Preparing state exposes gated choice list');
+              console.log('PASS_MODE guest_preparing');
+            } else {
+              throw new Error('Neither registration gate nor guest preparation state observed');
+            }
+            await browser.close();
+          })().catch(e => { console.error(e); process.exit(1); });
+          NODE
+          node smoke.cjs
