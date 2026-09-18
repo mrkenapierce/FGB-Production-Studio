@@ -41,16 +41,16 @@ UPSTREAM_TARGET="${YOUTUBE_UPSTREAM_RTMP_BASE%/}/${YOUTUBE_STREAM_KEY}"
 #     AAC representation required by FLV.
 # No video or audio re-encoding occurs here.
 #
-# Latency policy: this input is a trusted loopback MPEG-TS feed with fixed
-# H.264/AAC codecs, so a multi-second probe/analyze reserve is unnecessary and
-# can leave the destination relay behind the master after startup. Keep enough
-# inspection for stream discovery while disabling FFmpeg's optional demux
-# buffering and flushing muxed packets promptly. The authoritative master and
-# Rumble path are unchanged.
+# Latency policy: this is a trusted loopback MPEG-TS feed with a 2-second H.264
+# keyframe cadence. A 10-second discovery window is unnecessary, but sub-GOP
+# discovery proved too aggressive because a relay can attach before the next
+# SPS/PPS. Three seconds safely spans a full GOP plus margin while materially
+# reducing startup backlog. Keep normal demux buffering for codec-header safety
+# and flush FLV packets promptly. The authoritative master is unchanged.
 exec ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
-  -fflags +genpts+discardcorrupt+nobuffer -err_detect ignore_err \
-  -probesize 500000 -analyzeduration 500000 -max_delay 0 \
+  -fflags +genpts+discardcorrupt -err_detect ignore_err \
+  -probesize 3000000 -analyzeduration 3000000 \
   -i "$LOCAL_INPUT" \
   -map 0:v:0 -map 0:a:0 \
   -c:v copy -tag:v 7 -bsf:v extract_extradata \
