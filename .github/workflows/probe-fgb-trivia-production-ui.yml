@@ -22,7 +22,7 @@ jobs:
           npm init -y >/dev/null 2>&1
           npm install --no-save playwright@1.55.0 >/dev/null 2>&1
           npx playwright install --with-deps chromium
-      - name: Probe production mobile UX
+      - name: Probe production mobile UX during question phase
         run: |
           set -euo pipefail
           cat > probe.mjs <<'EOF'
@@ -41,8 +41,15 @@ jobs:
             const h = await resp.allHeaders();
             for (const [k,v] of Object.entries(h)) if (/deploy|x-|etag|cache/i.test(k)) console.log('HEADER_'+k+'='+v);
           }
-          await page.waitForTimeout(8000);
-          const web = await page.evaluate(()=>fetch('/api/public/fgbears/website-game-screen?probe='+Date.now(),{cache:'no-store'}).then(r=>r.json()));
+          await page.waitForTimeout(7000);
+          let web=null;
+          for (let i=0;i<30;i++) {
+            web = await page.evaluate(()=>fetch('/api/public/fgbears/website-game-screen?probe='+Date.now(),{cache:'no-store'}).then(r=>r.json()));
+            if (web?.active && web?.phase === 'question' && Array.isArray(web?.choices) && web.choices.length) break;
+            await page.waitForTimeout(1000);
+          }
+          await page.waitForTimeout(1500);
+          web = await page.evaluate(()=>fetch('/api/public/fgbears/website-game-screen?probe='+Date.now(),{cache:'no-store'}).then(r=>r.json()));
           const src = await page.evaluate(()=>fetch('/api/public/fgbears/game-screen?probe='+Date.now(),{cache:'no-store'}).then(r=>r.json()));
           console.log('WEB_FEED='+JSON.stringify({active:web.active,waiting:web.waiting,delaySeconds:web.delaySeconds,gameId:web.gameId,questionIndex:web.questionIndex,questionNumber:web.questionNumber,phase:web.phase,phaseStartsAt:web.phaseStartsAt,phaseEndsAt:web.phaseEndsAt,secondsRemaining:web.secondsRemaining,prompt:web.prompt,choices:web.choices}));
           console.log('SRC_FEED='+JSON.stringify({active:src.active,gameId:src.gameId,questionIndex:src.questionIndex,questionNumber:src.questionNumber,phase:src.phase,phaseStartsAt:src.phaseStartsAt,phaseEndsAt:src.phaseEndsAt,secondsRemaining:src.secondsRemaining,hasDelay:Object.prototype.hasOwnProperty.call(src,'delaySeconds')}));
@@ -56,7 +63,7 @@ jobs:
               hasGateCta:body.includes('Register now to answer'),
               hasPrep:body.includes('Preparing your free guest session')||body.includes('Getting your free play session ready'),
               hasDailyAttempts:body.toUpperCase().includes('DAILY ATTEMPTS'),
-              liveText:s?s.innerText.slice(0,2500):null,
+              liveText:s?s.innerText.slice(0,3000):null,
               liveButtons:s?Array.from(s.querySelectorAll('button')).map(b=>({text:b.innerText.trim(),disabled:b.disabled})):[],
               liveNoninteractiveChoices:s?Array.from(s.querySelectorAll('li[aria-disabled="true"]')).map(x=>x.innerText.trim()):[],
               liveAnswerButtons:s?Array.from(s.querySelectorAll('button')).filter(b=>/^[A-D]\./.test(b.innerText.trim())).map(b=>({text:b.innerText.trim(),disabled:b.disabled})):[],
