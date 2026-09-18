@@ -19,12 +19,13 @@ jobs:
       - name: Install Playwright Chromium
         run: |
           set -euo pipefail
-          npm --version
-          npx --yes playwright@1.55.0 install --with-deps chromium
+          npm init -y >/dev/null 2>&1
+          npm install --no-save playwright@1.55.0 >/dev/null 2>&1
+          npx playwright install --with-deps chromium
       - name: Probe production mobile UX
         run: |
           set -euo pipefail
-          cat > /tmp/probe.mjs <<'EOF'
+          cat > probe.mjs <<'EOF'
           import { chromium } from 'playwright';
           const url = 'https://epiccontentcreatorgrants.org/fgb-trivia';
           const browser = await chromium.launch({headless:true});
@@ -67,6 +68,4 @@ jobs:
           console.log('PAGE_ERRORS='+JSON.stringify(pageErrors));
           await browser.close();
           EOF
-          npm init -y >/dev/null 2>&1
-          npm install --no-save playwright@1.55.0 >/dev/null 2>&1
-          node /tmp/probe.mjs
+          node probe.mjs
