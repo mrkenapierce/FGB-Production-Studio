@@ -1,10 +1,6 @@
 name: Apply YouTube Copy Relay Low Latency
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/apply-youtube-copy-relay-low-latency.yml'
   workflow_dispatch:
 
 permissions:
@@ -85,7 +81,6 @@ jobs:
           bash -n /tmp/fgbears-youtube-low-latency/services/fgbears-live/bin/youtube-copy-relay.sh
           sudo install -m 0755 /tmp/fgbears-youtube-low-latency/services/fgbears-live/bin/youtube-copy-relay.sh /usr/local/bin/fgbears-youtube-copy-relay
 
-          # Restart ONLY the YouTube destination. Shared master/game transport is untouched.
           sudo systemctl restart "$YOUTUBE"
           sleep 8
           systemctl is-active --quiet "$YOUTUBE"
@@ -114,7 +109,7 @@ jobs:
           connected "$youtube_after"
 
           trap - ERR
-          rm -f "$backup"
+          sudo rm -f "$backup"
           echo 'ROLLOUT_OK=true'
           echo "MASTER_PID_BEFORE=$master_before"
           echo "MASTER_PID_AFTER=$master_after"
