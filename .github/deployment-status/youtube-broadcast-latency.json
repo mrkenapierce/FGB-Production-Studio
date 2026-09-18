@@ -1,0 +1,9 @@
+{
+  "authSets": [],
+  "checkedAt": "2026-09-18T04:49:04.023407+00:00",
+  "probe": {
+    "ACTIVE_BROADCAST_LATENCY_PROBE": "SKIPPED_NO_USABLE_TOKEN",
+    "YOUTUBE_BROADCAST_API_AUTH": "UNAVAILABLE"
+  },
+  "targetLatencyPreference": "ultraLow"
+}
