@@ -1,0 +1,80 @@
+name: Probe YouTube Copy Relay Failure
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-youtube-copy-relay-failure.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Read relay status and recent failure journal
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'bash -s' <<'REMOTE' | tee /tmp/youtube-relay-failure.txt
+          set -Eeuo pipefail
+          unit=fgbears-youtube-copy-relay.service
+          echo "CURRENT_ACTIVE=$(systemctl is-active "$unit" 2>/dev/null || true)"
+          echo "CURRENT_ENABLED=$(systemctl is-enabled "$unit" 2>/dev/null || true)"
+          echo "CURRENT_PID=$(systemctl show -p MainPID --value "$unit" 2>/dev/null || echo 0)"
+          echo "CURRENT_RESTARTS=$(systemctl show -p NRestarts --value "$unit" 2>/dev/null || echo 0)"
+          echo 'JOURNAL_BEGIN'
+          sudo journalctl -u "$unit" --since '10 minutes ago' --no-pager -o cat 2>/dev/null \
+            | sed -E 's#(rtmps://[^/]+/live2/)[^ ]+#\1[REDACTED]#g; s#([A-Za-z0-9_-]{20,})#[TOKEN_REDACTED]#g' \
+            | tail -80
+          echo 'JOURNAL_END'
+          REMOTE
+
+      - name: Persist sanitized diagnostic
+        run: |
+          set -Eeuo pipefail
+          mkdir -p .github/deployment-status
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          lines=Path('/tmp/youtube-relay-failure.txt').read_text(encoding='utf-8').splitlines()
+          vals={}
+          journal=[]
+          in_journal=False
+          for line in lines:
+              if line=='JOURNAL_BEGIN': in_journal=True; continue
+              if line=='JOURNAL_END': in_journal=False; continue
+              if in_journal:
+                  journal.append(line[:500])
+              elif '=' in line:
+                  k,v=line.split('=',1)
+                  if k in {'CURRENT_ACTIVE','CURRENT_ENABLED','CURRENT_PID','CURRENT_RESTARTS'}:
+                      vals[k]=v
+          body={'checkedAt':datetime.now(timezone.utc).isoformat(),'current':vals,'journal':journal[-80:]}
+          Path('.github/deployment-status/youtube-copy-relay-failure.json').write_text(json.dumps(body,indent=2)+'\n',encoding='utf-8')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/youtube-copy-relay-failure.json
+          git commit -m 'Record YouTube relay rollback diagnostic'
+          git push
