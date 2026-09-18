@@ -5,9 +5,49 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 18 Sep 2026 17:47:00 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 18 Sep 2026 20:08:53 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Vikings rule out Kyler Murray for Week 2 vs. Bears, Carson Wentz to start</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Vikings rule out Kyler Murray for Week 2 vs. Bears, Carson Wentz to start</description>
+      <link>https://www.cbssports.com/nfl/news/kyler-murray-injury-vikings-qb-carson-wentz/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-05256035734988f8422a</guid>
+      <pubDate>Fri, 18 Sep 2026 19:31:42 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears-Vikings Final Injury Report: Chicago all in; Kyler Murray out for Minnesota</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears-Vikings Final Injury Report: Chicago all in; Kyler Murray out for Minnesota</description>
+      <link>https://sports.yahoo.com/articles/bears-vikings-final-injury-report-191924964.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-96c724dba3a8d020acf8</guid>
+      <pubDate>Fri, 18 Sep 2026 19:19:24 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>D&apos;Andre Swift, Kyle Monangai good to go for Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: D&apos;Andre Swift, Kyle Monangai good to go for Bears</description>
+      <link>https://sports.yahoo.com/articles/dandre-swift-kyle-monangai-good-191247309.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9abf815e82658eb10f8f</guid>
+      <pubDate>Fri, 18 Sep 2026 19:12:47 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Kalif Raymond proving to be reliable veteran target for Bears offense</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Kalif Raymond proving to be reliable veteran target for Bears offense</description>
+      <link>https://www.chicagobears.com/news/kalif-raymond-proving-to-be-reliable-veteran-target-for-bears-offense</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f4cc3c9d4823b503ca2f</guid>
+      <pubDate>Fri, 18 Sep 2026 18:18:50 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
 
     <item>
       <title>NFL Week 2 odds, predictions, expert picks: Can blitz-heavy Vikings overtake Bears? Will Cards upset Seahawks?</title>
@@ -30,63 +70,23 @@
     </item>
 
     <item>
-      <title>Dennis Allen&apos;s message to Bears defense before Week 2 vs. Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Dennis Allen&apos;s message to Bears defense before Week 2 vs. Vikings</description>
-      <link>https://sports.yahoo.com/articles/dennis-allens-message-bears-defense-173419684.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-16f399dfa4ac6d332080</guid>
-      <pubDate>Fri, 18 Sep 2026 10:34:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>How Bears can make NFL history with 37 points in Week 2 vs. Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: How Bears can make NFL history with 37 points in Week 2 vs. Vikings</description>
-      <link>https://sports.yahoo.com/articles/bears-nfl-history-37-points-154323330.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9403c4bcee207d974956</guid>
-      <pubDate>Fri, 18 Sep 2026 08:43:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears Reveal What Happened to Rookie Zavion Thomas and How to Fix It</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Reveal What Happened to Rookie Zavion Thomas and How to Fix It</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-reveal-what-happened-to-rookie-zavion-thomas-and-how-to-fix-it</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a24a49bc873eece6782d</guid>
-      <pubDate>Fri, 18 Sep 2026 08:00:00 GMT</pubDate>
+      <title>D&apos;Andre Swift, Kyle Monangai and More Bears Injury News From Final Week 2 Practice Report</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: D&apos;Andre Swift, Kyle Monangai and More Bears Injury News From Final Week 2 Practice Report</description>
+      <link>https://www.si.com/nfl/bears/onsi/d-andre-swift-kyle-monangai-bears-injury-news-final-week-2-practice-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-663ac11011694ee6b345</guid>
+      <pubDate>Fri, 18 Sep 2026 12:20:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Bears and Steelers Considered Ideal Trade Partners as Concern For Chicago&apos;s Defense Mounts</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears and Steelers Considered Ideal Trade Partners as Concern For Chicago&apos;s Defense Mounts</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-steelers-ideal-trade-partners-concern-chicago-defense</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9094884bbd4325ab9062</guid>
-      <pubDate>Fri, 18 Sep 2026 06:59:00 GMT</pubDate>
+      <title>Kyler Murray Injury Update Confirms Quarterback Bears Will Face Vs. Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyler Murray Injury Update Confirms Quarterback Bears Will Face Vs. Vikings</description>
+      <link>https://www.si.com/nfl/bears/onsi/kyler-murray-injury-update-quarterback-bears-face-vikings</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-df7ee5c65b6c67e76f52</guid>
+      <pubDate>Fri, 18 Sep 2026 11:54:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears mailbag: Can their defense really turn things around against Justin Jefferson?</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears mailbag: Can their defense really turn things around against Justin Jefferson?</description>
-      <link>https://www.nytimes.com/athletic/7605402/2026/09/18/bears-defense-concerns-vikings-mailbag/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d7250a50e96fd003657c</guid>
-      <pubDate>Fri, 18 Sep 2026 03:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>9 interesting things said by Bears coordinators in advance of home opener</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 9 interesting things said by Bears coordinators in advance of home opener</description>
-      <link>https://www.chicagobears.com/news/9-interesting-things-said-by-bears-coordinators-in-advance-of-home-opener</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c4a724971a1527fd1cfc</guid>
-      <pubDate>Thu, 17 Sep 2026 20:23:19 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
