@@ -8,13 +8,18 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   probe:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
@@ -29,11 +34,12 @@ jobs:
           ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
 
       - name: Read production topology and active YouTube broadcast latency
+        id: probe
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
         run: |
           set -Eeuo pipefail
-          ssh -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          ssh -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'bash -s' <<'REMOTE' | tee /tmp/youtube-latency-probe.txt
           set -Eeuo pipefail
           echo "COPY_RELAY_ACTIVE=$(systemctl is-active fgbears-youtube-copy-relay.service 2>/dev/null || true)"
           echo "COPY_RELAY_ENABLED=$(systemctl is-enabled fgbears-youtube-copy-relay.service 2>/dev/null || true)"
@@ -47,15 +53,11 @@ jobs:
             buffer=$(sudo sed -n 's/^YOUTUBE_V3_BUFFER_SECONDS=//p' "$ENV_FILE" | tail -1)
             echo "CONFIG_YOUTUBE_SERVICE=${service:-unset}"
             echo "CONFIG_V3_BUFFER_SECONDS=${buffer:-unset}"
-            echo 'CONFIG_VARIABLE_NAMES_BEGIN'
-            sudo grep -hE '^[A-Z][A-Z0-9_]*=' "$ENV_FILE" | cut -d= -f1 | sort -u | grep -E 'YOUTUBE|GOOGLE|OAUTH|FGB_' || true
-            echo 'CONFIG_VARIABLE_NAMES_END'
           else
             echo 'STREAM_ENV=UNREADABLE_EVEN_WITH_SUDO'
           fi
 
-          # Try the exact OAuth names expected by youtube-broadcast-control.py.
-          # Values are never printed. If present, query only non-secret broadcast metadata.
+          # Query only non-secret YouTube broadcast metadata. OAuth values are never printed.
           if sudo grep -q '^FGB_YOUTUBE_CLIENT_ID=' "$ENV_FILE" 2>/dev/null \
              && sudo grep -q '^FGB_YOUTUBE_CLIENT_SECRET=' "$ENV_FILE" 2>/dev/null \
              && sudo grep -q '^FGB_YOUTUBE_REFRESH_TOKEN=' "$ENV_FILE" 2>/dev/null; then
@@ -86,3 +88,43 @@ jobs:
             echo 'ORACLE_YOUTUBE_OAUTH=UNAVAILABLE'
           fi
           REMOTE
+
+      - name: Persist sanitized probe result
+        run: |
+          set -Eeuo pipefail
+          mkdir -p .github/deployment-status
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          values = {}
+          for raw in Path('/tmp/youtube-latency-probe.txt').read_text(encoding='utf-8').splitlines():
+              if '=' not in raw:
+                  continue
+              k, v = raw.split('=', 1)
+              if k in {
+                  'COPY_RELAY_ACTIVE','COPY_RELAY_ENABLED','V3_ACTIVE','V3_ENABLED','MASTER_ACTIVE',
+                  'CONFIG_YOUTUBE_SERVICE','CONFIG_V3_BUFFER_SECONDS','ORACLE_YOUTUBE_OAUTH',
+                  'ACTIVE_BROADCAST_COUNT','ACTIVE_BROADCAST_ID','LATENCY_PREFERENCE',
+                  'ENABLE_LOW_LATENCY','MONITOR_DELAY_MS','LIFECYCLE_STATUS'
+              }:
+                  values[k] = v
+          body = {
+              'checkedAt': datetime.now(timezone.utc).isoformat(),
+              'targetLatencyPreference': 'ultraLow',
+              'production': values,
+          }
+          Path('.github/deployment-status/youtube-production-latency.json').write_text(
+              json.dumps(body, indent=2, sort_keys=True) + '\n', encoding='utf-8'
+          )
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/youtube-production-latency.json
+          if git diff --cached --quiet; then
+            echo 'No probe-result change to commit.'
+          else
+            git commit -m 'Record YouTube production latency probe'
+            git push
+          fi
