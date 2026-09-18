@@ -35,6 +35,22 @@ jobs:
           curl -sSIL --max-time 15 https://epiccontentcreatorgrants.org/ | sed -n '1,80p' || true
           echo '=== WEBSITE FEED HEADERS ==='
           curl -sSIL --max-time 15 https://epiccontentcreatorgrants.org/api/public/fgbears/website-game-screen | sed -n '1,80p' || true
+      - name: Check DNS credential slots without printing secrets
+        env:
+          NAMECOM_USERNAME: ${{ secrets.NAMECOM_USERNAME }}
+          NAMECOM_USER: ${{ secrets.NAMECOM_USER }}
+          NAMECOM_TOKEN: ${{ secrets.NAMECOM_TOKEN }}
+          NAMECOM_API_TOKEN: ${{ secrets.NAMECOM_API_TOKEN }}
+          NAMECOM_API_KEY: ${{ secrets.NAMECOM_API_KEY }}
+          DNS_USERNAME: ${{ secrets.DNS_USERNAME }}
+          DNS_TOKEN: ${{ secrets.DNS_TOKEN }}
+          DNS_API_TOKEN: ${{ secrets.DNS_API_TOKEN }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+          for n in NAMECOM_USERNAME NAMECOM_USER NAMECOM_TOKEN NAMECOM_API_TOKEN NAMECOM_API_KEY DNS_USERNAME DNS_TOKEN DNS_API_TOKEN CLOUDFLARE_API_TOKEN; do
+            if [ -n "${!n:-}" ]; then echo "$n=PRESENT"; else echo "$n=ABSENT"; fi
+          done
       - name: Configure Oracle SSH
         env:
           ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
