@@ -1,0 +1,44 @@
+name: Probe Current Trivia Timing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-current-trivia-state.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Sample public trivia feeds
+        run: |
+          set -Eeuo pipefail
+          for i in $(seq 1 35); do
+            printf '%s ' "$(date -u +%FT%T.%3NZ)"
+            python3 - <<'PY'
+import json, urllib.request
+for name,path in [('broadcast','game-screen'),('website','website-game-screen')]:
+    try:
+        req=urllib.request.Request('https://epiccontentcreatorgrants.org/api/public/fgbears/'+path, headers={'Cache-Control':'no-cache','User-Agent':'FGB-readonly-probe'})
+        with urllib.request.urlopen(req,timeout=8) as r:
+            raw=r.read().decode('utf-8','replace')
+        try:
+            d=json.loads(raw)
+            if name=='broadcast':
+                q=d.get('question') or {}
+                print(f"{name}: active={d.get('active')} round={d.get('roundId')} idx={d.get('questionIndex')} key={d.get('questionKey')} phase={d.get('phase')} start={d.get('phaseStartsAt')} end={d.get('phaseEndsAt')}", end=' | ')
+            else:
+                print(f"{name}: active={d.get('active')} waiting={d.get('waiting')} round={d.get('roundId')} idx={d.get('questionIndex')} key={d.get('questionKey')} phase={d.get('phase')} start={d.get('phaseStartsAt')} end={d.get('phaseEndsAt')}", end='')
+        except Exception:
+            print(f"{name}: nonjson status-body={raw[:120]!r}", end=' | ' if name=='broadcast' else '')
+    except Exception as e:
+        print(f"{name}: ERROR {type(e).__name__}:{e}", end=' | ' if name=='broadcast' else '')
+print()
+PY
+            sleep 1
+          done
