@@ -5,9 +5,39 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 18 Sep 2026 20:08:53 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 18 Sep 2026 22:33:02 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears-Vikings: Keys to a Chicago victory</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears-Vikings: Keys to a Chicago victory</description>
+      <link>https://sports.yahoo.com/articles/bears-vikings-keys-chicago-victory-220000166.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0f0de058c958c8043668</guid>
+      <pubDate>Fri, 18 Sep 2026 22:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Vikings-Bears Final Injury Report</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Vikings-Bears Final Injury Report</description>
+      <link>https://sports.yahoo.com/articles/vikings-bears-final-injury-report-210511078.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2786dd4088bec2765f33</guid>
+      <pubDate>Fri, 18 Sep 2026 21:05:11 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Injury Update: No Bears players on final injury report</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Injury Update: No Bears players on final injury report</description>
+      <link>https://www.chicagobears.com/news/injury-update-no-bears-players-on-final-injury-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4165e158eb80ba916759</guid>
+      <pubDate>Fri, 18 Sep 2026 20:47:55 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
 
     <item>
       <title>Vikings rule out Kyler Murray for Week 2 vs. Bears, Carson Wentz to start</title>
@@ -17,26 +47,6 @@
       <pubDate>Fri, 18 Sep 2026 19:31:42 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears-Vikings Final Injury Report: Chicago all in; Kyler Murray out for Minnesota</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears-Vikings Final Injury Report: Chicago all in; Kyler Murray out for Minnesota</description>
-      <link>https://sports.yahoo.com/articles/bears-vikings-final-injury-report-191924964.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-96c724dba3a8d020acf8</guid>
-      <pubDate>Fri, 18 Sep 2026 19:19:24 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>D&apos;Andre Swift, Kyle Monangai good to go for Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: D&apos;Andre Swift, Kyle Monangai good to go for Bears</description>
-      <link>https://sports.yahoo.com/articles/dandre-swift-kyle-monangai-good-191247309.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9abf815e82658eb10f8f</guid>
-      <pubDate>Fri, 18 Sep 2026 19:12:47 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -50,43 +60,33 @@
     </item>
 
     <item>
+      <title>One Loser Possible from Chain Reaction With Bears&apos; Wildly Positive Injury Report</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: One Loser Possible from Chain Reaction With Bears&apos; Wildly Positive Injury Report</description>
+      <link>https://www.si.com/nfl/bears/onsi/only-one-loser-from-chain-reaction-caused-by-bears-wildly-positive-injury-report-expected</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a2922196d30f25953e5e</guid>
+      <pubDate>Fri, 18 Sep 2026 15:15:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Ozzy Trapilo&apos;s Return Raises a Question the Bears Can&apos;t Ignore Much Longer</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ozzy Trapilo&apos;s Return Raises a Question the Bears Can&apos;t Ignore Much Longer</description>
+      <link>https://www.si.com/nfl/bears/onsi/ozzy-trapilo-s-return-raises-a-question-the-bears-can-t-ignore-much-longer</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-67f7a6d4d3509f78dca3</guid>
+      <pubDate>Fri, 18 Sep 2026 14:07:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>NFL Week 2 odds, predictions, expert picks: Can blitz-heavy Vikings overtake Bears? Will Cards upset Seahawks?</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 2 odds, predictions, expert picks: Can blitz-heavy Vikings overtake Bears? Will Cards upset Seahawks?</description>
       <link>https://www.cbssports.com/nfl/news/nfl-week-2-odds-predictions-expert-picks/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-489f49793f6ea19a6ba4</guid>
-      <pubDate>Fri, 18 Sep 2026 13:49:50 GMT</pubDate>
+      <pubDate>Fri, 18 Sep 2026 07:49:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears heading to UK for 5-city tour in October</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears heading to UK for 5-city tour in October</description>
-      <link>https://www.chicagobears.com/news/bears-heading-to-uk-for-5-city-tour-in-october</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e21970ddc2d58263f776</guid>
-      <pubDate>Fri, 18 Sep 2026 13:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>D&apos;Andre Swift, Kyle Monangai and More Bears Injury News From Final Week 2 Practice Report</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: D&apos;Andre Swift, Kyle Monangai and More Bears Injury News From Final Week 2 Practice Report</description>
-      <link>https://www.si.com/nfl/bears/onsi/d-andre-swift-kyle-monangai-bears-injury-news-final-week-2-practice-report</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-663ac11011694ee6b345</guid>
-      <pubDate>Fri, 18 Sep 2026 12:20:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Kyler Murray Injury Update Confirms Quarterback Bears Will Face Vs. Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyler Murray Injury Update Confirms Quarterback Bears Will Face Vs. Vikings</description>
-      <link>https://www.si.com/nfl/bears/onsi/kyler-murray-injury-update-quarterback-bears-face-vikings</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-df7ee5c65b6c67e76f52</guid>
-      <pubDate>Fri, 18 Sep 2026 11:54:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
