@@ -5,19 +5,9 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 18 Sep 2026 14:28:55 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 18 Sep 2026 17:47:00 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
-
-    <item>
-      <title>Vikings at Bears Q&amp;A: Ben Johnson vs Brian Flores</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Vikings at Bears Q&amp;A: Ben Johnson vs Brian Flores</description>
-      <link>https://sports.yahoo.com/articles/vikings-bears-q-ben-johnson-140000877.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-014adba4077fb273b73a</guid>
-      <pubDate>Fri, 18 Sep 2026 14:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
 
     <item>
       <title>NFL Week 2 odds, predictions, expert picks: Can blitz-heavy Vikings overtake Bears? Will Cards upset Seahawks?</title>
@@ -40,13 +30,33 @@
     </item>
 
     <item>
-      <title>Hunting Explosives: Revisiting the Bears’ Big Plays from Week 1</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Hunting Explosives: Revisiting the Bears’ Big Plays from Week 1</description>
-      <link>https://sports.yahoo.com/articles/hunting-explosives-revisiting-bears-big-120000453.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c9f66035398beab15f5a</guid>
-      <pubDate>Fri, 18 Sep 2026 12:00:00 GMT</pubDate>
+      <title>Dennis Allen&apos;s message to Bears defense before Week 2 vs. Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Dennis Allen&apos;s message to Bears defense before Week 2 vs. Vikings</description>
+      <link>https://sports.yahoo.com/articles/dennis-allens-message-bears-defense-173419684.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-16f399dfa4ac6d332080</guid>
+      <pubDate>Fri, 18 Sep 2026 10:34:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>How Bears can make NFL history with 37 points in Week 2 vs. Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: How Bears can make NFL history with 37 points in Week 2 vs. Vikings</description>
+      <link>https://sports.yahoo.com/articles/bears-nfl-history-37-points-154323330.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9403c4bcee207d974956</guid>
+      <pubDate>Fri, 18 Sep 2026 08:43:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears Reveal What Happened to Rookie Zavion Thomas and How to Fix It</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Reveal What Happened to Rookie Zavion Thomas and How to Fix It</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-reveal-what-happened-to-rookie-zavion-thomas-and-how-to-fix-it</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a24a49bc873eece6782d</guid>
+      <pubDate>Fri, 18 Sep 2026 08:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -55,16 +65,6 @@
       <link>https://www.si.com/nfl/bears/onsi/bears-steelers-ideal-trade-partners-concern-chicago-defense</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-9094884bbd4325ab9062</guid>
       <pubDate>Fri, 18 Sep 2026 06:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Jaylon Johnson Creates Controversy With Answer on Facing Justin Jefferson, Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Jaylon Johnson Creates Controversy With Answer on Facing Justin Jefferson, Vikings</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-jaylon-johnson-creates-controversy-with-answer-on-facing-justin-jefferson-vikings</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-10b2055b71ee1aa38358</guid>
-      <pubDate>Fri, 18 Sep 2026 06:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
