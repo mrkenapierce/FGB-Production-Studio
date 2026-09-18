@@ -55,6 +55,7 @@ jobs:
       - name: Run focused overlay test and syntax check
         run: |
           set -Eeuo pipefail
+          python3 -m pip install --quiet Pillow
           python3 -m py_compile services/fgbears-live/bin/game_overlay.py
           python3 services/fgbears-live/tests/test-game-overlay.py
       - name: Commit source hardening
