@@ -10,7 +10,7 @@ on:
 permissions:
   contents: read
 
-# Re-run requested after the September 10, 2026 YouTube public-live outage.
+# Read-only diagnostic. Never prints OAuth secret/token values.
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -58,3 +58,66 @@ jobs:
           else
             echo 'YOUTUBE_BROADCAST_API_AUTH=UNAVAILABLE'
           fi
+
+      - name: Read active broadcast latency setting
+        env:
+          YT_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YTO_CLIENT_ID: ${{ secrets.YOUTUBE_OAUTH_CLIENT_ID }}
+          YTO_CLIENT_SECRET: ${{ secrets.YOUTUBE_OAUTH_CLIENT_SECRET }}
+          YTO_REFRESH_TOKEN: ${{ secrets.YOUTUBE_OAUTH_REFRESH_TOKEN }}
+          G_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          G_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          G_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GO_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GO_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GO_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
+          YT_ACCESS_TOKEN: ${{ secrets.YOUTUBE_ACCESS_TOKEN }}
+        run: |
+          set -Eeuo pipefail
+
+          client_id=''
+          client_secret=''
+          refresh_token=''
+          if [[ -n "$YT_CLIENT_ID" && -n "$YT_CLIENT_SECRET" && -n "$YT_REFRESH_TOKEN" ]]; then
+            client_id="$YT_CLIENT_ID"; client_secret="$YT_CLIENT_SECRET"; refresh_token="$YT_REFRESH_TOKEN"
+          elif [[ -n "$YTO_CLIENT_ID" && -n "$YTO_CLIENT_SECRET" && -n "$YTO_REFRESH_TOKEN" ]]; then
+            client_id="$YTO_CLIENT_ID"; client_secret="$YTO_CLIENT_SECRET"; refresh_token="$YTO_REFRESH_TOKEN"
+          elif [[ -n "$G_CLIENT_ID" && -n "$G_CLIENT_SECRET" && -n "$G_REFRESH_TOKEN" ]]; then
+            client_id="$G_CLIENT_ID"; client_secret="$G_CLIENT_SECRET"; refresh_token="$G_REFRESH_TOKEN"
+          elif [[ -n "$GO_CLIENT_ID" && -n "$GO_CLIENT_SECRET" && -n "$GO_REFRESH_TOKEN" ]]; then
+            client_id="$GO_CLIENT_ID"; client_secret="$GO_CLIENT_SECRET"; refresh_token="$GO_REFRESH_TOKEN"
+          fi
+
+          access_token="$YT_ACCESS_TOKEN"
+          if [[ -z "$access_token" && -n "$client_id" ]]; then
+            token_json=$(curl -fsS -X POST 'https://oauth2.googleapis.com/token' \
+              --data-urlencode "client_id=$client_id" \
+              --data-urlencode "client_secret=$client_secret" \
+              --data-urlencode "refresh_token=$refresh_token" \
+              --data-urlencode 'grant_type=refresh_token')
+            access_token=$(jq -r '.access_token // empty' <<<"$token_json")
+          fi
+
+          if [[ -z "$access_token" ]]; then
+            echo 'ACTIVE_BROADCAST_LATENCY_PROBE=SKIPPED_NO_USABLE_TOKEN'
+            exit 0
+          fi
+          echo "::add-mask::$access_token"
+
+          payload=$(curl -fsS -G 'https://www.googleapis.com/youtube/v3/liveBroadcasts' \
+            -H "Authorization: Bearer $access_token" \
+            --data-urlencode 'part=id,status,contentDetails' \
+            --data-urlencode 'broadcastStatus=active' \
+            --data-urlencode 'mine=true' \
+            --data-urlencode 'maxResults=10')
+
+          count=$(jq '.items | length' <<<"$payload")
+          echo "ACTIVE_BROADCAST_COUNT=$count"
+          if (( count == 0 )); then
+            echo 'ACTIVE_BROADCAST_LATENCY_PROBE=NO_ACTIVE_BROADCAST'
+            exit 0
+          fi
+
+          jq -r '.items[] | "ACTIVE_BROADCAST_ID=" + .id, "LATENCY_PREFERENCE=" + (.contentDetails.latencyPreference // "unset"), "ENABLE_LOW_LATENCY=" + ((.contentDetails.enableLowLatency // false)|tostring), "MONITOR_DELAY_MS=" + ((.contentDetails.monitorStream.broadcastStreamDelayMs // 0)|tostring), "LIFECYCLE_STATUS=" + (.status.lifeCycleStatus // "unknown")' <<<"$payload"
