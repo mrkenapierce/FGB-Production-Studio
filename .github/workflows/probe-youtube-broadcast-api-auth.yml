@@ -11,6 +11,7 @@ permissions:
   contents: write
 
 # Read-only diagnostic. Never prints OAuth secret/token values.
+# Pacing recheck requested 2026-09-18.
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -167,5 +168,6 @@ jobs:
             echo 'No probe-result change to commit.'
           else
             git commit -m 'Record active YouTube broadcast latency'
+            git pull --rebase
             git push
           fi
