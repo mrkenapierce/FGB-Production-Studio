@@ -17,13 +17,13 @@ concurrency:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Measure website question delay and actual embedded YouTube player
+      - name: Measure website question delay and actual embedded player
         env:
           VIDEO_ID: oSKfhIMEmtk
           SITE_URL: https://epiccontentcreatorgrants.org/fgb-trivia/
@@ -35,9 +35,9 @@ jobs:
           import json,time,urllib.request
           url='https://epiccontentcreatorgrants.org/api/public/fgbears/website-game-screen'
           samples=[]
-          for _ in range(8):
+          for _ in range(6):
               req=urllib.request.Request(url+'?_pacing='+str(time.time_ns()),headers={
-                  'Cache-Control':'no-cache','Pragma':'no-cache','User-Agent':'FGB-pacing-probe/4.0'
+                  'Cache-Control':'no-cache','Pragma':'no-cache','User-Agent':'FGB-pacing-probe/5.0'
               })
               with urllib.request.urlopen(req,timeout=15) as r:
                   j=json.load(r)
@@ -70,27 +70,24 @@ jobs:
           const result={videoId,siteUrl,probeOk:false,method:'production-site-html5-seekable-edge',samples:[],frameUrls:[]};
           try{
             browser=await puppeteer.launch({executablePath:chrome,headless:true,args:[
-              '--no-sandbox','--autoplay-policy=no-user-gesture-required','--disable-dev-shm-usage',
-              '--disable-features=MediaRouter'
+              '--no-sandbox','--autoplay-policy=no-user-gesture-required','--disable-dev-shm-usage'
             ]});
             const page=await browser.newPage();
             await page.setViewport({width:1440,height:1000});
             await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/153.0.0.0 Safari/537.36');
-            await page.goto(siteUrl,{waitUntil:'domcontentloaded',timeout:60000});
-            await sleep(12000);
+            await page.goto(siteUrl,{waitUntil:'domcontentloaded',timeout:45000});
+            await sleep(10000);
             result.frameUrls=page.frames().map(f=>f.url()).filter(Boolean).slice(0,30);
             let frame=page.frames().find(f=>/youtube(?:-nocookie)?\.com\/embed\//.test(f.url()) && f.url().includes(videoId));
             if(!frame) frame=page.frames().find(f=>/youtube(?:-nocookie)?\.com\/embed\//.test(f.url()));
-            if(!frame) throw new Error('No YouTube embed frame found on production trivia page. Frames: '+result.frameUrls.join(' | '));
+            if(!frame) throw new Error('No YouTube embed frame found. Frames: '+result.frameUrls.join(' | '));
             result.frameUrl=frame.url();
-            await frame.waitForSelector('video',{timeout:30000});
+            await frame.waitForSelector('video',{timeout:20000});
             await frame.evaluate(async()=>{
               const v=document.querySelector('video');
-              if(v){
-                try{v.muted=true; await v.play();}catch(_){}
-              }
+              if(v){ try{v.muted=true; await v.play();}catch(_){} }
             });
-            await sleep(7000);
+            await sleep(5000);
             for(let i=0;i<10;i++){
               const s=await frame.evaluate(()=>{
                 const v=document.querySelector('video');
@@ -103,16 +100,11 @@ jobs:
                   }
                 }catch(_){}
                 const currentTime=Number(v.currentTime||0);
-                const duration=Number.isFinite(v.duration)?Number(v.duration):null;
                 const lagSeconds=Number.isFinite(seekEnd)&&Number.isFinite(currentTime)?Math.max(0,seekEnd-currentTime):null;
-                return {
-                  videoPresent:true,currentTime,duration,seekStart,seekEnd,lagSeconds,
-                  paused:Boolean(v.paused),readyState:Number(v.readyState),networkState:Number(v.networkState),
-                  playbackRate:Number(v.playbackRate||1),ended:Boolean(v.ended)
-                };
+                return {videoPresent:true,currentTime,seekStart,seekEnd,lagSeconds,paused:Boolean(v.paused),readyState:Number(v.readyState),networkState:Number(v.networkState)};
               });
               result.samples.push(s);
-              await sleep(2000);
+              await sleep(1500);
             }
             const lags=result.samples.map(s=>s.lagSeconds).filter(v=>Number.isFinite(v)&&v>=0&&v<180).sort((a,b)=>a-b);
             const playing=result.samples.some(s=>s.videoPresent && s.readyState>=2 && s.currentTime>0);
@@ -121,9 +113,7 @@ jobs:
               result.minPlayerLagSeconds=lags[0];
               result.maxPlayerLagSeconds=lags[lags.length-1];
               result.probeOk=true;
-            }else{
-              result.error='Embedded production player did not expose enough playable seekable-edge samples';
-            }
+            }else result.error='Production embed did not expose enough playable seekable-edge samples';
           }catch(e){result.error=String(e?.stack||e).slice(-2500);}
           finally{if(browser) await browser.close().catch(()=>{});}
           fs.writeFileSync('/tmp/fgb-pacing/site-player.json',JSON.stringify(result,null,2)+'\n');
@@ -132,56 +122,13 @@ jobs:
 
           CHROME="$CHROME" VIDEO_ID="$VIDEO_ID" SITE_URL="$SITE_URL" node site-probe.mjs || true
 
-          python3 -m pip install --quiet --disable-pip-version-check yt-dlp
-          python3 - <<'PY'
-          import json,os,subprocess,time,urllib.request
-          from datetime import datetime,timezone
-          video_id=os.environ['VIDEO_ID']
-          watch=f'https://www.youtube.com/watch?v={video_id}'
-          clients=['web_embedded','tv_embedded','tv','android_vr','web_safari','ios','web']
-          result={'videoId':video_id,'probeOk':False,'method':'yt-dlp-hls','attempts':[]}
-          for client in clients:
-              try:
-                  p=subprocess.run(['yt-dlp','-J','--no-warnings','--extractor-args',f'youtube:player_client={client}',watch],capture_output=True,text=True,timeout=90)
-                  attempt={'client':client,'returncode':p.returncode}
-                  if p.returncode != 0:
-                      attempt['error']=p.stderr[-350:]; result['attempts'].append(attempt); continue
-                  info=json.loads(p.stdout)
-                  formats=[f for f in (info.get('formats') or []) if f.get('url') and 'm3u8' in str(f.get('protocol',''))]
-                  formats=[f for f in formats if f.get('vcodec') not in (None,'none')] or formats
-                  if not formats:
-                      attempt['error']='no HLS formats'; result['attempts'].append(attempt); continue
-                  formats.sort(key=lambda f:(f.get('height') or 9999,f.get('tbr') or 999999))
-                  chosen=formats[0]; headers={'User-Agent':'Mozilla/5.0'}; headers.update(chosen.get('http_headers') or {})
-                  text=urllib.request.urlopen(urllib.request.Request(chosen['url'],headers=headers),timeout=20).read().decode('utf-8','replace')
-                  edges=[]; current_pdt=None; last_duration=None
-                  for line in text.splitlines():
-                      if line.startswith('#EXT-X-PROGRAM-DATE-TIME:'):
-                          current_pdt=datetime.fromisoformat(line.split(':',1)[1].strip().replace('Z','+00:00')).timestamp()
-                      elif line.startswith('#EXTINF:'):
-                          try:last_duration=float(line.split(':',1)[1].split(',',1)[0])
-                          except Exception:last_duration=None
-                      elif line and not line.startswith('#') and current_pdt is not None:
-                          dur=last_duration or 0.0; edges.append(current_pdt+dur); current_pdt+=dur; last_duration=None
-                  if not edges:
-                      attempt['error']='no PROGRAM-DATE-TIME'; result['attempts'].append(attempt); continue
-                  lag=max(0.0,time.time()-max(edges)); attempt['lagSeconds']=round(lag,3); result['attempts'].append(attempt)
-                  result.update({'probeOk':True,'client':client,'medianPlayerLagSeconds':round(lag,3),'minPlayerLagSeconds':round(lag,3),'maxPlayerLagSeconds':round(lag,3)})
-                  break
-              except Exception as exc:
-                  result['attempts'].append({'client':client,'error':f'{type(exc).__name__}: {exc}'[:350]})
-          with open('/tmp/fgb-pacing/youtube-hls.json','w',encoding='utf-8') as f: json.dump(result,f,indent=2)
-          PY
-
           cd "$GITHUB_WORKSPACE"
           python3 - <<'PY'
           import json,statistics
           from datetime import datetime,timezone
           from pathlib import Path
           website=json.loads(Path('/tmp/fgb-pacing/website.json').read_text())
-          site=json.loads(Path('/tmp/fgb-pacing/site-player.json').read_text())
-          hls=json.loads(Path('/tmp/fgb-pacing/youtube-hls.json').read_text())
-          player=site if site.get('probeOk') else hls
+          player=json.loads(Path('/tmp/fgb-pacing/site-player.json').read_text())
           delays=[float(x['delaySeconds']) for x in website if isinstance(x.get('delaySeconds'),(int,float))]
           website_delay=statistics.median(delays) if delays else None
           player_lag=player.get('medianPlayerLagSeconds') if player.get('probeOk') else None
@@ -193,7 +140,7 @@ jobs:
           elif delta is not None: recommendation='SET_WEBSITE_DELAY_TO_MEASURED_PUBLIC_PLAYER_LAG'
           body={
             'checkedAt':datetime.now(timezone.utc).isoformat(),
-            'videoId':player.get('videoId') or site.get('videoId') or hls.get('videoId'),
+            'videoId':player.get('videoId'),
             'websiteDelaySeconds':website_delay,
             'publicPlayerMedianLagSeconds':player_lag,
             'publicPlayerMinLagSeconds':player.get('minPlayerLagSeconds'),
@@ -204,8 +151,7 @@ jobs:
             'recommendation':recommendation,
             'selectedProbeMethod':player.get('method'),
             'websiteSamples':website,
-            'sitePlayerProbe':site,
-            'hlsProbe':hls,
+            'sitePlayerProbe':player,
             'policy':'Leave YouTube unchanged; website question/answer presentation should follow measured public player delay.'
           }
           Path('.github/deployment-status').mkdir(parents=True,exist_ok=True)
