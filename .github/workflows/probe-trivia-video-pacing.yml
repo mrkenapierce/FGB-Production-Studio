@@ -1,0 +1,174 @@
+name: Probe Trivia Video Pacing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-trivia-video-pacing.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fgbears-trivia-video-pacing-probe
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Measure website delay and public YouTube player latency
+        env:
+          VIDEO_ID: oSKfhIMEmtk
+        run: |
+          set -Eeuo pipefail
+          mkdir -p /tmp/fgb-pacing
+
+          python3 - <<'PY'
+          import json,time,urllib.request
+          url='https://epiccontentcreatorgrants.org/api/public/fgbears/website-game-screen'
+          samples=[]
+          for _ in range(6):
+              req=urllib.request.Request(url+'?_pacing='+str(time.time_ns()),headers={
+                  'Cache-Control':'no-cache','Pragma':'no-cache','User-Agent':'FGB-pacing-probe/2.0'
+              })
+              with urllib.request.urlopen(req,timeout=15) as r:
+                  j=json.load(r)
+              samples.append({
+                  'active':j.get('active'),
+                  'gameId':j.get('gameId'),
+                  'phase':j.get('phase'),
+                  'questionNumber':j.get('questionNumber'),
+                  'delaySeconds':j.get('delaySeconds'),
+              })
+              time.sleep(1)
+          with open('/tmp/fgb-pacing/website.json','w',encoding='utf-8') as f:
+              json.dump(samples,f,indent=2)
+          PY
+
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
+          test -n "$CHROME"
+          echo "CHROME=$CHROME"
+          cd /tmp/fgb-pacing
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save puppeteer-core@24
+
+          cat > index.html <<'HTML'
+          <!doctype html><meta charset="utf-8"><title>FGB pacing probe</title>
+          <div id="player"></div>
+          <script>
+          window.__samples=[]; window.__ready=false; window.__error=null;
+          const tag=document.createElement('script'); tag.src='https://www.youtube.com/iframe_api'; document.head.appendChild(tag);
+          function onYouTubeIframeAPIReady(){
+            window.__player=new YT.Player('player',{
+              width:640,height:360,videoId:new URLSearchParams(location.search).get('v'),
+              playerVars:{autoplay:1,mute:1,controls:0,playsinline:1,enablejsapi:1,origin:location.origin},
+              events:{
+                onReady:e=>{window.__ready=true; try{e.target.mute();e.target.playVideo();}catch(_){}},
+                onError:e=>{window.__error='YT_ERROR_'+e.data;}
+              }
+            });
+          }
+          </script>
+          HTML
+
+          cat > probe.mjs <<'JS'
+          import puppeteer from 'puppeteer-core';
+          import fs from 'node:fs';
+          import {spawn} from 'node:child_process';
+          const chrome=process.env.CHROME;
+          const videoId=process.env.VIDEO_ID;
+          const server=spawn('python3',['-m','http.server','8765','--bind','127.0.0.1'],{cwd:'/tmp/fgb-pacing',stdio:'ignore'});
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          let browser;
+          const result={videoId,probeOk:false,samples:[]};
+          try{
+            await sleep(1000);
+            browser=await puppeteer.launch({executablePath:chrome,headless:true,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required']});
+            const page=await browser.newPage();
+            await page.goto(`http://127.0.0.1:8765/?v=${encodeURIComponent(videoId)}`,{waitUntil:'domcontentloaded',timeout:45000});
+            await page.waitForFunction(()=>window.__ready||window.__error,{timeout:45000});
+            const err=await page.evaluate(()=>window.__error);
+            if(err) throw new Error(err);
+            await sleep(8000);
+            for(let i=0;i<7;i++){
+              const s=await page.evaluate(()=>{
+                const p=window.__player;
+                const duration=Number(p?.getDuration?.()||0);
+                const currentTime=Number(p?.getCurrentTime?.()||0);
+                const state=Number(p?.getPlayerState?.());
+                const rate=Number(p?.getPlaybackRate?.()||1);
+                return {duration,currentTime,state,rate,lagSeconds:duration>0?duration-currentTime:null};
+              });
+              result.samples.push(s);
+              await sleep(3000);
+            }
+            const lags=result.samples.map(s=>s.lagSeconds).filter(v=>Number.isFinite(v)&&v>=0&&v<120).sort((a,b)=>a-b);
+            if(lags.length){
+              result.medianPlayerLagSeconds=lags[Math.floor(lags.length/2)];
+              result.minPlayerLagSeconds=lags[0];
+              result.maxPlayerLagSeconds=lags[lags.length-1];
+              result.probeOk=true;
+            } else {
+              result.error='YouTube iframe API returned no usable live-edge lag samples';
+            }
+          }catch(e){ result.error=String(e?.stack||e).slice(-1500); }
+          finally{
+            if(browser) await browser.close().catch(()=>{});
+            server.kill('SIGTERM');
+          }
+          fs.writeFileSync('/tmp/fgb-pacing/youtube.json',JSON.stringify(result,null,2)+'\n');
+          console.log(JSON.stringify(result));
+          JS
+
+          CHROME="$CHROME" VIDEO_ID="$VIDEO_ID" node probe.mjs || true
+
+          cd "$GITHUB_WORKSPACE"
+          python3 - <<'PY'
+          import json,statistics
+          from datetime import datetime,timezone
+          from pathlib import Path
+          website=json.loads(Path('/tmp/fgb-pacing/website.json').read_text())
+          youtube=json.loads(Path('/tmp/fgb-pacing/youtube.json').read_text())
+          delays=[float(x['delaySeconds']) for x in website if isinstance(x.get('delaySeconds'),(int,float))]
+          website_delay=statistics.median(delays) if delays else None
+          player_lag=youtube.get('medianPlayerLagSeconds') if youtube.get('probeOk') else None
+          delta=None if website_delay is None or player_lag is None else website_delay-float(player_lag)
+          tolerance=4.0
+          aligned=None if delta is None else abs(delta)<=tolerance
+          body={
+            'checkedAt':datetime.now(timezone.utc).isoformat(),
+            'videoId':youtube.get('videoId'),
+            'websiteDelaySeconds':website_delay,
+            'publicPlayerMedianLagSeconds':player_lag,
+            'publicPlayerMinLagSeconds':youtube.get('minPlayerLagSeconds'),
+            'publicPlayerMaxLagSeconds':youtube.get('maxPlayerLagSeconds'),
+            'websiteMinusPlayerSeconds':delta,
+            'alignmentToleranceSeconds':tolerance,
+            'aligned':aligned,
+            'websiteSamples':website,
+            'youtubeProbeOk':youtube.get('probeOk',False),
+            'youtubeError':youtube.get('error'),
+            'youtubeSamples':youtube.get('samples',[]),
+            'policy':'Leave YouTube unchanged; website question/answer presentation should follow measured public player delay.'
+          }
+          Path('.github/deployment-status').mkdir(parents=True,exist_ok=True)
+          Path('.github/deployment-status/trivia-video-pacing.json').write_text(json.dumps(body,indent=2,sort_keys=True)+'\n',encoding='utf-8')
+          print(json.dumps(body,indent=2,sort_keys=True))
+          PY
+
+      - name: Persist pacing result
+        run: |
+          set -Eeuo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/trivia-video-pacing.json
+          git commit -m 'Record trivia video pacing probe' || exit 0
+          git pull --rebase
+          git push
