@@ -5,26 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 19 Sep 2026 09:27:33 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 19 Sep 2026 13:16:18 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears vs. Vikings Predictions: Spread, Total, and 1 Bold Pick!</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Vikings Predictions: Spread, Total, and 1 Bold Pick!</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-vikings-predictions-spread-021712529.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6870888c5cbab93a6c34</guid>
-      <pubDate>Sat, 19 Sep 2026 02:17:12 GMT</pubDate>
+      <title>Chicago Bears Week 2 Flashbacks: Grossman, Amukamara, Piñeiro, and more!</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Week 2 Flashbacks: Grossman, Amukamara, Piñeiro, and more!</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-week-2-flashbacks-120000571.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-902847c424c5487e4e4d</guid>
+      <pubDate>Sat, 19 Sep 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears Week 2 injury report</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Week 2 injury report</description>
-      <link>https://sports.yahoo.com/articles/bears-week-2-injury-report-002954268.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-18a07fa2e3873012e6f1</guid>
-      <pubDate>Sat, 19 Sep 2026 00:29:54 GMT</pubDate>
+      <title>Bears Get Strong Words From Cris Carter Before Vikings Game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Get Strong Words From Cris Carter Before Vikings Game</description>
+      <link>https://sports.yahoo.com/articles/bears-strong-words-cris-carter-113224403.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-bf1849b77257a8892bf5</guid>
+      <pubDate>Sat, 19 Sep 2026 04:32:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -67,16 +67,6 @@
       <pubDate>Fri, 18 Sep 2026 16:25:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears mailbag: Can their defense really turn things around against Justin Jefferson?</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears mailbag: Can their defense really turn things around against Justin Jefferson?</description>
-      <link>https://www.nytimes.com/athletic/7605402/2026/09/18/bears-defense-concerns-vikings-mailbag/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d7250a50e96fd003657c</guid>
-      <pubDate>Fri, 18 Sep 2026 03:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
