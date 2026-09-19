@@ -1,24 +1,143 @@
 {
   "aligned": null,
   "alignmentToleranceSeconds": 4.0,
-  "checkedAt": "2026-09-19T01:00:08.188397+00:00",
+  "checkedAt": "2026-09-19T01:01:53.130272+00:00",
   "policy": "Leave YouTube unchanged; website question/answer presentation should follow measured public player delay.",
   "publicPlayerMaxLagSeconds": null,
   "publicPlayerMedianLagSeconds": null,
   "publicPlayerMinLagSeconds": null,
   "recommendation": "MEASUREMENT_UNAVAILABLE",
-  "selectedProbeMethod": "production-site-html5-seekable-edge",
   "sitePlayerProbe": {
-    "error": "ProtocolError: Runtime.callFunctionOn timed out. Increase the 'protocolTimeout' setting in launch/connect calls for a higher timeout if needed.\n    at <instance_members_initializer> (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/common/CallbackRegistry.js:99:14)\n    at new Callback (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/common/CallbackRegistry.js:103:16)\n    at CallbackRegistry.create (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/common/CallbackRegistry.js:22:26)\n    at Connection._rawSend (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/Connection.js:104:26)\n    at CdpCDPSession.send (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/CdpSession.js:71:33)\n    at #evaluate (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/ExecutionContext.js:360:50)\n    at ExecutionContext.evaluate (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/ExecutionContext.js:274:36)\n    at IsolatedWorld.evaluate (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/IsolatedWorld.js:102:30)\n    at CdpFrame.evaluate (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/api/Frame.js:359:43)\n    at CdpFrame.<anonymous> (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/util/decorators.js:101:27)",
+    "error": "No usable playing seekable-edge samples",
     "frameUrl": "https://www.youtube-nocookie.com/embed/oSKfhIMEmtk?rel=0&autoplay=1&controls=1&loop=1&playlist=oSKfhIMEmtk",
-    "frameUrls": [
+    "frames": [
       "https://epiccontentcreatorgrants.org/fgb-trivia",
       "https://www.youtube-nocookie.com/embed/oSKfhIMEmtk?rel=0&autoplay=1&controls=1&loop=1&playlist=oSKfhIMEmtk"
     ],
     "method": "production-site-html5-seekable-edge",
     "probeOk": false,
-    "samples": [],
-    "siteUrl": "https://epiccontentcreatorgrants.org/fgb-trivia/",
+    "samples": [
+      {
+        "currentTime": 0,
+        "lagSeconds": null,
+        "networkState": 0,
+        "paused": false,
+        "readyState": 0,
+        "seekEnd": null,
+        "seekStart": null,
+        "videoPresent": true
+      },
+      {
+        "currentTime": 0,
+        "lagSeconds": null,
+        "networkState": 0,
+        "paused": false,
+        "readyState": 0,
+        "seekEnd": null,
+        "seekStart": null,
+        "videoPresent": true
+      },
+      {
+        "currentTime": 0,
+        "lagSeconds": null,
+        "networkState": 0,
+        "paused": false,
+        "readyState": 0,
+        "seekEnd": null,
+        "seekStart": null,
+        "videoPresent": true
+      },
+      {
+        "currentTime": 0,
+        "lagSeconds": null,
+        "networkState": 0,
+        "paused": false,
+        "readyState": 0,
+        "seekEnd": null,
+        "seekStart": null,
+        "videoPresent": true
+      },
+      {
+        "currentTime": 0,
+        "lagSeconds": null,
+        "networkState": 0,
+        "paused": false,
+        "readyState": 0,
+        "seekEnd": null,
+        "seekStart": null,
+        "videoPresent": true
+      },
+      {
+        "currentTime": 0,
+        "lagSeconds": null,
+        "networkState": 0,
+        "paused": false,
+        "readyState": 0,
+        "seekEnd": null,
+        "seekStart": null,
+        "videoPresent": true
+      },
+      {
+        "currentTime": 0,
+        "lagSeconds": null,
+        "networkState": 0,
+        "paused": false,
+        "readyState": 0,
+        "seekEnd": null,
+        "seekStart": null,
+        "videoPresent": true
+      },
+      {
+        "currentTime": 0,
+        "lagSeconds": null,
+        "networkState": 0,
+        "paused": false,
+        "readyState": 0,
+        "seekEnd": null,
+        "seekStart": null,
+        "videoPresent": true
+      },
+      {
+        "currentTime": 0,
+        "lagSeconds": null,
+        "networkState": 0,
+        "paused": false,
+        "readyState": 0,
+        "seekEnd": null,
+        "seekStart": null,
+        "videoPresent": true
+      },
+      {
+        "currentTime": 0,
+        "lagSeconds": null,
+        "networkState": 0,
+        "paused": false,
+        "readyState": 0,
+        "seekEnd": null,
+        "seekStart": null,
+        "videoPresent": true
+      },
+      {
+        "currentTime": 0,
+        "lagSeconds": null,
+        "networkState": 0,
+        "paused": false,
+        "readyState": 0,
+        "seekEnd": null,
+        "seekStart": null,
+        "videoPresent": true
+      },
+      {
+        "currentTime": 0,
+        "lagSeconds": null,
+        "networkState": 0,
+        "paused": false,
+        "readyState": 0,
+        "seekEnd": null,
+        "seekStart": null,
+        "videoPresent": true
+      }
+    ],
     "videoId": "oSKfhIMEmtk"
   },
   "videoId": "oSKfhIMEmtk",
@@ -26,46 +145,34 @@
   "websiteMinusPlayerSeconds": null,
   "websiteSamples": [
     {
-      "active": true,
       "delaySeconds": 20,
-      "gameId": "8696c6e8-2050-4c8f-8061-92b3203054c1",
-      "phase": "question",
-      "questionNumber": 20
+      "gameId": "802d3384-b8da-472a-82f5-41b46e3876b8",
+      "phase": "revealed",
+      "questionNumber": 3
     },
     {
-      "active": true,
       "delaySeconds": 20,
-      "gameId": "8696c6e8-2050-4c8f-8061-92b3203054c1",
-      "phase": "question",
-      "questionNumber": 20
+      "gameId": "802d3384-b8da-472a-82f5-41b46e3876b8",
+      "phase": "transition",
+      "questionNumber": null
     },
     {
-      "active": true,
       "delaySeconds": 20,
-      "gameId": "8696c6e8-2050-4c8f-8061-92b3203054c1",
-      "phase": "question",
-      "questionNumber": 20
+      "gameId": "802d3384-b8da-472a-82f5-41b46e3876b8",
+      "phase": "transition",
+      "questionNumber": null
     },
     {
-      "active": true,
       "delaySeconds": 20,
-      "gameId": "8696c6e8-2050-4c8f-8061-92b3203054c1",
-      "phase": "question",
-      "questionNumber": 20
+      "gameId": "802d3384-b8da-472a-82f5-41b46e3876b8",
+      "phase": "transition",
+      "questionNumber": null
     },
     {
-      "active": true,
       "delaySeconds": 20,
-      "gameId": "8696c6e8-2050-4c8f-8061-92b3203054c1",
+      "gameId": "802d3384-b8da-472a-82f5-41b46e3876b8",
       "phase": "question",
-      "questionNumber": 20
-    },
-    {
-      "active": true,
-      "delaySeconds": 20,
-      "gameId": "8696c6e8-2050-4c8f-8061-92b3203054c1",
-      "phase": "question",
-      "questionNumber": 20
+      "questionNumber": 4
     }
   ]
 }
