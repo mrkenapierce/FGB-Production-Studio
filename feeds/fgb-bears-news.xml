@@ -5,26 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 18 Sep 2026 22:33:02 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 19 Sep 2026 00:37:11 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears-Vikings: Keys to a Chicago victory</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears-Vikings: Keys to a Chicago victory</description>
-      <link>https://sports.yahoo.com/articles/bears-vikings-keys-chicago-victory-220000166.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0f0de058c958c8043668</guid>
-      <pubDate>Fri, 18 Sep 2026 22:00:00 GMT</pubDate>
+      <title>Bears-Vikings Franchise Connections</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears-Vikings Franchise Connections</description>
+      <link>https://sports.yahoo.com/articles/bears-vikings-franchise-connections-000000728.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d8acfa940f42e426582f</guid>
+      <pubDate>Sat, 19 Sep 2026 00:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Vikings-Bears Final Injury Report</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Vikings-Bears Final Injury Report</description>
-      <link>https://sports.yahoo.com/articles/vikings-bears-final-injury-report-210511078.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2786dd4088bec2765f33</guid>
-      <pubDate>Fri, 18 Sep 2026 21:05:11 GMT</pubDate>
+      <title>Previewing Vikings at Bears with Bears Talk Underground</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Previewing Vikings at Bears with Bears Talk Underground</description>
+      <link>https://sports.yahoo.com/articles/previewing-vikings-bears-bears-talk-232444819.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ccaa6971350a97cbe968</guid>
+      <pubDate>Fri, 18 Sep 2026 23:24:44 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -60,6 +60,26 @@
     </item>
 
     <item>
+      <title>The Hidden Factor That Could Give the Bears a Major Edge Over the Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Hidden Factor That Could Give the Bears a Major Edge Over the Vikings</description>
+      <link>https://www.si.com/nfl/bears/onsi/the-hidden-factor-that-could-give-the-bears-a-major-edge-over-the-vikings</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3ab144402e8d7af92c66</guid>
+      <pubDate>Fri, 18 Sep 2026 16:29:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Xavier Woods: Cleared to play Week 2</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Xavier Woods: Cleared to play Week 2</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-xavier-woods-cleared-to-play-week-2/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2e41a850a14c0009526f</guid>
+      <pubDate>Fri, 18 Sep 2026 16:25:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
       <title>One Loser Possible from Chain Reaction With Bears&apos; Wildly Positive Injury Report</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: One Loser Possible from Chain Reaction With Bears&apos; Wildly Positive Injury Report</description>
       <link>https://www.si.com/nfl/bears/onsi/only-one-loser-from-chain-reaction-caused-by-bears-wildly-positive-injury-report-expected</link>
@@ -67,26 +87,6 @@
       <pubDate>Fri, 18 Sep 2026 15:15:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Ozzy Trapilo&apos;s Return Raises a Question the Bears Can&apos;t Ignore Much Longer</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ozzy Trapilo&apos;s Return Raises a Question the Bears Can&apos;t Ignore Much Longer</description>
-      <link>https://www.si.com/nfl/bears/onsi/ozzy-trapilo-s-return-raises-a-question-the-bears-can-t-ignore-much-longer</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-67f7a6d4d3509f78dca3</guid>
-      <pubDate>Fri, 18 Sep 2026 14:07:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>NFL Week 2 odds, predictions, expert picks: Can blitz-heavy Vikings overtake Bears? Will Cards upset Seahawks?</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 2 odds, predictions, expert picks: Can blitz-heavy Vikings overtake Bears? Will Cards upset Seahawks?</description>
-      <link>https://www.cbssports.com/nfl/news/nfl-week-2-odds-predictions-expert-picks/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-489f49793f6ea19a6ba4</guid>
-      <pubDate>Fri, 18 Sep 2026 07:49:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
