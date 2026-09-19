@@ -1,0 +1,15 @@
+{
+  "checkedAt": "2026-09-19T01:03:26.922027+00:00",
+  "error": "Error: No signed live manifest exposed in player config\n    at file:///tmp/ytcfg/probe.mjs:32:23",
+  "hasDashManifest": false,
+  "hasHlsManifest": false,
+  "hasServerAbr": false,
+  "isLive": false,
+  "isLiveNow": null,
+  "method": "production-embed-signed-manifest",
+  "playabilityReason": null,
+  "playabilityStatus": null,
+  "probeOk": false,
+  "startTimestamp": null,
+  "videoId": "oSKfhIMEmtk"
+}
