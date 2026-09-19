@@ -1,0 +1,184 @@
+name: Diagnose Trivia Sync Runtime
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-trivia-sync-runtime.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: diagnose-trivia-sync-runtime
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -H "$ORACLE_HOST" >> ~/.ssh/known_hosts
+
+      - name: Inspect timing configuration without changing production
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'bash -s' <<'REMOTE' > /tmp/trivia-sync-runtime.txt
+          set -Eeuo pipefail
+          echo 'SECTION=services'
+          for unit in fgbears-live.service fgbears-youtube-copy-relay.service fgbears-youtube-relay.service fgbears-rumble-relay.service; do
+            echo "UNIT=$unit ACTIVE=$(systemctl is-active "$unit" 2>/dev/null || true) ENABLED=$(systemctl is-enabled "$unit" 2>/dev/null || true)"
+          done
+
+          echo 'SECTION=timing_env'
+          ENV=/etc/fgbears-live/stream.env
+          if sudo test -r "$ENV"; then
+            sudo awk -F= '
+              /^[[:space:]]*#/ || NF<2 {next}
+              {
+                k=$1; gsub(/^[[:space:]]+|[[:space:]]+$/, "", k)
+                u=toupper(k)
+                if (u ~ /(SECRET|TOKEN|KEY|PASSWORD|PASS|CREDENTIAL|INGEST|RTMP|URL)/) next
+                if (u ~ /(TRIVIA|GAME|SCREEN|WEBSITE|DELAY|BUFFER|LATENCY|POLL|SYNC)/) {
+                  v=substr($0,index($0,"=")+1)
+                  gsub(/^[[:space:]]+|[[:space:]]+$/, "", v)
+                  if (length(v) > 120) v=substr(v,1,120) "..."
+                  print "ENV " k "=" v
+                }
+              }
+            ' "$ENV"
+          else
+            echo 'ENV_STATUS=unreadable'
+          fi
+
+          echo 'SECTION=unit_environment_names'
+          for unit in fgbears-live.service fgbears-youtube-copy-relay.service fgbears-youtube-relay.service; do
+            echo "UNIT_BEGIN=$unit"
+            systemctl show "$unit" -p Environment --value 2>/dev/null | tr ' ' '\n' | awk -F= '
+              {
+                k=$1; u=toupper(k)
+                if (u ~ /(SECRET|TOKEN|KEY|PASSWORD|PASS|CREDENTIAL|INGEST|RTMP|URL)/) next
+                if (u ~ /(TRIVIA|GAME|SCREEN|WEBSITE|DELAY|BUFFER|LATENCY|POLL|SYNC)/) print "UNIT_ENV " $0
+              }
+            ' || true
+            echo "UNIT_END=$unit"
+          done
+
+          echo 'SECTION=timing_source_matches'
+          roots=(/etc/fgbears-live /usr/local/bin /srv/fgbears-live /opt/fgbears-live /home/ubuntu/fgbears-live)
+          for root in "${roots[@]}"; do
+            sudo test -e "$root" || continue
+            sudo grep -RInE --binary-files=without-match --exclude='*.log' --exclude='*.key' --exclude='*.pem' --exclude='stream.env' \
+              '(website-game-screen|delaySeconds|WEBSITE_GAME|TRIVIA_DELAY|GAME_SCREEN.*DELAY|DELAY.*GAME_SCREEN|sync.*trivia|trivia.*sync)' "$root" 2>/dev/null \
+              | head -n 180 \
+              | sed -E 's#(https?://)[^ ]+#\1[redacted-url]#g' \
+              | sed -E 's#([A-Za-z0-9_]*(SECRET|TOKEN|KEY|PASSWORD|PASS|CREDENTIAL)[A-Za-z0-9_]*)=[^[:space:]]+#\1=[redacted]#Ig' || true
+          done
+
+          echo 'SECTION=installed_game_overlay'
+          for p in /usr/local/bin/fgbears-game-overlay /usr/local/bin/game_overlay.py /srv/fgbears-live/bin/game_overlay.py /opt/fgbears-live/bin/game_overlay.py; do
+            if sudo test -f "$p"; then
+              echo "OVERLAY_FILE=$p"
+              sudo grep -nE '(GAME_SCREEN_FEED_URL|GAME_SCREEN_POLL_SECONDS|phaseEndsAt|gameScreenSeconds)' "$p" 2>/dev/null | head -n 60 || true
+            fi
+          done
+          REMOTE
+
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+          raw=Path('/tmp/trivia-sync-runtime.txt').read_text(encoding='utf-8',errors='replace')
+          Path('/tmp/trivia-sync-runtime-sanitized.txt').write_text(raw,encoding='utf-8')
+          body={'rawLines':raw.splitlines()[:500]}
+          Path('/tmp/trivia-sync-runtime.json').write_text(json.dumps(body,indent=2)+'\n')
+          PY
+
+      - name: Measure authoritative-to-website presentation offset
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json,time,urllib.request
+          from datetime import datetime,timezone
+          endpoints={
+            'source':'https://epiccontentcreatorgrants.org/api/public/fgbears/game-screen',
+            'website':'https://epiccontentcreatorgrants.org/api/public/fgbears/website-game-screen',
+          }
+          rows=[]
+          def get(url):
+            req=urllib.request.Request(url+'?_sync='+str(time.time_ns()),headers={'Cache-Control':'no-cache','Pragma':'no-cache','User-Agent':'FGB-sync-runtime/1.0'})
+            with urllib.request.urlopen(req,timeout=12) as r:return json.load(r)
+          for _ in range(46):
+            stamp=time.time(); row={'observedAt':stamp}
+            for name,url in endpoints.items():
+              try:
+                j=get(url)
+                row[name]={k:j.get(k) for k in ('active','visible','gameId','phase','questionNumber','phaseEndsAt','updatedAt','delaySeconds')}
+              except Exception as e: row[name]={'error':f'{type(e).__name__}: {e}'[:180]}
+            rows.append(row); time.sleep(1)
+          Path='/tmp/trivia-sync-samples.json'
+          open(Path,'w').write(json.dumps(rows,indent=2)+'\n')
+          # Find same game/question/phase first-observed times and estimate website-source offset.
+          first={'source':{},'website':{}}
+          for r in rows:
+            for name in ('source','website'):
+              j=r.get(name) or {}
+              if j.get('error'):continue
+              ident=(j.get('gameId'),j.get('phase'),j.get('questionNumber'))
+              if ident not in first[name]: first[name][ident]=r['observedAt']
+          offsets=[]
+          evidence=[]
+          for ident,t0 in first['source'].items():
+            t1=first['website'].get(ident)
+            if t1 is not None and 0 <= t1-t0 <= 40:
+              offsets.append(t1-t0); evidence.append({'identity':ident,'sourceObservedAt':t0,'websiteObservedAt':t1,'offsetSeconds':round(t1-t0,3)})
+          website_delays=[r.get('website',{}).get('delaySeconds') for r in rows]
+          website_delays=[x for x in website_delays if isinstance(x,(int,float))]
+          import statistics
+          result={
+            'checkedAt':datetime.now(timezone.utc).isoformat(),
+            'websiteConfiguredDelaySeconds':statistics.median(website_delays) if website_delays else None,
+            'observedPresentationOffsetSeconds':statistics.median(offsets) if offsets else None,
+            'matchingTransitionEvidence':evidence[-20:],
+            'sampleCount':len(rows)
+          }
+          open('/tmp/trivia-sync-offset.json','w').write(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
+          PY
+
+      - name: Persist sanitized diagnostic
+        run: |
+          set -Eeuo pipefail
+          python3 - <<'PY'
+          import json
+          from datetime import datetime,timezone
+          from pathlib import Path
+          runtime=json.loads(Path('/tmp/trivia-sync-runtime.json').read_text())
+          offset=json.loads(Path('/tmp/trivia-sync-offset.json').read_text())
+          body={'checkedAt':datetime.now(timezone.utc).isoformat(),'runtime':runtime,'offset':offset,'readOnly':True}
+          Path('.github/deployment-status').mkdir(parents=True,exist_ok=True)
+          Path('.github/deployment-status/trivia-sync-runtime.json').write_text(json.dumps(body,indent=2,sort_keys=True)+'\n')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/trivia-sync-runtime.json
+          git commit -m 'Record trivia sync runtime diagnostic' || exit 0
+          git pull --rebase
+          git push
