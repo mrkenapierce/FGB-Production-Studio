@@ -1,0 +1,100 @@
+name: Probe YouTube Player Config
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-youtube-player-config.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Read production embed player config and signed live manifest
+        env:
+          SITE_URL: https://epiccontentcreatorgrants.org/fgb-trivia/
+          VIDEO_ID: oSKfhIMEmtk
+        run: |
+          set -Eeuo pipefail
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          mkdir -p /tmp/ytcfg && cd /tmp/ytcfg
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save puppeteer-core@24
+          cat > probe.mjs <<'JS'
+          import puppeteer from 'puppeteer-core';
+          import fs from 'node:fs';
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          const out={probeOk:false,videoId:process.env.VIDEO_ID,method:'production-embed-signed-manifest'};
+          let browser;
+          try{
+            browser=await puppeteer.launch({executablePath:process.env.CHROME,headless:true,protocolTimeout:120000,args:['--no-sandbox','--disable-dev-shm-usage','--autoplay-policy=no-user-gesture-required']});
+            const page=await browser.newPage();
+            await page.goto(process.env.SITE_URL,{waitUntil:'domcontentloaded',timeout:45000});
+            await sleep(8000);
+            const frame=page.frames().find(f=>/youtube(?:-nocookie)?\.com\/embed\//.test(f.url()));
+            if(!frame) throw new Error('YouTube frame missing');
+            const cfg=await frame.evaluate(()=>{
+              let r=globalThis.ytInitialPlayerResponse||globalThis.ytplayer?.config?.args?.raw_player_response||null;
+              if(!r && globalThis.ytplayer?.config?.args?.player_response){try{r=JSON.parse(globalThis.ytplayer.config.args.player_response)}catch(_){}}
+              return {
+                status:r?.playabilityStatus?.status||null,
+                reason:r?.playabilityStatus?.reason||null,
+                isLive:Boolean(r?.videoDetails?.isLiveContent),
+                videoId:r?.videoDetails?.videoId||null,
+                hlsManifestUrl:r?.streamingData?.hlsManifestUrl||null,
+                dashManifestUrl:r?.streamingData?.dashManifestUrl||null,
+                serverAbrStreamingUrl:r?.streamingData?.serverAbrStreamingUrl||null,
+                startTimestamp:r?.microformat?.playerMicroformatRenderer?.liveBroadcastDetails?.startTimestamp||null,
+                endTimestamp:r?.microformat?.playerMicroformatRenderer?.liveBroadcastDetails?.endTimestamp||null,
+                isLiveNow:r?.microformat?.playerMicroformatRenderer?.liveBroadcastDetails?.isLiveNow??null
+              };
+            });
+            out.playabilityStatus=cfg.status; out.playabilityReason=cfg.reason; out.isLive=cfg.isLive; out.isLiveNow=cfg.isLiveNow; out.startTimestamp=cfg.startTimestamp;
+            const manifest=cfg.hlsManifestUrl||cfg.dashManifestUrl;
+            out.hasHlsManifest=Boolean(cfg.hlsManifestUrl); out.hasDashManifest=Boolean(cfg.dashManifestUrl); out.hasServerAbr=Boolean(cfg.serverAbrStreamingUrl);
+            if(!manifest) throw new Error('No signed live manifest exposed in player config');
+            async function text(url){const r=await fetch(url,{headers:{'User-Agent':'Mozilla/5.0'}}); if(!r.ok)throw new Error('manifest HTTP '+r.status); return await r.text()}
+            let body=await text(manifest); let mediaUrl=manifest;
+            if(cfg.hlsManifestUrl && body.includes('#EXT-X-STREAM-INF')){
+              const lines=body.split(/\r?\n/); let u=null;
+              for(let i=0;i<lines.length;i++){if(lines[i].startsWith('#EXT-X-STREAM-INF')){for(let j=i+1;j<lines.length;j++){if(lines[j]&&!lines[j].startsWith('#')){u=lines[j];break}} if(u)break}}
+              if(u){mediaUrl=new URL(u,manifest).toString(); body=await text(mediaUrl)}
+            }
+            const lines=body.split(/\r?\n/); const edges=[]; let pdt=null,dur=null;
+            for(const line of lines){
+              if(line.startsWith('#EXT-X-PROGRAM-DATE-TIME:')){const t=Date.parse(line.slice('#EXT-X-PROGRAM-DATE-TIME:'.length).trim()); pdt=Number.isFinite(t)?t/1000:null}
+              else if(line.startsWith('#EXTINF:')){const n=parseFloat(line.slice(8)); dur=Number.isFinite(n)?n:null}
+              else if(line && !line.startsWith('#') && pdt!==null){edges.push(pdt+(dur||0)); pdt=pdt+(dur||0); dur=null}
+            }
+            out.mediaPlaylistHasProgramDateTime=edges.length>0;
+            if(edges.length){const edge=Math.max(...edges); const lag=Math.max(0,Date.now()/1000-edge); out.publicManifestEdgeLagSeconds=Math.round(lag*1000)/1000; out.probeOk=true}
+            else out.error='Signed manifest available but no PROGRAM-DATE-TIME edge was exposed';
+          }catch(e){out.error=String(e?.stack||e).slice(-1800)}finally{if(browser)await browser.close().catch(()=>{})}
+          fs.writeFileSync('/tmp/ytcfg/result.json',JSON.stringify(out,null,2)+'\n'); console.log(JSON.stringify(out));
+          JS
+          CHROME="$CHROME" node probe.mjs || true
+          cd "$GITHUB_WORKSPACE"
+          python3 - <<'PY'
+          import json
+          from datetime import datetime,timezone
+          from pathlib import Path
+          r=json.loads(Path('/tmp/ytcfg/result.json').read_text()); r['checkedAt']=datetime.now(timezone.utc).isoformat()
+          Path('.github/deployment-status').mkdir(parents=True,exist_ok=True)
+          Path('.github/deployment-status/youtube-player-config-pacing.json').write_text(json.dumps(r,indent=2,sort_keys=True)+'\n')
+          PY
+      - name: Persist sanitized result
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/youtube-player-config-pacing.json
+          git commit -m 'Record YouTube player pacing probe' || exit 0
+          git pull --rebase
+          git push
