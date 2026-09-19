@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 19 Sep 2026 18:53:35 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 19 Sep 2026 21:10:42 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears vs Vikings: Minnesota may not blitz Caleb Williams as much at Soldier Field</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs Vikings: Minnesota may not blitz Caleb Williams as much at Soldier Field</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-vikings-minnesota-may-200000858.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-65c6ca4e0a71c9351dfb</guid>
+      <pubDate>Sat, 19 Sep 2026 20:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Let’s hope this Colston Loveland prediction comes true for the Bears this Sunday</title>
@@ -20,16 +30,6 @@
     </item>
 
     <item>
-      <title>Giving Props: Vikings Player Bets Against the Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Giving Props: Vikings Player Bets Against the Bears</description>
-      <link>https://sports.yahoo.com/articles/giving-props-vikings-player-bets-172121186.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-edbaf6d9990ca08ae4ef</guid>
-      <pubDate>Sat, 19 Sep 2026 17:21:21 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Game Preview: Vikings vs. Bears | 2026 Week 2</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Preview: Vikings vs. Bears | 2026 Week 2</description>
       <link>https://www.chicagobears.com/news/game-preview-vikings-vs-bears-2026-week-2</link>
@@ -37,36 +37,6 @@
       <pubDate>Sat, 19 Sep 2026 12:20:31 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Why Colston Loveland Needs a Much Larger Role for Bears in Week 2 vs Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why Colston Loveland Needs a Much Larger Role for Bears in Week 2 vs Vikings</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-colston-loveland-week-2-role-vikings</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ef988bb2ef6761016d67</guid>
-      <pubDate>Sat, 19 Sep 2026 11:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Latest Weather Report for Bears vs. Vikings in Week 2 Puts D&apos;Andre Swift in Great Position</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Latest Weather Report for Bears vs. Vikings in Week 2 Puts D&apos;Andre Swift in Great Position</description>
-      <link>https://www.si.com/nfl/bears/onsi/latest-weather-report-for-bears-vs-vikings-in-week-2-puts-d-andre-swift-in-great-position</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ca32446e6a8b65f84e47</guid>
-      <pubDate>Sat, 19 Sep 2026 09:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Vikings vs. Bears predictions, odds, time: 2026 Week 2 NFL picks, best bets by proven model</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Vikings vs. Bears predictions, odds, time: 2026 Week 2 NFL picks, best bets by proven model</description>
-      <link>https://www.cbssports.com/betting/news/vikings-bears-predictions-odds-time-2026-week-2-nfl-picks/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f300adae11817d0e5fa8</guid>
-      <pubDate>Sat, 19 Sep 2026 07:44:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
