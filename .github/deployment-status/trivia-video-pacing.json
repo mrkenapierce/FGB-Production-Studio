@@ -1,118 +1,26 @@
 {
   "aligned": null,
   "alignmentToleranceSeconds": 4.0,
-  "browserProbe": {
-    "error": "YouTube iframe API returned no usable live-edge lag samples",
-    "method": "iframe-api",
-    "probeOk": false,
-    "samples": [
-      {
-        "currentTime": 0,
-        "duration": 0,
-        "lagSeconds": null,
-        "rate": 1,
-        "state": -1
-      },
-      {
-        "currentTime": 0,
-        "duration": 0,
-        "lagSeconds": null,
-        "rate": 1,
-        "state": -1
-      },
-      {
-        "currentTime": 0,
-        "duration": 0,
-        "lagSeconds": null,
-        "rate": 1,
-        "state": -1
-      },
-      {
-        "currentTime": 0,
-        "duration": 0,
-        "lagSeconds": null,
-        "rate": 1,
-        "state": -1
-      },
-      {
-        "currentTime": 0,
-        "duration": 0,
-        "lagSeconds": null,
-        "rate": 1,
-        "state": -1
-      },
-      {
-        "currentTime": 0,
-        "duration": 0,
-        "lagSeconds": null,
-        "rate": 1,
-        "state": -1
-      },
-      {
-        "currentTime": 0,
-        "duration": 0,
-        "lagSeconds": null,
-        "rate": 1,
-        "state": -1
-      },
-      {
-        "currentTime": 0,
-        "duration": 0,
-        "lagSeconds": null,
-        "rate": 1,
-        "state": -1
-      }
-    ],
-    "videoId": "oSKfhIMEmtk"
-  },
-  "checkedAt": "2026-09-19T00:50:54.362184+00:00",
-  "hlsProbe": {
-    "attempts": [
-      {
-        "client": "web_embedded",
-        "error": "ign in to confirm you\u2019re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies\n",
-        "returncode": 1
-      },
-      {
-        "client": "tv_embedded",
-        "error": "ign in to confirm you\u2019re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies\n",
-        "returncode": 1
-      },
-      {
-        "client": "tv",
-        "error": "ign in to confirm you\u2019re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies\n",
-        "returncode": 1
-      },
-      {
-        "client": "android_vr",
-        "error": "ign in to confirm you\u2019re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies\n",
-        "returncode": 1
-      },
-      {
-        "client": "web_safari",
-        "error": "ign in to confirm you\u2019re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies\n",
-        "returncode": 1
-      },
-      {
-        "client": "ios",
-        "error": "ign in to confirm you\u2019re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies\n",
-        "returncode": 1
-      },
-      {
-        "client": "web",
-        "error": "ign in to confirm you\u2019re not a bot. Use --cookies-from-browser or --cookies for the authentication. See  https://github.com/yt-dlp/yt-dlp/wiki/FAQ#how-do-i-pass-cookies-to-yt-dlp  for how to manually pass cookies. Also see  https://github.com/yt-dlp/yt-dlp/wiki/Extractors#exporting-youtube-cookies  for tips on effectively exporting YouTube cookies\n",
-        "returncode": 1
-      }
-    ],
-    "method": "yt-dlp-hls",
-    "probeOk": false,
-    "videoId": "oSKfhIMEmtk"
-  },
+  "checkedAt": "2026-09-19T01:00:08.188397+00:00",
   "policy": "Leave YouTube unchanged; website question/answer presentation should follow measured public player delay.",
   "publicPlayerMaxLagSeconds": null,
   "publicPlayerMedianLagSeconds": null,
   "publicPlayerMinLagSeconds": null,
-  "selectedProbeMethod": "iframe-api",
+  "recommendation": "MEASUREMENT_UNAVAILABLE",
+  "selectedProbeMethod": "production-site-html5-seekable-edge",
+  "sitePlayerProbe": {
+    "error": "ProtocolError: Runtime.callFunctionOn timed out. Increase the 'protocolTimeout' setting in launch/connect calls for a higher timeout if needed.\n    at <instance_members_initializer> (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/common/CallbackRegistry.js:99:14)\n    at new Callback (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/common/CallbackRegistry.js:103:16)\n    at CallbackRegistry.create (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/common/CallbackRegistry.js:22:26)\n    at Connection._rawSend (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/Connection.js:104:26)\n    at CdpCDPSession.send (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/CdpSession.js:71:33)\n    at #evaluate (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/ExecutionContext.js:360:50)\n    at ExecutionContext.evaluate (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/ExecutionContext.js:274:36)\n    at IsolatedWorld.evaluate (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/cdp/IsolatedWorld.js:102:30)\n    at CdpFrame.evaluate (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/api/Frame.js:359:43)\n    at CdpFrame.<anonymous> (file:///tmp/fgb-pacing/node_modules/puppeteer-core/lib/esm/puppeteer/util/decorators.js:101:27)",
+    "frameUrl": "https://www.youtube-nocookie.com/embed/oSKfhIMEmtk?rel=0&autoplay=1&controls=1&loop=1&playlist=oSKfhIMEmtk",
+    "frameUrls": [
+      "https://epiccontentcreatorgrants.org/fgb-trivia",
+      "https://www.youtube-nocookie.com/embed/oSKfhIMEmtk?rel=0&autoplay=1&controls=1&loop=1&playlist=oSKfhIMEmtk"
+    ],
+    "method": "production-site-html5-seekable-edge",
+    "probeOk": false,
+    "samples": [],
+    "siteUrl": "https://epiccontentcreatorgrants.org/fgb-trivia/",
+    "videoId": "oSKfhIMEmtk"
+  },
   "videoId": "oSKfhIMEmtk",
   "websiteDelaySeconds": 20.0,
   "websiteMinusPlayerSeconds": null,
@@ -120,46 +28,44 @@
     {
       "active": true,
       "delaySeconds": 20,
-      "gameId": "ce3c0208-0e50-4aaa-ac06-77f3acf9b3a8",
-      "phase": "scoreboard",
-      "questionNumber": null
+      "gameId": "8696c6e8-2050-4c8f-8061-92b3203054c1",
+      "phase": "question",
+      "questionNumber": 20
     },
     {
       "active": true,
       "delaySeconds": 20,
-      "gameId": "ce3c0208-0e50-4aaa-ac06-77f3acf9b3a8",
-      "phase": "scoreboard",
-      "questionNumber": null
+      "gameId": "8696c6e8-2050-4c8f-8061-92b3203054c1",
+      "phase": "question",
+      "questionNumber": 20
     },
     {
       "active": true,
       "delaySeconds": 20,
-      "gameId": "ce3c0208-0e50-4aaa-ac06-77f3acf9b3a8",
-      "phase": "scoreboard",
-      "questionNumber": null
+      "gameId": "8696c6e8-2050-4c8f-8061-92b3203054c1",
+      "phase": "question",
+      "questionNumber": 20
     },
     {
       "active": true,
       "delaySeconds": 20,
-      "gameId": "ce3c0208-0e50-4aaa-ac06-77f3acf9b3a8",
-      "phase": "scoreboard",
-      "questionNumber": null
+      "gameId": "8696c6e8-2050-4c8f-8061-92b3203054c1",
+      "phase": "question",
+      "questionNumber": 20
     },
     {
       "active": true,
       "delaySeconds": 20,
-      "gameId": "ce3c0208-0e50-4aaa-ac06-77f3acf9b3a8",
-      "phase": "scoreboard",
-      "questionNumber": null
+      "gameId": "8696c6e8-2050-4c8f-8061-92b3203054c1",
+      "phase": "question",
+      "questionNumber": 20
     },
     {
       "active": true,
       "delaySeconds": 20,
-      "gameId": "ce3c0208-0e50-4aaa-ac06-77f3acf9b3a8",
-      "phase": "scoreboard",
-      "questionNumber": null
+      "gameId": "8696c6e8-2050-4c8f-8061-92b3203054c1",
+      "phase": "question",
+      "questionNumber": 20
     }
-  ],
-  "youtubeError": "YouTube iframe API returned no usable live-edge lag samples",
-  "youtubeProbeOk": false
+  ]
 }
