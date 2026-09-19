@@ -1,0 +1,109 @@
+{
+  "aligned": null,
+  "alignmentToleranceSeconds": 4.0,
+  "checkedAt": "2026-09-19T00:47:42.980105+00:00",
+  "policy": "Leave YouTube unchanged; website question/answer presentation should follow measured public player delay.",
+  "publicPlayerMaxLagSeconds": null,
+  "publicPlayerMedianLagSeconds": null,
+  "publicPlayerMinLagSeconds": null,
+  "videoId": "oSKfhIMEmtk",
+  "websiteDelaySeconds": 20.0,
+  "websiteMinusPlayerSeconds": null,
+  "websiteSamples": [
+    {
+      "active": true,
+      "delaySeconds": 20,
+      "gameId": "ce3c0208-0e50-4aaa-ac06-77f3acf9b3a8",
+      "phase": "transition",
+      "questionNumber": null
+    },
+    {
+      "active": true,
+      "delaySeconds": 20,
+      "gameId": "ce3c0208-0e50-4aaa-ac06-77f3acf9b3a8",
+      "phase": "question",
+      "questionNumber": 20
+    },
+    {
+      "active": true,
+      "delaySeconds": 20,
+      "gameId": "ce3c0208-0e50-4aaa-ac06-77f3acf9b3a8",
+      "phase": "question",
+      "questionNumber": 20
+    },
+    {
+      "active": true,
+      "delaySeconds": 20,
+      "gameId": "ce3c0208-0e50-4aaa-ac06-77f3acf9b3a8",
+      "phase": "question",
+      "questionNumber": 20
+    },
+    {
+      "active": true,
+      "delaySeconds": 20,
+      "gameId": "ce3c0208-0e50-4aaa-ac06-77f3acf9b3a8",
+      "phase": "question",
+      "questionNumber": 20
+    },
+    {
+      "active": true,
+      "delaySeconds": 20,
+      "gameId": "ce3c0208-0e50-4aaa-ac06-77f3acf9b3a8",
+      "phase": "question",
+      "questionNumber": 20
+    }
+  ],
+  "youtubeError": "YouTube iframe API returned no usable live-edge lag samples",
+  "youtubeProbeOk": false,
+  "youtubeSamples": [
+    {
+      "currentTime": 0,
+      "duration": 0,
+      "lagSeconds": null,
+      "rate": 1,
+      "state": -1
+    },
+    {
+      "currentTime": 0,
+      "duration": 0,
+      "lagSeconds": null,
+      "rate": 1,
+      "state": -1
+    },
+    {
+      "currentTime": 0,
+      "duration": 0,
+      "lagSeconds": null,
+      "rate": 1,
+      "state": -1
+    },
+    {
+      "currentTime": 0,
+      "duration": 0,
+      "lagSeconds": null,
+      "rate": 1,
+      "state": -1
+    },
+    {
+      "currentTime": 0,
+      "duration": 0,
+      "lagSeconds": null,
+      "rate": 1,
+      "state": -1
+    },
+    {
+      "currentTime": 0,
+      "duration": 0,
+      "lagSeconds": null,
+      "rate": 1,
+      "state": -1
+    },
+    {
+      "currentTime": 0,
+      "duration": 0,
+      "lagSeconds": null,
+      "rate": 1,
+      "state": -1
+    }
+  ]
+}
