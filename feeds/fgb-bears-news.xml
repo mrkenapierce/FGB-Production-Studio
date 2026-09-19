@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 19 Sep 2026 05:02:13 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 19 Sep 2026 09:27:33 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -60,16 +60,6 @@
     </item>
 
     <item>
-      <title>The Hidden Factor That Could Give the Bears a Major Edge Over the Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Hidden Factor That Could Give the Bears a Major Edge Over the Vikings</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-hidden-factor-that-could-give-the-bears-a-major-edge-over-the-vikings</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3ab144402e8d7af92c66</guid>
-      <pubDate>Fri, 18 Sep 2026 16:29:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Bears&apos; Xavier Woods: Cleared to play Week 2</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Xavier Woods: Cleared to play Week 2</description>
       <link>https://www.cbssports.com/fantasy/football/news/bears-xavier-woods-cleared-to-play-week-2/</link>
@@ -80,13 +70,13 @@
     </item>
 
     <item>
-      <title>One Loser Possible from Chain Reaction With Bears&apos; Wildly Positive Injury Report</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: One Loser Possible from Chain Reaction With Bears&apos; Wildly Positive Injury Report</description>
-      <link>https://www.si.com/nfl/bears/onsi/only-one-loser-from-chain-reaction-caused-by-bears-wildly-positive-injury-report-expected</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a2922196d30f25953e5e</guid>
-      <pubDate>Fri, 18 Sep 2026 15:15:00 GMT</pubDate>
+      <title>Chicago Bears mailbag: Can their defense really turn things around against Justin Jefferson?</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears mailbag: Can their defense really turn things around against Justin Jefferson?</description>
+      <link>https://www.nytimes.com/athletic/7605402/2026/09/18/bears-defense-concerns-vikings-mailbag/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d7250a50e96fd003657c</guid>
+      <pubDate>Fri, 18 Sep 2026 03:45:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
