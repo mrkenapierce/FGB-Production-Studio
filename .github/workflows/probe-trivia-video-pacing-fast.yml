@@ -1,0 +1,101 @@
+name: Probe Trivia Video Pacing Fast
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/probe-trivia-video-pacing-fast.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Measure real embedded player
+        env:
+          VIDEO_ID: oSKfhIMEmtk
+          SITE_URL: https://epiccontentcreatorgrants.org/fgb-trivia/
+        run: |
+          set -Eeuo pipefail
+          mkdir -p /tmp/fgb-pacing
+          python3 - <<'PY'
+          import json,time,urllib.request
+          url='https://epiccontentcreatorgrants.org/api/public/fgbears/website-game-screen'
+          rows=[]
+          for _ in range(5):
+              req=urllib.request.Request(url+'?_p='+str(time.time_ns()),headers={'Cache-Control':'no-cache','User-Agent':'FGB-pacing-probe/6.0'})
+              with urllib.request.urlopen(req,timeout=15) as r: j=json.load(r)
+              rows.append({'gameId':j.get('gameId'),'phase':j.get('phase'),'questionNumber':j.get('questionNumber'),'delaySeconds':j.get('delaySeconds')})
+              time.sleep(1)
+          open('/tmp/fgb-pacing/website.json','w').write(json.dumps(rows))
+          PY
+          CHROME="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser)"
+          cd /tmp/fgb-pacing
+          npm init -y >/dev/null 2>&1
+          npm install --silent --no-save puppeteer-core@24
+          cat > probe.mjs <<'JS'
+          import puppeteer from 'puppeteer-core';
+          import fs from 'node:fs';
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          const out={videoId:process.env.VIDEO_ID,method:'production-site-html5-seekable-edge',probeOk:false,samples:[]};
+          let b;
+          try{
+            b=await puppeteer.launch({executablePath:process.env.CHROME,headless:true,protocolTimeout:120000,args:['--no-sandbox','--autoplay-policy=no-user-gesture-required','--disable-dev-shm-usage']});
+            const p=await b.newPage();
+            await p.setViewport({width:1440,height:1000});
+            await p.goto(process.env.SITE_URL,{waitUntil:'domcontentloaded',timeout:45000});
+            await sleep(8000);
+            out.frames=p.frames().map(f=>f.url()).filter(Boolean);
+            const f=p.frames().find(x=>/youtube(?:-nocookie)?\.com\/embed\//.test(x.url()));
+            if(!f) throw new Error('YouTube frame not found');
+            out.frameUrl=f.url();
+            await f.waitForSelector('video',{timeout:15000});
+            await f.evaluate(()=>{const v=document.querySelector('video'); if(v){v.muted=true; try{void v.play();}catch(_){}} return true;});
+            await sleep(4000);
+            for(let i=0;i<12;i++){
+              out.samples.push(await f.evaluate(()=>{
+                const v=document.querySelector('video'); if(!v)return{videoPresent:false};
+                let edge=null,start=null; try{if(v.seekable?.length){start=v.seekable.start(v.seekable.length-1);edge=v.seekable.end(v.seekable.length-1)}}catch(_){}
+                const t=Number(v.currentTime||0); const lag=Number.isFinite(edge)&&Number.isFinite(t)?Math.max(0,edge-t):null;
+                return{videoPresent:true,currentTime:t,seekStart:start,seekEnd:edge,lagSeconds:lag,paused:v.paused,readyState:v.readyState,networkState:v.networkState};
+              }));
+              await sleep(1000);
+            }
+            const l=out.samples.map(x=>x.lagSeconds).filter(Number.isFinite).sort((a,b)=>a-b);
+            if(l.length>=3 && out.samples.some(x=>x.currentTime>0&&x.readyState>=2)){
+              out.probeOk=true; out.minPlayerLagSeconds=l[0]; out.medianPlayerLagSeconds=l[Math.floor(l.length/2)]; out.maxPlayerLagSeconds=l[l.length-1];
+            }else out.error='No usable playing seekable-edge samples';
+          }catch(e){out.error=String(e?.stack||e).slice(-2200)}finally{if(b)await b.close().catch(()=>{})}
+          fs.writeFileSync('/tmp/fgb-pacing/player.json',JSON.stringify(out,null,2)+'\n');
+          console.log(JSON.stringify(out));
+          JS
+          CHROME="$CHROME" node probe.mjs || true
+          cd "$GITHUB_WORKSPACE"
+          python3 - <<'PY'
+          import json,statistics
+          from pathlib import Path
+          from datetime import datetime,timezone
+          w=json.loads(Path('/tmp/fgb-pacing/website.json').read_text()); p=json.loads(Path('/tmp/fgb-pacing/player.json').read_text())
+          ds=[float(x['delaySeconds']) for x in w if isinstance(x.get('delaySeconds'),(int,float))]
+          wd=statistics.median(ds) if ds else None; pl=p.get('medianPlayerLagSeconds') if p.get('probeOk') else None
+          delta=None if wd is None or pl is None else wd-float(pl); tol=4.0; aligned=None if delta is None else abs(delta)<=tol
+          rec='MEASUREMENT_UNAVAILABLE' if delta is None else ('KEEP_CURRENT_WEBSITE_DELAY' if aligned else 'SET_WEBSITE_DELAY_TO_MEASURED_PUBLIC_PLAYER_LAG')
+          body={'checkedAt':datetime.now(timezone.utc).isoformat(),'videoId':p.get('videoId'),'websiteDelaySeconds':wd,'publicPlayerMedianLagSeconds':pl,'publicPlayerMinLagSeconds':p.get('minPlayerLagSeconds'),'publicPlayerMaxLagSeconds':p.get('maxPlayerLagSeconds'),'websiteMinusPlayerSeconds':delta,'alignmentToleranceSeconds':tol,'aligned':aligned,'recommendation':rec,'websiteSamples':w,'sitePlayerProbe':p,'policy':'Leave YouTube unchanged; website question/answer presentation should follow measured public player delay.'}
+          Path('.github/deployment-status/trivia-video-pacing.json').write_text(json.dumps(body,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(body,indent=2,sort_keys=True))
+          PY
+      - name: Persist result
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/trivia-video-pacing.json
+          git commit -m 'Record direct trivia player pacing probe' || exit 0
+          git pull --rebase
+          git push
