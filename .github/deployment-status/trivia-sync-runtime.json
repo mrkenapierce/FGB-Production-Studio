@@ -1,0 +1,48 @@
+{
+  "checkedAt": "2026-09-19T01:09:47.085117+00:00",
+  "offset": {
+    "checkedAt": "2026-09-19T01:09:47.045883+00:00",
+    "matchingTransitionEvidence": [
+      {
+        "identity": [
+          "802d3384-b8da-472a-82f5-41b46e3876b8",
+          "scoreboard",
+          null
+        ],
+        "offsetSeconds": 0.0,
+        "sourceObservedAt": 1789780101.8436313,
+        "websiteObservedAt": 1789780101.8436313
+      }
+    ],
+    "observedPresentationOffsetSeconds": 0.0,
+    "sampleCount": 46,
+    "websiteConfiguredDelaySeconds": 20.0
+  },
+  "readOnly": true,
+  "runtime": {
+    "rawLines": [
+      "SECTION=services",
+      "UNIT=fgbears-live.service ACTIVE=active ENABLED=enabled",
+      "UNIT=fgbears-youtube-copy-relay.service ACTIVE=active ENABLED=enabled",
+      "UNIT=fgbears-youtube-relay.service ACTIVE=inactive ENABLED=masked",
+      "UNIT=fgbears-rumble-relay.service ACTIVE=inactive ENABLED=masked",
+      "SECTION=timing_env",
+      "SECTION=unit_environment_names",
+      "UNIT_BEGIN=fgbears-live.service",
+      "UNIT_END=fgbears-live.service",
+      "UNIT_BEGIN=fgbears-youtube-copy-relay.service",
+      "UNIT_END=fgbears-youtube-copy-relay.service",
+      "UNIT_BEGIN=fgbears-youtube-relay.service",
+      "UNIT_END=fgbears-youtube-relay.service",
+      "SECTION=timing_source_matches",
+      "SECTION=installed_game_overlay",
+      "OVERLAY_FILE=/opt/fgbears-live/bin/game_overlay.py",
+      "25:    \"GAME_SCREEN_FEED_URL\",",
+      "29:GAME_POLL_SECONDS = max(1, int(os.getenv(\"GAME_SCREEN_POLL_SECONDS\", \"2\")))",
+      "188:                \"gameScreenSeconds\": _game_setting(sanitized, \"gameScreenSeconds\", 20),",
+      "295:    game_seconds = _integer(_game_setting(game, \"gameScreenSeconds\", 20), 20, 3, 300)",
+      "389:    countdown = _iso_countdown(game.get(\"phaseEndsAt\"), now)",
+      "503:        countdown = _iso_countdown(game.get(\"phaseEndsAt\"), now) if phase == \"game\" else None"
+    ]
+  }
+}
