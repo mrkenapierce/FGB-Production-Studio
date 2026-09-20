@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 20 Sep 2026 17:27:53 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 20 Sep 2026 19:38:08 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears follow historic Week 1 with disastrous half vs Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears follow historic Week 1 with disastrous half vs Vikings</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-historic-week-1-183939414.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-274f59a5d9c2b37d48b1</guid>
+      <pubDate>Sun, 20 Sep 2026 18:39:39 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>NFL Week 2 odds, predictions, expert picks: Can blitz-heavy Vikings overtake Bears? Will Cards upset Seahawks?</title>
@@ -20,53 +30,63 @@
     </item>
 
     <item>
-      <title>Bears vs. Vikings live game message board and fan discussion</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Vikings live game message board and fan discussion</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-vikings-live-game-165432750.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-67fd17eb7491858c089e</guid>
-      <pubDate>Sun, 20 Sep 2026 16:54:32 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Minnesota Vikings at Chicago Bears: NFL Week 2 Discussion</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Minnesota Vikings at Chicago Bears: NFL Week 2 Discussion</description>
-      <link>https://sports.yahoo.com/articles/minnesota-vikings-chicago-bears-nfl-163000073.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f66903cf4a6d5fcddd87</guid>
-      <pubDate>Sun, 20 Sep 2026 16:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Use FanDuel promo code to get $350 in bonus bets for Vikings-Bears, Cowboys-Commanders, NFL betting on Sunday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Use FanDuel promo code to get $350 in bonus bets for Vikings-Bears, Cowboys-Commanders, NFL betting on Sunday</description>
-      <link>https://www.cbssports.com/nfl/news/use-fanduel-promo-code-to-get-350-bonus-bets-vikings-bears-cowboys-commanders-nfl-betting-sunday/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-469906949503a1aa9726</guid>
-      <pubDate>Sun, 20 Sep 2026 15:33:02 GMT</pubDate>
+      <title>Vikings vs. Bears odds, picks, predictions, betting preview, advice, tips for NFL Week 2 matchup</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Vikings vs. Bears odds, picks, predictions, betting preview, advice, tips for NFL Week 2 matchup</description>
+      <link>https://www.cbssports.com/betting/news/vikings-bears-odds-picks-predictions-betting-preview-advice-tips-nfl-week-2-matchup/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a0e1ec213adae14ba3da</guid>
+      <pubDate>Sun, 20 Sep 2026 15:07:24 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
-      <title>Game Preview: Vikings vs. Bears | 2026 Week 2</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Preview: Vikings vs. Bears | 2026 Week 2</description>
-      <link>https://www.chicagobears.com/news/game-preview-vikings-vs-bears-2026-week-2</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-63239ea0993c5b9e11a1</guid>
-      <pubDate>Sat, 19 Sep 2026 12:20:31 GMT</pubDate>
+      <title>Kyle Monangai Injury Update: Latest News on Bears RB&apos;s Status in Week 2 Game</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyle Monangai Injury Update: Latest News on Bears RB&apos;s Status in Week 2 Game</description>
+      <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-news-bears-status-week-2-game</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d1b32d91ba4bdea1053d</guid>
+      <pubDate>Sun, 20 Sep 2026 12:16:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Injury Update: No Bears players on final injury report</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Injury Update: No Bears players on final injury report</description>
-      <link>https://www.chicagobears.com/news/injury-update-no-bears-players-on-final-injury-report</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4165e158eb80ba916759</guid>
-      <pubDate>Fri, 18 Sep 2026 20:47:55 GMT</pubDate>
+      <title>Kalif Raymond&apos;s back-to-back catches yield a grand total of 20 yards for Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Kalif Raymond&apos;s back-to-back catches yield a grand total of 20 yards for Bears</description>
+      <link>https://www.nfl.com/videos/kalif-raymond-s-back-to-back-catches-yield-a-grand-total-of-20-yards-for-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f13cd86aa992c54c9caf</guid>
+      <pubDate>Sun, 20 Sep 2026 11:54:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
+      <title>Will Reichard&apos;s 49-yard FG gives Vikings a 6-3 lead against Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Will Reichard&apos;s 49-yard FG gives Vikings a 6-3 lead against Bears</description>
+      <link>https://www.nfl.com/videos/will-reichard-s-49-yard-fg-gives-vikings-a-6-3-lead-against-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6489f89312d0ef0fb973</guid>
+      <pubDate>Sun, 20 Sep 2026 11:19:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
+      <title>Is Rome Odunze playing today? Why Bears TE is off to slow start vs. Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Is Rome Odunze playing today? Why Bears TE is off to slow start vs. Vikings</description>
+      <link>https://sports.yahoo.com/articles/rome-odunze-playing-today-why-173557429.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1d4cc46aa1f42673d63f</guid>
+      <pubDate>Sun, 20 Sep 2026 10:35:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears vs. Minnesota Vikings Inactives For Week 2: Who&apos;s In, Who&apos;s Out?</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears vs. Minnesota Vikings Inactives For Week 2: Who&apos;s In, Who&apos;s Out?</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-minnesota-vikings-inactives-week-2</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-082b6bc0504695c72030</guid>
+      <pubDate>Sun, 20 Sep 2026 08:50:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
