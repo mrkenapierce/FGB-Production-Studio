@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 19 Sep 2026 22:59:37 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 20 Sep 2026 00:47:00 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears vs. Minnesota Vikings Game Picks and Predictions</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. Minnesota Vikings Game Picks and Predictions</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-vs-minnesota-vikings-000000293.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5c639e39a40066448419</guid>
+      <pubDate>Sun, 20 Sep 2026 00:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>NFL fans think the Chicago Bears will have the best offense in 2026</title>
@@ -20,13 +30,13 @@
     </item>
 
     <item>
-      <title>Bears vs Vikings: Minnesota may not blitz Caleb Williams as much at Soldier Field</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs Vikings: Minnesota may not blitz Caleb Williams as much at Soldier Field</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-vikings-minnesota-may-200000858.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-65c6ca4e0a71c9351dfb</guid>
-      <pubDate>Sat, 19 Sep 2026 20:00:00 GMT</pubDate>
+      <title>Bold Predictions For the Bears Week 2 Matchup Against the Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bold Predictions For the Bears Week 2 Matchup Against the Vikings</description>
+      <link>https://www.si.com/nfl/bears/onsi/bold-predictions-for-the-bears-week-2-matchup-against-the-vikings</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-fe330e7bac50381c74cf</guid>
+      <pubDate>Sat, 19 Sep 2026 16:01:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -35,16 +45,6 @@
       <link>https://www.si.com/nfl/bears/onsi/nfl-punishes-bears-jahdae-walker-for-infraction-panthers-dl-fined-for-caleb-williams-hit</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-99cdbafe4ac1e65723ce</guid>
       <pubDate>Sat, 19 Sep 2026 14:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Vikings Admit to Difficulty in Trying to Prepare For Bears QB Caleb Williams</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Vikings Admit to Difficulty in Trying to Prepare For Bears QB Caleb Williams</description>
-      <link>https://www.si.com/nfl/bears/onsi/vikings-admit-to-difficulty-in-trying-to-prepare-for-bears-qb-caleb-williams</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-00976bf059e8c66ff446</guid>
-      <pubDate>Sat, 19 Sep 2026 14:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
