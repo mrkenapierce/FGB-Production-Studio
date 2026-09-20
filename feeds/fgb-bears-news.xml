@@ -5,16 +5,46 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 20 Sep 2026 19:38:08 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 20 Sep 2026 21:48:20 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears follow historic Week 1 with disastrous half vs Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears follow historic Week 1 with disastrous half vs Vikings</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-historic-week-1-183939414.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-274f59a5d9c2b37d48b1</guid>
-      <pubDate>Sun, 20 Sep 2026 18:39:39 GMT</pubDate>
+      <title>Game Recap: Bears fall to 1-1 with loss to Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Recap: Bears fall to 1-1 with loss to Vikings</description>
+      <link>https://www.chicagobears.com/news/game-recap-bears-fall-to-1-1-with-loss-to-vikings</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6f7e21e39d9119913d07</guid>
+      <pubDate>Sun, 20 Sep 2026 20:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Drop Home Opener to Vikings in the Rain and Lose Caleb Williams to Injury</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Drop Home Opener to Vikings in the Rain and Lose Caleb Williams to Injury</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-drop-home-opener-205203653.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d391d0708f40bd9473e8</guid>
+      <pubDate>Sun, 20 Sep 2026 20:52:03 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears QB Caleb Williams exits vs. Vikings after suffering non-contact hamstring injury</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears QB Caleb Williams exits vs. Vikings after suffering non-contact hamstring injury</description>
+      <link>https://www.cbssports.com/nfl/news/caleb-williams-injury-updates-bears-qb/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d017223c83e8141c37a5</guid>
+      <pubDate>Sun, 20 Sep 2026 20:33:45 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears might have lost more than one game with Caleb Williams injury | Opinion</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears might have lost more than one game with Caleb Williams injury | Opinion</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-might-lost-more-203142182.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2f4b55dccc32b75fe019</guid>
+      <pubDate>Sun, 20 Sep 2026 20:31:42 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -30,63 +60,33 @@
     </item>
 
     <item>
-      <title>Vikings vs. Bears odds, picks, predictions, betting preview, advice, tips for NFL Week 2 matchup</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Vikings vs. Bears odds, picks, predictions, betting preview, advice, tips for NFL Week 2 matchup</description>
-      <link>https://www.cbssports.com/betting/news/vikings-bears-odds-picks-predictions-betting-preview-advice-tips-nfl-week-2-matchup/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a0e1ec213adae14ba3da</guid>
-      <pubDate>Sun, 20 Sep 2026 15:07:24 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Kyle Monangai Injury Update: Latest News on Bears RB&apos;s Status in Week 2 Game</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyle Monangai Injury Update: Latest News on Bears RB&apos;s Status in Week 2 Game</description>
-      <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-news-bears-status-week-2-game</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d1b32d91ba4bdea1053d</guid>
-      <pubDate>Sun, 20 Sep 2026 12:16:00 GMT</pubDate>
+      <title>Bears Must Bench Garrett Bradbury After Mistake-Ridden Week 2 Performance</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Must Bench Garrett Bradbury After Mistake-Ridden Week 2 Performance</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-must-bench-garrett-bradbury-after-mistake-ridden-week-2-performance</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f57c075d21e9e6cd51d4</guid>
+      <pubDate>Sun, 20 Sep 2026 14:29:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Kalif Raymond&apos;s back-to-back catches yield a grand total of 20 yards for Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Kalif Raymond&apos;s back-to-back catches yield a grand total of 20 yards for Bears</description>
-      <link>https://www.nfl.com/videos/kalif-raymond-s-back-to-back-catches-yield-a-grand-total-of-20-yards-for-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f13cd86aa992c54c9caf</guid>
-      <pubDate>Sun, 20 Sep 2026 11:54:00 GMT</pubDate>
+      <title>Vikings&apos; top plays vs. Bears | Week 2</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Vikings&apos; top plays vs. Bears | Week 2</description>
+      <link>https://www.nfl.com/videos/vikings-top-plays-vs-bears-week-2</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7ea7dc4d6b9f02bcc8f3</guid>
+      <pubDate>Sun, 20 Sep 2026 14:16:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
-      <title>Will Reichard&apos;s 49-yard FG gives Vikings a 6-3 lead against Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Will Reichard&apos;s 49-yard FG gives Vikings a 6-3 lead against Bears</description>
-      <link>https://www.nfl.com/videos/will-reichard-s-49-yard-fg-gives-vikings-a-6-3-lead-against-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6489f89312d0ef0fb973</guid>
-      <pubDate>Sun, 20 Sep 2026 11:19:00 GMT</pubDate>
+      <title>Vikings&apos; defense best plays vs. Bears | Week 2</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Vikings&apos; defense best plays vs. Bears | Week 2</description>
+      <link>https://www.nfl.com/videos/vikings-defense-best-plays-vs-bears-week-2</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-eec795cdb745d8787eca</guid>
+      <pubDate>Sun, 20 Sep 2026 14:06:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Is Rome Odunze playing today? Why Bears TE is off to slow start vs. Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Is Rome Odunze playing today? Why Bears TE is off to slow start vs. Vikings</description>
-      <link>https://sports.yahoo.com/articles/rome-odunze-playing-today-why-173557429.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1d4cc46aa1f42673d63f</guid>
-      <pubDate>Sun, 20 Sep 2026 10:35:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears vs. Minnesota Vikings Inactives For Week 2: Who&apos;s In, Who&apos;s Out?</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears vs. Minnesota Vikings Inactives For Week 2: Who&apos;s In, Who&apos;s Out?</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-minnesota-vikings-inactives-week-2</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-082b6bc0504695c72030</guid>
-      <pubDate>Sun, 20 Sep 2026 08:50:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
