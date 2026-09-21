@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 21 Sep 2026 19:23:44 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 21 Sep 2026 22:40:24 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears vs. Vikings Game Balls: A No Good, Very Bad Day</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Vikings Game Balls: A No Good, Very Bad Day</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-vikings-game-balls-213932704.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d7c40ac2123cec3005f9</guid>
+      <pubDate>Mon, 21 Sep 2026 21:39:32 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Caleb Williams, Jayden Daniels injured in Week 2: What&apos;s the outlook for Bears, Commanders signal callers?</title>
@@ -30,61 +40,51 @@
     </item>
 
     <item>
-      <title>Sunday Aftermath: Jayden Daniels&apos; bad break, the Bears&apos; about-face, and more</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Sunday Aftermath: Jayden Daniels&apos; bad break, the Bears&apos; about-face, and more</description>
-      <link>https://sports.yahoo.com/articles/sunday-aftermath-jayden-daniels-bad-164942037.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cf3e8039c38b95b280b4</guid>
-      <pubDate>Mon, 21 Sep 2026 16:49:42 GMT</pubDate>
+      <title>Bears QB Caleb Williams reportedly avoids serious hamstring injury, could play Week 3 but &apos;will likely miss some time&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears QB Caleb Williams reportedly avoids serious hamstring injury, could play Week 3 but &apos;will likely miss some time&apos;</description>
+      <link>https://sports.yahoo.com/nfl/article/bears-qb-caleb-williams-reportedly-avoids-serious-hamstring-injury-could-play-week-3-but-will-likely-miss-some-time-160217987.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-dd03290b7dc75023f1f4</guid>
+      <pubDate>Mon, 21 Sep 2026 16:02:17 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Caleb Williams injury: Bears QB might be able to play against Eagles? Or not! [UPDATE]</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Caleb Williams injury: Bears QB might be able to play against Eagles? Or not! [UPDATE]</description>
-      <link>https://sports.yahoo.com/articles/caleb-williams-injury-bears-quarterback-160739741.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1c58a0fd03e0b3d1cf11</guid>
-      <pubDate>Mon, 21 Sep 2026 16:43:37 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson breaks down Bears&apos; approach after losing Caleb Williams vs. Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Ben Johnson breaks down Bears&apos; approach after losing Caleb Williams vs. Vikings</description>
-      <link>https://www.nfl.com/videos/ben-johnson-breaks-down-bears-approach-after-losing-caleb-williams-vs-vikings</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-155f9f61edc92dc8b49d</guid>
-      <pubDate>Mon, 21 Sep 2026 11:30:00 GMT</pubDate>
+      <title>Bears HC Johnson gives update on Caleb Williams</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears HC Johnson gives update on Caleb Williams</description>
+      <link>https://www.nfl.com/videos/bears-hc-johnson-gives-update-on-caleb-williams</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-dc18a832247c284afadb</guid>
+      <pubDate>Mon, 21 Sep 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
-      <title>Internet Roasts Caleb Williams for Bears QB&apos;s Initial Reaction to Injury</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Internet Roasts Caleb Williams for Bears QB&apos;s Initial Reaction to Injury</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-caleb-williams-injury-memes-jokes-hamstring</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-02cf1eb459b6a27021da</guid>
-      <pubDate>Mon, 21 Sep 2026 11:24:00 GMT</pubDate>
+      <title>Caleb Williams Injury Update From Ben Johnson Offers Hope For Bears QB&apos;s Week 3 Status</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams Injury Update From Ben Johnson Offers Hope For Bears QB&apos;s Week 3 Status</description>
+      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-injury-update-from-ben-johnson-offers-hope-for-bears-qb-s-week-3-status</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d9338b691ba0064e3925</guid>
+      <pubDate>Mon, 21 Sep 2026 13:47:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Bears&apos; Johnson: QB Williams week-to-week, likely to miss time</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; Johnson: QB Williams week-to-week, likely to miss time</description>
-      <link>https://www.espn.com/nfl/story/_/id/49999247/bears-johnson-qb-williams-week-week-likely-miss</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c6d356952ae8dd17f8ed</guid>
-      <pubDate>Mon, 21 Sep 2026 10:48:00 GMT</pubDate>
+      <title>Minnesota Vikings vs. Chicago Bears Week 2 analysis | NFL Pro</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Minnesota Vikings vs. Chicago Bears Week 2 analysis | NFL Pro</description>
+      <link>https://www.nfl.com/videos/minnesota-vikings-vs-chicago-bears-week-2-analysis-nfl-pro</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-dd442ea33e9696a4aa88</guid>
+      <pubDate>Mon, 21 Sep 2026 13:06:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
-      <title>Motivated Dayo and Everything Else That Went Right For Bears in Week 2 Loss to Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Motivated Dayo and Everything Else That Went Right For Bears in Week 2 Loss to Vikings</description>
-      <link>https://www.si.com/nfl/bears/onsi/motivated-dayo-and-everything-else-that-went-right-for-bears-in-week-2-loss-to-vikings</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-189b26256b07d8a01b94</guid>
-      <pubDate>Mon, 21 Sep 2026 10:00:00 GMT</pubDate>
+      <title>Bears Shouldn&apos;t Let Ben Johnson Off the Hook for Baffling Decisions in Week 2 Loss</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Shouldn&apos;t Let Ben Johnson Off the Hook for Baffling Decisions in Week 2 Loss</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-shouldn-t-let-ben-johnson-off-the-hook-for-baffling-decisions-in-week-2-loss</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a19ce0c5eb0eb5a02f88</guid>
+      <pubDate>Mon, 21 Sep 2026 13:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
