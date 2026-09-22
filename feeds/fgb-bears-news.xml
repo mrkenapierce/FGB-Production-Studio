@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 22 Sep 2026 06:10:23 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 22 Sep 2026 11:32:22 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -20,6 +20,16 @@
     </item>
 
     <item>
+      <title>NFL Week 3 power rankings: Vikings, Bengals, Browns make huge leaps; Ravens, Bears fall</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: NFL Week 3 power rankings: Vikings, Bengals, Browns make huge leaps; Ravens, Bears fall</description>
+      <link>https://www.nytimes.com/athletic/7617606/2026/09/22/nfl-power-rankings-week-3-vikings-bengals-browns/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-15d272c0f7fd6fce5dd5</guid>
+      <pubDate>Tue, 22 Sep 2026 02:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
       <title>What happened to Colston Loveland? Why Bears tight end has one catch entering Week 3</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: What happened to Colston Loveland? Why Bears tight end has one catch entering Week 3</description>
       <link>https://www.cbssports.com/nfl/news/bears-te-colston-loveland-what-happened-2026/</link>
@@ -30,33 +40,23 @@
     </item>
 
     <item>
-      <title>Bears&apos; Cairo Santos: Blocked kick in close loss</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Cairo Santos: Blocked kick in close loss</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-cairo-santos-blocked-kick-in-close-loss/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-de21999daa7561bca6d3</guid>
-      <pubDate>Mon, 21 Sep 2026 17:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
       <title>How Serious Is Caleb Williams’ Hamstring Injury? Latest Bears Update Raises Questions</title>
       <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: How Serious Is Caleb Williams’ Hamstring Injury? Latest Bears Update Raises Questions</description>
       <link>https://sports.yahoo.com/articles/serious-caleb-williams-hamstring-injury-011517867.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-ca22cc793b137cd8d444</guid>
-      <pubDate>Mon, 21 Sep 2026 17:00:00 GMT</pubDate>
+      <pubDate>Mon, 21 Sep 2026 18:15:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears HC Johnson gives update on Caleb Williams</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears HC Johnson gives update on Caleb Williams</description>
-      <link>https://www.nfl.com/videos/bears-hc-johnson-gives-update-on-caleb-williams</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dc18a832247c284afadb</guid>
-      <pubDate>Mon, 21 Sep 2026 15:00:00 GMT</pubDate>
+      <title>Caleb Williams, Jayden Daniels injured in Week 2: What&apos;s the outlook for Bears, Commanders signal callers?</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Caleb Williams, Jayden Daniels injured in Week 2: What&apos;s the outlook for Bears, Commanders signal callers?</description>
+      <link>https://www.cbssports.com/nfl/news/caleb-williams-jayden-daniels-injured-week-2-outlook/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-03150e5aef29c0862c1a</guid>
+      <pubDate>Mon, 21 Sep 2026 16:55:41 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -80,13 +80,13 @@
     </item>
 
     <item>
-      <title>Minnesota Vikings vs. Chicago Bears Week 2 analysis | NFL Pro</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Minnesota Vikings vs. Chicago Bears Week 2 analysis | NFL Pro</description>
-      <link>https://www.nfl.com/videos/minnesota-vikings-vs-chicago-bears-week-2-analysis-nfl-pro</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dd442ea33e9696a4aa88</guid>
-      <pubDate>Mon, 21 Sep 2026 13:06:00 GMT</pubDate>
+      <title>Bears QB Caleb Williams avoids major injury but won’t practice this week</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears QB Caleb Williams avoids major injury but won’t practice this week</description>
+      <link>https://www.nytimes.com/athletic/7617440/2026/09/21/bears-caleb-williams-injury-update/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c8516c99b5f7e402805a</guid>
+      <pubDate>Mon, 21 Sep 2026 09:41:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
