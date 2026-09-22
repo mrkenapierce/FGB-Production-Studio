@@ -5,28 +5,48 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 22 Sep 2026 19:09:23 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 22 Sep 2026 22:04:54 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears Injury News: Tyson Bagent in concussion protocol</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Injury News: Tyson Bagent in concussion protocol</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-injury-news-tyson-185000769.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-870b7327fc4d5c01e9cd</guid>
-      <pubDate>Tue, 22 Sep 2026 18:50:00 GMT</pubDate>
+      <title>Vikings Autopsy: Daily Norseman Week 2 Postgame Roundtable (A 9-3 win over Bears)</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Vikings Autopsy: Daily Norseman Week 2 Postgame Roundtable (A 9-3 win over Bears)</description>
+      <link>https://sports.yahoo.com/articles/vikings-autopsy-daily-norseman-week-215012316.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6d316d128a4115d5655b</guid>
+      <pubDate>Tue, 22 Sep 2026 21:50:12 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears QB depth chart runs thin with another injury ahead of Week 3</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears QB depth chart runs thin with another injury ahead of Week 3</description>
-      <link>https://sports.yahoo.com/articles/bears-qb-depth-chart-runs-183838921.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8d0d9bb7a33df092b461</guid>
-      <pubDate>Tue, 22 Sep 2026 18:38:38 GMT</pubDate>
+      <title>Bears defense displays growth, energy in home opener</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears defense displays growth, energy in home opener</description>
+      <link>https://www.chicagobears.com/news/bears-defense-displays-growth-energy-in-home-opener</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f71cc3a2ea547394b1fd</guid>
+      <pubDate>Tue, 22 Sep 2026 21:11:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>UPDATE: Chicago Bears sign Nick McCloud to the practice squad</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: UPDATE: Chicago Bears sign Nick McCloud to the practice squad</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-signed-11-players-000535834.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e9df245fc683c4bf1e72</guid>
+      <pubDate>Tue, 22 Sep 2026 20:43:46 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Roster Moves: Chicago Bears announce roster moves</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Roster Moves: Chicago Bears announce roster moves</description>
+      <link>https://www.chicagobears.com/news/roster-moves-chicago-bears-announce-roster-moves</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e10694ff9331ddef9927</guid>
+      <pubDate>Tue, 22 Sep 2026 20:15:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
@@ -40,51 +60,31 @@
     </item>
 
     <item>
-      <title>Tyson Bagent in concussion protocol could mean Bears start Case Keenum: Source</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Tyson Bagent in concussion protocol could mean Bears start Case Keenum: Source</description>
-      <link>https://www.nytimes.com/athletic/7620762/2026/09/22/bears-tyson-bagent-case-keenum-concussion/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fa374ea0ec7797ab5e09</guid>
-      <pubDate>Tue, 22 Sep 2026 11:57:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Tyson Bagent Injury Update Sends Bears QB Woes From Bad to Worse</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Tyson Bagent Injury Update Sends Bears QB Woes From Bad to Worse</description>
-      <link>https://www.si.com/nfl/bears/onsi/tyson-bagent-injury-update-bears-week-3</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a4df916ccc4c38cf0628</guid>
-      <pubDate>Tue, 22 Sep 2026 11:33:00 GMT</pubDate>
+      <title>What the Past Says About Bears&apos; Chances When Starting a Backup QB</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: What the Past Says About Bears&apos; Chances When Starting a Backup QB</description>
+      <link>https://www.si.com/nfl/bears/onsi/what-the-past-says-about-bears-chances-when-starting-a-backup-qb</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e68de8810d2eb7b6b046</guid>
+      <pubDate>Tue, 22 Sep 2026 14:45:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>How underrated is Brock Purdy? Plus injuries drop Giants, Bears and Commanders</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: How underrated is Brock Purdy? Plus injuries drop Giants, Bears and Commanders</description>
-      <link>https://www.nytimes.com/athletic/7620695/2026/09/22/how-underrated-is-brock-purdy-plus-injuries-drop-giants-bears-and-commanders/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6b07947a55ab0f31935c</guid>
-      <pubDate>Tue, 22 Sep 2026 11:19:00 GMT</pubDate>
+      <title>Who is Case Keenum? Bears’ 38-year-old third-stringer could start vs. Eagles</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Who is Case Keenum? Bears’ 38-year-old third-stringer could start vs. Eagles</description>
+      <link>https://www.nytimes.com/athletic/7620970/2026/09/22/bears-case-keenum-tyson-bagent/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-44010f3c7ce1a061140f</guid>
+      <pubDate>Tue, 22 Sep 2026 12:49:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
-      <title>Bears&apos; Tyson Bagent: Enters concussion protocol</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Tyson Bagent: Enters concussion protocol</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-tyson-bagent-enters-concussion-protocol/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-aafe9deb608d4b3ec9eb</guid>
-      <pubDate>Tue, 22 Sep 2026 11:17:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears QB Tyson Bagent is dealing with a concussion and is in...</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears QB Tyson Bagent is dealing with a concussion and is in...</description>
-      <link>https://www.espn.com/contributor/ian-rapoport/9ab37bd0a41f9</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-087fff9e4a55a4b4b922</guid>
-      <pubDate>Tue, 22 Sep 2026 11:15:00 GMT</pubDate>
+      <title>Sources: Bagent has concussion, leaving Bears&apos; QB situation unclear</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Sources: Bagent has concussion, leaving Bears&apos; QB situation unclear</description>
+      <link>https://www.espn.com/nfl/story/_/id/50007133/bagent-concussion-leaving-bears-qb-situation-muddled</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2e4e40acddd062496715</guid>
+      <pubDate>Tue, 22 Sep 2026 12:28:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
