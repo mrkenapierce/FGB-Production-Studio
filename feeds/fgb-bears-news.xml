@@ -5,18 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 22 Sep 2026 11:32:22 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 22 Sep 2026 15:40:54 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Vikes Views: Nincompoop of the Week – Vikings at Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Vikes Views: Nincompoop of the Week – Vikings at Bears</description>
-      <link>https://sports.yahoo.com/articles/vikes-views-nincompoop-week-vikings-051900358.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-957cb72dd25827091e4a</guid>
-      <pubDate>Tue, 22 Sep 2026 05:19:00 GMT</pubDate>
+      <title>3 Reasons Why the Chicago Bears Lost to the Minnesota Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 3 Reasons Why the Chicago Bears Lost to the Minnesota Vikings</description>
+      <link>https://sports.yahoo.com/articles/3-reasons-why-chicago-bears-140000724.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e8db5f3e1812e00553a8</guid>
+      <pubDate>Tue, 22 Sep 2026 14:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Former Eagles player rips Bears&apos; Caleb Williams for breaking &apos;sacred&apos; rule after hamstring injury</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Former Eagles player rips Bears&apos; Caleb Williams for breaking &apos;sacred&apos; rule after hamstring injury</description>
+      <link>https://sports.yahoo.com/articles/former-eagles-player-rips-bears-150735927.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b7974de7cad1893fe32e</guid>
+      <pubDate>Tue, 22 Sep 2026 08:07:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears&apos; Biggest Disappointments Through Two Weeks of 2026 NFL Season</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears&apos; Biggest Disappointments Through Two Weeks of 2026 NFL Season</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-biggest-disappointments-through-two-weeks-of-2026-nfl-season</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b6d9d5e0c9038d61b183</guid>
+      <pubDate>Tue, 22 Sep 2026 08:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Even Vikings Coach Noted Poor Rookie Bears Special Teams Play</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Even Vikings Coach Noted Poor Rookie Bears Special Teams Play</description>
+      <link>https://www.si.com/nfl/bears/onsi/even-vikings-coach-noted-poor-rookie-bears-special-teams-play</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0655c3016a6bd93df4a3</guid>
+      <pubDate>Tue, 22 Sep 2026 07:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Ben Johnson reviews the tape after Week 2 | Bears, etc. Podcast</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Ben Johnson reviews the tape after Week 2 | Bears, etc. Podcast</description>
+      <link>https://www.chicagobears.com/audio/ben-johnson-reviews-the-tape-after-week-2-bears-etc-podcast</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4fd4160bddc492375d4d</guid>
+      <pubDate>Tue, 22 Sep 2026 06:03:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams is hurt. Now Tyson Bagent gets his chance to lead the Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Caleb Williams is hurt. Now Tyson Bagent gets his chance to lead the Bears</description>
+      <link>https://www.nytimes.com/athletic/7618688/2026/09/22/tyson-bagent-wiki-caleb-williams/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-760da5f90dfa01e2fe48</guid>
+      <pubDate>Tue, 22 Sep 2026 04:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -37,56 +87,6 @@
       <pubDate>Tue, 22 Sep 2026 00:27:22 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>How Serious Is Caleb Williams’ Hamstring Injury? Latest Bears Update Raises Questions</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: How Serious Is Caleb Williams’ Hamstring Injury? Latest Bears Update Raises Questions</description>
-      <link>https://sports.yahoo.com/articles/serious-caleb-williams-hamstring-injury-011517867.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ca22cc793b137cd8d444</guid>
-      <pubDate>Mon, 21 Sep 2026 18:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams, Jayden Daniels injured in Week 2: What&apos;s the outlook for Bears, Commanders signal callers?</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Caleb Williams, Jayden Daniels injured in Week 2: What&apos;s the outlook for Bears, Commanders signal callers?</description>
-      <link>https://www.cbssports.com/nfl/news/caleb-williams-jayden-daniels-injured-week-2-outlook/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-03150e5aef29c0862c1a</guid>
-      <pubDate>Mon, 21 Sep 2026 16:55:41 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>The Confusing Disappearance of Bears Budding Superstar TE Colston Loveland</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Confusing Disappearance of Bears Budding Superstar TE Colston Loveland</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-confusing-disappearance-of-bears-budding-superstar-te-colston-loveland</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-bcb0c472ff88b6c3bb39</guid>
-      <pubDate>Mon, 21 Sep 2026 14:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams Injury Update From Ben Johnson Offers Hope For Bears QB&apos;s Week 3 Status</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams Injury Update From Ben Johnson Offers Hope For Bears QB&apos;s Week 3 Status</description>
-      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-injury-update-from-ben-johnson-offers-hope-for-bears-qb-s-week-3-status</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d9338b691ba0064e3925</guid>
-      <pubDate>Mon, 21 Sep 2026 13:47:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears QB Caleb Williams avoids major injury but won’t practice this week</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears QB Caleb Williams avoids major injury but won’t practice this week</description>
-      <link>https://www.nytimes.com/athletic/7617440/2026/09/21/bears-caleb-williams-injury-update/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c8516c99b5f7e402805a</guid>
-      <pubDate>Mon, 21 Sep 2026 09:41:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
