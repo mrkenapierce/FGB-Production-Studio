@@ -5,16 +5,16 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 22 Sep 2026 01:09:08 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 22 Sep 2026 06:10:23 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Reviewing the Bears’ PFN grades from Week 2 vs. Vikings</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Reviewing the Bears’ PFN grades from Week 2 vs. Vikings</description>
-      <link>https://sports.yahoo.com/articles/reviewing-bears-pfn-grades-week-003000548.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e5005c20dd9869ae9376</guid>
-      <pubDate>Tue, 22 Sep 2026 00:30:00 GMT</pubDate>
+      <title>Vikes Views: Nincompoop of the Week – Vikings at Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Vikes Views: Nincompoop of the Week – Vikings at Bears</description>
+      <link>https://sports.yahoo.com/articles/vikes-views-nincompoop-week-vikings-051900358.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-957cb72dd25827091e4a</guid>
+      <pubDate>Tue, 22 Sep 2026 05:19:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -30,16 +30,6 @@
     </item>
 
     <item>
-      <title>Bears struggled in the rain while Vikings adapted</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears struggled in the rain while Vikings adapted</description>
-      <link>https://sports.yahoo.com/articles/bears-struggled-rain-while-vikings-223000556.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1ba659ff01b41151e311</guid>
-      <pubDate>Mon, 21 Sep 2026 22:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Bears&apos; Cairo Santos: Blocked kick in close loss</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Cairo Santos: Blocked kick in close loss</description>
       <link>https://www.cbssports.com/fantasy/football/news/bears-cairo-santos-blocked-kick-in-close-loss/</link>
@@ -47,6 +37,16 @@
       <pubDate>Mon, 21 Sep 2026 17:15:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>How Serious Is Caleb Williams’ Hamstring Injury? Latest Bears Update Raises Questions</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: How Serious Is Caleb Williams’ Hamstring Injury? Latest Bears Update Raises Questions</description>
+      <link>https://sports.yahoo.com/articles/serious-caleb-williams-hamstring-injury-011517867.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ca22cc793b137cd8d444</guid>
+      <pubDate>Mon, 21 Sep 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
