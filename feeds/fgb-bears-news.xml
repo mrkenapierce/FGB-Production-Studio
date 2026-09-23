@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 23 Sep 2026 00:28:29 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 23 Sep 2026 04:59:11 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears week 3 power rankings roundup</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears week 3 power rankings roundup</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-week-3-power-012310709.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-31583f901cde514b2cbc</guid>
+      <pubDate>Wed, 23 Sep 2026 01:23:10 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Catching up with former players at Bears Alumni Weekend</title>
@@ -30,16 +40,6 @@
     </item>
 
     <item>
-      <title>Vikings Autopsy: Daily Norseman Week 2 Postgame Roundtable (A 9-3 win over Bears)</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Vikings Autopsy: Daily Norseman Week 2 Postgame Roundtable (A 9-3 win over Bears)</description>
-      <link>https://sports.yahoo.com/articles/vikings-autopsy-daily-norseman-week-215012316.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6d316d128a4115d5655b</guid>
-      <pubDate>Tue, 22 Sep 2026 21:50:12 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Bears defense displays growth, energy in home opener</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears defense displays growth, energy in home opener</description>
       <link>https://www.chicagobears.com/news/bears-defense-displays-growth-energy-in-home-opener</link>
@@ -50,11 +50,21 @@
     </item>
 
     <item>
-      <title>Tyson Bagent in concussion protocol as Bears could be down to third quarterback in Week 3, per report</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Tyson Bagent in concussion protocol as Bears could be down to third quarterback in Week 3, per report</description>
-      <link>https://www.cbssports.com/nfl/news/tyson-bagent-concussion-protocol-bears-eagles/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9d7904ea8f8613a12d26</guid>
-      <pubDate>Tue, 22 Sep 2026 18:28:48 GMT</pubDate>
+      <title>Bears&apos; Sam Roush: Logs first catch of NFL career</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Sam Roush: Logs first catch of NFL career</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-sam-roush-logs-first-catch-of-nfl-career/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a8fdef76354530a05062</guid>
+      <pubDate>Tue, 22 Sep 2026 19:18:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Devin Bush: Tallies four tackles Sunday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Devin Bush: Tallies four tackles Sunday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-devin-bush-tallies-four-tackles-sunday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-98f9ab0618777d58e0a7</guid>
+      <pubDate>Tue, 22 Sep 2026 18:43:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
@@ -77,16 +87,6 @@
       <pubDate>Tue, 22 Sep 2026 16:26:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Tyson Bagent’s Injury Sustained on Controversial Final Play Could Sack Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Tyson Bagent’s Injury Sustained on Controversial Final Play Could Sack Bears</description>
-      <link>https://www.si.com/nfl/bears/onsi/tyson-bagent-s-injury-sustained-on-controversial-final-play-could-sack-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e71a3414da34f6b027ba</guid>
-      <pubDate>Tue, 22 Sep 2026 15:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
