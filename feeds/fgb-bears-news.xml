@@ -5,18 +5,78 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 23 Sep 2026 09:47:02 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 23 Sep 2026 14:32:12 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears week 3 power rankings roundup</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears week 3 power rankings roundup</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-week-3-power-012310709.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-31583f901cde514b2cbc</guid>
-      <pubDate>Wed, 23 Sep 2026 01:23:10 GMT</pubDate>
+      <title>Panic level for Giants, Bears amid rash of QB injuries; MLB postseason scenarios as Rays clinch AL East</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Panic level for Giants, Bears amid rash of QB injuries; MLB postseason scenarios as Rays clinch AL East</description>
+      <link>https://www.cbssports.com/nfl/news/panic-level-for-giants-bears-amid-rash-of-qb-injuries-mlb-postseason-scenarios-as-rays-clinch-al-east/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b8f6f3269b1443288d91</guid>
+      <pubDate>Wed, 23 Sep 2026 13:02:53 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Midweek Musings: Whiplash</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Midweek Musings: Whiplash</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-midweek-musings-whiplash-130000787.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b1160f531d01fbee4ef9</guid>
+      <pubDate>Wed, 23 Sep 2026 13:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Stat Tracker Week 2: Falling Back to Earth</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Stat Tracker Week 2: Falling Back to Earth</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-stat-tracker-week-120000594.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c3647c19158c03924454</guid>
+      <pubDate>Wed, 23 Sep 2026 12:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>NFL Teams With Best Backup QB Situation: Chicago Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Teams With Best Backup QB Situation: Chicago Bears</description>
+      <link>https://www.cbssports.com/watch/nfl/video/nfl-teams-with-best-backup-qb-situation-chicago-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a7800ee1a5e743e0f01f</guid>
+      <pubDate>Wed, 23 Sep 2026 06:51:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; D-Line Struggles, Gervon Dexter&apos;s Red-Hot Start Makes Perplexing Trade Look Awful</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; D-Line Struggles, Gervon Dexter&apos;s Red-Hot Start Makes Perplexing Trade Look Awful</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-d-line-struggles-gervon-dexter-s-red-hot-start-makes-perplexing-trade-look-awful</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-13bdbdd0c3f1b40b2ef8</guid>
+      <pubDate>Wed, 23 Sep 2026 06:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Alarming Caleb Williams Stat Shows Bears&apos; Biggest Offensive Struggle</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Alarming Caleb Williams Stat Shows Bears&apos; Biggest Offensive Struggle</description>
+      <link>https://www.si.com/nfl/bears/onsi/alarming-caleb-williams-stat-shows-bears-biggest-offensive-struggle</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1e210bb2aca792ce3362</guid>
+      <pubDate>Wed, 23 Sep 2026 04:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Without Caleb Williams, Bears enter Week 3 aggravated after sloppy Sunday</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Without Caleb Williams, Bears enter Week 3 aggravated after sloppy Sunday</description>
+      <link>https://www.nytimes.com/athletic/7620553/2026/09/23/bears-ben-johnson-sloppy-vikings/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-88304cf90ded5a3b196d</guid>
+      <pubDate>Wed, 23 Sep 2026 04:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -27,66 +87,6 @@
       <pubDate>Tue, 22 Sep 2026 23:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>How are you feeling about the current state of the Chicago Bears?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: How are you feeling about the current state of the Chicago Bears?</description>
-      <link>https://sports.yahoo.com/articles/feeling-current-state-chicago-bears-221000938.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fd7ced2120306992844e</guid>
-      <pubDate>Tue, 22 Sep 2026 22:10:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears defense displays growth, energy in home opener</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears defense displays growth, energy in home opener</description>
-      <link>https://www.chicagobears.com/news/bears-defense-displays-growth-energy-in-home-opener</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f71cc3a2ea547394b1fd</guid>
-      <pubDate>Tue, 22 Sep 2026 21:11:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Sam Roush: Logs first catch of NFL career</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Sam Roush: Logs first catch of NFL career</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-sam-roush-logs-first-catch-of-nfl-career/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a8fdef76354530a05062</guid>
-      <pubDate>Tue, 22 Sep 2026 19:18:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Devin Bush: Tallies four tackles Sunday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Devin Bush: Tallies four tackles Sunday</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-devin-bush-tallies-four-tackles-sunday/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-98f9ab0618777d58e0a7</guid>
-      <pubDate>Tue, 22 Sep 2026 18:43:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears drop 8 spots to No. 16 in Week 3 | &apos;Power Rankings&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears drop 8 spots to No. 16 in Week 3 | &apos;Power Rankings&apos;</description>
-      <link>https://www.nfl.com/videos/bears-drop-8-spots-to-no-16-in-week-3-power-rankings</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-88f6e7a7c07e863620fb</guid>
-      <pubDate>Tue, 22 Sep 2026 17:10:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams went from MVP to meme in a week. That’s the life of this Bears QB</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Caleb Williams went from MVP to meme in a week. That’s the life of this Bears QB</description>
-      <link>https://www.nytimes.com/athletic/7621034/2026/09/23/caleb-williams-injury-memes-bears/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b82ee094be5c3de60c65</guid>
-      <pubDate>Tue, 22 Sep 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
