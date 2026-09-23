@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 23 Sep 2026 14:32:12 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 23 Sep 2026 18:36:57 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Ben Johnson is facing challenge he&apos;s never encountered in coaching career as Bears prepare for Eagles</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Ben Johnson is facing challenge he&apos;s never encountered in coaching career as Bears prepare for Eagles</description>
+      <link>https://www.cbssports.com/nfl/news/ben-johnson-qb-challenge-never-encountered-in-coaching-career-bears/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c98af0e48de4fd33c709</guid>
+      <pubDate>Wed, 23 Sep 2026 18:20:11 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>How to watch, listen to, stream Bears-Eagles Week 3 Monday Night Football game</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: How to watch, listen to, stream Bears-Eagles Week 3 Monday Night Football game</description>
+      <link>https://www.chicagobears.com/news/how-to-watch-chicago-bears-philadelphia-eagles-monday-night-football-2026-week-3-listen-stream-tv-radio-online-nfl</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-bfb7c42f3a90ebe6af2c</guid>
+      <pubDate>Wed, 23 Sep 2026 14:33:23 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
 
     <item>
       <title>Panic level for Giants, Bears amid rash of QB injuries; MLB postseason scenarios as Rays clinch AL East</title>
@@ -20,73 +40,53 @@
     </item>
 
     <item>
-      <title>Chicago Bears Midweek Musings: Whiplash</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Midweek Musings: Whiplash</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-midweek-musings-whiplash-130000787.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b1160f531d01fbee4ef9</guid>
-      <pubDate>Wed, 23 Sep 2026 13:00:00 GMT</pubDate>
+      <title>Eagles vs. Bears preview | Week 3</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Eagles vs. Bears preview | Week 3</description>
+      <link>https://www.nfl.com/videos/eagles-vs-bears-preview-week-3</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-dd9f4b371afc0bd518e5</guid>
+      <pubDate>Wed, 23 Sep 2026 11:13:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
+      <title>2 Chicago Bears on PUP list return to practice — but not Kyler Gordon — while Case Keenum gets QB1 reps</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 2 Chicago Bears on PUP list return to practice — but not Kyler Gordon — while Case Keenum gets QB1 reps</description>
+      <link>https://sports.yahoo.com/articles/2-chicago-bears-pup-list-180400627.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-27aed2b28feca225d7dc</guid>
+      <pubDate>Wed, 23 Sep 2026 11:04:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Chicago Bears Stat Tracker Week 2: Falling Back to Earth</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Stat Tracker Week 2: Falling Back to Earth</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-stat-tracker-week-120000594.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c3647c19158c03924454</guid>
-      <pubDate>Wed, 23 Sep 2026 12:00:00 GMT</pubDate>
+      <title>Rust Is the Problem for Bears With Case Keenum and Not the Mileage</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Rust Is the Problem for Bears With Case Keenum and Not the Mileage</description>
+      <link>https://www.si.com/nfl/bears/onsi/rust-is-the-problem-for-bears-with-case-keenum-and-not-the-mileage</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-00ef1f41b4c3bfa197a5</guid>
+      <pubDate>Wed, 23 Sep 2026 11:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Eagles news: Will Zach Ertz play Monday vs Bears?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Eagles news: Will Zach Ertz play Monday vs Bears?</description>
+      <link>https://sports.yahoo.com/articles/eagles-news-zach-ertz-play-174654974.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-da70d4b3a69fd0b7baea</guid>
+      <pubDate>Wed, 23 Sep 2026 10:46:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>NFL Teams With Best Backup QB Situation: Chicago Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Teams With Best Backup QB Situation: Chicago Bears</description>
-      <link>https://www.cbssports.com/watch/nfl/video/nfl-teams-with-best-backup-qb-situation-chicago-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a7800ee1a5e743e0f01f</guid>
-      <pubDate>Wed, 23 Sep 2026 06:51:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; D-Line Struggles, Gervon Dexter&apos;s Red-Hot Start Makes Perplexing Trade Look Awful</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; D-Line Struggles, Gervon Dexter&apos;s Red-Hot Start Makes Perplexing Trade Look Awful</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-d-line-struggles-gervon-dexter-s-red-hot-start-makes-perplexing-trade-look-awful</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-13bdbdd0c3f1b40b2ef8</guid>
-      <pubDate>Wed, 23 Sep 2026 06:01:00 GMT</pubDate>
+      <title>Caleb Williams, Tyson Bagent and More Bears Injury Updates From Wednesday&apos;s Practice</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams, Tyson Bagent and More Bears Injury Updates From Wednesday&apos;s Practice</description>
+      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-tyson-bagent-bears-injury-updates-wednesday-practice</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-381c7fa9491914598c64</guid>
+      <pubDate>Wed, 23 Sep 2026 10:22:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Alarming Caleb Williams Stat Shows Bears&apos; Biggest Offensive Struggle</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Alarming Caleb Williams Stat Shows Bears&apos; Biggest Offensive Struggle</description>
-      <link>https://www.si.com/nfl/bears/onsi/alarming-caleb-williams-stat-shows-bears-biggest-offensive-struggle</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1e210bb2aca792ce3362</guid>
-      <pubDate>Wed, 23 Sep 2026 04:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Without Caleb Williams, Bears enter Week 3 aggravated after sloppy Sunday</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Without Caleb Williams, Bears enter Week 3 aggravated after sloppy Sunday</description>
-      <link>https://www.nytimes.com/athletic/7620553/2026/09/23/bears-ben-johnson-sloppy-vikings/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-88304cf90ded5a3b196d</guid>
-      <pubDate>Wed, 23 Sep 2026 04:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Catching up with former players at Bears Alumni Weekend</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Catching up with former players at Bears Alumni Weekend</description>
-      <link>https://www.chicagobears.com/news/catching-up-with-former-players-at-bears-alumni-weekend</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e2ec565de5c8b6359d4f</guid>
-      <pubDate>Tue, 22 Sep 2026 23:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
