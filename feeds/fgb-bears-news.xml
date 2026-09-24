@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 24 Sep 2026 00:06:40 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 24 Sep 2026 04:43:02 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears Pass Protection Analysis on the Sacks Allowed vs Vikings</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Pass Protection Analysis on the Sacks Allowed vs Vikings</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-pass-protection-analysis-020000380.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8ff4619aec7851ab1c70</guid>
+      <pubDate>Thu, 24 Sep 2026 02:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Case Keenum ready to start for Bears if needed</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Case Keenum ready to start for Bears if needed</description>
+      <link>https://sports.yahoo.com/articles/case-keenum-ready-start-bears-013858896.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f2438d697bf397cb0410</guid>
+      <pubDate>Thu, 24 Sep 2026 01:38:58 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Ben Johnson confident in Bears&apos; QB depth</title>
@@ -20,21 +40,31 @@
     </item>
 
     <item>
-      <title>Caleb Williams Injury and Vikings’ Defense Stifle Bears’ Offensive Outlook</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Caleb Williams Injury and Vikings’ Defense Stifle Bears’ Offensive Outlook</description>
-      <link>https://sports.yahoo.com/articles/caleb-williams-injury-vikings-defense-220500201.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5a6c13d9a2833798bf7f</guid>
-      <pubDate>Wed, 23 Sep 2026 22:05:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Ben Johnson is facing challenge he&apos;s never encountered in coaching career as Bears prepare for Eagles</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Ben Johnson is facing challenge he&apos;s never encountered in coaching career as Bears prepare for Eagles</description>
       <link>https://www.cbssports.com/nfl/news/ben-johnson-qb-challenge-never-encountered-in-coaching-career-bears/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-c98af0e48de4fd33c709</guid>
       <pubDate>Wed, 23 Sep 2026 18:20:11 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>The Chicago Bears Have A Major Problem Brewing At Linebacker</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Chicago Bears Have A Major Problem Brewing At Linebacker</description>
+      <link>https://www.si.com/nfl/bears/onsi/the-chicago-bears-have-a-major-problem-brewing-at-linebacker</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-646393633969a48cc248</guid>
+      <pubDate>Wed, 23 Sep 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Noah Sewell: Bears open practice window</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Noah Sewell: Bears open practice window</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-noah-sewell-bears-open-practice-window/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-77f9b46144d7cc18f150</guid>
+      <pubDate>Wed, 23 Sep 2026 15:34:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
@@ -57,36 +87,6 @@
       <pubDate>Wed, 23 Sep 2026 13:46:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Panic level for Giants, Bears amid rash of QB injuries; MLB postseason scenarios as Rays clinch AL East</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Panic level for Giants, Bears amid rash of QB injuries; MLB postseason scenarios as Rays clinch AL East</description>
-      <link>https://www.cbssports.com/nfl/news/panic-level-for-giants-bears-amid-rash-of-qb-injuries-mlb-postseason-scenarios-as-rays-clinch-al-east/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b8f6f3269b1443288d91</guid>
-      <pubDate>Wed, 23 Sep 2026 13:02:53 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears and Steelers Considered Logical Trade Partners Amid Caleb Williams, Tyson Bagent Injuries</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears and Steelers Considered Logical Trade Partners Amid Caleb Williams, Tyson Bagent Injuries</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-steelers-trade-partners-caleb-williams-tyson-bagent-injuries</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ca423b112ec213cdc6a3</guid>
-      <pubDate>Wed, 23 Sep 2026 11:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Without Caleb Williams, Bears enter Week 3 aggravated after sloppy Sunday</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Without Caleb Williams, Bears enter Week 3 aggravated after sloppy Sunday</description>
-      <link>https://www.nytimes.com/athletic/7620553/2026/09/23/bears-ben-johnson-sloppy-vikings/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-88304cf90ded5a3b196d</guid>
-      <pubDate>Wed, 23 Sep 2026 04:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
