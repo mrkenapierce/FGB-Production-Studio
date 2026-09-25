@@ -5,58 +5,88 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 25 Sep 2026 19:01:56 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 25 Sep 2026 22:16:26 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Eagles at Bears Q&amp;A: Can Ben Johnson best Vic Fangio?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Eagles at Bears Q&amp;A: Can Ben Johnson best Vic Fangio?</description>
-      <link>https://sports.yahoo.com/articles/eagles-bears-q-ben-johnson-180000342.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d2c7f2d7e797cf8745b8</guid>
-      <pubDate>Fri, 25 Sep 2026 18:00:00 GMT</pubDate>
+      <title>Bears vs. Eagles: Keys for a Chicago victory</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Eagles: Keys for a Chicago victory</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-eagles-keys-chicago-220000721.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6c6bede68a0009b30a5e</guid>
+      <pubDate>Fri, 25 Sep 2026 22:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears&apos; Tyrique Stevenson: DNP to open Week 3 prep</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Tyrique Stevenson: DNP to open Week 3 prep</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-tyrique-stevenson-dnp-to-open-week-3-prep/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7c8ee7ff899e50eb7ef8</guid>
-      <pubDate>Thu, 24 Sep 2026 19:14:00 GMT</pubDate>
+      <title>NFL Week 3 betting advice: Eagles-Bears pick and props</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Week 3 betting advice: Eagles-Bears pick and props</description>
+      <link>https://sports.yahoo.com/articles/nfl-week-3-betting-advice-211851707.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-71e876b454fb326c2baf</guid>
+      <pubDate>Fri, 25 Sep 2026 21:18:51 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Eagles aim to stop Bears ground game on Monday night</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Eagles aim to stop Bears ground game on Monday night</description>
-      <link>https://www.cbssports.com/nfl/news/eagles-aim-to-stop-bears-ground-game-on-monday-night/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7bb97a7f57f53fd6748d</guid>
-      <pubDate>Thu, 24 Sep 2026 14:41:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson confident in Bears&apos; QB depth</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Ben Johnson confident in Bears&apos; QB depth</description>
-      <link>https://www.chicagobears.com/news/ben-johnson-confident-in-bears-qb-depth</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-340e9403adc768b7edbf</guid>
-      <pubDate>Wed, 23 Sep 2026 22:10:42 GMT</pubDate>
+      <title>Bears OC Press Taylor lauds Case Keenum for his professionalism</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears OC Press Taylor lauds Case Keenum for his professionalism</description>
+      <link>https://www.chicagobears.com/news/bears-oc-press-taylor-lauds-case-keenum-for-his-professionalism</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b498d0440c97f01d8695</guid>
+      <pubDate>Fri, 25 Sep 2026 20:00:05 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
-      <title>How to watch, listen to, stream Bears-Eagles Week 3 Monday Night Football game</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: How to watch, listen to, stream Bears-Eagles Week 3 Monday Night Football game</description>
-      <link>https://www.chicagobears.com/news/how-to-watch-chicago-bears-philadelphia-eagles-monday-night-football-2026-week-3-listen-stream-tv-radio-online-nfl</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-bfb7c42f3a90ebe6af2c</guid>
-      <pubDate>Wed, 23 Sep 2026 14:33:23 GMT</pubDate>
+      <title>Bears-Eagles MNF preview | Bears Weekly</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears-Eagles MNF preview | Bears Weekly</description>
+      <link>https://www.chicagobears.com/audio/bears-eagles-mnf-preview-bears-weekly</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2514e806ef401e76f944</guid>
+      <pubDate>Fri, 25 Sep 2026 13:53:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams, Kyle Monangai and More Injury Updates From Bears&apos; Friday Practice Report</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams, Kyle Monangai and More Injury Updates From Bears&apos; Friday Practice Report</description>
+      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-kyle-monangai-injury-updates-bears-friday-practice-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0286b710b8fbfb96028d</guid>
+      <pubDate>Fri, 25 Sep 2026 12:56:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Kyle Monangai: Logs full practice Friday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyle Monangai: Logs full practice Friday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-kyle-monangai-logs-full-practice-friday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d1d899fc6879750ea4f2</guid>
+      <pubDate>Fri, 25 Sep 2026 12:39:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Fatal Flaw is a Major Concern Against Elite Eagles Unit</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Fatal Flaw is a Major Concern Against Elite Eagles Unit</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-fatal-flaw-major-concern-against-elite-eagles-unit</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7bc020762d520fe3cbbc</guid>
+      <pubDate>Fri, 25 Sep 2026 11:11:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears backup QBs have had memorable highs and lows. Where will Case Keenum fit in?</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears backup QBs have had memorable highs and lows. Where will Case Keenum fit in?</description>
+      <link>https://www.nytimes.com/athletic/7626718/2026/09/25/bears-case-keenum-backup-quarterback-history/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-82e447f4180ed9914c61</guid>
+      <pubDate>Fri, 25 Sep 2026 04:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
