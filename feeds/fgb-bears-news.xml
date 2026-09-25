@@ -5,9 +5,59 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 25 Sep 2026 09:54:57 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 25 Sep 2026 14:51:34 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Hunting Explosives: Revisiting the Bears’ Big Plays from Week 1</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Hunting Explosives: Revisiting the Bears’ Big Plays from Week 1</description>
+      <link>https://sports.yahoo.com/articles/hunting-explosives-revisiting-bears-big-123000323.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ca10a0b469f3ffc1b00b</guid>
+      <pubDate>Fri, 25 Sep 2026 12:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Ben Johnson explains why the Bears brought back LS Scott Daly</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ben Johnson explains why the Bears brought back LS Scott Daly</description>
+      <link>https://sports.yahoo.com/articles/ben-johnson-explains-why-bears-123540114.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-28e9002a56548387628e</guid>
+      <pubDate>Fri, 25 Sep 2026 05:35:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>4 Ideas the Bears Can Steal from the Falcons&apos; Stunning Upset of the Packers</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 4 Ideas the Bears Can Steal from the Falcons&apos; Stunning Upset of the Packers</description>
+      <link>https://www.si.com/nfl/bears/onsi/4-ideas-the-bears-can-steal-from-the-falcons-stunning-upset-of-the-packers</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0401e026755656eb51ac</guid>
+      <pubDate>Fri, 25 Sep 2026 05:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears backup QBs have had memorable highs and lows. Where will Case Keenum fit in?</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears backup QBs have had memorable highs and lows. Where will Case Keenum fit in?</description>
+      <link>https://www.nytimes.com/athletic/7626718/2026/09/25/bears-case-keenum-backup-quarterback-history/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-82e447f4180ed9914c61</guid>
+      <pubDate>Fri, 25 Sep 2026 04:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>One Potential Old Solution Exists to New Chicago Bears Injury Issue</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: One Potential Old Solution Exists to New Chicago Bears Injury Issue</description>
+      <link>https://www.si.com/nfl/bears/onsi/one-potential-old-solution-exists-to-new-chicago-bears-injury-issue</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-57a695bfe1032636458d</guid>
+      <pubDate>Fri, 25 Sep 2026 04:25:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
 
     <item>
       <title>Bears&apos; Tyrique Stevenson: DNP to open Week 3 prep</title>
@@ -30,26 +80,6 @@
     </item>
 
     <item>
-      <title>Bears Reunite With Rookie Among 2 Roster Moves, Host DB for Tryout</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Reunite With Rookie Among 2 Roster Moves, Host DB for Tryout</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-reunite-with-rookie-among-2-roster-moves-host-db-for-tryout</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0af1ad0f70e74786d029</guid>
-      <pubDate>Thu, 24 Sep 2026 14:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams, Kyle Monangai and More Bears Injury News From Thursday Practice Report</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams, Kyle Monangai and More Bears Injury News From Thursday Practice Report</description>
-      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-kyle-monangai-and-more-bears-injury-news-from-thursday-practice-report-01m3a6jd6sy2</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-782e1bbdc5d0405cf2bb</guid>
-      <pubDate>Thu, 24 Sep 2026 13:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Bears vs. Eagles: Where to watch &apos;Monday Night Football&apos;</title>
       <description>Football&apos;s Greatest Bears news brief from ESPN: Bears vs. Eagles: Where to watch &apos;Monday Night Football&apos;</description>
       <link>https://www.espn.com/nfl/story/_/id/50022170/bears-eagles-where-watch-monday-night-football</link>
@@ -57,36 +87,6 @@
       <pubDate>Thu, 24 Sep 2026 13:20:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Rapoport on Bears QB situation ahead of Week 3 matchup vs. Eagles | &apos;GMFB&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Rapoport on Bears QB situation ahead of Week 3 matchup vs. Eagles | &apos;GMFB&apos;</description>
-      <link>https://www.nfl.com/videos/rapoport-on-bears-qb-situation-ahead-of-week-3-matchup-vs-eagles-gmfb</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d4615e4727d12e1e8765</guid>
-      <pubDate>Thu, 24 Sep 2026 08:24:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Going for 2: How nervous should Bears fans be about the rest of the season? | &apos;GMFB&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Going for 2: How nervous should Bears fans be about the rest of the season? | &apos;GMFB&apos;</description>
-      <link>https://www.nfl.com/videos/going-for-2-how-nervous-should-bears-fans-be-about-the-rest-of-the-season-gmfb</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3a9387bbf2e2563a47cb</guid>
-      <pubDate>Thu, 24 Sep 2026 08:13:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Bears takeaways: Case Keenum was Chicago’s No. 3 QB. Now he’s the starter</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears takeaways: Case Keenum was Chicago’s No. 3 QB. Now he’s the starter</description>
-      <link>https://www.nytimes.com/athletic/7624096/2026/09/24/chicago-bears-news-case-keenum/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-aaa6128539ebd4f0500a</guid>
-      <pubDate>Thu, 24 Sep 2026 04:42:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
