@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 26 Sep 2026 00:42:59 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 26 Sep 2026 05:30:13 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -40,33 +40,13 @@
     </item>
 
     <item>
-      <title>Three Important Factors That Will Decide Bears vs. Eagles MNF Matchup</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Three Important Factors That Will Decide Bears vs. Eagles MNF Matchup</description>
-      <link>https://www.si.com/nfl/bears/onsi/three-important-factors-bears-eagles-mnf-matchup-</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-668570f33b13a1639601</guid>
-      <pubDate>Fri, 25 Sep 2026 15:20:00 GMT</pubDate>
+      <title>Eagles&apos; Saquon Barkley says he will play on MNF vs. Bears after last week&apos;s stinger</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Eagles&apos; Saquon Barkley says he will play on MNF vs. Bears after last week&apos;s stinger</description>
+      <link>https://www.nfl.com/news/eagles-saquon-barkley-says-he-will-play-on-mnf-vs-bears-after-last-week-s-stinger</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-59be7974a4501213b491</guid>
+      <pubDate>Fri, 25 Sep 2026 15:31:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears-Eagles MNF preview | Bears Weekly</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears-Eagles MNF preview | Bears Weekly</description>
-      <link>https://www.chicagobears.com/audio/bears-eagles-mnf-preview-bears-weekly</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2514e806ef401e76f944</guid>
-      <pubDate>Fri, 25 Sep 2026 13:53:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams, Kyle Monangai and More Injury Updates From Bears&apos; Friday Practice Report</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams, Kyle Monangai and More Injury Updates From Bears&apos; Friday Practice Report</description>
-      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-kyle-monangai-injury-updates-bears-friday-practice-report</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0286b710b8fbfb96028d</guid>
-      <pubDate>Fri, 25 Sep 2026 12:56:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
@@ -77,6 +57,16 @@
       <pubDate>Fri, 25 Sep 2026 04:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Ben Johnson confident in Bears&apos; QB depth</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Ben Johnson confident in Bears&apos; QB depth</description>
+      <link>https://www.chicagobears.com/news/ben-johnson-confident-in-bears-qb-depth</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-340e9403adc768b7edbf</guid>
+      <pubDate>Wed, 23 Sep 2026 22:10:42 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
