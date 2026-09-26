@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 25 Sep 2026 22:16:26 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 26 Sep 2026 00:42:59 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears ST coach says Eagles are violating intent of the rule by using holder on kickoffs</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears ST coach says Eagles are violating intent of the rule by using holder on kickoffs</description>
+      <link>https://sports.yahoo.com/articles/bears-st-coach-says-eagles-233736476.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3a180bb1f4f03d4e6e2e</guid>
+      <pubDate>Fri, 25 Sep 2026 23:37:36 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears vs. Eagles: Keys for a Chicago victory</title>
@@ -20,16 +30,6 @@
     </item>
 
     <item>
-      <title>NFL Week 3 betting advice: Eagles-Bears pick and props</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Week 3 betting advice: Eagles-Bears pick and props</description>
-      <link>https://sports.yahoo.com/articles/nfl-week-3-betting-advice-211851707.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-71e876b454fb326c2baf</guid>
-      <pubDate>Fri, 25 Sep 2026 21:18:51 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Bears OC Press Taylor lauds Case Keenum for his professionalism</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears OC Press Taylor lauds Case Keenum for his professionalism</description>
       <link>https://www.chicagobears.com/news/bears-oc-press-taylor-lauds-case-keenum-for-his-professionalism</link>
@@ -37,6 +37,16 @@
       <pubDate>Fri, 25 Sep 2026 20:00:05 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Three Important Factors That Will Decide Bears vs. Eagles MNF Matchup</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Three Important Factors That Will Decide Bears vs. Eagles MNF Matchup</description>
+      <link>https://www.si.com/nfl/bears/onsi/three-important-factors-bears-eagles-mnf-matchup-</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-668570f33b13a1639601</guid>
+      <pubDate>Fri, 25 Sep 2026 15:20:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -55,26 +65,6 @@
       <link>https://www.si.com/nfl/bears/onsi/caleb-williams-kyle-monangai-injury-updates-bears-friday-practice-report</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-0286b710b8fbfb96028d</guid>
       <pubDate>Fri, 25 Sep 2026 12:56:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Kyle Monangai: Logs full practice Friday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyle Monangai: Logs full practice Friday</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-kyle-monangai-logs-full-practice-friday/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d1d899fc6879750ea4f2</guid>
-      <pubDate>Fri, 25 Sep 2026 12:39:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Fatal Flaw is a Major Concern Against Elite Eagles Unit</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Fatal Flaw is a Major Concern Against Elite Eagles Unit</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-fatal-flaw-major-concern-against-elite-eagles-unit</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7bc020762d520fe3cbbc</guid>
-      <pubDate>Fri, 25 Sep 2026 11:11:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
