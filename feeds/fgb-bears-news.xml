@@ -5,58 +5,38 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 27 Sep 2026 17:09:06 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 27 Sep 2026 20:07:47 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Eagles News: Philadelphia’s top priority against the Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Eagles News: Philadelphia’s top priority against the Bears</description>
-      <link>https://sports.yahoo.com/articles/eagles-news-philadelphia-top-priority-164253247.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-72cd043a1190e5492a60</guid>
-      <pubDate>Sun, 27 Sep 2026 16:42:53 GMT</pubDate>
+      <title>Chicago Bears vs. Philadelphia Eagles Game Picks and Predictions</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. Philadelphia Eagles Game Picks and Predictions</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-vs-philadelphia-eagles-200000503.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6f7d69e522e7de4a5774</guid>
+      <pubDate>Sun, 27 Sep 2026 20:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears&apos; Caleb Williams expected to miss 3-4 weeks with Grade 2 hamstring strain, per report</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Caleb Williams expected to miss 3-4 weeks with Grade 2 hamstring strain, per report</description>
-      <link>https://www.cbssports.com/nfl/news/bears-caleb-williams-expected-to-miss-3-4-weeks/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fa300ee32634869dfff4</guid>
-      <pubDate>Sun, 27 Sep 2026 14:21:09 GMT</pubDate>
+      <title>Chicago Bears Injury Update on Caleb Williams and Tyson Bagent</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Injury Update on Caleb Williams and Tyson Bagent</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-injury-caleb-williams-192500160.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-563596f55b3ca0624586</guid>
+      <pubDate>Sun, 27 Sep 2026 19:25:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Tyson Bagent clears concussion protocol: Bears QB avoids injury designation for Week 3 game against Eagles</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Tyson Bagent clears concussion protocol: Bears QB avoids injury designation for Week 3 game against Eagles</description>
+      <link>https://www.cbssports.com/nfl/news/tyson-bagent-practice-bears-qb-week-3-vs-eagles/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5643e65eeb35a306cac4</guid>
+      <pubDate>Sun, 27 Sep 2026 18:34:36 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Should the Bears Start Tyson Bagent or Case Keenum on Monday Night?</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Should the Bears Start Tyson Bagent or Case Keenum on Monday Night?</description>
-      <link>https://www.si.com/nfl/bears/onsi/should-the-bears-start-tyson-bagent-or-case-keenum-on-monday-night</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-702576822af97f88a02e</guid>
-      <pubDate>Sun, 27 Sep 2026 09:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears Receive Important Caleb Williams Injury News After Week 3 Decision</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Receive Important Caleb Williams Injury News After Week 3 Decision</description>
-      <link>https://sports.yahoo.com/articles/bears-receive-important-caleb-williams-162635995.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-04b7f72e7d975d6d57f8</guid>
-      <pubDate>Sun, 27 Sep 2026 09:26:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears Who Face the Most Stress From Prolonged Caleb Williams Absence</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Who Face the Most Stress From Prolonged Caleb Williams Absence</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-who-face-the-most-stress-from-prolonged-caleb-williams-absence</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-31a9429ece68f75381d3</guid>
-      <pubDate>Sun, 27 Sep 2026 07:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -70,23 +50,13 @@
     </item>
 
     <item>
-      <title>Bears QB Williams out for MNF; backup Bagent back at practice</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears QB Williams out for MNF; backup Bagent back at practice</description>
-      <link>https://www.espn.com/nfl/story/_/id/50034949/bears-qb-williams-mnf-backup-bagent-back-practice</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-323a70a314381ce04828</guid>
-      <pubDate>Sat, 26 Sep 2026 13:16:00 GMT</pubDate>
+      <title>Bears OC Press Taylor lauds Case Keenum for his professionalism</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears OC Press Taylor lauds Case Keenum for his professionalism</description>
+      <link>https://www.chicagobears.com/news/bears-oc-press-taylor-lauds-case-keenum-for-his-professionalism</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b498d0440c97f01d8695</guid>
+      <pubDate>Fri, 25 Sep 2026 20:00:05 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Tyson Bagent returns to practice opening door for Bears QB to possibly start vs. Eagles in Week 3</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Tyson Bagent returns to practice opening door for Bears QB to possibly start vs. Eagles in Week 3</description>
-      <link>https://www.cbssports.com/nfl/news/tyson-bagent-practice-bears-qb-week-3-vs-eagles/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5643e65eeb35a306cac4</guid>
-      <pubDate>Sat, 26 Sep 2026 12:04:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
