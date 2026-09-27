@@ -5,16 +5,16 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 27 Sep 2026 06:43:56 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 27 Sep 2026 12:28:37 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Confidence in the Chicago Bears drop</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Confidence in the Chicago Bears drop</description>
-      <link>https://sports.yahoo.com/articles/confidence-chicago-bears-drop-014513212.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d93b4effced723e15173</guid>
-      <pubDate>Sun, 27 Sep 2026 01:45:13 GMT</pubDate>
+      <title>Latest injury update on Bears QB Caleb Williams provides timeline</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Latest injury update on Bears QB Caleb Williams provides timeline</description>
+      <link>https://sports.yahoo.com/articles/latest-injury-bears-qb-caleb-121104604.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-eaa6d7efb0df6747f985</guid>
+      <pubDate>Sun, 27 Sep 2026 05:11:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -44,7 +44,7 @@
       <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Week 3 injury report vs. Eagles: What it means for fantasy football</description>
       <link>https://sports.yahoo.com/articles/bears-week-3-injury-report-012902525.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-9ada7b731e048e9e3d1e</guid>
-      <pubDate>Sat, 26 Sep 2026 17:00:00 GMT</pubDate>
+      <pubDate>Sat, 26 Sep 2026 18:29:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -70,16 +70,6 @@
     </item>
 
     <item>
-      <title>Bears&apos; Tyrique Stevenson: Ready for Monday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Tyrique Stevenson: Ready for Monday</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-tyrique-stevenson-ready-for-monday/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2a7cc85dba7c9c43050b</guid>
-      <pubDate>Sat, 26 Sep 2026 12:17:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
       <title>Caleb Williams Injury Update From Bears&apos; Final Practice Report Confirms QB&apos;s Week 3 Status</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams Injury Update From Bears&apos; Final Practice Report Confirms QB&apos;s Week 3 Status</description>
       <link>https://www.si.com/nfl/bears/onsi/caleb-williams-injury-update-bears-final-practice-report-confirms-week-3-status</link>
@@ -87,6 +77,16 @@
       <pubDate>Sat, 26 Sep 2026 12:03:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Caleb Williams: Ruled out for Monday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Caleb Williams: Ruled out for Monday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-caleb-williams-ruled-out-for-monday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d5ebc13ed3ba434c3490</guid>
+      <pubDate>Sat, 26 Sep 2026 11:58:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
