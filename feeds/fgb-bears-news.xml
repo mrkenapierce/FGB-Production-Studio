@@ -5,29 +5,9 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 27 Sep 2026 20:07:47 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 27 Sep 2026 23:00:34 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
-
-    <item>
-      <title>Chicago Bears vs. Philadelphia Eagles Game Picks and Predictions</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. Philadelphia Eagles Game Picks and Predictions</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-vs-philadelphia-eagles-200000503.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6f7d69e522e7de4a5774</guid>
-      <pubDate>Sun, 27 Sep 2026 20:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Injury Update on Caleb Williams and Tyson Bagent</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Injury Update on Caleb Williams and Tyson Bagent</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-injury-caleb-williams-192500160.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-563596f55b3ca0624586</guid>
-      <pubDate>Sun, 27 Sep 2026 19:25:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
 
     <item>
       <title>Tyson Bagent clears concussion protocol: Bears QB avoids injury designation for Week 3 game against Eagles</title>
@@ -40,21 +20,71 @@
     </item>
 
     <item>
+      <title>Bears Starting Quarterback Revealed for Monday Night Football Against Eagles</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Starting Quarterback Revealed for Monday Night Football Against Eagles</description>
+      <link>https://sports.yahoo.com/articles/bears-starting-quarterback-revealed-monday-222026206.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f1aff2da7b86a7007fb9</guid>
+      <pubDate>Sun, 27 Sep 2026 15:20:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears Get Big Tyson Bagent Update Prior to Eagles Game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Get Big Tyson Bagent Update Prior to Eagles Game</description>
+      <link>https://sports.yahoo.com/articles/bears-big-tyson-bagent-prior-211233895.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1167dd3b8629557c07ea</guid>
+      <pubDate>Sun, 27 Sep 2026 14:12:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears QB Bagent clears protocol; Keenum likely to start vs. Eagles</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears QB Bagent clears protocol; Keenum likely to start vs. Eagles</description>
+      <link>https://www.espn.com/nfl/story/_/id/50044058/bears-qb-bagent-clears-protocol-keenum-likely-start-vs-eagles</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-be50c7e5f303e435bf4e</guid>
+      <pubDate>Sun, 27 Sep 2026 12:40:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Eagles vs. Bears predictions, odds, time: Week 3 &apos;Monday Night Football&apos; picks from proven model</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Eagles vs. Bears predictions, odds, time: Week 3 &apos;Monday Night Football&apos; picks from proven model</description>
+      <link>https://www.cbssports.com/betting/news/eagles-bears-predictions-odds-time-week-3-monday-night-football-picks/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c3daf4ce745f20add6f4</guid>
+      <pubDate>Sun, 27 Sep 2026 11:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Case Keenum to Start For Bears in Week 3 Despite Tyson Bagent Clearing Concussion Protocol</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Case Keenum to Start For Bears in Week 3 Despite Tyson Bagent Clearing Concussion Protocol</description>
+      <link>https://www.si.com/nfl/bears/onsi/nfl-insider-tyson-bagent-clears-concussion-protocol-but-case-keenum-will-start-in-week-3</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-993211fe5c9139762d3a</guid>
+      <pubDate>Sun, 27 Sep 2026 10:15:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Should the Bears Start Tyson Bagent or Case Keenum on Monday Night?</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Should the Bears Start Tyson Bagent or Case Keenum on Monday Night?</description>
+      <link>https://www.si.com/nfl/bears/onsi/should-the-bears-start-tyson-bagent-or-case-keenum-on-monday-night</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-702576822af97f88a02e</guid>
+      <pubDate>Sun, 27 Sep 2026 09:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>Injury Update: Bears rule out Caleb Williams, will start Tyson Bagent or Case Keenum vs. Eagles</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Injury Update: Bears rule out Caleb Williams, will start Tyson Bagent or Case Keenum vs. Eagles</description>
       <link>https://www.chicagobears.com/news/injury-update-bears-rule-out-caleb-williams-will-start-tyson-bagent-or-case-keenum-vs-eagles</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-9d05618b0cabf7b56a29</guid>
       <pubDate>Sat, 26 Sep 2026 20:05:46 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears OC Press Taylor lauds Case Keenum for his professionalism</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears OC Press Taylor lauds Case Keenum for his professionalism</description>
-      <link>https://www.chicagobears.com/news/bears-oc-press-taylor-lauds-case-keenum-for-his-professionalism</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b498d0440c97f01d8695</guid>
-      <pubDate>Fri, 25 Sep 2026 20:00:05 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
