@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 26 Sep 2026 23:01:19 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 27 Sep 2026 01:23:42 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -15,16 +15,6 @@
       <link>https://sports.yahoo.com/articles/eagles-film-preview-offense-good-211610603.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-ba9fc1886ab1fa57c345</guid>
       <pubDate>Sat, 26 Sep 2026 21:16:10 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Eagles-Bears Final Injury Report: DeVonta Smith will play, Jonathan Greenard questionable</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Eagles-Bears Final Injury Report: DeVonta Smith will play, Jonathan Greenard questionable</description>
-      <link>https://sports.yahoo.com/articles/eagles-bears-final-injury-report-201859684.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4a7c99ee727cf8b78d36</guid>
-      <pubDate>Sat, 26 Sep 2026 20:18:59 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -50,6 +40,36 @@
     </item>
 
     <item>
+      <title>Bears player hit with NFL punishment ahead of Eagles game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears player hit with NFL punishment ahead of Eagles game</description>
+      <link>https://sports.yahoo.com/articles/bears-player-hit-nfl-punishment-235440161.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-97b8d27b6d6325e78c59</guid>
+      <pubDate>Sat, 26 Sep 2026 16:54:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears QB Williams out for MNF; backup Bagent back at practice</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears QB Williams out for MNF; backup Bagent back at practice</description>
+      <link>https://www.espn.com/nfl/story/_/id/50034949/bears-qb-williams-mnf-backup-bagent-back-practice</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-323a70a314381ce04828</guid>
+      <pubDate>Sat, 26 Sep 2026 13:16:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Why the Bears&apos; Timing With QB Injuries Really Couldn&apos;t Be Any Worse</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why the Bears&apos; Timing With QB Injuries Really Couldn&apos;t Be Any Worse</description>
+      <link>https://www.si.com/nfl/bears/onsi/why-the-bears-timing-with-qb-injuries-really-couldn-t-be-any-worse</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d368fd8168648742e92f</guid>
+      <pubDate>Sat, 26 Sep 2026 12:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>Bears&apos; Tyrique Stevenson: Ready for Monday</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Tyrique Stevenson: Ready for Monday</description>
       <link>https://www.cbssports.com/fantasy/football/news/bears-tyrique-stevenson-ready-for-monday/</link>
@@ -60,23 +80,13 @@
     </item>
 
     <item>
-      <title>Bears QB Tyson Bagent will return to practice Saturday</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears QB Tyson Bagent will return to practice Saturday</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-qb-tyson-bagent-has-cleared-concussion-protocol</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-74f942db4d2514ad4fc8</guid>
-      <pubDate>Sat, 26 Sep 2026 06:09:00 GMT</pubDate>
+      <title>Caleb Williams Injury Update From Bears&apos; Final Practice Report Confirms QB&apos;s Week 3 Status</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams Injury Update From Bears&apos; Final Practice Report Confirms QB&apos;s Week 3 Status</description>
+      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-injury-update-bears-final-practice-report-confirms-week-3-status</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-427074575679bf7f37ca</guid>
+      <pubDate>Sat, 26 Sep 2026 12:03:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
-      <title>Bears OC Press Taylor lauds Case Keenum for his professionalism</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears OC Press Taylor lauds Case Keenum for his professionalism</description>
-      <link>https://www.chicagobears.com/news/bears-oc-press-taylor-lauds-case-keenum-for-his-professionalism</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b498d0440c97f01d8695</guid>
-      <pubDate>Fri, 25 Sep 2026 20:00:05 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
