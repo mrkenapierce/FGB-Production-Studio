@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 27 Sep 2026 23:00:34 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 28 Sep 2026 01:37:18 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -20,21 +20,21 @@
     </item>
 
     <item>
-      <title>Bears Starting Quarterback Revealed for Monday Night Football Against Eagles</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Starting Quarterback Revealed for Monday Night Football Against Eagles</description>
-      <link>https://sports.yahoo.com/articles/bears-starting-quarterback-revealed-monday-222026206.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f1aff2da7b86a7007fb9</guid>
-      <pubDate>Sun, 27 Sep 2026 15:20:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Bears Get Big Tyson Bagent Update Prior to Eagles Game</title>
       <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Get Big Tyson Bagent Update Prior to Eagles Game</description>
       <link>https://sports.yahoo.com/articles/bears-big-tyson-bagent-prior-211233895.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-1167dd3b8629557c07ea</guid>
       <pubDate>Sun, 27 Sep 2026 14:12:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>The RUNDOWN: Everything you need to know about the Bears in Week 3 against the Eagles</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The RUNDOWN: Everything you need to know about the Bears in Week 3 against the Eagles</description>
+      <link>https://sports.yahoo.com/articles/rundown-everything-know-bears-week-202426193.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3518ab64c04c27f5994b</guid>
+      <pubDate>Sun, 27 Sep 2026 13:24:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -47,16 +47,6 @@
       <pubDate>Sun, 27 Sep 2026 12:40:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Eagles vs. Bears predictions, odds, time: Week 3 &apos;Monday Night Football&apos; picks from proven model</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Eagles vs. Bears predictions, odds, time: Week 3 &apos;Monday Night Football&apos; picks from proven model</description>
-      <link>https://www.cbssports.com/betting/news/eagles-bears-predictions-odds-time-week-3-monday-night-football-picks/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c3daf4ce745f20add6f4</guid>
-      <pubDate>Sun, 27 Sep 2026 11:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -85,6 +75,16 @@
       <link>https://www.chicagobears.com/news/injury-update-bears-rule-out-caleb-williams-will-start-tyson-bagent-or-case-keenum-vs-eagles</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-9d05618b0cabf7b56a29</guid>
       <pubDate>Sat, 26 Sep 2026 20:05:46 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears OC Press Taylor lauds Case Keenum for his professionalism</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears OC Press Taylor lauds Case Keenum for his professionalism</description>
+      <link>https://www.chicagobears.com/news/bears-oc-press-taylor-lauds-case-keenum-for-his-professionalism</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b498d0440c97f01d8695</guid>
+      <pubDate>Fri, 25 Sep 2026 20:00:05 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
