@@ -5,48 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 28 Sep 2026 21:30:50 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 29 Sep 2026 01:15:01 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Today&apos;s top games to watch, best bets, odds: Eagles vs. Bears on MNF and more</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Today&apos;s top games to watch, best bets, odds: Eagles vs. Bears on MNF and more</description>
-      <link>https://www.cbssports.com/betting/news/todays-top-games-to-watch-best-bets-odds-eagles-vs-bears-on-mnf-and-more/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8dbc4c1d63db48f7e63e</guid>
-      <pubDate>Mon, 28 Sep 2026 20:40:38 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Eagles roster news: Zach Ertz elevated for Bears game</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Eagles roster news: Zach Ertz elevated for Bears game</description>
-      <link>https://sports.yahoo.com/articles/eagles-roster-news-zach-ertz-202010785.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-43674387b819d4a11762</guid>
-      <pubDate>Mon, 28 Sep 2026 20:20:10 GMT</pubDate>
+      <title>Case Keenum throws first TD pass since 2023 to give Bears 7-0 lead</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Case Keenum throws first TD pass since 2023 to give Bears 7-0 lead</description>
+      <link>https://sports.yahoo.com/articles/case-keenum-throws-first-td-003353526.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2faa8d55f3f18180db45</guid>
+      <pubDate>Tue, 29 Sep 2026 00:33:53 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Eagles-Bears Week 3 prediction</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Eagles-Bears Week 3 prediction</description>
-      <link>https://sports.yahoo.com/articles/eagles-bears-week-3-prediction-200844052.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e8c615aa2de09b201e72</guid>
-      <pubDate>Mon, 28 Sep 2026 20:08:44 GMT</pubDate>
+      <title>Eagles vs. Bears Week 3 game thread</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Eagles vs. Bears Week 3 game thread</description>
+      <link>https://sports.yahoo.com/articles/eagles-vs-bears-week-3-231600473.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f25974ee7cfa9c76f55d</guid>
+      <pubDate>Tue, 29 Sep 2026 00:29:12 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears vs. Eagles preview: Philadelphia looks to remain unbeaten against Caleb Williams-less Chicago</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears vs. Eagles preview: Philadelphia looks to remain unbeaten against Caleb Williams-less Chicago</description>
-      <link>https://www.cbssports.com/nfl/news/bears-vs-eagles-preview-pick-prediction-how-to-watch/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e99dba21c77b6fc6d22b</guid>
-      <pubDate>Mon, 28 Sep 2026 19:21:46 GMT</pubDate>
+      <title>Eagles vs. Bears picks, player props: Expert&apos;s best bets for Monday Night Football in NFL Week 3</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Eagles vs. Bears picks, player props: Expert&apos;s best bets for Monday Night Football in NFL Week 3</description>
+      <link>https://www.cbssports.com/betting/news/eagles-vs-bears-picks-player-props-experts-best-bets-for-monday-night-football-in-nfl-week-3/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4fe633ede5edbc7943d4</guid>
+      <pubDate>Tue, 29 Sep 2026 00:08:07 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Use DraftKings promo code to claim $150 in bonus bets by targeting Eagles vs. Bears on Monday Night Football</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Use DraftKings promo code to claim $150 in bonus bets by targeting Eagles vs. Bears on Monday Night Football</description>
+      <link>https://www.cbssports.com/betting/news/use-draftkings-promo-code-to-claim-150-bonus-bets-eagles-vs-bears-monday-night-football/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4f52dd95dfb568c0a338</guid>
+      <pubDate>Mon, 28 Sep 2026 23:31:26 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>When is Caleb Williams Coming Back? Injury Update, Return Timeline For Bears QB</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: When is Caleb Williams Coming Back? Injury Update, Return Timeline For Bears QB</description>
+      <link>https://www.si.com/nfl/bears/onsi/when-caleb-williams-coming-back-injury-update-return-timeline-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9463a459d1900ffe3df9</guid>
+      <pubDate>Mon, 28 Sep 2026 16:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Why is Case Keenum Starting Over Tyson Bagent? Explaining Bears&apos; Week 3 Decision</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why is Case Keenum Starting Over Tyson Bagent? Explaining Bears&apos; Week 3 Decision</description>
+      <link>https://www.si.com/nfl/bears/onsi/why-case-keenum-starting-tyson-bagent-explaining-bears-week-3-decision</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-57537aa50a23c70f7045</guid>
+      <pubDate>Mon, 28 Sep 2026 16:40:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -67,26 +87,6 @@
       <pubDate>Mon, 28 Sep 2026 14:19:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears Hint at Caleb Williams&apos; Injury Return Timeline Ahead of Week 3 vs Eagles</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Hint at Caleb Williams&apos; Injury Return Timeline Ahead of Week 3 vs Eagles</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-hint-at-caleb-williams-injury-return-timeline-ahead-of-week-3-vs-eagles</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9560c5a723d339dab747</guid>
-      <pubDate>Mon, 28 Sep 2026 14:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Colston Loveland and 6 Other Bears that Need a Bounce Back Week 3 vs Eagles</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Colston Loveland and 6 Other Bears that Need a Bounce Back Week 3 vs Eagles</description>
-      <link>https://www.si.com/nfl/bears/onsi/colston-loveland-and-6-other-bears-that-need-a-bounce-back-week-3-vs-eagles</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0cef446f109f63629c63</guid>
-      <pubDate>Mon, 28 Sep 2026 13:03:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
