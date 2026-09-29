@@ -1,6 +1,9 @@
 name: AWS T4g FGB Transport Dry Run
 
 on:
+  push:
+    branches: [aws-transport]
+    paths: [.github/workflows/aws-t4g-fgb-dryrun.yml]
   workflow_dispatch:
     inputs:
       region:
@@ -38,8 +41,8 @@ jobs:
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      AWS_DEFAULT_REGION: ${{ inputs.region }}
-      AWS_REGION: ${{ inputs.region }}
+      AWS_DEFAULT_REGION: ${{ inputs.region || 'us-east-1' }}
+      AWS_REGION: ${{ inputs.region || 'us-east-1' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -80,7 +83,7 @@ jobs:
           aws ec2 describe-instance-types --instance-types "$INSTANCE_TYPE" --query 'InstanceTypes[0].[InstanceType,ProcessorInfo.SupportedArchitectures[0],BurstablePerformanceSupported]' --output table
 
       - name: Audit summary
-        if: inputs.mode == 'audit'
+        if: (github.event_name == 'push' || inputs.mode == 'audit')
         run: |
           echo '## AWS T4g audit complete' >> "$GITHUB_STEP_SUMMARY"
           echo "- Region: $AWS_REGION" >> "$GITHUB_STEP_SUMMARY"
