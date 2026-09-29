@@ -28,11 +28,11 @@ jobs:
 
       - name: Validate secrets
         env:
-          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
-          OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
-          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_TENANCY_OCID: ${{ secrets.TENANCY }}
+          OCI_USER_OCID: ${{ secrets.USER }}
+          OCI_FINGERPRINT: ${{ secrets.FINGERPRINT }}
           OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
-          OCI_REGION: ${{ secrets.OCI_REGION }}
+          OCI_REGION: ${{ secrets.REGION }}
           ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
           set -Eeuo pipefail
@@ -42,11 +42,11 @@ jobs:
 
       - name: Install and configure OCI CLI
         env:
-          OCI_TENANCY_OCID: ${{ secrets.OCI_TENANCY_OCID }}
-          OCI_USER_OCID: ${{ secrets.OCI_USER_OCID }}
-          OCI_FINGERPRINT: ${{ secrets.OCI_FINGERPRINT }}
+          OCI_TENANCY_OCID: ${{ secrets.TENANCY }}
+          OCI_USER_OCID: ${{ secrets.USER }}
+          OCI_FINGERPRINT: ${{ secrets.FINGERPRINT }}
           OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
-          OCI_REGION: ${{ secrets.OCI_REGION }}
+          OCI_REGION: ${{ secrets.REGION }}
         run: |
           set -Eeuo pipefail
           python3 -m pip install --user --upgrade oci-cli
@@ -78,7 +78,7 @@ jobs:
       - name: Resolve or create network and launch A1
         id: oci
         env:
-          TENANCY: ${{ secrets.OCI_TENANCY_OCID }}
+          TENANCY: ${{ secrets.TENANCY }}
         run: |
           set -Eeuo pipefail
           OCI="$HOME/.local/bin/oci"
