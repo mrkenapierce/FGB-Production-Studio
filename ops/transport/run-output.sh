@@ -2,7 +2,8 @@
 set -uo pipefail
 : "${OUTPUT:?OUTPUT required (youtube|general)}"
 : "${BROADCAST_ORIGIN:?BROADCAST_ORIGIN required}"
-: "${DESTINATIONS:?DESTINATIONS required}"
+DRY_RUN="${DRY_RUN:-0}"
+if [ "$DRY_RUN" != "1" ]; then : "${DESTINATIONS:?DESTINATIONS required unless DRY_RUN=1}"; fi
 case "$OUTPUT" in youtube) TARGET=youtube ;; general) TARGET=rumble ;; *) exit 2 ;; esac
 VIDEO_BITRATE="${VIDEO_BITRATE:-4500k}"
 AUDIO_BITRATE="${AUDIO_BITRATE:-160k}"
@@ -20,5 +21,11 @@ chromium --kiosk --no-first-run --no-default-browser-check --disable-infobars --
 sleep 8
 tee_targets() { local out="" d; for d in $DESTINATIONS; do out="${out:+$out|}[f=flv:onfail=ignore]$d"; done; echo "$out"; }
 if [ -n "${HEARTBEAT_URL:-}" ] && [ -n "${FGB_TRANSPORT_HEARTBEAT_SECRET:-}" ]; then ./heartbeat.sh & fi
-ffmpeg -hide_banner -loglevel warning -nostdin -thread_queue_size 1024 -f x11grab -draw_mouse 0 -video_size 1280x720 -framerate 30 -i :99.0 -thread_queue_size 1024 -f pulse -i fgb.monitor -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -b:v "$VIDEO_BITRATE" -minrate "$VIDEO_BITRATE" -maxrate "$VIDEO_BITRATE" -bufsize 9000k -x264-params nal-hrd=cbr -g 60 -keyint_min 60 -sc_threshold 0 -c:a aac -b:a "$AUDIO_BITRATE" -ar 48000 -ac 2 -map 0:v -map 1:a -flags +global_header -progress "$PROGRESS" -f tee "$(tee_targets)"
+COMMON=(-hide_banner -loglevel warning -nostdin -thread_queue_size 1024 -f x11grab -draw_mouse 0 -video_size 1280x720 -framerate 30 -i :99.0 -thread_queue_size 1024 -f pulse -i fgb.monitor -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -b:v "$VIDEO_BITRATE" -minrate "$VIDEO_BITRATE" -maxrate "$VIDEO_BITRATE" -bufsize 9000k -x264-params nal-hrd=cbr -g 60 -keyint_min 60 -sc_threshold 0 -c:a aac -b:a "$AUDIO_BITRATE" -ar 48000 -ac 2 -map 0:v -map 1:a -progress "$PROGRESS")
+if [ "$DRY_RUN" = "1" ]; then
+  echo live > "$STATE"
+  ffmpeg "${COMMON[@]}" -f null -
+else
+  ffmpeg "${COMMON[@]}" -flags +global_header -f tee "$(tee_targets)"
+fi
 echo stopped > "$STATE"
