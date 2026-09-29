@@ -1,0 +1,231 @@
+name: AWS T4g FGB Transport Dry Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      region:
+        description: AWS region for the T4g test
+        required: true
+        default: us-east-1
+        type: choice
+        options:
+          - us-east-1
+          - us-east-2
+          - us-west-2
+          - us-west-1
+      mode:
+        description: Audit only or launch a short dry run
+        required: true
+        default: audit
+        type: choice
+        options:
+          - audit
+          - launch-dryrun
+
+permissions:
+  contents: read
+
+env:
+  INSTANCE_NAME: fgb-transport-t4g-dryrun
+  INSTANCE_TYPE: t4g.small
+  ROOT_GB: '8'
+  BROADCAST_ORIGIN: https://epiccontentcreatorgrants.org
+
+jobs:
+  aws-dryrun:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: ${{ inputs.region }}
+      AWS_REGION: ${{ inputs.region }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: render-transport
+
+      - name: Validate AWS credentials
+        run: |
+          set -Eeuo pipefail
+          test -n "${AWS_ACCESS_KEY_ID:-}" || { echo 'Missing AWS_ACCESS_KEY_ID'; exit 2; }
+          test -n "${AWS_SECRET_ACCESS_KEY:-}" || { echo 'Missing AWS_SECRET_ACCESS_KEY'; exit 2; }
+          aws sts get-caller-identity >/dev/null
+          echo "AWS authentication succeeded in $AWS_REGION"
+
+      - name: Verify T4g free-trial and Free Tier state
+        id: free
+        run: |
+          set -Eeuo pipefail
+          aws freetier get-free-tier-usage --output json > /tmp/free-tier.json
+          python3 - <<'PY'
+          import json, os, sys
+          d=json.load(open('/tmp/free-tier.json'))
+          rows=d.get('freeTierUsages',[])
+          def text(r):
+              return ' '.join(str(r.get(k,'')) for k in ('description','service','operation','usageType','freeTierType')).lower()
+          t4=[r for r in rows if 't4g.small' in text(r)]
+          ebs=[r for r in rows if ('elastic block' in text(r) or 'ebs' in text(r))]
+          print('T4g-related Free Tier entries:', len(t4))
+          for r in t4[:10]: print('  ', r.get('description') or r.get('usageType'))
+          print('EBS-related Free Tier entries:', len(ebs))
+          for r in ebs[:10]: print('  ', r.get('description') or r.get('usageType'))
+          # AWS states all customers are automatically enrolled in the t4g.small trial through 2026-12-31.
+          # We still require the account Free Tier API to be readable before creating anything.
+          if not rows:
+              print('No Free Tier usage data returned; refusing to launch.', file=sys.stderr)
+              sys.exit(4)
+          open(os.environ['GITHUB_OUTPUT'],'a').write(f"ebs_offer={'yes' if ebs else 'no'}\n")
+          PY
+          aws ec2 describe-instance-types --instance-types "$INSTANCE_TYPE" --query 'InstanceTypes[0].[InstanceType,ProcessorInfo.SupportedArchitectures[0],BurstablePerformanceSupported]' --output table
+
+      - name: Audit summary
+        if: inputs.mode == 'audit'
+        run: |
+          echo '## AWS T4g audit complete' >> "$GITHUB_STEP_SUMMARY"
+          echo "- Region: $AWS_REGION" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Instance type: $INSTANCE_TYPE" >> "$GITHUB_STEP_SUMMARY"
+          echo '- No EC2 instance was created.' >> "$GITHUB_STEP_SUMMARY"
+          echo '- No stream keys were used.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Refuse launch if ancillary Free Tier coverage is not visible
+        if: inputs.mode == 'launch-dryrun'
+        run: |
+          set -Eeuo pipefail
+          if [ '${{ steps.free.outputs.ebs_offer }}' != 'yes' ]; then
+            echo 'Could not verify an EBS Free Tier entry for this account. Refusing to launch because the goal is $0.'
+            exit 5
+          fi
+
+      - name: Package transport for cloud-init
+        if: inputs.mode == 'launch-dryrun'
+        run: |
+          set -Eeuo pipefail
+          tar czf /tmp/fgb-transport.tgz Dockerfile ops/transport/run-output.sh ops/transport/heartbeat.sh
+          base64 -w0 /tmp/fgb-transport.tgz > /tmp/fgb-transport.b64
+          test $(wc -c < /tmp/fgb-transport.b64) -lt 12000 || { echo 'Transport payload too large for safe user-data embedding'; exit 6; }
+
+      - name: Resolve or create isolated dry-run network
+        if: inputs.mode == 'launch-dryrun'
+        id: net
+        run: |
+          set -Eeuo pipefail
+          VPC=$(aws ec2 describe-vpcs --filters Name=tag:Name,Values=fgb-t4g-dryrun-vpc --query 'Vpcs[0].VpcId' --output text)
+          if [ "$VPC" = None ]; then
+            VPC=$(aws ec2 create-vpc --cidr-block 10.86.0.0/16 --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name,Value=fgb-t4g-dryrun-vpc}]' --query 'Vpc.VpcId' --output text)
+            aws ec2 wait vpc-available --vpc-ids "$VPC"
+          fi
+          IGW=$(aws ec2 describe-internet-gateways --filters Name=attachment.vpc-id,Values="$VPC" --query 'InternetGateways[0].InternetGatewayId' --output text)
+          if [ "$IGW" = None ]; then
+            IGW=$(aws ec2 create-internet-gateway --tag-specifications 'ResourceType=internet-gateway,Tags=[{Key=Name,Value=fgb-t4g-dryrun-igw}]' --query 'InternetGateway.InternetGatewayId' --output text)
+            aws ec2 attach-internet-gateway --internet-gateway-id "$IGW" --vpc-id "$VPC"
+          fi
+          SUBNET=$(aws ec2 describe-subnets --filters Name=vpc-id,Values="$VPC" Name=tag:Name,Values=fgb-t4g-dryrun-subnet --query 'Subnets[0].SubnetId' --output text)
+          if [ "$SUBNET" = None ]; then
+            AZ=$(aws ec2 describe-availability-zones --filters Name=state,Values=available --query 'AvailabilityZones[0].ZoneName' --output text)
+            SUBNET=$(aws ec2 create-subnet --vpc-id "$VPC" --cidr-block 10.86.1.0/24 --availability-zone "$AZ" --tag-specifications 'ResourceType=subnet,Tags=[{Key=Name,Value=fgb-t4g-dryrun-subnet}]' --query 'Subnet.SubnetId' --output text)
+            aws ec2 modify-subnet-attribute --subnet-id "$SUBNET" --map-public-ip-on-launch
+          fi
+          RT=$(aws ec2 describe-route-tables --filters Name=vpc-id,Values="$VPC" Name=association.main,Values=true --query 'RouteTables[0].RouteTableId' --output text)
+          aws ec2 create-route --route-table-id "$RT" --destination-cidr-block 0.0.0.0/0 --gateway-id "$IGW" >/dev/null 2>&1 || true
+          SG=$(aws ec2 describe-security-groups --filters Name=vpc-id,Values="$VPC" Name=group-name,Values=fgb-t4g-dryrun-sg --query 'SecurityGroups[0].GroupId' --output text)
+          if [ "$SG" = None ]; then
+            SG=$(aws ec2 create-security-group --group-name fgb-t4g-dryrun-sg --description 'FGB T4g dry-run outbound only' --vpc-id "$VPC" --query 'GroupId' --output text)
+            aws ec2 create-tags --resources "$SG" --tags Key=Name,Value=fgb-t4g-dryrun-sg
+          fi
+          echo "subnet=$SUBNET" >> "$GITHUB_OUTPUT"
+          echo "sg=$SG" >> "$GITHUB_OUTPUT"
+
+      - name: Build cloud-init bootstrap
+        if: inputs.mode == 'launch-dryrun'
+        run: |
+          set -Eeuo pipefail
+          PAYLOAD=$(cat /tmp/fgb-transport.b64)
+          cat > /tmp/user-data.sh <<EOF
+          #!/usr/bin/env bash
+          set -Eeuo pipefail
+          exec > >(tee /var/log/fgb-bootstrap.log /dev/console) 2>&1
+          echo 'FGB_BOOTSTRAP_START'
+          apt-get update -y
+          apt-get install -y docker.io
+          systemctl enable --now docker
+          rm -rf /opt/fgb-transport && mkdir -p /opt/fgb-transport
+          echo '$PAYLOAD' | base64 -d | tar xzf - -C /opt/fgb-transport
+          cd /opt/fgb-transport
+          docker build -t fgb-transport-aws .
+          docker rm -f fgb-youtube-dryrun >/dev/null 2>&1 || true
+          docker run -d --name fgb-youtube-dryrun --restart unless-stopped --shm-size=1g \
+            -e OUTPUT=youtube \
+            -e BROADCAST_ORIGIN=$BROADCAST_ORIGIN \
+            -e DRY_RUN=1 \
+            -e VIDEO_BITRATE=4500k \
+            -e AUDIO_BITRATE=160k \
+            fgb-transport-aws
+          sleep 45
+          docker ps --filter name=fgb-youtube-dryrun
+          docker stats --no-stream fgb-youtube-dryrun || true
+          docker logs --tail 120 fgb-youtube-dryrun || true
+          echo 'FGB_BOOTSTRAP_COMPLETE'
+          EOF
+
+      - name: Launch t4g.small dry-run instance
+        if: inputs.mode == 'launch-dryrun'
+        id: ec2
+        run: |
+          set -Eeuo pipefail
+          EXISTING=$(aws ec2 describe-instances --filters Name=tag:Name,Values="$INSTANCE_NAME" Name=instance-state-name,Values=pending,running,stopping,stopped --query 'Reservations[0].Instances[0].InstanceId' --output text)
+          if [ "$EXISTING" != None ]; then
+            echo "Refusing to create a duplicate; existing instance: $EXISTING"
+            exit 7
+          fi
+          AMI=$(aws ec2 describe-images --owners 099720109477 --filters Name=architecture,Values=arm64 Name=root-device-type,Values=ebs Name=virtualization-type,Values=hvm Name=name,Values='ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-arm64-server-*' --query 'sort_by(Images,&CreationDate)[-1].ImageId' --output text)
+          test "$AMI" != None
+          INSTANCE=$(aws ec2 run-instances \
+            --image-id "$AMI" \
+            --instance-type "$INSTANCE_TYPE" \
+            --subnet-id '${{ steps.net.outputs.subnet }}' \
+            --security-group-ids '${{ steps.net.outputs.sg }}' \
+            --associate-public-ip-address \
+            --credit-specification CpuCredits=standard \
+            --block-device-mappings "DeviceName=/dev/sda1,Ebs={VolumeSize=$ROOT_GB,VolumeType=gp3,DeleteOnTermination=true}" \
+            --user-data file:///tmp/user-data.sh \
+            --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$INSTANCE_NAME},{Key=Purpose,Value=FGB-dry-run}]" \
+            --query 'Instances[0].InstanceId' --output text)
+          echo "instance=$INSTANCE" >> "$GITHUB_OUTPUT"
+          aws ec2 wait instance-status-ok --instance-ids "$INSTANCE"
+          echo "Launched $INSTANCE with standard CPU credits"
+
+      - name: Wait for renderer bootstrap and collect console output
+        if: inputs.mode == 'launch-dryrun'
+        run: |
+          set -Eeuo pipefail
+          INSTANCE='${{ steps.ec2.outputs.instance }}'
+          for i in $(seq 1 24); do
+            OUT=$(aws ec2 get-console-output --instance-id "$INSTANCE" --latest --query Output --output text || true)
+            printf '%s\n' "$OUT" | tail -120
+            if printf '%s' "$OUT" | grep -q 'FGB_BOOTSTRAP_COMPLETE'; then
+              echo 'Dry-run bootstrap completed.'
+              exit 0
+            fi
+            sleep 15
+          done
+          echo 'Bootstrap did not report completion in time.'
+          exit 8
+
+      - name: Terminate dry-run instance
+        if: always() && inputs.mode == 'launch-dryrun' && steps.ec2.outputs.instance != ''
+        run: |
+          INSTANCE='${{ steps.ec2.outputs.instance }}'
+          aws ec2 terminate-instances --instance-ids "$INSTANCE" >/dev/null || true
+          echo "Termination requested for $INSTANCE"
+
+      - name: Summary
+        if: always()
+        run: |
+          echo '## AWS T4g FGB transport test' >> "$GITHUB_STEP_SUMMARY"
+          echo "- Mode: ${{ inputs.mode }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Region: $AWS_REGION" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Instance type: $INSTANCE_TYPE" >> "$GITHUB_STEP_SUMMARY"
+          echo '- CPU credit mode: standard' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Streaming destinations: NONE (DRY_RUN=1)' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Launch mode terminates the test instance automatically.' >> "$GITHUB_STEP_SUMMARY"
