@@ -5,26 +5,46 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 29 Sep 2026 06:56:26 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 29 Sep 2026 13:39:34 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Keenum stars for Bears on first start since 2023</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Keenum stars for Bears on first start since 2023</description>
-      <link>https://sports.yahoo.com/articles/keenum-stars-bears-first-start-064156043.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e3e0f5acdc3eed459605</guid>
-      <pubDate>Tue, 29 Sep 2026 06:41:56 GMT</pubDate>
+      <title>Eagles coach Nick Sirianni expresses remorse for shouting expletive at Bears player for hit on Jalen Hurts</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Eagles coach Nick Sirianni expresses remorse for shouting expletive at Bears player for hit on Jalen Hurts</description>
+      <link>https://www.cbssports.com/nfl/news/nick-sirianni-remorse-for-expletive-at-bear-jalen-hurts/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-81782775fd30dd2e7cd1</guid>
+      <pubDate>Tue, 29 Sep 2026 13:06:56 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Case Keenum, Bears score &apos;MNF&apos; win over Eagles; MLB Wild Card preview; WNBA awards top rookie</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Case Keenum, Bears score &apos;MNF&apos; win over Eagles; MLB Wild Card preview; WNBA awards top rookie</description>
+      <link>https://www.cbssports.com/nfl/news/case-keenum-bears-mnf-eagles-mlb-wild-card-wnba-rookie/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3bc2c3f497d34dfd4bcc</guid>
+      <pubDate>Tue, 29 Sep 2026 12:45:22 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears show resilience in primetime win over Eagles</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears show resilience in primetime win over Eagles</description>
+      <link>https://sports.yahoo.com/articles/bears-show-resilience-primetime-win-120000972.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-eae37908f4ead175ca6d</guid>
+      <pubDate>Tue, 29 Sep 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears vs. Jets odds: Opening lines for Week 4 matchup</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Jets odds: Opening lines for Week 4 matchup</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-jets-odds-opening-060958518.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f29509ec360d9caba2d3</guid>
-      <pubDate>Tue, 29 Sep 2026 06:09:58 GMT</pubDate>
+      <title>The Bear’s Den: Bears &amp; 3rd string QB demolish Philadelphia Eagles</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: Bears &amp; 3rd string QB demolish Philadelphia Eagles</description>
+      <link>https://sports.yahoo.com/articles/bear-den-bears-3rd-string-100000744.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2146c6aa3016df9dc04c</guid>
+      <pubDate>Tue, 29 Sep 2026 10:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -40,53 +60,33 @@
     </item>
 
     <item>
-      <title>NFL Week 3 grades for all 32 teams: Bears earn &apos;A+&apos; for big Monday win, Raiders earn &apos;A-&apos; for beating Saints</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 3 grades for all 32 teams: Bears earn &apos;A+&apos; for big Monday win, Raiders earn &apos;A-&apos; for beating Saints</description>
-      <link>https://www.cbssports.com/nfl/news/nfl-week-3-grades-patriots-stumble-commanders-shine/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a351d0318730b8e4236a</guid>
-      <pubDate>Tue, 29 Sep 2026 03:18:03 GMT</pubDate>
+      <title>The Bears’ demanding week became a magical night for Case Keenum</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: The Bears’ demanding week became a magical night for Case Keenum</description>
+      <link>https://www.nytimes.com/athletic/7642370/2026/09/29/bears-case-keenum-magical-night-monday-night-football/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c4b7c59189f2c596416c</guid>
+      <pubDate>Tue, 29 Sep 2026 04:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
-      <title>Eagles vs. Bears picks, player props: Expert&apos;s best bets for Monday Night Football in NFL Week 3</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Eagles vs. Bears picks, player props: Expert&apos;s best bets for Monday Night Football in NFL Week 3</description>
-      <link>https://www.cbssports.com/betting/news/eagles-vs-bears-picks-player-props-experts-best-bets-for-monday-night-football-in-nfl-week-3/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4fe633ede5edbc7943d4</guid>
-      <pubDate>Tue, 29 Sep 2026 00:08:07 GMT</pubDate>
+      <title>Root of Eagles’ problems revealed by decision to punt in ‘true team loss’ to Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Root of Eagles’ problems revealed by decision to punt in ‘true team loss’ to Bears</description>
+      <link>https://www.nytimes.com/athletic/7642426/2026/09/29/eagles-problem-punt-loss-bears-monday-night-football/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-91dcdecfd9c28405dcb7</guid>
+      <pubDate>Tue, 29 Sep 2026 04:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
-      <title>Bears&apos; best plays vs. Eagles | Week 3</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears&apos; best plays vs. Eagles | Week 3</description>
-      <link>https://www.nfl.com/videos/bears-best-plays-vs-eagles-week-3</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e58f19eabf8dbc869c83</guid>
-      <pubDate>Mon, 28 Sep 2026 20:48:00 GMT</pubDate>
+      <title>38-year-old Case Keenum shines as Bears demolish Eagles: &apos;As a kid you dream about it&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: 38-year-old Case Keenum shines as Bears demolish Eagles: &apos;As a kid you dream about it&apos;</description>
+      <link>https://www.nfl.com/news/38-year-old-case-keenum-shines-as-bears-demolish-eagles-as-a-kid-you-dream-about-it</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-73184049fd3d40261c9b</guid>
+      <pubDate>Mon, 28 Sep 2026 21:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Eagles vs. Bears highlights | Week 3</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Eagles vs. Bears highlights | Week 3</description>
-      <link>https://www.nfl.com/videos/eagles-vs-bears-highlights-week-3</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-939aa220bd6462408555</guid>
-      <pubDate>Mon, 28 Sep 2026 20:46:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>QB3 Case Keenum, Bears defense shock Eagles in MNF rout</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: QB3 Case Keenum, Bears defense shock Eagles in MNF rout</description>
-      <link>https://www.espn.com/nfl/story/_/id/50055561/nfl-chicago-bears-philadelphia-eagles-monday-night-football-case-keenum</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-06079bae941c2c2451e6</guid>
-      <pubDate>Mon, 28 Sep 2026 16:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
