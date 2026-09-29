@@ -1,0 +1,147 @@
+name: Oracle Free FGB Transport Dry Run V2
+
+on:
+  push:
+    branches: [oracle-provision-run]
+    paths:
+      - '.github/workflows/oracle-free-dryrun-push-v2.yml'
+
+permissions:
+  contents: read
+
+env:
+  INSTANCE_NAME: fgb-transport-free
+  SHAPE: VM.Standard.A1.Flex
+  OCPUS: '2'
+  MEMORY_GB: '12'
+  BOOT_GB: '50'
+  ORACLE_USER: ubuntu
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: render-transport
+
+      - name: Validate secrets
+        env:
+          OCI_TENANCY_OCID: ${{ secrets.TENANCY }}
+          OCI_USER_OCID: ${{ secrets.USER }}
+          OCI_FINGERPRINT: ${{ secrets.FINGERPRINT }}
+          OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+          OCI_REGION: ${{ secrets.REGION }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          for n in OCI_TENANCY_OCID OCI_USER_OCID OCI_FINGERPRINT OCI_PRIVATE_KEY OCI_REGION ORACLE_SSH_KEY; do
+            test -n "${!n:-}" || { echo "Missing $n"; exit 2; }
+          done
+
+      - name: Install and configure OCI CLI
+        env:
+          OCI_TENANCY_OCID: ${{ secrets.TENANCY }}
+          OCI_USER_OCID: ${{ secrets.USER }}
+          OCI_FINGERPRINT: ${{ secrets.FINGERPRINT }}
+          OCI_PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+          OCI_REGION: ${{ secrets.REGION }}
+        run: |
+          set -Eeuo pipefail
+          python3 -m pip install --user --upgrade oci-cli
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          install -d -m 700 ~/.oci
+          printf '%s\n' "$OCI_PRIVATE_KEY" > ~/.oci/oci_api_key.pem
+          chmod 600 ~/.oci/oci_api_key.pem
+          cat > ~/.oci/config <<EOF
+          [DEFAULT]
+          user=$OCI_USER_OCID
+          fingerprint=$OCI_FINGERPRINT
+          tenancy=$OCI_TENANCY_OCID
+          region=$OCI_REGION
+          key_file=$HOME/.oci/oci_api_key.pem
+          EOF
+          chmod 600 ~/.oci/config
+          ~/.local/bin/oci iam region list --all >/dev/null
+
+      - name: Prepare SSH key
+        env:
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keygen -y -f ~/.ssh/oracle_key > ~/.ssh/oracle_key.pub
+
+      - name: Resolve or create network and launch A1
+        id: oci
+        env:
+          TENANCY: ${{ secrets.TENANCY }}
+        run: |
+          set -Eeuo pipefail
+          OCI="$HOME/.local/bin/oci"
+          COMPARTMENT="$TENANCY"
+          AD=$($OCI iam availability-domain list --compartment-id "$COMPARTMENT" --query 'data[0].name' --raw-output)
+          IMAGE=$($OCI compute image list --compartment-id "$COMPARTMENT" --shape "$SHAPE" --operating-system 'Canonical Ubuntu' --sort-by TIMECREATED --sort-order DESC --all --query 'data[0].id' --raw-output)
+          SUBNET=$($OCI network subnet list --compartment-id "$COMPARTMENT" --all --query 'data[?"lifecycle-state"==`AVAILABLE` && "prohibit-public-ip-on-vnic"==`false`].id | [0]' --raw-output || true)
+          if [ -z "$SUBNET" ] || [ "$SUBNET" = null ]; then
+            VCN=$($OCI network vcn create --compartment-id "$COMPARTMENT" --cidr-block 10.42.0.0/16 --display-name fgb-free-vcn --wait-for-state AVAILABLE --query 'data.id' --raw-output)
+            IGW=$($OCI network internet-gateway create --compartment-id "$COMPARTMENT" --vcn-id "$VCN" --is-enabled true --display-name fgb-free-igw --wait-for-state AVAILABLE --query 'data.id' --raw-output)
+            RT=$($OCI network route-table list --compartment-id "$COMPARTMENT" --vcn-id "$VCN" --query 'data[0].id' --raw-output)
+            $OCI network route-table update --rt-id "$RT" --route-rules "[{\"cidrBlock\":\"0.0.0.0/0\",\"networkEntityId\":\"$IGW\"}]" --force >/dev/null
+            SL=$($OCI network security-list list --compartment-id "$COMPARTMENT" --vcn-id "$VCN" --query 'data[0].id' --raw-output)
+            $OCI network security-list update --security-list-id "$SL" --ingress-security-rules '[{"protocol":"6","source":"0.0.0.0/0","tcpOptions":{"destinationPortRange":{"min":22,"max":22}}}]' --force >/dev/null
+            SUBNET=$($OCI network subnet create --compartment-id "$COMPARTMENT" --vcn-id "$VCN" --cidr-block 10.42.1.0/24 --display-name fgb-free-public-subnet --route-table-id "$RT" --security-list-ids "[\"$SL\"]" --prohibit-public-ip-on-vnic false --wait-for-state AVAILABLE --query 'data.id' --raw-output)
+          fi
+          INSTANCE=$($OCI compute instance list --compartment-id "$COMPARTMENT" --all --display-name "$INSTANCE_NAME" --query 'data[?"lifecycle-state"!=`TERMINATED`].id | [0]' --raw-output || true)
+          if [ -z "$INSTANCE" ] || [ "$INSTANCE" = null ]; then
+            PUB=$(cat ~/.ssh/oracle_key.pub)
+            META=$(python3 -c 'import json,sys; print(json.dumps({"ssh_authorized_keys":sys.argv[1]}))' "$PUB")
+            INSTANCE=$($OCI compute instance launch --compartment-id "$COMPARTMENT" --availability-domain "$AD" --display-name "$INSTANCE_NAME" --shape "$SHAPE" --shape-config "{\"ocpus\":$OCPUS,\"memoryInGBs\":$MEMORY_GB}" --subnet-id "$SUBNET" --assign-public-ip true --metadata "$META" --source-details "{\"sourceType\":\"image\",\"imageId\":\"$IMAGE\",\"bootVolumeSizeInGBs\":$BOOT_GB}" --wait-for-state RUNNING --query 'data.id' --raw-output)
+          fi
+          VNIC=$($OCI compute vnic-attachment list --compartment-id "$COMPARTMENT" --instance-id "$INSTANCE" --query 'data[0]."vnic-id"' --raw-output)
+          IP=$($OCI network vnic get --vnic-id "$VNIC" --query 'data."public-ip"' --raw-output)
+          echo "instance=$INSTANCE" >> "$GITHUB_OUTPUT"
+          echo "ip=$IP" >> "$GITHUB_OUTPUT"
+          echo "Provisioned $INSTANCE at $IP"
+
+      - name: Install transport in dry-run mode
+        env:
+          HOST: ${{ steps.oci.outputs.ip }}
+        run: |
+          set -Eeuo pipefail
+          for i in $(seq 1 30); do
+            ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i ~/.ssh/oracle_key "$ORACLE_USER@$HOST" 'echo ready' && break || sleep 10
+          done
+          tar czf /tmp/fgb-transport.tgz Dockerfile ops/transport/run-output.sh ops/transport/heartbeat.sh
+          scp -o StrictHostKeyChecking=no -i ~/.ssh/oracle_key /tmp/fgb-transport.tgz "$ORACLE_USER@$HOST:/tmp/fgb-transport.tgz"
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/oracle_key "$ORACLE_USER@$HOST" 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          sudo apt-get update -y
+          sudo apt-get install -y docker.io
+          sudo systemctl enable --now docker
+          rm -rf ~/fgb-transport && mkdir ~/fgb-transport
+          tar xzf /tmp/fgb-transport.tgz -C ~/fgb-transport
+          cd ~/fgb-transport
+          sudo docker build -t fgb-transport-free .
+          sudo docker rm -f fgb-youtube-dryrun >/dev/null 2>&1 || true
+          sudo docker run -d --name fgb-youtube-dryrun --restart unless-stopped --shm-size=1g -e OUTPUT=youtube -e BROADCAST_ORIGIN=https://epiccontentcreatorgrants.org -e DRY_RUN=1 -e VIDEO_BITRATE=4500k -e AUDIO_BITRATE=160k fgb-transport-free
+          sleep 30
+          sudo docker ps --filter name=fgb-youtube-dryrun
+          sudo docker stats --no-stream fgb-youtube-dryrun || true
+          sudo docker logs --tail 100 fgb-youtube-dryrun
+          REMOTE
+
+      - name: Summary
+        env:
+          HOST: ${{ steps.oci.outputs.ip }}
+          INSTANCE: ${{ steps.oci.outputs.instance }}
+        run: |
+          echo '## Oracle $0 dry run' >> "$GITHUB_STEP_SUMMARY"
+          echo "- Shape: $SHAPE" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Resources: $OCPUS OCPU / $MEMORY_GB GB" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Instance: $INSTANCE" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Public IP: $HOST" >> "$GITHUB_STEP_SUMMARY"
+          echo '- Stream destinations: NONE (DRY_RUN=1)' >> "$GITHUB_STEP_SUMMARY"
