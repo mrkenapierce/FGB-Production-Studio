@@ -20,7 +20,7 @@ env:
 jobs:
   provision:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -75,7 +75,7 @@ jobs:
           chmod 600 ~/.ssh/oracle_key
           ssh-keygen -y -f ~/.ssh/oracle_key > ~/.ssh/oracle_key.pub
 
-      - name: Resolve or create network and launch A1
+      - name: Try subscribed regions and launch A1
         id: oci
         env:
           TENANCY: ${{ secrets.TENANCY }}
@@ -83,58 +83,186 @@ jobs:
           set -Eeuo pipefail
           OCI="$HOME/.local/bin/oci"
           COMPARTMENT="$TENANCY"
-          mapfile -t ADS < <($OCI iam availability-domain list --compartment-id "$COMPARTMENT" --query 'data[].name' --output json | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin)))')
-          test ${#ADS[@]} -gt 0 || { echo 'No availability domains returned'; exit 3; }
-          IMAGE=$($OCI compute image list --compartment-id "$COMPARTMENT" --shape "$SHAPE" --operating-system 'Canonical Ubuntu' --sort-by TIMECREATED --sort-order DESC --all --query 'data[0].id' --raw-output)
-          SUBNET=$($OCI network subnet list --compartment-id "$COMPARTMENT" --all --query 'data[?"lifecycle-state"==`AVAILABLE` && "prohibit-public-ip-on-vnic"==`false`].id | [0]' --raw-output || true)
-          if [ -z "$SUBNET" ] || [ "$SUBNET" = null ]; then
-            VCN=$($OCI network vcn create --compartment-id "$COMPARTMENT" --cidr-block 10.42.0.0/16 --display-name fgb-free-vcn --wait-for-state AVAILABLE --query 'data.id' --raw-output)
-            IGW=$($OCI network internet-gateway create --compartment-id "$COMPARTMENT" --vcn-id "$VCN" --is-enabled true --display-name fgb-free-igw --wait-for-state AVAILABLE --query 'data.id' --raw-output)
-            RT=$($OCI network route-table list --compartment-id "$COMPARTMENT" --vcn-id "$VCN" --query 'data[0].id' --raw-output)
-            $OCI network route-table update --rt-id "$RT" --route-rules "[{\"cidrBlock\":\"0.0.0.0/0\",\"networkEntityId\":\"$IGW\"}]" --force >/dev/null
-            SL=$($OCI network security-list list --compartment-id "$COMPARTMENT" --vcn-id "$VCN" --query 'data[0].id' --raw-output)
-            $OCI network security-list update --security-list-id "$SL" --ingress-security-rules '[{"protocol":"6","source":"0.0.0.0/0","tcpOptions":{"destinationPortRange":{"min":22,"max":22}}}]' --force >/dev/null
-            SUBNET=$($OCI network subnet create --compartment-id "$COMPARTMENT" --vcn-id "$VCN" --cidr-block 10.42.1.0/24 --display-name fgb-free-public-subnet --route-table-id "$RT" --security-list-ids "[\"$SL\"]" --prohibit-public-ip-on-vnic false --wait-for-state AVAILABLE --query 'data.id' --raw-output)
-          fi
-          INSTANCE=$($OCI compute instance list --compartment-id "$COMPARTMENT" --all --display-name "$INSTANCE_NAME" --query 'data[?"lifecycle-state"!=`TERMINATED`].id | [0]' --raw-output || true)
-          if [ -z "$INSTANCE" ] || [ "$INSTANCE" = null ]; then
-            PUB=$(cat ~/.ssh/oracle_key.pub)
-            META=$(python3 -c 'import json,sys; print(json.dumps({"ssh_authorized_keys":sys.argv[1]}))' "$PUB")
-            INSTANCE=''
+          PUB=$(cat ~/.ssh/oracle_key.pub)
+          META=$(python3 -c 'import json,sys; print(json.dumps({"ssh_authorized_keys":sys.argv[1]}))' "$PUB")
+
+          mapfile -t REGIONS < <($OCI iam region-subscription list \
+            --tenancy-id "$TENANCY" \
+            --query 'data[?status==`READY`]."region-name"' \
+            --output json | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin)))')
+          test ${#REGIONS[@]} -gt 0 || { echo 'No READY subscribed OCI regions returned.'; exit 3; }
+
+          echo "Subscribed READY regions: ${REGIONS[*]}"
+          INSTANCE=''
+          IP=''
+          CHOSEN_REGION=''
+          CHOSEN_AD=''
+
+          for REGION in "${REGIONS[@]}"; do
+            export OCI_CLI_REGION="$REGION"
+            echo "=== Trying OCI region: $REGION ==="
+
+            mapfile -t ADS < <($OCI iam availability-domain list \
+              --compartment-id "$COMPARTMENT" \
+              --query 'data[].name' \
+              --output json | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin)))')
+            if [ ${#ADS[@]} -eq 0 ]; then
+              echo "No availability domains returned for $REGION; skipping."
+              continue
+            fi
+
+            IMAGE=$($OCI compute image list \
+              --compartment-id "$COMPARTMENT" \
+              --shape "$SHAPE" \
+              --operating-system 'Canonical Ubuntu' \
+              --sort-by TIMECREATED \
+              --sort-order DESC \
+              --all \
+              --query 'data[0].id' \
+              --raw-output || true)
+            if [ -z "$IMAGE" ] || [ "$IMAGE" = null ]; then
+              echo "No compatible Ubuntu A1 image found in $REGION; skipping."
+              continue
+            fi
+
+            EXISTING=$($OCI compute instance list \
+              --compartment-id "$COMPARTMENT" \
+              --all \
+              --display-name "$INSTANCE_NAME" \
+              --query 'data[?"lifecycle-state"!=`TERMINATED`].id | [0]' \
+              --raw-output || true)
+            if [ -n "$EXISTING" ] && [ "$EXISTING" != null ]; then
+              INSTANCE="$EXISTING"
+              CHOSEN_REGION="$REGION"
+              echo "Reusing existing $INSTANCE_NAME in $REGION"
+              break
+            fi
+
+            SUBNET=$($OCI network subnet list \
+              --compartment-id "$COMPARTMENT" \
+              --all \
+              --query 'data[?"lifecycle-state"==`AVAILABLE` && "prohibit-public-ip-on-vnic"==`false`].id | [0]' \
+              --raw-output || true)
+
+            if [ -z "$SUBNET" ] || [ "$SUBNET" = null ]; then
+              SAFE_REGION=$(printf '%s' "$REGION" | tr -c 'A-Za-z0-9-' '-')
+              VCN=$($OCI network vcn create \
+                --compartment-id "$COMPARTMENT" \
+                --cidr-block 10.42.0.0/16 \
+                --display-name "fgb-free-vcn-$SAFE_REGION" \
+                --wait-for-state AVAILABLE \
+                --query 'data.id' \
+                --raw-output)
+              IGW=$($OCI network internet-gateway create \
+                --compartment-id "$COMPARTMENT" \
+                --vcn-id "$VCN" \
+                --is-enabled true \
+                --display-name "fgb-free-igw-$SAFE_REGION" \
+                --wait-for-state AVAILABLE \
+                --query 'data.id' \
+                --raw-output)
+              RT=$($OCI network route-table list \
+                --compartment-id "$COMPARTMENT" \
+                --vcn-id "$VCN" \
+                --query 'data[0].id' \
+                --raw-output)
+              $OCI network route-table update \
+                --rt-id "$RT" \
+                --route-rules "[{\"cidrBlock\":\"0.0.0.0/0\",\"networkEntityId\":\"$IGW\"}]" \
+                --force >/dev/null
+              SL=$($OCI network security-list list \
+                --compartment-id "$COMPARTMENT" \
+                --vcn-id "$VCN" \
+                --query 'data[0].id' \
+                --raw-output)
+              $OCI network security-list update \
+                --security-list-id "$SL" \
+                --ingress-security-rules '[{"protocol":"6","source":"0.0.0.0/0","tcpOptions":{"destinationPortRange":{"min":22,"max":22}}}]' \
+                --force >/dev/null
+              SUBNET=$($OCI network subnet create \
+                --compartment-id "$COMPARTMENT" \
+                --vcn-id "$VCN" \
+                --cidr-block 10.42.1.0/24 \
+                --display-name "fgb-free-public-subnet-$SAFE_REGION" \
+                --route-table-id "$RT" \
+                --security-list-ids "[\"$SL\"]" \
+                --prohibit-public-ip-on-vnic false \
+                --wait-for-state AVAILABLE \
+                --query 'data.id' \
+                --raw-output)
+            fi
+
             for AD in "${ADS[@]}"; do
-              echo "Trying A1 launch in availability domain: $AD"
+              echo "Trying A1 launch in $REGION / $AD"
               set +e
-              OUT=$($OCI compute instance launch --compartment-id "$COMPARTMENT" --availability-domain "$AD" --display-name "$INSTANCE_NAME" --shape "$SHAPE" --shape-config "{\"ocpus\":$OCPUS,\"memoryInGBs\":$MEMORY_GB}" --subnet-id "$SUBNET" --assign-public-ip true --metadata "$META" --source-details "{\"sourceType\":\"image\",\"imageId\":\"$IMAGE\",\"bootVolumeSizeInGBs\":$BOOT_GB}" --wait-for-state RUNNING --query 'data.id' --raw-output 2>&1)
+              OUT=$($OCI compute instance launch \
+                --compartment-id "$COMPARTMENT" \
+                --availability-domain "$AD" \
+                --display-name "$INSTANCE_NAME" \
+                --shape "$SHAPE" \
+                --shape-config "{\"ocpus\":$OCPUS,\"memoryInGBs\":$MEMORY_GB}" \
+                --subnet-id "$SUBNET" \
+                --assign-public-ip true \
+                --metadata "$META" \
+                --source-details "{\"sourceType\":\"image\",\"imageId\":\"$IMAGE\",\"bootVolumeSizeInGBs\":$BOOT_GB}" \
+                --wait-for-state RUNNING \
+                --query 'data.id' \
+                --raw-output 2>&1)
               RC=$?
               set -e
+
               if [ $RC -eq 0 ] && [ -n "$OUT" ] && [ "$OUT" != null ]; then
                 INSTANCE="$OUT"
-                echo "A1 capacity found in $AD"
-                break
+                CHOSEN_REGION="$REGION"
+                CHOSEN_AD="$AD"
+                echo "A1 capacity found in $REGION / $AD"
+                break 2
               fi
+
               if printf '%s' "$OUT" | grep -qi 'Out of host capacity'; then
-                echo "No A1 host capacity in $AD; trying next availability domain."
+                echo "No A1 host capacity in $REGION / $AD"
                 continue
               fi
+
+              echo "Launch attempt in $REGION / $AD failed for a non-capacity reason:"
               printf '%s\n' "$OUT"
-              exit ${RC:-1}
+              break
             done
-            test -n "$INSTANCE" || { echo 'No A1 host capacity in any availability domain.'; exit 4; }
-          fi
-          VNIC=$($OCI compute vnic-attachment list --compartment-id "$COMPARTMENT" --instance-id "$INSTANCE" --query 'data[0]."vnic-id"' --raw-output)
-          IP=$($OCI network vnic get --vnic-id "$VNIC" --query 'data."public-ip"' --raw-output)
+          done
+
+          test -n "$INSTANCE" || { echo 'No A1 host capacity found in any subscribed READY region.'; exit 4; }
+          export OCI_CLI_REGION="$CHOSEN_REGION"
+          VNIC=$($OCI compute vnic-attachment list \
+            --compartment-id "$COMPARTMENT" \
+            --instance-id "$INSTANCE" \
+            --query 'data[0]."vnic-id"' \
+            --raw-output)
+          IP=$($OCI network vnic get \
+            --vnic-id "$VNIC" \
+            --query 'data."public-ip"' \
+            --raw-output)
+
           echo "instance=$INSTANCE" >> "$GITHUB_OUTPUT"
           echo "ip=$IP" >> "$GITHUB_OUTPUT"
-          echo "Provisioned $INSTANCE at $IP"
+          echo "region=$CHOSEN_REGION" >> "$GITHUB_OUTPUT"
+          echo "ad=$CHOSEN_AD" >> "$GITHUB_OUTPUT"
+          echo "Provisioned $INSTANCE in $CHOSEN_REGION / $CHOSEN_AD at $IP"
 
       - name: Install transport in dry-run mode
         env:
           HOST: ${{ steps.oci.outputs.ip }}
         run: |
           set -Eeuo pipefail
+          READY=0
           for i in $(seq 1 30); do
-            ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i ~/.ssh/oracle_key "$ORACLE_USER@$HOST" 'echo ready' && break || sleep 10
+            if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -i ~/.ssh/oracle_key "$ORACLE_USER@$HOST" 'echo ready'; then
+              READY=1
+              break
+            fi
+            sleep 10
           done
+          test "$READY" -eq 1 || { echo 'SSH never became ready'; exit 5; }
+
           tar czf /tmp/fgb-transport.tgz Dockerfile ops/transport/run-output.sh ops/transport/heartbeat.sh
           scp -o StrictHostKeyChecking=no -i ~/.ssh/oracle_key /tmp/fgb-transport.tgz "$ORACLE_USER@$HOST:/tmp/fgb-transport.tgz"
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/oracle_key "$ORACLE_USER@$HOST" 'bash -s' <<'REMOTE'
@@ -147,7 +275,13 @@ jobs:
           cd ~/fgb-transport
           sudo docker build -t fgb-transport-free .
           sudo docker rm -f fgb-youtube-dryrun >/dev/null 2>&1 || true
-          sudo docker run -d --name fgb-youtube-dryrun --restart unless-stopped --shm-size=1g -e OUTPUT=youtube -e BROADCAST_ORIGIN=https://epiccontentcreatorgrants.org -e DRY_RUN=1 -e VIDEO_BITRATE=4500k -e AUDIO_BITRATE=160k fgb-transport-free
+          sudo docker run -d --name fgb-youtube-dryrun --restart unless-stopped --shm-size=1g \
+            -e OUTPUT=youtube \
+            -e BROADCAST_ORIGIN=https://epiccontentcreatorgrants.org \
+            -e DRY_RUN=1 \
+            -e VIDEO_BITRATE=4500k \
+            -e AUDIO_BITRATE=160k \
+            fgb-transport-free
           sleep 30
           sudo docker ps --filter name=fgb-youtube-dryrun
           sudo docker stats --no-stream fgb-youtube-dryrun || true
@@ -158,10 +292,14 @@ jobs:
         env:
           HOST: ${{ steps.oci.outputs.ip }}
           INSTANCE: ${{ steps.oci.outputs.instance }}
+          REGION: ${{ steps.oci.outputs.region }}
+          AD: ${{ steps.oci.outputs.ad }}
         run: |
           echo '## Oracle $0 dry run' >> "$GITHUB_STEP_SUMMARY"
           echo "- Shape: $SHAPE" >> "$GITHUB_STEP_SUMMARY"
           echo "- Resources: $OCPUS OCPU / $MEMORY_GB GB" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Region: $REGION" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Availability domain: $AD" >> "$GITHUB_STEP_SUMMARY"
           echo "- Instance: $INSTANCE" >> "$GITHUB_STEP_SUMMARY"
           echo "- Public IP: $HOST" >> "$GITHUB_STEP_SUMMARY"
           echo '- Stream destinations: NONE (DRY_RUN=1)' >> "$GITHUB_STEP_SUMMARY"
