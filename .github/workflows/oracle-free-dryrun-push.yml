@@ -83,7 +83,8 @@ jobs:
           set -Eeuo pipefail
           OCI="$HOME/.local/bin/oci"
           COMPARTMENT="$TENANCY"
-          AD=$($OCI iam availability-domain list --compartment-id "$COMPARTMENT" --query 'data[0].name' --raw-output)
+          mapfile -t ADS < <($OCI iam availability-domain list --compartment-id "$COMPARTMENT" --query 'data[].name' --output json | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin)))')
+          test ${#ADS[@]} -gt 0 || { echo 'No availability domains returned'; exit 3; }
           IMAGE=$($OCI compute image list --compartment-id "$COMPARTMENT" --shape "$SHAPE" --operating-system 'Canonical Ubuntu' --sort-by TIMECREATED --sort-order DESC --all --query 'data[0].id' --raw-output)
           SUBNET=$($OCI network subnet list --compartment-id "$COMPARTMENT" --all --query 'data[?"lifecycle-state"==`AVAILABLE` && "prohibit-public-ip-on-vnic"==`false`].id | [0]' --raw-output || true)
           if [ -z "$SUBNET" ] || [ "$SUBNET" = null ]; then
@@ -99,7 +100,26 @@ jobs:
           if [ -z "$INSTANCE" ] || [ "$INSTANCE" = null ]; then
             PUB=$(cat ~/.ssh/oracle_key.pub)
             META=$(python3 -c 'import json,sys; print(json.dumps({"ssh_authorized_keys":sys.argv[1]}))' "$PUB")
-            INSTANCE=$($OCI compute instance launch --compartment-id "$COMPARTMENT" --availability-domain "$AD" --display-name "$INSTANCE_NAME" --shape "$SHAPE" --shape-config "{\"ocpus\":$OCPUS,\"memoryInGBs\":$MEMORY_GB}" --subnet-id "$SUBNET" --assign-public-ip true --metadata "$META" --source-details "{\"sourceType\":\"image\",\"imageId\":\"$IMAGE\",\"bootVolumeSizeInGBs\":$BOOT_GB}" --wait-for-state RUNNING --query 'data.id' --raw-output)
+            INSTANCE=''
+            for AD in "${ADS[@]}"; do
+              echo "Trying A1 launch in availability domain: $AD"
+              set +e
+              OUT=$($OCI compute instance launch --compartment-id "$COMPARTMENT" --availability-domain "$AD" --display-name "$INSTANCE_NAME" --shape "$SHAPE" --shape-config "{\"ocpus\":$OCPUS,\"memoryInGBs\":$MEMORY_GB}" --subnet-id "$SUBNET" --assign-public-ip true --metadata "$META" --source-details "{\"sourceType\":\"image\",\"imageId\":\"$IMAGE\",\"bootVolumeSizeInGBs\":$BOOT_GB}" --wait-for-state RUNNING --query 'data.id' --raw-output 2>&1)
+              RC=$?
+              set -e
+              if [ $RC -eq 0 ] && [ -n "$OUT" ] && [ "$OUT" != null ]; then
+                INSTANCE="$OUT"
+                echo "A1 capacity found in $AD"
+                break
+              fi
+              if printf '%s' "$OUT" | grep -qi 'Out of host capacity'; then
+                echo "No A1 host capacity in $AD; trying next availability domain."
+                continue
+              fi
+              printf '%s\n' "$OUT"
+              exit ${RC:-1}
+            done
+            test -n "$INSTANCE" || { echo 'No A1 host capacity in any availability domain.'; exit 4; }
           fi
           VNIC=$($OCI compute vnic-attachment list --compartment-id "$COMPARTMENT" --instance-id "$INSTANCE" --query 'data[0]."vnic-id"' --raw-output)
           IP=$($OCI network vnic get --vnic-id "$VNIC" --query 'data."public-ip"' --raw-output)
