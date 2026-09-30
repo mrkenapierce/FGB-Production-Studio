@@ -61,21 +61,42 @@ jobs:
           unset key OVH_SSH_KEY LEGACY_KEY YOUTUBE_KEY
           echo "Using protected deployment key source: $source"
 
-      - name: Authenticate directly to OVH
+      - name: Verify protected key matches requested OVH public key
         if: steps.done.outputs.skip != 'true'
         run: |
           set -euo pipefail
-          timeout 8 bash -c "</dev/tcp/$OVH_HOST/22"
-          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/ovh_known_hosts
-          test -s ~/.ssh/ovh_known_hosts
-          for candidate in ubuntu debian root; do
-            if ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=7 -i ~/.ssh/ovh_key "$candidate@$OVH_HOST" 'printf ready' 2>/dev/null | grep -q ready; then
-              echo "$candidate" > /tmp/ovh_user
-              echo "Authenticated directly to OVH as $candidate"
-              exit 0
+          test -s ops/transport-ovh/ovh-deploy.pub
+          ssh-keygen -y -f ~/.ssh/ovh_key | awk '{print $1" "$2}' > /tmp/private-derived.pub
+          awk '{print $1" "$2}' ops/transport-ovh/ovh-deploy.pub > /tmp/requested.pub
+          cmp -s /tmp/private-derived.pub /tmp/requested.pub || { echo 'Protected private key does not match the public key supplied for OVH reinstall'; exit 3; }
+          echo 'Protected private key matches the OVH reinstall public key.'
+
+      - name: Authenticate directly to OVH with post-reinstall retries
+        if: steps.done.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 24); do
+            if timeout 8 bash -c "</dev/tcp/$OVH_HOST/22" 2>/dev/null; then
+              if ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/ovh_known_hosts 2>/dev/null && test -s ~/.ssh/ovh_known_hosts; then
+                for candidate in ubuntu admin debian root; do
+                  if ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts \
+                         -o StrictHostKeyChecking=yes \
+                         -o BatchMode=yes \
+                         -o PasswordAuthentication=no \
+                         -o ConnectTimeout=7 \
+                         -i ~/.ssh/ovh_key \
+                         "$candidate@$OVH_HOST" 'printf ready' 2>/dev/null | grep -q ready; then
+                    echo "$candidate" > /tmp/ovh_user
+                    echo "Authenticated directly to OVH as $candidate on attempt $attempt"
+                    exit 0
+                  fi
+                done
+              fi
             fi
+            echo "OVH post-reinstall SSH not usable yet (attempt $attempt/24); retrying in 15s"
+            sleep 15
           done
-          echo 'OVH SSH is reachable, but the GitHub-controlled deployment key is not authorized yet.' >&2
+          echo 'OVH is reachable or provisioning, but the GitHub-controlled deployment key is still not accepted after post-reinstall retries.' >&2
           exit 2
 
       - name: Bootstrap host
