@@ -1,0 +1,63 @@
+name: Request Oracle Existing Instance Reactivation
+on:
+  push:
+    branches: [oracle-provision-run]
+    paths: [.github/workflows/oracle-request-reactivation-support.yml]
+permissions:
+  contents: read
+concurrency:
+  group: oracle-reactivation-support-request
+  cancel-in-progress: false
+jobs:
+  request:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Install official OCI SDK
+        run: python3 -m pip install --quiet oci
+      - name: Submit account reactivation and billing clarification request
+        env:
+          TENANCY: ${{ secrets.TENANCY }}
+          USER_OCID: ${{ secrets.USER }}
+          FINGERPRINT: ${{ secrets.FINGERPRINT }}
+          PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+          REGION: ${{ secrets.REGION }}
+        run: |
+          python3 -u - <<'PY'
+          import os,sys,oci
+          config=dict(tenancy=os.environ['TENANCY'],user=os.environ['USER_OCID'],fingerprint=os.environ['FINGERPRINT'],key_content=os.environ['PRIVATE_KEY'],region=os.environ['REGION'])
+          identity=oci.identity.IdentityClient(config)
+          regions=identity.list_region_subscriptions(config['tenancy']).data
+          home=[r for r in regions if r.is_home_region and r.status=='READY']
+          if len(home)!=1: sys.exit('Cannot identify one home region')
+          config['region']=home[0].region_name
+          compute=oci.core.ComputeClient(config)
+          matches=[v for v in oci.pagination.list_call_get_all_results(compute.list_instances,config['tenancy']).data if v.display_name=='fgbears-live' and v.lifecycle_state!='TERMINATED']
+          if len(matches)!=1: sys.exit('Existing instance not uniquely resolved')
+          vm=matches[0]
+          support=oci.cims.IncidentClient(config,timeout=(10,45))
+          title="Disabled fgbears-live instance: request reactivation and preserve boot volume"
+          try:
+              incidents=oci.pagination.list_call_get_all_results(support.list_incidents,config['tenancy'],problem_type='ACCOUNT',ocid=config['user'],homeregion=config['region'],retry_strategy=oci.retry.NoneRetryStrategy()).data
+              duplicates=[i for i in incidents if getattr(getattr(i,'ticket',None),'title',None)==title and getattr(getattr(i,'ticket',None),'lifecycle_state',None)!='CLOSED']
+              if duplicates:
+                  print('EXISTING_SUPPORT_REQUEST='+str(getattr(duplicates[0],'key','existing')))
+                  sys.exit(0)
+          except oci.exceptions.ServiceError as e: print('Support listing unavailable: '+e.code)
+          description="Hello Oracle Cloud Support,\n\nPlease review the disabled status of my existing fgbears-live compute instance and explain why it was disabled. If permitted under my account, please re-enable the existing instance so it can accept start requests.\n\nRegion: {region}\nInstance: {instance}\nShape: VM.Standard.A2.Flex; 0.5 OCPU; 6 GB RAM\nCurrent state: STOPPED\nBoot volume: fgbears-live (Boot Volume), 47 GB, AVAILABLE\n\nOn September 30, 2026 at approximately 01:58 UTC, an authenticated START request returned HTTP 409, IncorrectState: the instance is disabled and will not accept any action requests; customer support must re-enable it. OCI authentication and resource inventory work correctly.\n\nPlease preserve the instance, its 47 GB boot volume, and all data. Do not terminate, delete, recreate, resize, or change its configuration as part of this request without my approval.\n\nPlease also confirm whether operating this A2 shape would incur charges, whether my account has credits or free eligibility covering it, and what zero-cost recovery options are available. This request does not authorize an account upgrade, paid support, additional billable resources, or other purchases. Please communicate any proposed charges before proceeding.\n\nPreferred reply address: askdrkaypee@gmail.com\n\nThank you,\nKenneth Pierce".format(region=config['region'],instance=vm.id)
+          contact=oci.cims.models.Contact(contact_name='Kenneth Pierce',contact_email='askdrkaypee@gmail.com',email='askdrkaypee@gmail.com',contact_type='PRIMARY')
+          ticket=oci.cims.models.CreateTicketDetails(severity='MEDIUM',title=title,description=description)
+          request=oci.cims.models.CreateIncident(compartment_id=config['tenancy'],problem_type='ACCOUNT',ticket=ticket,contacts=[contact])
+          try:
+              response=support.create_incident(request,ocid=config['user'],homeregion=config['region'],retry_strategy=oci.retry.NoneRetryStrategy())
+              data=response.data
+              print('SUPPORT_REQUEST_HTTP_STATUS='+str(response.status))
+              print('SUPPORT_REQUEST_KEY='+str(getattr(data,'key','')))
+              print('SUPPORT_REQUEST_ACCEPTED=YES')
+              print('Reply contact: askdrkaypee@gmail.com')
+          except oci.exceptions.ServiceError as e:
+              print('SUPPORT_REQUEST_ERROR='+e.code)
+              print('SUPPORT_REQUEST_ERROR_STATUS='+str(e.status))
+              print('SUPPORT_REQUEST_ERROR_MESSAGE='+e.message)
+              sys.exit(3)
+          PY
