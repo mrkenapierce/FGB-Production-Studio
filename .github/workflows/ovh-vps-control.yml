@@ -1,0 +1,50 @@
+name: OVH VPS Control
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: OVH VPS control action
+        required: true
+        type: choice
+        default: status
+        options:
+          - status
+          - reboot
+          - normal
+          - rescue
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ovh-vps-control
+  cancel-in-progress: false
+
+jobs:
+  control:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      OVH_ENDPOINT: ovh-us
+      OVH_VPS_SERVICE_NAME: vps-a13eee97.vps.ovh.us
+      OVH_APPLICATION_KEY: ${{ secrets.OVH_APPLICATION_KEY }}
+      OVH_APPLICATION_SECRET: ${{ secrets.OVH_APPLICATION_SECRET }}
+      OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate protected credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$OVH_APPLICATION_KEY" || { echo 'Missing OVH_APPLICATION_KEY'; exit 1; }
+          test -n "$OVH_APPLICATION_SECRET" || { echo 'Missing OVH_APPLICATION_SECRET'; exit 1; }
+          test -n "$OVH_CONSUMER_KEY" || { echo 'Missing OVH_CONSUMER_KEY'; exit 1; }
+
+      - name: Install OVH API client
+        run: python -m pip install --disable-pip-version-check 'ovh>=1.2,<2'
+
+      - name: Execute OVH VPS action
+        run: python ops/transport-ovh/ovh-control.py '${{ inputs.action }}'
