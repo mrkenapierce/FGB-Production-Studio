@@ -1,0 +1,126 @@
+name: Start FGB YouTube Stream Now
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/start-fgb-youtube-now.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: start-fgb-youtube-now
+  cancel-in-progress: true
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$ORACLE_HOST"
+          test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -T 8 -H "$ORACLE_HOST" > ~/.ssh/known_hosts
+
+      - name: Start existing production YouTube transport
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o ConnectTimeout=8 -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'bash -s' <<'REMOTE' | tee /tmp/start-stream-status.txt
+          set -euo pipefail
+
+          unit_exists(){ systemctl list-unit-files "$1" --no-legend 2>/dev/null | grep -q "^$1"; }
+          pid(){ systemctl show -p MainPID --value "$1" 2>/dev/null || echo 0; }
+
+          MASTER=fgbears-live.service
+          RELAY=fgbears-youtube-copy-relay.service
+          HEALTH=fgbears-live-health.timer
+
+          sudo systemctl reset-failed "$MASTER" 2>/dev/null || true
+          sudo systemctl enable "$MASTER" >/dev/null 2>&1 || true
+          sudo systemctl restart "$MASTER"
+
+          if unit_exists "$HEALTH"; then
+            sudo systemctl enable --now "$HEALTH" >/dev/null 2>&1 || true
+          fi
+
+          if unit_exists "$RELAY"; then
+            sudo systemctl reset-failed "$RELAY" 2>/dev/null || true
+            sudo systemctl enable "$RELAY" >/dev/null 2>&1 || true
+            sudo systemctl restart "$RELAY"
+          fi
+
+          sleep 12
+
+          master_state=$(systemctl is-active "$MASTER" 2>/dev/null || true)
+          relay_state=not-installed
+          if unit_exists "$RELAY"; then relay_state=$(systemctl is-active "$RELAY" 2>/dev/null || true); fi
+          master_pid=$(pid "$MASTER")
+          relay_pid=0
+          if unit_exists "$RELAY"; then relay_pid=$(pid "$RELAY"); fi
+
+          # Accept outbound RTMPS/HTTPS connection from either master or dedicated relay.
+          connected=false
+          for _ in $(seq 1 15); do
+            if sudo ss -ntpH state established 2>/dev/null | awk -v mp="pid=$master_pid" -v rp="pid=$relay_pid" 'index($0,":443") && (index($0,mp) || (rp!="pid=0" && index($0,rp))){ok=1} END{exit(ok?0:1)}'; then
+              connected=true
+              break
+            fi
+            sleep 2
+          done
+
+          echo "START_REQUESTED=true"
+          echo "MASTER_STATE=$master_state"
+          echo "MASTER_PID=$master_pid"
+          echo "RELAY_STATE=$relay_state"
+          echo "RELAY_PID=$relay_pid"
+          echo "OUTBOUND_CONNECTED=$connected"
+
+          test "$master_state" = active
+          if unit_exists "$RELAY"; then test "$relay_state" = active; fi
+          test "$connected" = true
+          REMOTE
+
+      - name: Persist sanitized start status
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p .github/deployment-status
+          if [ -f /tmp/start-stream-status.txt ]; then
+            python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          allowed={'START_REQUESTED','MASTER_STATE','MASTER_PID','RELAY_STATE','RELAY_PID','OUTBOUND_CONNECTED'}
+          vals={}
+          for line in Path('/tmp/start-stream-status.txt').read_text(errors='ignore').splitlines():
+              if '=' in line:
+                  k,v=line.split('=',1)
+                  if k in allowed: vals[k]=v
+          out={'checkedAt':datetime.now(timezone.utc).isoformat(),'status':vals,'scope':'production-start-existing-config'}
+          Path('.github/deployment-status/youtube-start-now.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')
+          PY
+          else
+            printf '{"status":{"START_REQUESTED":"true","RESULT":"workflow_failed_before_remote_status"}}\n' > .github/deployment-status/youtube-start-now.json
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/youtube-start-now.json
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record YouTube stream start status'
+          git push
