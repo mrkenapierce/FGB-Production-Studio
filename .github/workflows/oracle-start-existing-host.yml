@@ -1,0 +1,105 @@
+name: Start Existing Oracle FGBears Host
+on:
+  push:
+    branches: [oracle-provision-run]
+    paths: [.github/workflows/oracle-start-existing-host.yml]
+permissions:
+  contents: read
+concurrency:
+  group: oracle-existing-host-start
+  cancel-in-progress: false
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Install official OCI SDK
+        run: python3 -m pip install --quiet oci
+      - name: Start only the existing FGBears instance
+        env:
+          TENANCY: ${{ secrets.TENANCY }}
+          USER_OCID: ${{ secrets.USER }}
+          FINGERPRINT: ${{ secrets.FINGERPRINT }}
+          PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+          REGION: ${{ secrets.REGION }}
+          LEGACY_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          python3 -u - <<'PY'
+          import os,sys,oci,time
+          config=dict(tenancy=os.environ['TENANCY'],user=os.environ['USER_OCID'],fingerprint=os.environ['FINGERPRINT'],key_content=os.environ['PRIVATE_KEY'],region=os.environ['REGION'])
+          identity=oci.identity.IdentityClient(config)
+          regions=identity.list_region_subscriptions(config['tenancy']).data
+          home=[r for r in regions if r.is_home_region and r.status=='READY']
+          if len(home)!=1: sys.exit('Cannot identify one READY home region')
+          config['region']=home[0].region_name
+          compute=oci.core.ComputeClient(config)
+          network=oci.core.VirtualNetworkClient(config)
+          instances=oci.pagination.list_call_get_all_results(compute.list_instances,config['tenancy']).data
+          matches=[v for v in instances if v.display_name=='fgbears-live' and v.lifecycle_state!='TERMINATED']
+          if len(matches)!=1: sys.exit('Expected exactly one existing fgbears-live instance')
+          vm=matches[0]
+          if vm.shape!='VM.Standard.A2.Flex': sys.exit('Instance shape changed; refusing to operate on a different target')
+          vnics=oci.pagination.list_call_get_all_results(compute.list_vnic_attachments,vm.compartment_id,instance_id=vm.id).data
+          addresses=[network.get_vnic(a.vnic_id).data.public_ip for a in vnics if a.lifecycle_state=='ATTACHED']
+          if os.environ['LEGACY_HOST'] not in addresses: sys.exit('Saved host no longer matches instance; refusing to start a different target')
+          print('INITIAL_STATE='+vm.lifecycle_state)
+          try:
+              if vm.lifecycle_state=='STOPPED':
+                  compute.instance_action(vm.id,'START',retry_strategy=oci.retry.NoneRetryStrategy())
+                  print('START_REQUEST=ACCEPTED')
+              elif vm.lifecycle_state=='RUNNING':
+                  print('ALREADY_RUNNING; no reboot requested')
+              elif vm.lifecycle_state!='STARTING':
+                  sys.exit('Cannot start from state '+vm.lifecycle_state)
+              for _ in range(36):
+                  state=compute.get_instance(vm.id).data.lifecycle_state
+                  print('INSTANCE_STATE='+state)
+                  if state=='RUNNING': break
+                  if state not in ('STARTING','STOPPED'): sys.exit('Unexpected instance state '+state)
+                  time.sleep(5)
+              else: sys.exit('Start accepted but RUNNING state was not observed within 180 seconds')
+          except oci.exceptions.ServiceError as e:
+              print('START_ERROR_CODE='+e.code)
+              print('START_ERROR_STATUS='+str(e.status))
+              print('START_ERROR_MESSAGE='+e.message)
+              sys.exit(3)
+          print('ORACLE_START=RUNNING')
+          PY
+      - name: Verify SSH and read existing service state
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ready=0
+          for i in $(seq 1 20); do
+            if ssh-keyscan -T 5 -H "$ORACLE_HOST" > ~/.ssh/known_hosts 2>/dev/null && ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=yes -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'true' 2>/dev/null; then ready=1; break; fi
+            sleep 5
+          done
+          test "$ready" -eq 1 || { echo 'Instance running but SSH did not become accessible'; exit 4; }
+          ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=yes -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -uo pipefail
+          echo 'SSH_ACCESS=OK'
+          uname -m
+          nproc
+          free -m
+          df -h /
+          uptime
+          echo '=== Existing service state ==='
+          systemctl list-units --all --no-pager --plain | awk '/fgb|rumble|youtube|transport/ {print $1,$3,$4}'
+          systemctl show fgbears-live.service -p ActiveState -p SubState -p MemoryCurrent --no-pager
+          echo '=== Process load ==='
+          ps -eo comm,pcpu,pmem --sort=-pcpu | head -15
+          for p in /srv/fgbears-live /opt/fgb-transport "$HOME/fgb-transport"; do test ! -d "$p" || echo "DEPLOYMENT_DIRECTORY=$p"; done
+          echo '=== Media inventory counts ==='
+          if test -d /srv/fgbears-live/media; then find /srv/fgbears-live/media -maxdepth 1 -type f -name '*.mp4' | wc -l; fi
+          echo '=== Encoding progress samples ==='
+          for sample in 1 2; do
+            sudo -n tail -15 /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null | awk '/^(frame|fps|out_time_us|speed|progress)=/' || true
+            if test "$sample" = 1; then sleep 10; fi
+          done
+          echo 'HOST_CHECK=COMPLETE'
+          REMOTE
