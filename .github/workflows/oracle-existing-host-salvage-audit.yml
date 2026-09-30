@@ -61,3 +61,66 @@ jobs:
           fi
           echo 'SALVAGE_AUDIT=COMPLETE'
           REMOTE
+
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Install official OCI SDK
+        run: python3 -m pip install --quiet oci
+      - name: Read subscribed-region instance and storage inventory
+        env:
+          TENANCY: ${{ secrets.TENANCY }}
+          USER_OCID: ${{ secrets.USER }}
+          FINGERPRINT: ${{ secrets.FINGERPRINT }}
+          PRIVATE_KEY: ${{ secrets.OCI_PRIVATE_KEY }}
+          REGION: ${{ secrets.REGION }}
+          LEGACY_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          python3 - <<'PY'
+          import os,json,oci
+          config=dict(tenancy=os.environ['TENANCY'],user=os.environ['USER_OCID'],fingerprint=os.environ['FINGERPRINT'],key_content=os.environ['PRIVATE_KEY'],region=os.environ['REGION'])
+          identity=oci.identity.IdentityClient(config)
+          regions=oci.pagination.list_call_get_all_results(identity.list_region_subscriptions,config['tenancy']).data
+          compartments=[(config['tenancy'],'tenancy-root')]
+          try:
+              cs=oci.pagination.list_call_get_all_results(identity.list_compartments,config['tenancy'],compartment_id_in_subtree=True,access_level='ACCESSIBLE').data
+              compartments += [(c.id,c.name) for c in cs if c.lifecycle_state=='ACTIVE']
+          except oci.exceptions.ServiceError as e: print('Compartment inventory error:',e.code)
+          print('Accessible compartments:',len(compartments))
+          for region in regions:
+              if region.status!='READY': continue
+              config['region']=region.region_name
+              compute=oci.core.ComputeClient(config)
+              network=oci.core.VirtualNetworkClient(config)
+              block=oci.core.BlockstorageClient(config)
+              print('REGION',region.region_name,'HOME',region.is_home_region)
+              for cid,cname in compartments:
+                  try:
+                      instances=oci.pagination.list_call_get_all_results(compute.list_instances,cid).data
+                  except oci.exceptions.ServiceError as e:
+                      print('Instance listing unavailable:',cname,e.code); continue
+                  for vm in instances:
+                      if vm.lifecycle_state=='TERMINATED': continue
+                      shape=vm.shape_config
+                      print('INSTANCE',json.dumps(dict(name=vm.display_name,compartment=cname,state=vm.lifecycle_state,shape=vm.shape,ocpus=getattr(shape,'ocpus',None),memory_gb=getattr(shape,'memory_in_gbs',None))))
+                      try:
+                          attachments=oci.pagination.list_call_get_all_results(compute.list_vnic_attachments,cid,instance_id=vm.id).data
+                          for a in attachments:
+                              if a.lifecycle_state=='ATTACHED':
+                                  v=network.get_vnic(a.vnic_id).data
+                                  print('NETWORK',json.dumps(dict(instance=vm.display_name,public_ip_present=bool(v.public_ip),matches_saved_host=(v.public_ip==os.environ.get('LEGACY_HOST')))))
+                      except oci.exceptions.ServiceError as e: print('Network listing unavailable:',e.code)
+                  try:
+                      ads=identity.list_availability_domains(cid).data
+                      for ad in ads:
+                          boots=oci.pagination.list_call_get_all_results(block.list_boot_volumes,ad.name,cid).data
+                          for b in boots:
+                              if b.lifecycle_state!='TERMINATED':
+                                  print('BOOT_VOLUME',json.dumps(dict(name=b.display_name,compartment=cname,state=b.lifecycle_state,size_gb=b.size_in_gbs,ad=ad.name)))
+                      volumes=oci.pagination.list_call_get_all_results(block.list_volumes,cid).data
+                      for v in volumes:
+                          if v.lifecycle_state!='TERMINATED': print('BLOCK_VOLUME',json.dumps(dict(name=v.display_name,state=v.lifecycle_state,size_gb=v.size_in_gbs)))
+                  except oci.exceptions.ServiceError as e: print('Storage listing unavailable:',cname,e.code)
+          print('OCI_INVENTORY=COMPLETE')
+          PY
