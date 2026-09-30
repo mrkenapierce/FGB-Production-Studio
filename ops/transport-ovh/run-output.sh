@@ -4,7 +4,10 @@ set -uo pipefail
 : "${BROADCAST_ORIGIN:?BROADCAST_ORIGIN required}"
 MODE="${OUTPUT}"
 case "$OUTPUT" in
-  youtube) TARGET=youtube ;;
+  youtube)
+    # Production/default behavior remains YouTube-safe. Emergency/direct relays may
+    # explicitly render the real trivia view with YOUTUBE_RENDER_TARGET=rumble.
+    TARGET="${YOUTUBE_RENDER_TARGET:-youtube}" ;;
   rumble_bridge)
     TARGET="${BRIDGE_RENDER_TARGET:-rumble}"
     : "${RUMBLE_STUDIO_INGEST_URL:?RUMBLE_STUDIO_INGEST_URL required for rumble_bridge}"
