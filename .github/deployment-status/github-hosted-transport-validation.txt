@@ -1,0 +1,14 @@
+checkedAt=2026-09-30T18:47:45Z
+status=passed
+origin=https://epiccontentcreatorgrants.org/fgb-broadcast?target=youtube
+output=local_flv_only
+production_stream_started=false
+browser_credit_required=false
+codec_name=h264
+codec_type=video
+width=1280
+height=720
+r_frame_rate=30/1
+codec_name=aac
+codec_type=audio
+r_frame_rate=0/0
