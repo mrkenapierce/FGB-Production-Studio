@@ -1,6 +1,6 @@
 # OVH Transport Takeover Status
 
-GitHub Actions is the deployment controller for the FGB OVH transport migration.
+GitHub Actions is now the direct deployment controller for the FGB OVH transport migration. No browser automation is part of the deployment path.
 
 ## Target
 
@@ -9,33 +9,50 @@ GitHub Actions is the deployment controller for the FGB OVH transport migration.
 - Purpose: staging transport for Lovable `/fgb-broadcast` -> FFmpeg -> YouTube
 - Production cutover: **not authorized by this automation**; explicit final go-live approval remains required.
 
+## Direct deployment architecture
+
+`GitHub Actions -> SSH/TCP 22 -> OVH VPS -> Docker/Chromium/FFmpeg -> YouTube`
+
+The GitHub runner directly tests and uses SSH. Browser automation, TinyFish, and browser-extension credits are not required for this deployment workflow.
+
+## Verified state
+
+- OVH TCP/22 is open from GitHub-hosted runners.
+- The server returns an SSH host key/banner.
+- The current legacy protected `ORACLE_SSH_KEY` does **not** authenticate as `ubuntu`, `debian`, or `root`.
+- The transport Docker image builds successfully in GitHub Actions.
+- An isolated GitHub-hosted dry run successfully rendered the live Lovable broadcast page through Chromium + FFmpeg with local-only FLV output; no YouTube stream was started.
+
 ## GitHub-managed pieces
 
-1. `prepare-ovh-vps-key.yml`
-   - Derives the public half of the existing protected deployment key (`ORACLE_SSH_KEY`) without exposing the private key.
-   - Public key: `ops/transport-ovh/ovh-deploy.pub`.
+1. `deploy-ovh-transport-staging.yml`
+   - Uses direct GitHub-to-OVH SSH only.
+   - Prefers a dedicated protected `OVH_SSH_KEY`; falls back to the legacy `ORACLE_SSH_KEY` only if needed.
+   - Performs a direct TCP/22 and SSH-banner preflight.
+   - Discovers `ubuntu`, `debian`, or `root` after authentication.
+   - Builds the transport image before remote deployment.
+   - Runs `bootstrap-ovh.sh` remotely after authentication succeeds.
+   - Verifies Docker + SSH are active and the livestream service is stopped before host-only secrets are supplied.
+   - Writes sanitized status after success.
 
-2. `deploy-ovh-transport-staging.yml`
-   - Retries the OVH host automatically every 30 minutes.
-   - Discovers the supported SSH login account (`ubuntu`, `debian`, or `root`).
-   - Runs `bootstrap-ovh.sh` as root/sudo after SSH becomes available.
-   - Verifies Docker + SSH are active.
-   - Verifies the livestream service is disabled and stopped before host-only secrets are supplied.
-   - Writes sanitized status to `.github/deployment-status/ovh-transport-staging.json` after success.
-
-3. `bootstrap-ovh.sh`
+2. `bootstrap-ovh.sh`
    - Installs/updates SSH, Docker, Compose, Git, UFW and supporting packages.
    - Builds the transport image.
    - Restricts inbound firewall access to SSH.
    - Installs the `fgb-transport.service` systemd unit.
    - Creates `NEEDS_SECRETS` and prevents the transport from starting until secure host configuration is complete.
 
-4. `inspect-oracle-fgb-transport.yml`
-   - Collects only filenames/unit names/path metadata from the existing Oracle transport.
-   - Never reads or commits secret values.
+3. `validate-github-hosted-transport.yml`
+   - Builds the same transport image on a GitHub-hosted runner.
+   - Loads the real Lovable broadcast source.
+   - Encodes to a local FLV only for validation.
+   - Never sends a production stream.
 
-## Current external blocker
+4. `diagnose-ovh-direct.yml` and `diagnose-ovh-auth.yml`
+   - Verify direct network and authentication state without exposing credentials.
 
-The OVH host is reachable at the network layer, but SSH on TCP/22 is not accepting connections. GitHub Actions therefore cannot yet enter the server to run the bootstrap. The GitHub deployment workflow will continue retrying automatically.
+## Current blocker
+
+The deployment path itself no longer depends on TinyFish. The only remaining OVH blocker is authorization: a private key available to GitHub must match a public key authorized on the VPS. Once that key relationship exists, the GitHub workflow can bootstrap and administer the VPS directly without browser interaction.
 
 No production YouTube stream key has been copied to OVH, no OVH transport has been started, Oracle has not been altered, and no production cutover has occurred.
