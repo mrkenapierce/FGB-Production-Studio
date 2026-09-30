@@ -1,0 +1,78 @@
+name: Validate GitHub-Hosted FGB Transport
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/validate-github-hosted-transport.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: validate-github-hosted-transport
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build transport image
+        working-directory: ops/transport-ovh
+        run: docker build -t fgb-transport-github-dryrun .
+
+      - name: Run isolated local-output validation
+        working-directory: ops/transport-ovh
+        run: |
+          set -euo pipefail
+          cid=$(docker run -d --rm --shm-size=1g \
+            -e OUTPUT=youtube \
+            -e BROADCAST_ORIGIN=https://epiccontentcreatorgrants.org \
+            -e DESTINATIONS=/tmp/fgb-dryrun.flv \
+            -e VIDEO_BITRATE=1800k \
+            -e AUDIO_BITRATE=128k \
+            -e STALL_SECONDS=30 \
+            --name fgb-transport-dryrun \
+            fgb-transport-github-dryrun)
+          echo "$cid" > /tmp/fgb-cid
+          sleep 55
+          docker exec "$cid" test -s /tmp/fgb-dryrun.flv
+          docker exec "$cid" ffprobe -v error -show_entries stream=codec_type,codec_name,width,height,r_frame_rate -of default=noprint_wrappers=1 /tmp/fgb-dryrun.flv | tee /tmp/fgb-probe.txt
+          docker exec "$cid" sh -lc 'test -f /tmp/fgb-ffmpeg.progress && grep -q "progress=continue\|progress=end" /tmp/fgb-ffmpeg.progress'
+          docker stop "$cid" >/dev/null
+
+      - name: Persist sanitized validation result
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p .github/deployment-status
+          status='failed'
+          if [ -s /tmp/fgb-probe.txt ] && grep -q 'codec_type=video' /tmp/fgb-probe.txt && grep -q 'codec_type=audio' /tmp/fgb-probe.txt; then
+            status='passed'
+          fi
+          {
+            echo "checkedAt=$(date -u +%FT%TZ)"
+            echo "status=$status"
+            echo "origin=https://epiccontentcreatorgrants.org/fgb-broadcast?target=youtube"
+            echo 'output=local_flv_only'
+            echo 'production_stream_started=false'
+            echo 'browser_credit_required=false'
+            if [ -s /tmp/fgb-probe.txt ]; then
+              sed -n '1,20p' /tmp/fgb-probe.txt
+            fi
+          } > .github/deployment-status/github-hosted-transport-validation.txt
+          cat .github/deployment-status/github-hosted-transport-validation.txt
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/github-hosted-transport-validation.txt
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record GitHub-hosted transport validation'
+          git push
