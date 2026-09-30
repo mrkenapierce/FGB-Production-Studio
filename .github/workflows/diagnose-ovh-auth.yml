@@ -56,7 +56,7 @@ jobs:
                 return 0
               fi
               echo "SSH diagnostic source=$source user=$candidate"
-              rg "Authentications that can continue|Server accepts key|Permission denied|Host key verification failed|Load key|sign_and_send_pubkey|no mutual|Connection timed out|Connection refused|Authenticated to" /tmp/ovh-auth-error.log || true
+              grep -E "Authentications that can continue|Server accepts key|Permission denied|Host key verification failed|Load key|sign_and_send_pubkey|no mutual|Connection timed out|Connection refused|Authenticated to" /tmp/ovh-auth-error.log || true
             done
             return 1
           }
