@@ -114,11 +114,11 @@ jobs:
                   try:
                       ads=identity.list_availability_domains(cid).data
                       for ad in ads:
-                          boots=oci.pagination.list_call_get_all_results(block.list_boot_volumes,ad.name,cid).data
+                          boots=oci.pagination.list_call_get_all_results(block.list_boot_volumes,availability_domain=ad.name,compartment_id=cid).data
                           for b in boots:
                               if b.lifecycle_state!='TERMINATED':
                                   print('BOOT_VOLUME',json.dumps(dict(name=b.display_name,compartment=cname,state=b.lifecycle_state,size_gb=b.size_in_gbs,ad=ad.name)))
-                      volumes=oci.pagination.list_call_get_all_results(block.list_volumes,cid).data
+                      volumes=oci.pagination.list_call_get_all_results(block.list_volumes,compartment_id=cid).data
                       for v in volumes:
                           if v.lifecycle_state!='TERMINATED': print('BLOCK_VOLUME',json.dumps(dict(name=v.display_name,state=v.lifecycle_state,size_gb=v.size_in_gbs)))
                   except oci.exceptions.ServiceError as e: print('Storage listing unavailable:',cname,e.code)
