@@ -85,10 +85,14 @@ jobs:
                          -o PasswordAuthentication=no \
                          -o ConnectTimeout=7 \
                          -i ~/.ssh/ovh_key \
-                         "$candidate@$OVH_HOST" 'printf ready' 2>/dev/null | grep -q ready; then
+                         "$candidate@$OVH_HOST" 'printf ready' >/tmp/ovh-session.stdout 2>/tmp/ovh-session.stderr && grep -q ready /tmp/ovh-session.stdout; then
                     echo "$candidate" > /tmp/ovh_user
                     echo "Authenticated directly to OVH as $candidate on attempt $attempt"
                     exit 0
+                  fi
+                  if grep -qiE "password has expired|password change required|change your password immediately" /tmp/ovh-session.stderr /tmp/ovh-session.stdout; then
+                    echo "::error::OVH accepts the deployment key, but the Ubuntu account requires its first-login password change in the OVH console before remote commands can run."
+                    exit 4
                   fi
                 done
               fi
@@ -191,7 +195,7 @@ jobs:
           ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "$u@$OVH_HOST" 'bash -s' <<'REMOTE' | tee /tmp/ovh-production-status.txt
           set -euo pipefail
           if [ "$(id -u)" -eq 0 ]; then SUDO=''; else SUDO='sudo -n'; fi
-          rm -f /opt/fgb-transport/NEEDS_SECRETS
+          $SUDO rm -f /opt/fgb-transport/NEEDS_SECRETS
           $SUDO systemctl daemon-reload
           $SUDO systemctl enable fgb-transport.service
           $SUDO systemctl restart fgb-transport.service
