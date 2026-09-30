@@ -1,0 +1,15 @@
+{
+  "browserAutomationUsed": false,
+  "checkedAt": "2026-09-30T19:40:16.246346+00:00",
+  "maximumRunnerDurationMinutes": 345,
+  "mode": "github-hosted-emergency-production-feed",
+  "oracleRequired": false,
+  "ovhRequired": false,
+  "status": {
+    "DESTINATION": "YouTube-RTMPS",
+    "ENCODER_STATE": "live",
+    "RESTARTS": "0",
+    "SOURCE_TARGET": "rumble",
+    "STREAM_REQUESTED": "true"
+  }
+}
