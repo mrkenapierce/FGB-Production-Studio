@@ -1,0 +1,17 @@
+services:
+  youtube:
+    build: .
+    restart: unless-stopped
+    shm_size: "1gb"
+    env_file: .env
+    environment:
+      OUTPUT: youtube
+      DESTINATIONS: ${YOUTUBE_DESTINATIONS}
+  rumble_bridge:
+    profiles: ["fallback"]
+    build: .
+    restart: unless-stopped
+    shm_size: "1gb"
+    env_file: .env
+    environment:
+      OUTPUT: rumble_bridge
