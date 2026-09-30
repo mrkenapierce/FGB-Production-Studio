@@ -64,9 +64,17 @@ def reboot(c):
     return wait_for(c, states={"running", "rescued"}, timeout=300)
 
 
+def ensure_normal(c):
+    state = get_state(c)
+    if state.get("netbootMode") == "local":
+        return state
+    set_boot(c, "local")
+    return reboot(c)
+
+
 def main():
     p = argparse.ArgumentParser(description="Controlled OVH VPS operations for the FGB transport host")
-    p.add_argument("action", choices=["status", "reboot", "normal", "rescue"])
+    p.add_argument("action", choices=["status", "reboot", "normal", "ensure-normal", "rescue"])
     args = p.parse_args()
     c = client()
 
@@ -77,6 +85,8 @@ def main():
     elif args.action == "normal":
         set_boot(c, "local")
         result = reboot(c)
+    elif args.action == "ensure-normal":
+        result = ensure_normal(c)
     elif args.action == "rescue":
         set_boot(c, "rescue")
         result = reboot(c)
