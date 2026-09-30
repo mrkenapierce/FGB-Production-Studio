@@ -1,0 +1,47 @@
+name: Prepare OVH VPS Deploy Key
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/prepare-ovh-vps-key.yml
+
+permissions:
+  contents: write
+
+jobs:
+  derive-public-key:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Require existing deployment key
+        env:
+          DEPLOY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$DEPLOY_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+
+      - name: Derive public key without exposing private key
+        env:
+          DEPLOY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_KEY" > "$HOME/.ssh/ovh_deploy_key"
+          chmod 600 "$HOME/.ssh/ovh_deploy_key"
+          mkdir -p ops/transport-ovh
+          ssh-keygen -y -f "$HOME/.ssh/ovh_deploy_key" | awk '{print $1" "$2" github-actions-ovh-deploy"}' > ops/transport-ovh/ovh-deploy.pub
+          chmod 644 ops/transport-ovh/ovh-deploy.pub
+          rm -f "$HOME/.ssh/ovh_deploy_key"
+
+      - name: Commit public key only
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add ops/transport-ovh/ovh-deploy.pub
+          git diff --cached --quiet && exit 0
+          git commit -m "Add OVH deploy public key"
+          git push
