@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 30 Sep 2026 01:44:26 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 30 Sep 2026 07:29:23 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Are you confident in the Bears and their quarterback room?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Are you confident in the Bears and their quarterback room?</description>
+      <link>https://sports.yahoo.com/articles/confident-bears-quarterback-room-033205433.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6c32b13fc3acf84ae5e7</guid>
+      <pubDate>Wed, 30 Sep 2026 03:32:05 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Chicago Bears Week 4 power rankings roundup</title>
@@ -15,16 +25,6 @@
       <link>https://sports.yahoo.com/articles/chicago-bears-week-4-power-000000224.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-6792ce4046ad18452caa</guid>
       <pubDate>Wed, 30 Sep 2026 00:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears outplay and outcoach the Eagles</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears outplay and outcoach the Eagles</description>
-      <link>https://sports.yahoo.com/articles/bears-outplay-outcoach-eagles-224500751.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a4fbfc1418f0d2f46708</guid>
-      <pubDate>Tue, 29 Sep 2026 22:45:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -80,13 +80,13 @@
     </item>
 
     <item>
-      <title>Caleb Williams&apos; Injury Prompts NFL to Change Bears-Packers Week 5 Game Time</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams&apos; Injury Prompts NFL to Change Bears-Packers Week 5 Game Time</description>
-      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-injury-prompts-nfl-to-change-bears-packers-week-5-game-time</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8b83387ef9e36062dbca</guid>
-      <pubDate>Tue, 29 Sep 2026 12:31:00 GMT</pubDate>
+      <title>Bears-Packers game in Week 5 moved to 1 p.m. ET kickoff</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears-Packers game in Week 5 moved to 1 p.m. ET kickoff</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-packers-game-in-week-5-moved-to-1-p-m-et-kickoff</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d823cf774f812a999daa</guid>
+      <pubDate>Tue, 29 Sep 2026 06:14:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
