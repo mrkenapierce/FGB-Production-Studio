@@ -1,0 +1,63 @@
+name: Oracle Existing Host Salvage Audit
+on:
+  push:
+    branches: [oracle-provision-run]
+    paths: [.github/workflows/oracle-existing-host-salvage-audit.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Prepare existing SSH access
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$ORACLE_HOST" || { echo 'Existing ORACLE_HOST is unavailable'; exit 2; }
+          test -n "$ORACLE_SSH_KEY" || { echo 'Existing SSH key is unavailable'; exit 2; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keygen -y -f ~/.ssh/oracle_key >/dev/null
+          ssh-keyscan -T 10 -H "$ORACLE_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+      - name: Read host resources and service inventory
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+        run: |
+          set -Eeuo pipefail
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes -i ~/.ssh/oracle_key "ubuntu@$ORACLE_HOST" 'bash -s' <<'REMOTE'
+          set -uo pipefail
+          echo 'HOST_ACCESS=OK'
+          uname -m
+          nproc
+          free -m
+          df -h / /srv /opt 2>/dev/null
+          uptime
+          echo '=== Existing streaming units ==='
+          systemctl list-units --all --no-pager --plain | awk '/fgb|rumble|youtube|transport/ {print $1,$3,$4}'
+          echo '=== Legacy service state ==='
+          systemctl show fgbears-live.service -p ActiveState -p SubState -p CPUUsageNSec -p MemoryCurrent -p CPUQuotaPerSecUSec --no-pager
+          echo '=== Process load (no arguments) ==='
+          ps -eo comm,pcpu,pmem --sort=-pcpu | head -15
+          echo '=== Available software ==='
+          for bin in docker ffmpeg chromium chromium-browser Xvfb pulseaudio; do command -v "$bin" || true; done
+          echo '=== Docker inventory (no environment or destinations) ==='
+          if command -v docker >/dev/null; then
+            sudo -n docker ps -a --format '{{.Names}} {{.Image}} {{.Status}}' 2>/dev/null || true
+            sudo -n docker stats --no-stream --format '{{.Name}} CPU={{.CPUPerc}} RAM={{.MemUsage}}' 2>/dev/null || true
+          fi
+          echo '=== Known deployment directories ==='
+          for p in /srv/fgbears-live /opt/fgb-transport "$HOME/fgb-transport"; do
+            if test -d "$p"; then echo "$p exists"; fi
+          done
+          echo '=== Encoder progression ==='
+          if test -f /srv/fgbears-live/logs/ffmpeg-progress.log; then
+            sudo -n tail -15 /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null | awk '/^(frame|fps|out_time_us|speed|progress)=/'
+            sleep 10
+            sudo -n tail -15 /srv/fgbears-live/logs/ffmpeg-progress.log 2>/dev/null | awk '/^(frame|fps|out_time_us|speed|progress)=/'
+          fi
+          echo 'SALVAGE_AUDIT=COMPLETE'
+          REMOTE
