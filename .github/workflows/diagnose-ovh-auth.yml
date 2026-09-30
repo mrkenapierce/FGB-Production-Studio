@@ -20,38 +20,57 @@ env:
 jobs:
   auth:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Test protected deployment key without exposing it
+      - name: Test protected deployment keys without exposing them
         env:
-          DEPLOY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          OVH_KEY: ${{ secrets.OVH_SSH_KEY }}
+          LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
           set -euo pipefail
-          test -n "$DEPLOY_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
           install -d -m 700 ~/.ssh
-          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
-          chmod 600 ~/.ssh/ovh_key
           ssh-keyscan -T 5 -H "$OVH_HOST" > ~/.ssh/ovh_known_hosts
 
-          result='AUTH_SUCCESS=false'
-          user=''
-          for candidate in ubuntu debian root; do
-            if ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=5 -i ~/.ssh/ovh_key "$candidate@$OVH_HOST" 'printf ready' 2>/dev/null | grep -q ready; then
-              result='AUTH_SUCCESS=true'
-              user="$candidate"
-              break
-            fi
-          done
+          auth_success=false
+          login_user='none'
+          key_source='none'
+          ovh_present=false
+          legacy_present=false
+          [ -n "$OVH_KEY" ] && ovh_present=true
+          [ -n "$LEGACY_KEY" ] && legacy_present=true
+
+          test_key() {
+            local value="$1" source="$2"
+            [ -n "$value" ] || return 1
+            printf '%s\n' "$value" > ~/.ssh/ovh_key
+            chmod 600 ~/.ssh/ovh_key
+            for candidate in ubuntu debian root; do
+              if ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=5 -i ~/.ssh/ovh_key "$candidate@$OVH_HOST" 'printf ready' 2>/dev/null | grep -q ready; then
+                auth_success=true
+                login_user="$candidate"
+                key_source="$source"
+                return 0
+              fi
+            done
+            return 1
+          }
+
+          test_key "$OVH_KEY" 'OVH_SSH_KEY' || true
+          if [ "$auth_success" != true ]; then test_key "$LEGACY_KEY" 'ORACLE_SSH_KEY' || true; fi
+          rm -f ~/.ssh/ovh_key
 
           mkdir -p .github/deployment-status
           {
             echo "checkedAt=$(date -u +%FT%TZ)"
-            echo "$result"
-            echo "LOGIN_USER=${user:-none}"
+            echo "OVH_KEY_PRESENT=$ovh_present"
+            echo "LEGACY_KEY_PRESENT=$legacy_present"
+            echo "AUTH_SUCCESS=$auth_success"
+            echo "LOGIN_USER=$login_user"
+            echo "KEY_SOURCE=$key_source"
             echo 'SSH_PORT=22'
           } > .github/deployment-status/ovh-auth-diagnostic.txt
           cat .github/deployment-status/ovh-auth-diagnostic.txt
@@ -59,6 +78,8 @@ jobs:
       - name: Commit sanitized auth result
         run: |
           set -euo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add .github/deployment-status/ovh-auth-diagnostic.txt
