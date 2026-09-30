@@ -49,14 +49,15 @@ jobs:
             printf '%s\n' "$value" > ~/.ssh/ovh_key
             chmod 600 ~/.ssh/ovh_key
             for candidate in ubuntu debian root; do
-              if ssh -vvv -o IdentitiesOnly=yes -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=5 -i ~/.ssh/ovh_key "$candidate@$OVH_HOST" 'printf ready' 2>/tmp/ovh-auth-error.log | grep -q ready; then
+              if ssh -vvv -o IdentitiesOnly=yes -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=5 -i ~/.ssh/ovh_key "$candidate@$OVH_HOST" 'printf ready' >/tmp/ovh-auth-output.log 2>/tmp/ovh-auth-error.log && grep -q ready /tmp/ovh-auth-output.log; then
                 auth_success=true
                 login_user="$candidate"
                 key_source="$source"
                 return 0
               fi
               echo "SSH diagnostic source=$source user=$candidate"
-              grep -E "Authentications that can continue|Server accepts key|Permission denied|Host key verification failed|Load key|sign_and_send_pubkey|no mutual|Connection timed out|Connection refused|Authenticated to" /tmp/ovh-auth-error.log || true
+              grep -Ei "password|expired|change|ready|denied|terminal" /tmp/ovh-auth-output.log || true
+              grep -E "Authentications that can continue|Server accepts key|Permission denied|Host key verification failed|Load key|sign_and_send_pubkey|no mutual|Connection timed out|Connection refused|Authenticated to|password|Password|PAM|expired|Exit status" /tmp/ovh-auth-error.log || true
             done
             return 1
           }
