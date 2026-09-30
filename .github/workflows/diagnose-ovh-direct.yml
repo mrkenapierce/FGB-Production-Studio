@@ -1,0 +1,90 @@
+name: Diagnose OVH Direct Connectivity
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/diagnose-ovh-direct.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: diagnose-ovh-direct
+  cancel-in-progress: true
+
+env:
+  OVH_HOST: 40.160.144.185
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Probe direct management paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          report=/tmp/ovh-direct-diagnostic.txt
+          : > "$report"
+          echo "checkedAt=$(date -u +%FT%TZ)" >> "$report"
+          echo "host=$OVH_HOST" >> "$report"
+          echo "ipv4_route=$(ip route get "$OVH_HOST" 2>/dev/null | head -1 | sed 's/[[:space:]]\+/ /g' || true)" >> "$report"
+
+          echo >> "$report"
+          echo "[tcp]" >> "$report"
+          for port in 22 2222 2200 2022 443 8443 80; do
+            if timeout 4 bash -c "</dev/tcp/$OVH_HOST/$port" 2>/dev/null; then
+              echo "port_$port=open" >> "$report"
+            else
+              echo "port_$port=closed_or_filtered" >> "$report"
+            fi
+          done
+
+          echo >> "$report"
+          echo "[ssh_banner]" >> "$report"
+          for port in 22 2222 2200 2022 443 8443; do
+            banner=$(timeout 5 ssh-keyscan -T 3 -p "$port" "$OVH_HOST" 2>/dev/null | head -1 || true)
+            if [ -n "$banner" ]; then
+              # Record only host-key algorithm; never record keys/fingerprints.
+              alg=$(printf '%s\n' "$banner" | awk '{print $2}' | head -1)
+              echo "ssh_$port=responding algorithm=${alg:-unknown}" >> "$report"
+            else
+              echo "ssh_$port=no_banner" >> "$report"
+            fi
+          done
+
+          echo >> "$report"
+          echo "[http]" >> "$report"
+          for scheme in http https; do
+            code=$(curl -k -sS -o /dev/null -m 6 -w '%{http_code}' "$scheme://$OVH_HOST/" || true)
+            echo "${scheme}_status=${code:-000}" >> "$report"
+          done
+
+          echo >> "$report"
+          echo "[icmp]" >> "$report"
+          if ping -c 2 -W 2 "$OVH_HOST" >/dev/null 2>&1; then
+            echo "ping=reachable" >> "$report"
+          else
+            echo "ping=no_reply" >> "$report"
+          fi
+
+          mkdir -p .github/deployment-status
+          cp "$report" .github/deployment-status/ovh-direct-diagnostic.txt
+          cat "$report"
+
+      - name: Commit sanitized diagnostic
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/ovh-direct-diagnostic.txt
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record OVH direct connectivity diagnostic'
+          git push
