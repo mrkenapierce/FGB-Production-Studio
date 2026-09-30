@@ -5,26 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 29 Sep 2026 22:45:44 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 30 Sep 2026 01:44:26 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Eagles rookie report card from the Bears game</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Eagles rookie report card from the Bears game</description>
-      <link>https://sports.yahoo.com/articles/eagles-rookie-report-card-bears-210200383.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7ab46efd61e371e9c115</guid>
-      <pubDate>Tue, 29 Sep 2026 21:02:00 GMT</pubDate>
+      <title>Chicago Bears Week 4 power rankings roundup</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Week 4 power rankings roundup</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-week-4-power-000000224.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6792ce4046ad18452caa</guid>
+      <pubDate>Wed, 30 Sep 2026 00:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears vs. Eagles Game Balls: Keenum Shines, Defense Has Hope</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Eagles Game Balls: Keenum Shines, Defense Has Hope</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-eagles-game-balls-210000917.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-74220bd6a5695ff43396</guid>
-      <pubDate>Tue, 29 Sep 2026 21:00:00 GMT</pubDate>
+      <title>Bears outplay and outcoach the Eagles</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears outplay and outcoach the Eagles</description>
+      <link>https://sports.yahoo.com/articles/bears-outplay-outcoach-eagles-224500751.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a4fbfc1418f0d2f46708</guid>
+      <pubDate>Tue, 29 Sep 2026 22:45:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -60,6 +60,16 @@
     </item>
 
     <item>
+      <title>Chicago Bears and Case Keenum after Week 3 win vs. Eagles | &apos;The NFL Report&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Chicago Bears and Case Keenum after Week 3 win vs. Eagles | &apos;The NFL Report&apos;</description>
+      <link>https://www.nfl.com/videos/chicago-bears-and-case-keenum-after-week-3-win-vs-eagles-the-nfl-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-898c3ae3a502d11e8a5c</guid>
+      <pubDate>Tue, 29 Sep 2026 16:26:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
       <title>Bears&apos; Week 5 game vs. Packers moved to noon CT kickoff</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears&apos; Week 5 game vs. Packers moved to noon CT kickoff</description>
       <link>https://www.chicagobears.com/news/bears-week-5-game-vs-packers-moved-to-noon-ct-kickoff</link>
@@ -75,16 +85,6 @@
       <link>https://www.si.com/nfl/bears/onsi/caleb-williams-injury-prompts-nfl-to-change-bears-packers-week-5-game-time</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-8b83387ef9e36062dbca</guid>
       <pubDate>Tue, 29 Sep 2026 12:31:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears Week 4 NFL Power Rankings: Case Keenum, Defense Has Chicago Surging</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Week 4 NFL Power Rankings: Case Keenum, Defense Has Chicago Surging</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-week-4-nfl-power-rankings-case-keenum-defense-has-chicago-surging</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-03c54b74bdbac87c8edc</guid>
-      <pubDate>Tue, 29 Sep 2026 11:45:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
