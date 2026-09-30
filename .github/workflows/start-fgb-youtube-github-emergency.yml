@@ -1,0 +1,120 @@
+name: Start FGB YouTube via GitHub Emergency Encoder
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/start-fgb-youtube-github-emergency.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fgb-youtube-github-emergency
+  cancel-in-progress: true
+
+env:
+  BROADCAST_ORIGIN: https://epiccontentcreatorgrants.org
+
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+    timeout-minutes: 345
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require protected YouTube key
+        env:
+          FGB_YOUTUBE_STREAM_KEY: ${{ secrets.FGB_YOUTUBE_STREAM_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$FGB_YOUTUBE_STREAM_KEY" || { echo 'Protected FGB_YOUTUBE_STREAM_KEY is missing'; exit 1; }
+          echo 'Protected YouTube stream key is present.'
+
+      - name: Build validated transport image
+        working-directory: ops/transport-ovh
+        run: docker build -t fgb-youtube-emergency .
+
+      - name: Start direct YouTube encoder
+        env:
+          FGB_YOUTUBE_STREAM_KEY: ${{ secrets.FGB_YOUTUBE_STREAM_KEY }}
+        run: |
+          set -euo pipefail
+          DESTINATION="rtmps://a.rtmps.youtube.com/live2/${FGB_YOUTUBE_STREAM_KEY}"
+          docker rm -f fgb-youtube-emergency >/dev/null 2>&1 || true
+          docker run -d --rm --name fgb-youtube-emergency --shm-size=1g \
+            -e OUTPUT=youtube \
+            -e BROADCAST_ORIGIN="$BROADCAST_ORIGIN" \
+            -e YOUTUBE_RENDER_TARGET=rumble \
+            -e DESTINATIONS="$DESTINATION" \
+            -e VIDEO_BITRATE=3000k \
+            -e AUDIO_BITRATE=128k \
+            -e STALL_SECONDS=30 \
+            -e RELOAD_EVERY_SECONDS=21600 \
+            fgb-youtube-emergency >/tmp/fgb-container-id
+          unset DESTINATION FGB_YOUTUBE_STREAM_KEY
+
+      - name: Verify active encoder feed
+        run: |
+          set -euo pipefail
+          ok=false
+          for _ in $(seq 1 24); do
+            docker inspect -f '{{.State.Running}}' fgb-youtube-emergency 2>/dev/null | grep -q true || { sleep 5; continue; }
+            if docker exec fgb-youtube-emergency sh -lc 'test -f /tmp/fgb-ffmpeg.progress && grep -q "progress=continue" /tmp/fgb-ffmpeg.progress && test $(( $(date +%s) - $(stat -c %Y /tmp/fgb-ffmpeg.progress) )) -lt 20'; then
+              ok=true
+              break
+            fi
+            sleep 5
+          done
+          test "$ok" = true || { echo 'Encoder did not reach advancing FFmpeg output state'; docker logs --tail 80 fgb-youtube-emergency 2>&1 | sed -E 's#rtmps://[^ ]+#rtmps://[redacted]#g'; exit 1; }
+          state=$(docker exec fgb-youtube-emergency sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || true')
+          restarts=$(docker exec fgb-youtube-emergency sh -lc 'cat /tmp/fgb-restarts 2>/dev/null || echo 0')
+          echo "ENCODER_STATE=${state:-unknown}" | tee /tmp/fgb-emergency-status
+          echo "RESTARTS=${restarts:-0}" | tee -a /tmp/fgb-emergency-status
+          echo 'SOURCE_TARGET=rumble' | tee -a /tmp/fgb-emergency-status
+          echo 'DESTINATION=YouTube-RTMPS' | tee -a /tmp/fgb-emergency-status
+          echo 'STREAM_REQUESTED=true' | tee -a /tmp/fgb-emergency-status
+
+      - name: Record initial live-feed status
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          python3 - <<'PY'
+          import json
+          from datetime import datetime, timezone
+          from pathlib import Path
+          vals={}
+          for line in Path('/tmp/fgb-emergency-status').read_text().splitlines():
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k]=v
+          data={
+              'checkedAt': datetime.now(timezone.utc).isoformat(),
+              'mode': 'github-hosted-emergency-production-feed',
+              'status': vals,
+              'browserAutomationUsed': False,
+              'ovhRequired': False,
+              'oracleRequired': False,
+              'maximumRunnerDurationMinutes': 345
+          }
+          Path('.github/deployment-status/github-emergency-youtube-live.json').write_text(json.dumps(data,indent=2,sort_keys=True)+'\n')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/github-emergency-youtube-live.json
+          git diff --cached --quiet || { git commit -m 'Record GitHub emergency YouTube encoder start'; git push origin main; }
+
+      - name: Sustain emergency stream
+        run: |
+          set -euo pipefail
+          # Keep the emergency encoder alive until close to the GitHub-hosted runner limit.
+          for _ in $(seq 1 630); do
+            docker inspect -f '{{.State.Running}}' fgb-youtube-emergency 2>/dev/null | grep -q true || { echo 'Encoder container stopped'; exit 1; }
+            docker exec fgb-youtube-emergency sh -lc 'test -f /tmp/fgb-ffmpeg.progress && test $(( $(date +%s) - $(stat -c %Y /tmp/fgb-ffmpeg.progress) )) -lt 35' || { echo 'FFmpeg output progress became stale'; exit 1; }
+            sleep 30
+          done
