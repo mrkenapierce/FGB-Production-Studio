@@ -16,7 +16,6 @@ concurrency:
 
 env:
   OVH_HOST: 40.160.144.185
-  OVH_USER: ubuntu
 
 jobs:
   deploy:
@@ -38,16 +37,19 @@ jobs:
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
           chmod 600 ~/.ssh/ovh_key
 
-      - name: Wait for fresh OVH host to accept SSH
+      - name: Wait for fresh OVH host and discover login user
         run: |
           set -euo pipefail
-          for attempt in $(seq 1 80); do
+          for attempt in $(seq 1 100); do
             ssh-keygen -R "$OVH_HOST" >/dev/null 2>&1 || true
             if ssh-keyscan -T 5 -H "$OVH_HOST" > ~/.ssh/ovh_known_hosts 2>/dev/null; then
-              if ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=5 -i ~/.ssh/ovh_key "$OVH_USER@$OVH_HOST" 'printf ready' 2>/dev/null | grep -q ready; then
-                echo "OVH SSH ready on attempt $attempt"
-                exit 0
-              fi
+              for candidate in ubuntu debian root; do
+                if ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=5 -i ~/.ssh/ovh_key "$candidate@$OVH_HOST" 'printf ready' 2>/dev/null | grep -q ready; then
+                  printf '%s\n' "$candidate" > /tmp/ovh_user
+                  echo "OVH SSH ready on attempt $attempt using expected image account"
+                  exit 0
+                fi
+              done
             fi
             sleep 10
           done
@@ -57,28 +59,37 @@ jobs:
       - name: Bootstrap staging transport host
         run: |
           set -euo pipefail
-          ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "$OVH_USER@$OVH_HOST" 'sudo bash -s' < ops/transport-ovh/bootstrap-ovh.sh
+          remote_user=$(cat /tmp/ovh_user)
+          if [ "$remote_user" = root ]; then
+            ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "$remote_user@$OVH_HOST" 'bash -s' < ops/transport-ovh/bootstrap-ovh.sh
+          else
+            ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "$remote_user@$OVH_HOST" 'sudo -n bash -s' < ops/transport-ovh/bootstrap-ovh.sh
+          fi
 
       - name: Verify safe staging state
         run: |
           set -euo pipefail
-          ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "$OVH_USER@$OVH_HOST" 'bash -s' <<'REMOTE' | tee /tmp/ovh-staging-status.txt
+          remote_user=$(cat /tmp/ovh_user)
+          ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "$remote_user@$OVH_HOST" 'bash -s' <<'REMOTE' | tee /tmp/ovh-staging-status.txt
           set -euo pipefail
+          if [ "$(id -u)" -eq 0 ]; then SUDO=""; else SUDO="sudo -n"; fi
           test -f /opt/fgb-transport/BOOTSTRAP_COMPLETE
           test -f /opt/fgb-transport/NEEDS_SECRETS
           docker --version
           docker compose version
-          sudo systemctl is-active --quiet docker
-          if sudo systemctl is-active --quiet fgb-transport.service; then
+          $SUDO systemctl is-active --quiet docker
+          $SUDO systemctl is-active --quiet ssh
+          if $SUDO systemctl is-active --quiet fgb-transport.service; then
             echo 'ERROR: transport service unexpectedly active before secrets' >&2
             exit 1
           fi
-          enabled=$(sudo systemctl is-enabled fgb-transport.service 2>/dev/null || true)
+          enabled=$($SUDO systemctl is-enabled fgb-transport.service 2>/dev/null || true)
           test "$enabled" != enabled
-          image_count=$(sudo docker images --format '{{.Repository}}' | grep -c '^transport-ovh' || true)
+          image_count=$($SUDO docker images --format '{{.Repository}}' | grep -c '^transport-ovh' || true)
           echo 'STAGING_READY=true'
           echo "TRANSPORT_SERVICE_ENABLED=$enabled"
           echo "TRANSPORT_SERVICE_ACTIVE=false"
+          echo "SSH_ACTIVE=true"
           echo "NEEDS_SECRETS=true"
           echo "TRANSPORT_IMAGES=$image_count"
           echo "HOST=$(hostname)"
@@ -97,7 +108,7 @@ jobs:
           for line in Path('/tmp/ovh-staging-status.txt').read_text().splitlines():
               if '=' in line:
                   k,v=line.split('=',1)
-                  if k in {'STAGING_READY','TRANSPORT_SERVICE_ENABLED','TRANSPORT_SERVICE_ACTIVE','NEEDS_SECRETS','TRANSPORT_IMAGES','HOST','OS'}:
+                  if k in {'STAGING_READY','TRANSPORT_SERVICE_ENABLED','TRANSPORT_SERVICE_ACTIVE','SSH_ACTIVE','NEEDS_SECRETS','TRANSPORT_IMAGES','HOST','OS'}:
                       vals[k]=v
           data={
               'checkedAt': datetime.now(timezone.utc).isoformat(),
