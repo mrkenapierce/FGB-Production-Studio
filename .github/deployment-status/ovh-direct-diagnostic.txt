@@ -1,0 +1,27 @@
+checkedAt=2026-09-30T18:38:52Z
+host=40.160.144.185
+ipv4_route=40.160.144.185 via 10.1.0.1 dev eth0 src 10.1.1.18 uid 1001 
+
+[tcp]
+port_22=open
+port_2222=closed_or_filtered
+port_2200=closed_or_filtered
+port_2022=closed_or_filtered
+port_443=closed_or_filtered
+port_8443=closed_or_filtered
+port_80=closed_or_filtered
+
+[ssh_banner]
+ssh_22=responding algorithm=ssh-rsa
+ssh_2222=no_banner
+ssh_2200=no_banner
+ssh_2022=no_banner
+ssh_443=no_banner
+ssh_8443=no_banner
+
+[http]
+http_status=000
+https_status=000
+
+[icmp]
+ping=no_reply
