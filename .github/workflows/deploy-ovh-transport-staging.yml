@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: fgb-ovh-transport-staging
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 env:
   OVH_HOST: 40.160.144.185
