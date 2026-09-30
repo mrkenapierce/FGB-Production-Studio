@@ -1,0 +1,95 @@
+name: Inspect Oracle FGB Transport
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/inspect-oracle-fgb-transport.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: inspect-oracle-fgb-transport
+  cancel-in-progress: true
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Oracle SSH
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$ORACLE_HOST" && test -n "$ORACLE_USER" && test -n "$ORACLE_SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$ORACLE_SSH_KEY" > ~/.ssh/oracle_key
+          chmod 600 ~/.ssh/oracle_key
+          ssh-keyscan -T 10 -H "$ORACLE_HOST" > ~/.ssh/oracle_known_hosts
+
+      - name: Collect sanitized transport inventory
+        env:
+          ORACLE_HOST: ${{ secrets.ORACLE_HOST }}
+          ORACLE_USER: ${{ secrets.ORACLE_USER }}
+        run: |
+          set -euo pipefail
+          mkdir -p ops/transport-ovh
+          ssh -o UserKnownHostsFile=~/.ssh/oracle_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -i ~/.ssh/oracle_key "$ORACLE_USER@$ORACLE_HOST" 'bash -s' <<'REMOTE' > /tmp/oracle-inventory.txt
+          set -euo pipefail
+          echo '# Sanitized Oracle FGB transport inventory'
+          echo
+          echo '## Host'
+          printf 'hostname: '; hostname
+          printf 'os: '; . /etc/os-release; printf '%s %s\n' "$NAME" "$VERSION_ID"
+          echo
+          echo '## Candidate systemd units'
+          systemctl list-unit-files --type=service --no-legend 2>/dev/null | awk '{print $1}' | grep -Ei 'fgb|youtube|rumble|stream|relay|ffmpeg' | sort -u || true
+          echo
+          echo '## Unit EnvironmentFile references'
+          for unit in /etc/systemd/system/*.service /lib/systemd/system/*.service; do
+            [ -f "$unit" ] || continue
+            if grep -Eqi 'fgb|youtube|rumble|stream|relay|ffmpeg' "$unit"; then
+              printf '%s: ' "$(basename "$unit")"
+              grep -Eo 'EnvironmentFile=-?[^[:space:]]+' "$unit" | tr '\n' ' ' || true
+              echo
+            fi
+          done | sort -u
+          echo
+          echo '## Candidate environment/config filenames only'
+          find /etc /opt/fgbears /opt -maxdepth 4 -type f \( -iname '*fgb*.env' -o -iname '*youtube*.env' -o -iname '*rumble*.env' -o -iname '*stream*.env' -o -iname '*relay*.env' \) -printf '%p\n' 2>/dev/null | sort -u || true
+          echo
+          echo '## Candidate executable/config paths only'
+          find /opt/fgbears /opt -maxdepth 4 -type f \( -iname '*youtube*' -o -iname '*rumble*' -o -iname '*stream*' -o -iname '*relay*' -o -iname '*ffmpeg*' \) -printf '%p\n' 2>/dev/null | sort -u | head -200 || true
+          echo
+          echo '## Docker containers/images names only'
+          if command -v docker >/dev/null 2>&1; then
+            docker ps -a --format 'container={{.Names}} image={{.Image}} status={{.Status}}' 2>/dev/null | grep -Ei 'fgb|youtube|rumble|stream|relay|ffmpeg' || true
+          fi
+          REMOTE
+
+          cp /tmp/oracle-inventory.txt ops/transport-ovh/oracle-inventory.txt
+          if grep -Eqi '(KEY=|TOKEN=|PASSWORD=|SECRET=|rtmp[^ ]*/[^ ]+)' ops/transport-ovh/oracle-inventory.txt; then
+            echo 'Sanitization guard tripped; refusing to commit.' >&2
+            rm -f ops/transport-ovh/oracle-inventory.txt
+            exit 1
+          fi
+
+      - name: Commit sanitized inventory
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ops/transport-ovh/oracle-inventory.txt
+          git diff --cached --quiet && exit 0
+          git commit -m 'Record sanitized Oracle FGB transport inventory'
+          git push
