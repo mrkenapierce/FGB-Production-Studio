@@ -4,7 +4,8 @@ export DEBIAN_FRONTEND=noninteractive
 
 apt-get update
 apt-get -y upgrade
-apt-get install -y ca-certificates curl git ufw docker.io docker-compose-v2
+apt-get install -y ca-certificates curl git ufw openssh-server docker.io docker-compose-v2
+systemctl enable --now ssh
 systemctl enable --now docker
 
 install -d -m 0755 /opt/fgb-transport
