@@ -1,0 +1,231 @@
+name: Deploy Permanent FGB Transport to OVH
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/deploy-ovh-transport-production.yml
+      - ops/transport-ovh/**
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: fgb-ovh-production-cutover
+  cancel-in-progress: true
+
+env:
+  OVH_HOST: 40.160.144.185
+  BROADCAST_ORIGIN: https://epiccontentcreatorgrants.org
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Skip after permanent handoff is recorded
+        id: done
+        run: |
+          if [ -f .github/deployment-status/ovh-production-live.json ] && grep -q '"PERMANENT_READY": "true"' .github/deployment-status/ovh-production-live.json; then
+            echo 'skip=true' >> "$GITHUB_OUTPUT"
+            echo 'Permanent OVH transport already recorded ready.'
+          else
+            echo 'skip=false' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Require protected credentials
+        if: steps.done.outputs.skip != 'true'
+        env:
+          OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+          LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          YOUTUBE_KEY: ${{ secrets.FGB_YOUTUBE_STREAM_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$YOUTUBE_KEY" || { echo 'FGB_YOUTUBE_STREAM_KEY is missing'; exit 1; }
+          key="$OVH_SSH_KEY"
+          source='OVH_SSH_KEY'
+          if [ -z "$key" ]; then key="$LEGACY_KEY"; source='ORACLE_SSH_KEY fallback'; fi
+          test -n "$key" || { echo 'No OVH deployment private key is available'; exit 1; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          unset key OVH_SSH_KEY LEGACY_KEY YOUTUBE_KEY
+          echo "Using protected deployment key source: $source"
+
+      - name: Authenticate directly to OVH
+        if: steps.done.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          timeout 8 bash -c "</dev/tcp/$OVH_HOST/22"
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/ovh_known_hosts
+          test -s ~/.ssh/ovh_known_hosts
+          for candidate in ubuntu debian root; do
+            if ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=7 -i ~/.ssh/ovh_key "$candidate@$OVH_HOST" 'printf ready' 2>/dev/null | grep -q ready; then
+              echo "$candidate" > /tmp/ovh_user
+              echo "Authenticated directly to OVH as $candidate"
+              exit 0
+            fi
+          done
+          echo 'OVH SSH is reachable, but the GitHub-controlled deployment key is not authorized yet.' >&2
+          exit 2
+
+      - name: Bootstrap host
+        if: steps.done.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          u=$(cat /tmp/ovh_user)
+          if [ "$u" = root ]; then
+            ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "$u@$OVH_HOST" 'bash -s' < ops/transport-ovh/bootstrap-ovh.sh
+          else
+            ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "$u@$OVH_HOST" 'sudo -n bash -s' < ops/transport-ovh/bootstrap-ovh.sh
+          fi
+
+      - name: Install protected production configuration on OVH
+        if: steps.done.outputs.skip != 'true'
+        env:
+          YOUTUBE_KEY: ${{ secrets.FGB_YOUTUBE_STREAM_KEY }}
+          HEARTBEAT_SECRET: ${{ secrets.FGB_TRANSPORT_HEARTBEAT_SECRET }}
+        run: |
+          set -euo pipefail
+          u=$(cat /tmp/ovh_user)
+          tmp=$(mktemp)
+          chmod 600 "$tmp"
+          {
+            echo "BROADCAST_ORIGIN=$BROADCAST_ORIGIN"
+            echo 'HEARTBEAT_URL=https://epiccontentcreatorgrants.org/api/public/fgbears/transport-heartbeat'
+            printf 'FGB_TRANSPORT_HEARTBEAT_SECRET=%s\n' "$HEARTBEAT_SECRET"
+            echo 'HOST_LABEL=ovh-fgb-transport-1'
+            printf 'YOUTUBE_DESTINATIONS=rtmps://a.rtmps.youtube.com/live2/%s\n' "$YOUTUBE_KEY"
+            echo 'YOUTUBE_RENDER_TARGET=rumble'
+            echo 'RUMBLE_STUDIO_INGEST_URL='
+            echo 'RUMBLE_STUDIO_STREAM_KEY='
+            echo 'BRIDGE_RENDER_TARGET=rumble'
+            echo 'VIDEO_BITRATE=3000k'
+            echo 'AUDIO_BITRATE=128k'
+            echo 'STALL_SECONDS=20'
+            echo 'RELOAD_EVERY_SECONDS=21600'
+          } > "$tmp"
+          scp -q -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "$tmp" "$u@$OVH_HOST:/tmp/fgb-production.env"
+          rm -f "$tmp"
+          unset YOUTUBE_KEY HEARTBEAT_SECRET
+          if [ "$u" = root ]; then SUDO=''; else SUDO='sudo -n'; fi
+          ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "$u@$OVH_HOST" "$SUDO install -m 600 /tmp/fgb-production.env /opt/fgb-transport/.env && rm -f /tmp/fgb-production.env"
+
+      - name: Preflight the exact Lovable renderer on OVH without YouTube
+        if: steps.done.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          u=$(cat /tmp/ovh_user)
+          ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "$u@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          if [ "$(id -u)" -eq 0 ]; then SUDO=''; else SUDO='sudo -n'; fi
+          cd /opt/fgb-transport
+          $SUDO docker rm -f fgb-ovh-preflight >/dev/null 2>&1 || true
+          $SUDO docker run -d --rm --name fgb-ovh-preflight --shm-size=1g \
+            -e OUTPUT=youtube \
+            -e BROADCAST_ORIGIN=https://epiccontentcreatorgrants.org \
+            -e YOUTUBE_RENDER_TARGET=rumble \
+            -e DESTINATIONS=/tmp/ovh-preflight.flv \
+            -e VIDEO_BITRATE=1800k \
+            -e AUDIO_BITRATE=128k \
+            -e STALL_SECONDS=30 \
+            transport-ovh-youtube >/dev/null
+          ok=false
+          for _ in $(seq 1 24); do
+            if $SUDO docker exec fgb-ovh-preflight sh -lc 'test -s /tmp/ovh-preflight.flv && test -f /tmp/fgb-ffmpeg.progress && grep -q "progress=continue" /tmp/fgb-ffmpeg.progress'; then ok=true; break; fi
+            sleep 5
+          done
+          test "$ok" = true
+          $SUDO docker stop fgb-ovh-preflight >/dev/null
+          echo 'OVH_LOCAL_PREFLIGHT=PASS'
+          REMOTE
+
+      - name: Stop temporary GitHub encoder only after OVH preflight passes
+        if: steps.done.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ids=$(gh api "/repos/$GITHUB_REPOSITORY/actions/workflows/start-fgb-youtube-github-emergency.yml/runs?status=in_progress&per_page=20" --jq '.workflow_runs[].id' || true)
+          for id in $ids; do
+            echo "Cancelling temporary GitHub encoder run $id for permanent OVH handoff"
+            gh api --method POST "/repos/$GITHUB_REPOSITORY/actions/runs/$id/cancel" >/dev/null || true
+          done
+          sleep 4
+
+      - name: Start permanent OVH transport
+        if: steps.done.outputs.skip != 'true'
+        run: |
+          set -euo pipefail
+          u=$(cat /tmp/ovh_user)
+          ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "$u@$OVH_HOST" 'bash -s' <<'REMOTE' | tee /tmp/ovh-production-status.txt
+          set -euo pipefail
+          if [ "$(id -u)" -eq 0 ]; then SUDO=''; else SUDO='sudo -n'; fi
+          rm -f /opt/fgb-transport/NEEDS_SECRETS
+          $SUDO systemctl daemon-reload
+          $SUDO systemctl enable fgb-transport.service
+          $SUDO systemctl restart fgb-transport.service
+          ok=false
+          for _ in $(seq 1 30); do
+            if $SUDO systemctl is-active --quiet fgb-transport.service && \
+               $SUDO docker compose -f /opt/fgb-transport/docker-compose.yml --env-file /opt/fgb-transport/.env exec -T youtube sh -lc 'test -f /tmp/fgb-ffmpeg.progress && grep -q "progress=continue" /tmp/fgb-ffmpeg.progress && test $(( $(date +%s) - $(stat -c %Y /tmp/fgb-ffmpeg.progress) )) -lt 20'; then
+              ok=true; break
+            fi
+            sleep 5
+          done
+          test "$ok" = true
+          state=$($SUDO docker compose -f /opt/fgb-transport/docker-compose.yml --env-file /opt/fgb-transport/.env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || true')
+          restarts=$($SUDO docker compose -f /opt/fgb-transport/docker-compose.yml --env-file /opt/fgb-transport/.env exec -T youtube sh -lc 'cat /tmp/fgb-restarts 2>/dev/null || echo 0')
+          echo 'PERMANENT_READY=true'
+          echo 'SERVICE_ACTIVE=true'
+          echo "ENCODER_STATE=${state:-unknown}"
+          echo "RESTARTS=${restarts:-0}"
+          echo 'SOURCE=Lovable'
+          echo 'HOST=OVH'
+          echo 'DESTINATION=YouTube-RTMPS'
+          echo 'SOURCE_TARGET=rumble'
+          REMOTE
+
+      - name: Record permanent handoff
+        if: steps.done.outputs.skip != 'true'
+        env:
+          HEARTBEAT_SECRET: ${{ secrets.FGB_TRANSPORT_HEARTBEAT_SECRET }}
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git checkout -B main origin/main
+          mkdir -p .github/deployment-status
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          from datetime import datetime, timezone
+          vals={}
+          for line in Path('/tmp/ovh-production-status.txt').read_text().splitlines():
+              if '=' in line:
+                  k,v=line.split('=',1); vals[k]=v
+          data={
+              'checkedAt': datetime.now(timezone.utc).isoformat(),
+              'architecture': 'Lovable -> OVH -> YouTube',
+              'host': '40.160.144.185',
+              'browserAutomationUsed': False,
+              'tinyFishUsed': False,
+              'githubHostedEncoderRequired': False,
+              'heartbeatConfigured': bool(os.environ.get('HEARTBEAT_SECRET')),
+              'status': vals,
+          }
+          Path('.github/deployment-status/ovh-production-live.json').write_text(json.dumps(data,indent=2,sort_keys=True)+'\n')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/ovh-production-live.json
+          git commit -m 'Record permanent Lovable OVH YouTube handoff' || exit 0
+          git push origin main
