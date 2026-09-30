@@ -2,6 +2,8 @@ name: Deploy OVH FGB Transport Staging
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '*/30 * * * *'
   push:
     branches: [main]
     paths:
@@ -27,7 +29,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Skip once staging deployment is recorded complete
+        id: completed
+        run: |
+          if [ -f .github/deployment-status/ovh-transport-staging.json ] && grep -q '"STAGING_READY": "true"' .github/deployment-status/ovh-transport-staging.json; then
+            echo 'skip=true' >> "$GITHUB_OUTPUT"
+            echo 'OVH staging already prepared; nothing to do.'
+          else
+            echo 'skip=false' >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Configure SSH using existing protected deployment key
+        if: steps.completed.outputs.skip != 'true'
         env:
           DEPLOY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
@@ -37,7 +50,8 @@ jobs:
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
           chmod 600 ~/.ssh/ovh_key
 
-      - name: Wait for fresh OVH host and discover login user
+      - name: Wait for OVH host and discover login user
+        if: steps.completed.outputs.skip != 'true'
         run: |
           set -euo pipefail
           for attempt in $(seq 1 100); do
@@ -57,6 +71,7 @@ jobs:
           exit 1
 
       - name: Bootstrap staging transport host
+        if: steps.completed.outputs.skip != 'true'
         run: |
           set -euo pipefail
           remote_user=$(cat /tmp/ovh_user)
@@ -67,6 +82,7 @@ jobs:
           fi
 
       - name: Verify safe staging state
+        if: steps.completed.outputs.skip != 'true'
         run: |
           set -euo pipefail
           remote_user=$(cat /tmp/ovh_user)
@@ -97,6 +113,7 @@ jobs:
           REMOTE
 
       - name: Persist sanitized deployment status
+        if: steps.completed.outputs.skip != 'true'
         run: |
           set -euo pipefail
           mkdir -p .github/deployment-status
