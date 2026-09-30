@@ -1,5 +1,4 @@
-# Direct GitHub-controlled retry after SSH connectivity was verified on 2026-09-30.
-name: Deploy OVH FGB Transport Staging
+name: Deploy OVH FGB Transport Staging (Direct)
 
 on:
   workflow_dispatch:
@@ -9,6 +8,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/deploy-ovh-transport-staging.yml
+      - ops/transport-ovh/**
 
 permissions:
   contents: write
@@ -23,7 +23,7 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -40,38 +40,73 @@ jobs:
             echo 'skip=false' >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Configure SSH using existing protected deployment key
+      - name: Verify direct SSH transport path
         if: steps.completed.outputs.skip != 'true'
-        env:
-          DEPLOY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
           set -euo pipefail
-          test -n "$DEPLOY_KEY" || { echo 'Missing ORACLE_SSH_KEY secret'; exit 1; }
+          timeout 8 bash -c "</dev/tcp/$OVH_HOST/22" || { echo 'OVH TCP/22 is not reachable'; exit 1; }
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ovh_known_hosts
+          test -s ~/.ovh_known_hosts
+          echo 'Direct GitHub-to-OVH SSH path is reachable.'
+
+      - name: Configure protected deployment key
+        if: steps.completed.outputs.skip != 'true'
+        env:
+          OVH_KEY: ${{ secrets.OVH_SSH_KEY }}
+          LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          DEPLOY_KEY="$OVH_KEY"
+          KEY_SOURCE='OVH_SSH_KEY'
+          if [ -z "$DEPLOY_KEY" ]; then
+            DEPLOY_KEY="$LEGACY_KEY"
+            KEY_SOURCE='ORACLE_SSH_KEY fallback'
+          fi
+          test -n "$DEPLOY_KEY" || { echo 'No protected deployment key is configured'; exit 1; }
           install -d -m 700 ~/.ssh
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
           chmod 600 ~/.ssh/ovh_key
+          mv ~/.ovh_known_hosts ~/.ssh/ovh_known_hosts
+          echo "Using protected key source: $KEY_SOURCE"
 
-      - name: Wait for OVH host and discover login user
+      - name: Discover authenticated OVH login account
         if: steps.completed.outputs.skip != 'true'
         run: |
           set -euo pipefail
-          for attempt in $(seq 1 100); do
-            ssh-keygen -R "$OVH_HOST" >/dev/null 2>&1 || true
-            if ssh-keyscan -T 5 -H "$OVH_HOST" > ~/.ssh/ovh_known_hosts 2>/dev/null; then
-              for candidate in ubuntu debian root; do
-                if ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o ConnectTimeout=5 -i ~/.ssh/ovh_key "$candidate@$OVH_HOST" 'printf ready' 2>/dev/null | grep -q ready; then
-                  printf '%s\n' "$candidate" > /tmp/ovh_user
-                  echo "OVH SSH ready on attempt $attempt using expected image account"
-                  exit 0
-                fi
-              done
-            fi
-            sleep 10
+          for attempt in 1 2 3; do
+            for candidate in ubuntu debian root; do
+              if ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts \
+                     -o StrictHostKeyChecking=yes \
+                     -o BatchMode=yes \
+                     -o PasswordAuthentication=no \
+                     -o ConnectTimeout=7 \
+                     -i ~/.ssh/ovh_key \
+                     "$candidate@$OVH_HOST" 'printf ready' 2>/dev/null | grep -q ready; then
+                printf '%s\n' "$candidate" > /tmp/ovh_user
+                echo "Authenticated directly to OVH as $candidate"
+                exit 0
+              fi
+            done
+            sleep 5
           done
-          echo 'OVH host did not become SSH-ready in time' >&2
-          exit 1
+          mkdir -p .github/deployment-status
+          cat > .github/deployment-status/ovh-auth-blocked.txt <<EOF
+          checkedAt=$(date -u +%FT%TZ)
+          host=$OVH_HOST
+          SSH_REACHABLE=true
+          AUTH_SUCCESS=false
+          reason=protected_key_not_authorized_on_host
+          browser_automation_required=false
+          EOF
+          echo 'OVH SSH is reachable, but the protected deployment key is not authorized on the VPS.' >&2
+          exit 2
 
-      - name: Bootstrap staging transport host
+      - name: Build transport locally before remote deployment
+        if: steps.completed.outputs.skip != 'true'
+        working-directory: ops/transport-ovh
+        run: docker build -t fgb-transport-preflight .
+
+      - name: Bootstrap staging transport host directly over SSH
         if: steps.completed.outputs.skip != 'true'
         run: |
           set -euo pipefail
@@ -105,9 +140,9 @@ jobs:
           image_count=$($SUDO docker images --format '{{.Repository}}' | grep -c '^transport-ovh' || true)
           echo 'STAGING_READY=true'
           echo "TRANSPORT_SERVICE_ENABLED=$enabled"
-          echo "TRANSPORT_SERVICE_ACTIVE=false"
-          echo "SSH_ACTIVE=true"
-          echo "NEEDS_SECRETS=true"
+          echo 'TRANSPORT_SERVICE_ACTIVE=false'
+          echo 'SSH_ACTIVE=true'
+          echo 'NEEDS_SECRETS=true'
           echo "TRANSPORT_IMAGES=$image_count"
           echo "HOST=$(hostname)"
           echo "OS=$( . /etc/os-release; printf '%s %s' "$NAME" "$VERSION_ID" )"
@@ -132,6 +167,8 @@ jobs:
               'checkedAt': datetime.now(timezone.utc).isoformat(),
               'host': '40.160.144.185',
               'mode': 'staging',
+              'controlPlane': 'github-actions-direct-ssh',
+              'browserAutomationRequired': False,
               'status': vals,
           }
           Path('.github/deployment-status/ovh-transport-staging.json').write_text(json.dumps(data,indent=2,sort_keys=True)+'\n')
@@ -139,5 +176,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add .github/deployment-status/ovh-transport-staging.json
-          git commit -m 'Record OVH transport staging deployment' || exit 0
+          git commit -m 'Record direct OVH transport staging deployment' || exit 0
           git push
