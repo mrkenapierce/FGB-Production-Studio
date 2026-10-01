@@ -5,6 +5,7 @@ set -uo pipefail
 MODE="${OUTPUT}"
 case "$OUTPUT" in
   youtube)
+    # Keep the production YouTube path self-contained and independent of bridge targets.
     TARGET="youtube" ;;
   rumble_bridge)
     TARGET="${BRIDGE_RENDER_TARGET:-rumble}"
