@@ -1,5 +1,6 @@
 services:
   youtube:
+    image: transport-ovh-youtube
     build: .
     restart: unless-stopped
     shm_size: "1gb"
