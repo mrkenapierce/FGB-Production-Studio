@@ -5,7 +5,7 @@ set -uo pipefail
 MODE="${OUTPUT}"
 case "$OUTPUT" in
   youtube)
-    TARGET="${YOUTUBE_RENDER_TARGET:-youtube}" ;;
+    TARGET="youtube" ;;
   rumble_bridge)
     TARGET="${BRIDGE_RENDER_TARGET:-rumble}"
     : "${RUMBLE_STUDIO_INGEST_URL:?RUMBLE_STUDIO_INGEST_URL required for rumble_bridge}"
