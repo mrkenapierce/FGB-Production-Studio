@@ -5,8 +5,6 @@ set -uo pipefail
 MODE="${OUTPUT}"
 case "$OUTPUT" in
   youtube)
-    # Production/default behavior remains YouTube-safe. Emergency/direct relays may
-    # explicitly render the real trivia view with YOUTUBE_RENDER_TARGET=rumble.
     TARGET="${YOUTUBE_RENDER_TARGET:-youtube}" ;;
   rumble_bridge)
     TARGET="${BRIDGE_RENDER_TARGET:-rumble}"
@@ -27,6 +25,7 @@ STATE=/tmp/fgb-transport.state
 export DISPLAY=:99
 [ -n "${DESTINATIONS:-}" ] || { echo "DESTINATIONS required"; exit 2; }
 RESTARTS=0
+CHROMIUM_FAILURES=0
 STARTED=$(date +%s)
 echo starting > "$STATE"; echo 0 > /tmp/fgb-restarts
 log() { echo "[$(date -u +%FT%TZ)] [$OUTPUT] $*"; }
@@ -39,8 +38,20 @@ start_display() {
 }
 start_chromium() {
   rm -rf /tmp/fgb-chrome
-  chromium --kiosk --no-first-run --no-default-browser-check --disable-infobars --autoplay-policy=no-user-gesture-required --window-position=0,0 --window-size=1280,720 --force-device-scale-factor=1 --disable-features=Translate,MediaRouter --noerrdialogs --disable-session-crashed-bubble --user-data-dir=/tmp/fgb-chrome --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 --disable-dev-shm-usage --no-sandbox "$URL" >/dev/null 2>&1 &
-  CHROME_PID=$!; CHROME_STARTED=$(date +%s); log "chromium pid $CHROME_PID -> $URL"
+  chromium --kiosk --start-fullscreen --no-first-run --no-default-browser-check --disable-infobars --autoplay-policy=no-user-gesture-required --window-position=0,0 --window-size=1280,720 --force-device-scale-factor=1 --disable-gpu --use-gl=swiftshader --disable-background-timer-throttling --disable-renderer-backgrounding --disable-backgrounding-occluded-windows --disable-features=Translate,MediaRouter --noerrdialogs --disable-session-crashed-bubble --user-data-dir=/tmp/fgb-chrome --remote-debugging-address=127.0.0.1 --remote-debugging-port=9222 --disable-dev-shm-usage --no-sandbox "$URL" >/dev/null 2>&1 &
+  CHROME_PID=$!; CHROME_STARTED=$(date +%s); CHROMIUM_FAILURES=0; log "chromium pid $CHROME_PID -> $URL"
+}
+wait_for_chromium() {
+  for _ in $(seq 1 30); do
+    if kill -0 "$CHROME_PID" 2>/dev/null && curl -sf -m 3 http://127.0.0.1:9222/json/version >/dev/null; then
+      sleep 5
+      log "chromium ready for capture"
+      return 0
+    fi
+    sleep 1
+  done
+  log "chromium did not become capture-ready in time"
+  return 1
 }
 start_ffmpeg() {
   rm -f "$PROGRESS"
@@ -52,13 +63,28 @@ shutdown() { echo stopped > "$STATE"; [ -n "${HB_PID:-}" ] && ./heartbeat.sh onc
 trap shutdown TERM INT
 start_display
 start_chromium
-sleep 8
+wait_for_chromium || { restart "chromium startup"; kill "$CHROME_PID" 2>/dev/null; start_chromium; wait_for_chromium || exit 3; }
 start_ffmpeg
 if [ -n "${HEARTBEAT_URL:-}" ] && [ -n "${FGB_TRANSPORT_HEARTBEAT_SECRET:-}" ]; then STARTED="$STARTED" ./heartbeat.sh loop & HB_PID=$!; fi
 while sleep 5; do
   now=$(date +%s)
-  if ! kill -0 "$CHROME_PID" 2>/dev/null || ! curl -sf -m 3 http://127.0.0.1:9222/json/version >/dev/null; then restart chromium; kill "$CHROME_PID" 2>/dev/null; start_chromium
-  elif [ $((now - CHROME_STARTED)) -ge "$RELOAD_EVERY_SECONDS" ]; then kill "$CHROME_PID" 2>/dev/null; start_chromium; fi
+  if ! kill -0 "$CHROME_PID" 2>/dev/null || ! curl -sf -m 3 http://127.0.0.1:9222/json/version >/dev/null; then
+    CHROMIUM_FAILURES=$((CHROMIUM_FAILURES + 1))
+    log "chromium health check failed ($CHROMIUM_FAILURES/3)"
+    if [ "$CHROMIUM_FAILURES" -ge 3 ]; then
+      restart chromium
+      kill "$CHROME_PID" 2>/dev/null
+      start_chromium
+      wait_for_chromium || true
+    fi
+  else
+    CHROMIUM_FAILURES=0
+    if [ $((now - CHROME_STARTED)) -ge "$RELOAD_EVERY_SECONDS" ]; then
+      kill "$CHROME_PID" 2>/dev/null
+      start_chromium
+      wait_for_chromium || true
+    fi
+  fi
   if ! kill -0 "$FFMPEG_PID" 2>/dev/null; then restart "ffmpeg exited"; sleep 2; start_ffmpeg; continue; fi
   if [ -f "$PROGRESS" ] && [ $((now - $(stat -c %Y "$PROGRESS"))) -gt "$STALL_SECONDS" ]; then restart "ffmpeg stalled"; kill -9 "$FFMPEG_PID" 2>/dev/null; sleep 2; start_ffmpeg; continue; fi
   if grep -q "progress=continue" "$PROGRESS" 2>/dev/null; then echo live > "$STATE"; fi
