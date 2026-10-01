@@ -2,20 +2,13 @@ name: Deploy OVH FGB Transport Staging (Direct)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '*/30 * * * *'
-  push:
-    branches: [main]
-    paths:
-      - .github/workflows/deploy-ovh-transport-staging.yml
-      - ops/transport-ovh/**
 
 permissions:
   contents: write
 
 concurrency:
-  group: fgb-ovh-transport-staging
-  cancel-in-progress: true
+  group: fgb-ovh-production-cutover
+  cancel-in-progress: false
 
 env:
   OVH_HOST: 40.160.144.185
@@ -33,7 +26,10 @@ jobs:
       - name: Skip once staging deployment is recorded complete
         id: completed
         run: |
-          if [ -f .github/deployment-status/ovh-transport-staging.json ] && grep -q '"STAGING_READY": "true"' .github/deployment-status/ovh-transport-staging.json; then
+          if [ -f .github/deployment-status/ovh-production-live.json ] && grep -q '"PERMANENT_READY": "true"' .github/deployment-status/ovh-production-live.json; then
+            echo 'skip=true' >> "$GITHUB_OUTPUT"
+            echo 'Permanent OVH production transport is ready; staging is unnecessary.'
+          elif [ -f .github/deployment-status/ovh-transport-staging.json ] && grep -q '"STAGING_READY": "true"' .github/deployment-status/ovh-transport-staging.json; then
             echo 'skip=true' >> "$GITHUB_OUTPUT"
             echo 'OVH staging already prepared; nothing to do.'
           else
