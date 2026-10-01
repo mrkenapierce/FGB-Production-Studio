@@ -1,0 +1,61 @@
+name: Inspect OVH YouTube Source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/inspect-ovh-youtube.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      OVH_HOST: 40.160.144.185
+    steps:
+      - name: Prepare protected SSH key
+        env:
+          OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+          LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"
+          if [ -z "$key" ]; then key="$LEGACY_KEY"; fi
+          test -n "$key"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/ovh_known_hosts
+
+      - name: Verify live YouTube source and capture frame
+        run: |
+          set -euo pipefail
+          ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "ubuntu@$OVH_HOST" 'bash -s' <<'REMOTE' | tee /tmp/ovh-inspect.txt
+          set -euo pipefail
+          cd /opt/fgb-transport
+          C=$(sudo -n docker compose -f docker-compose.yml --env-file .env ps -q youtube)
+          test -n "$C"
+          sudo -n docker exec "$C" sh -lc '
+            echo STATE=$(cat /tmp/fgb-transport.state 2>/dev/null || echo missing)
+            echo RESTARTS=$(cat /tmp/fgb-restarts 2>/dev/null || echo missing)
+            echo URL=$(curl -sf http://127.0.0.1:9222/json/list | sed -n "s/.*\"url\": \"\([^\"]*\)\".*/\1/p" | head -1)
+            test -f /tmp/fgb-ffmpeg.progress
+            grep -q "progress=continue" /tmp/fgb-ffmpeg.progress
+            echo PROGRESS=continue
+            ffmpeg -hide_banner -loglevel error -y -f x11grab -video_size 1280x720 -i :99.0 -frames:v 1 /tmp/youtube-source.png
+            test -s /tmp/youtube-source.png
+          '
+          sudo -n docker cp "$C:/tmp/youtube-source.png" /tmp/youtube-source.png
+          sudo -n chown ubuntu:ubuntu /tmp/youtube-source.png
+          REMOTE
+          scp -q -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "ubuntu@$OVH_HOST:/tmp/youtube-source.png" /tmp/youtube-source.png
+
+      - name: Upload captured source frame
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovh-youtube-source-frame
+          path: /tmp/youtube-source.png
+          if-no-files-found: error
