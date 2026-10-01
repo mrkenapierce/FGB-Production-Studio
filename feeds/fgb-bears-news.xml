@@ -5,28 +5,78 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 01 Oct 2026 08:51:07 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 01 Oct 2026 15:49:28 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears Offensive Line Analysis vs. Eagles</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Offensive Line Analysis vs. Eagles</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-offensive-line-analysis-034911096.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fb8b344a17a0c7a2630d</guid>
-      <pubDate>Thu, 01 Oct 2026 03:49:11 GMT</pubDate>
+      <title>Case Keenum Week 3 QB Grade: Eagles @ Bears Film Breakdown</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Case Keenum Week 3 QB Grade: Eagles @ Bears Film Breakdown</description>
+      <link>https://sports.yahoo.com/articles/case-keenum-week-3-qb-150000891.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-afff42cb4727953336ab</guid>
+      <pubDate>Thu, 01 Oct 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears coach says ‘direction’s already been made’ about QB choice vs. Jets — but real question remains</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears coach says ‘direction’s already been made’ about QB choice vs. Jets — but real question remains</description>
-      <link>https://sports.yahoo.com/articles/bears-coach-says-direction-already-015235799.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e6fa1c3c60cde107c775</guid>
-      <pubDate>Thu, 01 Oct 2026 01:52:35 GMT</pubDate>
+      <title>Bears open DB Kyler Gordon&apos;s 21-day practice window</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears open DB Kyler Gordon&apos;s 21-day practice window</description>
+      <link>https://www.chicagobears.com/news/bears-open-db-kyler-gordon-s-21-day-practice-window</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1a8c0830d6cebb514de2</guid>
+      <pubDate>Thu, 01 Oct 2026 12:52:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears power rankings roundup: Where Chicago lands in Week 4</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears power rankings roundup: Where Chicago lands in Week 4</description>
+      <link>https://sports.yahoo.com/articles/bears-power-rankings-roundup-where-153537712.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ec9da923644d1fcdc8cb</guid>
+      <pubDate>Thu, 01 Oct 2026 08:35:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Explaining &apos;Motivated Dayo&apos; Meme and Why Odeyingbo is Playing Better For Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Explaining &apos;Motivated Dayo&apos; Meme and Why Odeyingbo is Playing Better For Bears</description>
+      <link>https://www.si.com/nfl/bears/onsi/motivated-dayo-meme-explanation-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-60f813a61294be514d7c</guid>
+      <pubDate>Thu, 01 Oct 2026 08:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears Facing Uncertain Left Tackle Situation Ahead of Week 4 Game vs. Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Facing Uncertain Left Tackle Situation Ahead of Week 4 Game vs. Jets</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-jets-depth-chart-left-tackle</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8428f1427b31fa672ffa</guid>
+      <pubDate>Thu, 01 Oct 2026 07:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>October sports watch guide: World Series, WNBA Finals, NBA and ‘A Bears Love Story’</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: October sports watch guide: World Series, WNBA Finals, NBA and ‘A Bears Love Story’</description>
+      <link>https://www.nytimes.com/athletic/7642236/2026/10/01/what-to-watch-sports-october-nfl-nba/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b08cc0fef89a0da4379a</guid>
+      <pubDate>Thu, 01 Oct 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>NFL Week 4 ATS picks: Are Raiders for real? Can Bears keep it up without Caleb Williams?</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: NFL Week 4 ATS picks: Are Raiders for real? Can Bears keep it up without Caleb Williams?</description>
+      <link>https://www.nytimes.com/athletic/7643421/2026/10/01/nfl-week-4-predictions-betting-picks/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-988b0d6e32ffca274b7c</guid>
+      <pubDate>Thu, 01 Oct 2026 02:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -37,56 +87,6 @@
       <pubDate>Wed, 30 Sep 2026 22:29:53 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Dillon Thieneman: Logs first INT in NFL career</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Dillon Thieneman: Logs first INT in NFL career</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-dillon-thieneman-logs-first-int-in-nfl-career/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8afd2605de8ab8e31b24</guid>
-      <pubDate>Wed, 30 Sep 2026 19:26:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams Injury Update and More From Bears&apos; Week 4 Wednesday Practice Report</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams Injury Update and More From Bears&apos; Week 4 Wednesday Practice Report</description>
-      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-injury-update-bears-week-4-wednesday-practice-report</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c5a37cbd80b04f8655e4</guid>
-      <pubDate>Wed, 30 Sep 2026 17:34:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Kyler Gordon: Cleared to return to practice</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyler Gordon: Cleared to return to practice</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-kyler-gordon-cleared-to-return-to-practice/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1121a5898b93e26db8d0</guid>
-      <pubDate>Wed, 30 Sep 2026 17:33:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears defense stifles Eagles with &apos;extraordinary&apos; second half performance</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears defense stifles Eagles with &apos;extraordinary&apos; second half performance</description>
-      <link>https://www.chicagobears.com/news/bears-defense-stifles-eagles-with-extraordinary-second-half-performance</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-45e96d3fae0195e11d5d</guid>
-      <pubDate>Wed, 30 Sep 2026 16:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson Knows Which QB Will Start for Bears in Week 4, But He&apos;s Not Telling</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Knows Which QB Will Start for Bears in Week 4, But He&apos;s Not Telling</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-knows-which-qb-will-start-for-bears-in-week-4-but-he-s-not-telling</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-eb49b0fef1892580fa5f</guid>
-      <pubDate>Wed, 30 Sep 2026 16:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
