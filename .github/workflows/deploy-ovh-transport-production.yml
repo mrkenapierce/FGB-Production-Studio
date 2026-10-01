@@ -202,14 +202,14 @@ jobs:
           ok=false
           for _ in $(seq 1 30); do
             if $SUDO systemctl is-active --quiet fgb-transport.service && \
-               $SUDO docker compose -f /opt/fgb-transport/docker-compose.yml --env-file /opt/fgb-transport/.env exec -T youtube sh -lc 'test -f /tmp/fgb-ffmpeg.progress && grep -q "progress=continue" /tmp/fgb-ffmpeg.progress && test $(( $(date +%s) - $(stat -c %Y /tmp/fgb-ffmpeg.progress) )) -lt 20'; then
+               $SUDO docker compose -f /opt/fgb-transport/docker-compose.yml --env-file /opt/fgb-transport/.env exec -T --interactive=false youtube sh -lc 'test -f /tmp/fgb-ffmpeg.progress && grep -q "progress=continue" /tmp/fgb-ffmpeg.progress && test $(( $(date +%s) - $(stat -c %Y /tmp/fgb-ffmpeg.progress) )) -lt 20'; then
               ok=true; break
             fi
             sleep 5
           done
           test "$ok" = true
-          state=$($SUDO docker compose -f /opt/fgb-transport/docker-compose.yml --env-file /opt/fgb-transport/.env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || true')
-          restarts=$($SUDO docker compose -f /opt/fgb-transport/docker-compose.yml --env-file /opt/fgb-transport/.env exec -T youtube sh -lc 'cat /tmp/fgb-restarts 2>/dev/null || echo 0')
+          state=$($SUDO docker compose -f /opt/fgb-transport/docker-compose.yml --env-file /opt/fgb-transport/.env exec -T --interactive=false youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || true')
+          restarts=$($SUDO docker compose -f /opt/fgb-transport/docker-compose.yml --env-file /opt/fgb-transport/.env exec -T --interactive=false youtube sh -lc 'cat /tmp/fgb-restarts 2>/dev/null || echo 0')
           echo 'PERMANENT_READY=true'
           echo 'SERVICE_ACTIVE=true'
           echo "ENCODER_STATE=${state:-unknown}"
@@ -237,6 +237,8 @@ jobs:
           for line in Path('/tmp/ovh-production-status.txt').read_text().splitlines():
               if '=' in line:
                   k,v=line.split('=',1); vals[k]=v
+          if vals.get('PERMANENT_READY') != 'true' or vals.get('SERVICE_ACTIVE') != 'true' or vals.get('ENCODER_STATE') != 'live':
+              raise SystemExit('Missing or unhealthy OVH transport proof; refusing to record permanent readiness')
           data={
               'checkedAt': datetime.now(timezone.utc).isoformat(),
               'architecture': 'Lovable -> OVH -> YouTube',
