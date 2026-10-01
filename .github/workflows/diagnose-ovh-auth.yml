@@ -1,4 +1,4 @@
-name: Diagnose OVH SSH Authentication
+name: Diagnose OVH SSH and Encoder Health
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
       - .github/workflows/diagnose-ovh-auth.yml
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: diagnose-ovh-auth
@@ -22,70 +22,35 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Test protected deployment keys without exposing them
+      - name: Inspect live encoder without changing the server
         env:
           OVH_KEY: ${{ secrets.OVH_SSH_KEY }}
           LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
         run: |
           set -euo pipefail
           install -d -m 700 ~/.ssh
-          ssh-keyscan -T 5 -H "$OVH_HOST" > ~/.ssh/ovh_known_hosts
-
-          auth_success=false
-          login_user='none'
-          key_source='none'
-          ovh_present=false
-          legacy_present=false
-          [ -n "$OVH_KEY" ] && ovh_present=true
-          [ -n "$LEGACY_KEY" ] && legacy_present=true
-
-          test_key() {
-            local value="$1" source="$2"
-            [ -n "$value" ] || return 1
-            printf '%s\n' "$value" > ~/.ssh/ovh_key
-            chmod 600 ~/.ssh/ovh_key
-            for candidate in ubuntu debian root; do
-              if ssh -vvv -o IdentitiesOnly=yes -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=5 -i ~/.ssh/ovh_key "$candidate@$OVH_HOST" 'printf ready' >/tmp/ovh-auth-output.log 2>/tmp/ovh-auth-error.log && grep -q ready /tmp/ovh-auth-output.log; then
-                auth_success=true
-                login_user="$candidate"
-                key_source="$source"
-                return 0
-              fi
-              echo "SSH diagnostic source=$source user=$candidate"
-              grep -Ei "password|expired|change|ready|denied|terminal" /tmp/ovh-auth-output.log || true
-              grep -E "Authentications that can continue|Server accepts key|Permission denied|Host key verification failed|Load key|sign_and_send_pubkey|no mutual|Connection timed out|Connection refused|Authenticated to|password|Password|PAM|expired|Exit status" /tmp/ovh-auth-error.log || true
-            done
-            return 1
-          }
-
-          test_key "$OVH_KEY" 'OVH_SSH_KEY' || true
-          if [ "$auth_success" != true ]; then test_key "$LEGACY_KEY" 'ORACLE_SSH_KEY' || true; fi
-          rm -f ~/.ssh/ovh_key
-
-          mkdir -p .github/deployment-status
-          {
-            echo "checkedAt=$(date -u +%FT%TZ)"
-            echo "OVH_KEY_PRESENT=$ovh_present"
-            echo "LEGACY_KEY_PRESENT=$legacy_present"
-            echo "AUTH_SUCCESS=$auth_success"
-            echo "LOGIN_USER=$login_user"
-            echo "KEY_SOURCE=$key_source"
-            echo 'SSH_PORT=22'
-          } > .github/deployment-status/ovh-auth-diagnostic.txt
-          cat .github/deployment-status/ovh-auth-diagnostic.txt
-
-      - name: Commit sanitized auth result
-        run: |
+          key="$OVH_KEY"
+          if [ -z "$key" ]; then key="$LEGACY_KEY"; fi
+          test -n "$key"
+          printf '%s\n' "$key" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          unset key OVH_KEY LEGACY_KEY
+          trap 'rm -f ~/.ssh/ovh_key' EXIT
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/ovh_known_hosts
+          ssh -o IdentitiesOnly=yes -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i ~/.ssh/ovh_key "ubuntu@$OVH_HOST" 'sudo -n bash -s' <<'REMOTE'
           set -euo pipefail
-          git fetch origin main
-          git checkout -B main origin/main
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .github/deployment-status/ovh-auth-diagnostic.txt
-          git diff --cached --quiet && exit 0
-          git commit -m 'Record OVH SSH authentication diagnostic'
-          git push
+          echo "CHECKED_AT=$(date -u +%FT%TZ)"
+          echo "SERVICE_STATE=$(systemctl is-active fgb-transport.service)"
+          cd /opt/fgb-transport
+          cid=$(docker compose ps -q youtube)
+          test -n "$cid"
+          docker inspect --format 'CONTAINER_STATE={{.State.Status}} HEALTH={{.State.Health.Status}} CONTAINER_RESTARTS={{.RestartCount}}' "$cid"
+          docker stats --no-stream --format 'CPU={{.CPUPerc}} MEMORY={{.MemUsage}}' "$cid"
+          for sample in 1 2; do
+            echo "PROGRESS_SAMPLE=$sample"
+            docker exec -i "$cid" sh -c 'echo ENCODER_STATE=$(cat /tmp/fgb-transport.state); echo ENCODER_RESTARTS=$(cat /tmp/fgb-restarts); echo PROGRESS_AGE_SECONDS=$(( $(date +%s) - $(stat -c %Y /tmp/fgb-ffmpeg.progress) )); cat /tmp/fgb-ffmpeg.progress; echo FFMPEG_COUNT=$(pgrep -x ffmpeg | wc -l)'
+            if [ "$sample" = 1 ]; then sleep 8; fi
+          done
+          echo "ESTABLISHED_RTMPS_CONNECTIONS=$(ss -tnH state established '( dport = :443 )' | wc -l)"
+          docker logs --tail 160 "$cid" 2>&1 | python3 -c 'import re,sys; lines=sys.stdin.read().splitlines(); selected=[s for s in lines if re.search(r"restart|ffmpeg pid|Error|error|failed|Broken pipe|Connection|Non-monoton|queue|speed=",s)]; print("SANITIZED_RECENT_ENCODER_EVENTS"); [print(re.sub(r"rtmps?://[^\s\x27\x22]+","[REDACTED_DESTINATION]",s)) for s in selected[-30:]]'
+          REMOTE
