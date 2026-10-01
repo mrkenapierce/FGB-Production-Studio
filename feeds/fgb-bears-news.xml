@@ -5,26 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 01 Oct 2026 02:06:09 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 01 Oct 2026 08:51:07 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears Discussion: Case Keenum or Tyson Bagent? Jets Preview</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Discussion: Case Keenum or Tyson Bagent? Jets Preview</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-discussion-case-keenum-002433928.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a8a0cfe61c149fcbb94d</guid>
-      <pubDate>Thu, 01 Oct 2026 00:24:33 GMT</pubDate>
+      <title>Chicago Bears Offensive Line Analysis vs. Eagles</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Offensive Line Analysis vs. Eagles</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-offensive-line-analysis-034911096.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-fb8b344a17a0c7a2630d</guid>
+      <pubDate>Thu, 01 Oct 2026 03:49:11 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Eagles-Bears Film Review: Rough game for Vic Fangio</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Eagles-Bears Film Review: Rough game for Vic Fangio</description>
-      <link>https://sports.yahoo.com/articles/eagles-bears-film-review-rough-225945757.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ec208c69764264884ab1</guid>
-      <pubDate>Wed, 30 Sep 2026 22:59:45 GMT</pubDate>
+      <title>Bears coach says ‘direction’s already been made’ about QB choice vs. Jets — but real question remains</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears coach says ‘direction’s already been made’ about QB choice vs. Jets — but real question remains</description>
+      <link>https://sports.yahoo.com/articles/bears-coach-says-direction-already-015235799.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e6fa1c3c60cde107c775</guid>
+      <pubDate>Thu, 01 Oct 2026 01:52:35 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -37,6 +37,26 @@
       <pubDate>Wed, 30 Sep 2026 22:29:53 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Dillon Thieneman: Logs first INT in NFL career</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Dillon Thieneman: Logs first INT in NFL career</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-dillon-thieneman-logs-first-int-in-nfl-career/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8afd2605de8ab8e31b24</guid>
+      <pubDate>Wed, 30 Sep 2026 19:26:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams Injury Update and More From Bears&apos; Week 4 Wednesday Practice Report</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams Injury Update and More From Bears&apos; Week 4 Wednesday Practice Report</description>
+      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-injury-update-bears-week-4-wednesday-practice-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c5a37cbd80b04f8655e4</guid>
+      <pubDate>Wed, 30 Sep 2026 17:34:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -60,33 +80,13 @@
     </item>
 
     <item>
-      <title>Ben Johnson evaluates the Bears&apos; defense heading into Week 4</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Ben Johnson evaluates the Bears&apos; defense heading into Week 4</description>
-      <link>https://www.nfl.com/videos/ben-johnson-evaluates-the-bears-defense-heading-into-week-4</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c753369e0a440897e78c</guid>
-      <pubDate>Wed, 30 Sep 2026 16:02:00 GMT</pubDate>
+      <title>Ben Johnson Knows Which QB Will Start for Bears in Week 4, But He&apos;s Not Telling</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Knows Which QB Will Start for Bears in Week 4, But He&apos;s Not Telling</description>
+      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-knows-which-qb-will-start-for-bears-in-week-4-but-he-s-not-telling</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-eb49b0fef1892580fa5f</guid>
+      <pubDate>Wed, 30 Sep 2026 16:30:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Ben Johnson: &apos;Direction already made&apos; on Week 4 QB call</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; Ben Johnson: &apos;Direction already made&apos; on Week 4 QB call</description>
-      <link>https://www.espn.com/nfl/story/_/id/50071476/bears-ben-johnson-direction-already-made-week-4-qb</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f78585281fd982f57399</guid>
-      <pubDate>Wed, 30 Sep 2026 15:34:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson, Bears remain mum on starting QB decision for Week 4</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Ben Johnson, Bears remain mum on starting QB decision for Week 4</description>
-      <link>https://www.nytimes.com/athletic/7647215/2026/09/30/bears-quarterback-decision-tyson-bagent-case-keenum/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-22eecb79270d4819895f</guid>
-      <pubDate>Wed, 30 Sep 2026 14:46:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
