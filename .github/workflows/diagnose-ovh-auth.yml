@@ -48,7 +48,7 @@ jobs:
           docker stats --no-stream --format 'CPU={{.CPUPerc}} MEMORY={{.MemUsage}}' "$cid"
           for sample in 1 2; do
             echo "PROGRESS_SAMPLE=$sample"
-            docker exec -i "$cid" sh -c 'echo ENCODER_STATE=$(cat /tmp/fgb-transport.state); echo ENCODER_RESTARTS=$(cat /tmp/fgb-restarts); echo PROGRESS_AGE_SECONDS=$(( $(date +%s) - $(stat -c %Y /tmp/fgb-ffmpeg.progress) )); cat /tmp/fgb-ffmpeg.progress; echo FFMPEG_COUNT=$(pgrep -x ffmpeg | wc -l)'
+            docker exec "$cid" sh -c 'echo ENCODER_STATE=$(cat /tmp/fgb-transport.state); echo ENCODER_RESTARTS=$(cat /tmp/fgb-restarts); echo PROGRESS_AGE_SECONDS=$(( $(date +%s) - $(stat -c %Y /tmp/fgb-ffmpeg.progress) )); tail -n 24 /tmp/fgb-ffmpeg.progress; echo FFMPEG_COUNT=$(pgrep -x ffmpeg | wc -l)'
             if [ "$sample" = 1 ]; then sleep 8; fi
           done
           echo "ESTABLISHED_RTMPS_CONNECTIONS=$(ss -tnH state established '( dport = :443 )' | wc -l)"
