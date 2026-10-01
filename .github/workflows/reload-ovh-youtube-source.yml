@@ -91,3 +91,5 @@ jobs:
           name: ovh-youtube-source-after-reload
           path: /tmp/youtube-source-after-reload.png
           if-no-files-found: error
+
+# Triggered for ticker flush deployment refresh.
