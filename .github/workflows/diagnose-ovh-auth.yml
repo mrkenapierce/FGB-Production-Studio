@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 6
     steps:
-      - name: Reconnect encoder once and inspect live health
+      - name: Inspect live encoder without changing the server
         env:
           OVH_KEY: ${{ secrets.OVH_SSH_KEY }}
           LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
@@ -46,26 +46,6 @@ jobs:
           test -n "$cid"
           docker inspect --format 'CONTAINER_STATE={{.State.Status}} HEALTH={{.State.Health.Status}} CONTAINER_RESTARTS={{.RestartCount}}' "$cid"
           docker stats --no-stream --format 'CPU={{.CPUPerc}} MEMORY={{.MemUsage}}' "$cid"
-          marker=/opt/fgb-transport/.encoder-reconnect-20261001
-          if [ ! -e "$marker" ]; then
-            old_pid=$(docker exec "$cid" pgrep -x ffmpeg)
-            touch "$marker"
-            docker exec "$cid" pkill -TERM -x ffmpeg
-            echo 'CONTROLLED_RECONNECT_REQUESTED=true'
-            recovered=false
-            for attempt in $(seq 1 30); do
-              sleep 2
-              new_pid=$(docker exec "$cid" pgrep -x ffmpeg || true)
-              if [ -n "$new_pid" ] && [ "$new_pid" != "$old_pid" ] && docker exec "$cid" sh -c 'test -f /tmp/fgb-ffmpeg.progress && tail -n 24 /tmp/fgb-ffmpeg.progress | grep -q "progress=continue" && test $(( $(date +%s) - $(stat -c %Y /tmp/fgb-ffmpeg.progress) )) -lt 10'; then
-                recovered=true
-                break
-              fi
-            done
-            echo "ENCODER_RECONNECTED=$recovered"
-            test "$recovered" = true
-          else
-            echo 'CONTROLLED_RECONNECT_ALREADY_PERFORMED=true'
-          fi
           for sample in 1 2; do
             echo "PROGRESS_SAMPLE=$sample"
             docker exec "$cid" sh -c 'echo ENCODER_STATE=$(cat /tmp/fgb-transport.state); echo ENCODER_RESTARTS=$(cat /tmp/fgb-restarts); echo PROGRESS_AGE_SECONDS=$(( $(date +%s) - $(stat -c %Y /tmp/fgb-ffmpeg.progress) )); tail -n 24 /tmp/fgb-ffmpeg.progress; echo FFMPEG_COUNT=$(pgrep -x ffmpeg | wc -l)'
