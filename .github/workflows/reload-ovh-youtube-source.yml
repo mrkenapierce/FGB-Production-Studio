@@ -1,0 +1,93 @@
+name: Reload OVH YouTube Browser Source
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/reload-ovh-youtube-source.yml
+
+permissions:
+  contents: read
+
+jobs:
+  reload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      OVH_HOST: 40.160.144.185
+    steps:
+      - name: Prepare protected SSH key
+        env:
+          OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+          LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"
+          if [ -z "$key" ]; then key="$LEGACY_KEY"; fi
+          test -n "$key"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/ovh_known_hosts
+
+      - name: Reload only the captured YouTube browser source
+        run: |
+          set -euo pipefail
+          ssh -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "ubuntu@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/fgb-transport
+          C=$(sudo -n docker compose -f docker-compose.yml --env-file .env ps -q youtube)
+          test -n "$C"
+          sudo -n docker exec "$C" sh -lc '
+            set -eu
+            before=$(pgrep -o chromium || true)
+            echo BEFORE_CHROMIUM_PID=${before:-missing}
+            echo BEFORE_STATE=$(cat /tmp/fgb-transport.state 2>/dev/null || echo missing)
+            pkill -TERM chromium || true
+            after=""
+            url=""
+            for _ in $(seq 1 30); do
+              after=$(pgrep -o chromium || true)
+              if [ -n "$after" ] && [ "$after" != "$before" ] && curl -sf -m 2 http://127.0.0.1:9222/json/list >/tmp/fgb-tabs.json; then
+                url=$(sed -n "s/.*\"url\": \"\([^\"]*\)\".*/\1/p" /tmp/fgb-tabs.json | head -1)
+                case "$url" in
+                  *"/fgb-broadcast?target=youtube"*) break ;;
+                esac
+              fi
+              sleep 2
+            done
+            test -n "$after"
+            test "$after" != "$before"
+            case "$url" in
+              *"/fgb-broadcast?target=youtube"*) ;;
+              *) echo "Unexpected browser URL: $url" >&2; exit 1 ;;
+            esac
+            echo AFTER_CHROMIUM_PID=$after
+            echo URL=$url
+            sleep 8
+            design=$(curl -sf -m 10 "${BROADCAST_ORIGIN%/}/api/public/fgbears/broadcast-design")
+            version=$(printf "%s" "$design" | sed -n "s/.*\"versionId\":\"\([^\"]*\)\".*/\1/p")
+            echo DESIGN_VERSION=${version:-missing}
+            test -n "$version"
+            for _ in $(seq 1 15); do
+              state=$(cat /tmp/fgb-transport.state 2>/dev/null || echo missing)
+              if [ "$state" = live ] && grep -q "progress=continue" /tmp/fgb-ffmpeg.progress 2>/dev/null; then break; fi
+              sleep 2
+            done
+            echo AFTER_STATE=$(cat /tmp/fgb-transport.state 2>/dev/null || echo missing)
+            test "$(cat /tmp/fgb-transport.state)" = live
+            grep -q "progress=continue" /tmp/fgb-ffmpeg.progress
+            ffmpeg -hide_banner -loglevel error -y -f x11grab -video_size 1280x720 -i :99.0 -frames:v 1 /tmp/youtube-source-after-reload.png
+            test -s /tmp/youtube-source-after-reload.png
+          '
+          sudo -n docker cp "$C:/tmp/youtube-source-after-reload.png" /tmp/youtube-source-after-reload.png
+          sudo -n chown ubuntu:ubuntu /tmp/youtube-source-after-reload.png
+          REMOTE
+          scp -q -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "ubuntu@$OVH_HOST:/tmp/youtube-source-after-reload.png" /tmp/youtube-source-after-reload.png
+
+      - name: Upload refreshed source frame
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovh-youtube-source-after-reload
+          path: /tmp/youtube-source-after-reload.png
+          if-no-files-found: error
