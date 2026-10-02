@@ -9,12 +9,13 @@ systemctl enable --now ssh
 systemctl enable --now docker
 
 install -d -m 0755 /opt/fgb-transport
+install -d -o 1000 -g 1000 -m 0750 /srv/fgb-archive
 rm -rf /tmp/fgb-prod-studio
 git clone --depth 1 --filter=blob:none --sparse https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgb-prod-studio
 cd /tmp/fgb-prod-studio
 git sparse-checkout set ops/transport-ovh
 cp -a ops/transport-ovh/. /opt/fgb-transport/
-chmod +x /opt/fgb-transport/run-output.sh /opt/fgb-transport/heartbeat.sh /opt/fgb-transport/bootstrap-ovh.sh
+chmod +x /opt/fgb-transport/run-output.sh /opt/fgb-transport/heartbeat.sh /opt/fgb-transport/bootstrap-ovh.sh /opt/fgb-transport/archive-recorder.sh /opt/fgb-transport/archive-uploader.py
 
 if [ ! -f /opt/fgb-transport/.env ]; then
   cp /opt/fgb-transport/.env.example /opt/fgb-transport/.env
@@ -42,7 +43,7 @@ ConditionPathExists=!/opt/fgb-transport/NEEDS_SECRETS
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/fgb-transport
-ExecStart=/usr/bin/docker compose up -d youtube
+ExecStart=/usr/bin/docker compose up -d youtube archive_uploader
 ExecStop=/usr/bin/docker compose down
 TimeoutStartSec=0
 
