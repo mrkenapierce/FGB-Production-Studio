@@ -1,0 +1,19 @@
+{
+  "architecture": "Lovable -> OVH -> YouTube",
+  "browserAutomationUsed": false,
+  "checkedAt": "2026-10-02T20:47:29.489261+00:00",
+  "githubHostedEncoderRequired": false,
+  "heartbeatConfigured": false,
+  "host": "40.160.144.185",
+  "status": {
+    "DESTINATION": "YouTube-RTMPS",
+    "ENCODER_STATE": "live",
+    "HOST": "OVH",
+    "PERMANENT_READY": "true",
+    "RESTARTS": "0",
+    "SERVICE_ACTIVE": "true",
+    "SOURCE": "Lovable",
+    "SOURCE_TARGET": "rumble"
+  },
+  "tinyFishUsed": false
+}
