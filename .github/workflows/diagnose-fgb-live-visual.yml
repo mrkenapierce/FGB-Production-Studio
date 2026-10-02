@@ -1,0 +1,76 @@
+name: Diagnose FGB Live Visual
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/diagnose-fgb-live-visual.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure production SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Capture browser source and encoded outgoing frame
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/fgb-transport
+          cid=$(sudo docker compose --env-file .env ps -q youtube)
+          test -n "$cid"
+          live=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || echo missing')
+          test "$live" = live
+
+          sudo docker compose --env-file .env exec -T youtube sh -lc \
+            'ffmpeg -hide_banner -loglevel error -y -f x11grab -draw_mouse 0 -video_size 1280x720 -i :99.0 -frames:v 1 /tmp/fgb-browser-source.png'
+          sudo docker cp "$cid":/tmp/fgb-browser-source.png /tmp/fgb-browser-source.png
+
+          latest=$(find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' -printf '%T@ %p\n' 2>/dev/null | sort -n | tail -1 | cut -d' ' -f2-)
+          test -n "$latest"
+          ffprobe -v error -show_entries stream=index,codec_type,codec_name,width,height,r_frame_rate,sample_rate,channels -of json "$latest" > /tmp/fgb-archive-probe.json
+          ffmpeg -hide_banner -loglevel error -y -ss 5 -i "$latest" -frames:v 1 /tmp/fgb-encoded-output.png
+
+          {
+            echo "LIVE_STATE=$live"
+            echo "CONTAINER_RESTARTS=$(sudo docker inspect -f '{{.RestartCount}}' "$cid")"
+            echo "FFMPEG_PROGRESS=$(sudo docker compose --env-file .env exec -T youtube sh -lc \"grep '^progress=' /tmp/fgb-ffmpeg.progress | tail -1\" || true)"
+            echo "BROWSER_SOURCE_BYTES=$(stat -c %s /tmp/fgb-browser-source.png)"
+            echo "ENCODED_OUTPUT_BYTES=$(stat -c %s /tmp/fgb-encoded-output.png)"
+            echo "ARCHIVE_SOURCE=$(basename "$latest")"
+          } > /tmp/fgb-visual-status.txt
+          REMOTE
+
+          scp -q -i ~/.ssh/ovh_key ubuntu@40.160.144.185:/tmp/fgb-browser-source.png /tmp/fgb-browser-source.png
+          scp -q -i ~/.ssh/ovh_key ubuntu@40.160.144.185:/tmp/fgb-encoded-output.png /tmp/fgb-encoded-output.png
+          scp -q -i ~/.ssh/ovh_key ubuntu@40.160.144.185:/tmp/fgb-archive-probe.json /tmp/fgb-archive-probe.json
+          scp -q -i ~/.ssh/ovh_key ubuntu@40.160.144.185:/tmp/fgb-visual-status.txt /tmp/fgb-visual-status.txt
+          cat /tmp/fgb-visual-status.txt
+          cat /tmp/fgb-archive-probe.json
+
+      - name: Upload visual diagnostic
+        uses: actions/upload-artifact@v4
+        with:
+          name: fgb-live-visual-diagnostic
+          path: |
+            /tmp/fgb-browser-source.png
+            /tmp/fgb-encoded-output.png
+            /tmp/fgb-archive-probe.json
+            /tmp/fgb-visual-status.txt
+          if-no-files-found: error
+          retention-days: 1
