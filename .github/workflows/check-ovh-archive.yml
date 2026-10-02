@@ -23,7 +23,7 @@ jobs:
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
           chmod 600 ~/.ssh/ovh_key
           ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
-      - name: Enforce live and archive capture health
+      - name: Enforce live, capture, and publishing health
         run: |
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
           set -euo pipefail
@@ -37,5 +37,8 @@ jobs:
           test -n "$chunk"
           free=$(df -BG --output=avail /srv/fgb-archive | tail -1 | tr -dc '0-9')
           test "$free" -ge 8
-          printf 'LIVE_STATE=live\nLIVE_RESTARTS=%s\nARCHIVE_CAPTURE=active\nARCHIVE_UPLOADER=running\nARCHIVE_FREE_GB=%s\n' "$restarts" "$free"
+          sudo docker compose --env-file .env exec -T archive_uploader python3 ./archive-token-wrapper.py --check-auth >/tmp/archive-auth-check.txt
+          grep -q 'ARCHIVE_OAUTH_READY=true' /tmp/archive-auth-check.txt
+          rm -f /tmp/archive-auth-check.txt
+          printf 'LIVE_STATE=live\nLIVE_RESTARTS=%s\nARCHIVE_CAPTURE=active\nARCHIVE_UPLOADER=running\nARCHIVE_AUTH=ready\nARCHIVE_FREE_GB=%s\n' "$restarts" "$free"
           REMOTE
