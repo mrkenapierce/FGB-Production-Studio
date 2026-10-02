@@ -30,8 +30,24 @@ jobs:
           chmod 600 ~/.ssh/ovh_key
           ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
 
+      - name: Find production SSH user
+        run: |
+          set -euo pipefail
+          REMOTE_USER=''
+          for candidate in ubuntu admin debian root; do
+            probe=$(ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=5 -i ~/.ssh/ovh_key \
+              "$candidate@40.160.144.185" 'printf __FGB_SSH_OK__' 2>/dev/null || true)
+            if [ "$probe" = '__FGB_SSH_OK__' ]; then
+              REMOTE_USER="$candidate"
+              break
+            fi
+          done
+          test -n "$REMOTE_USER"
+          echo "REMOTE_USER=$REMOTE_USER" >> "$GITHUB_ENV"
+          echo "Using OVH SSH user: $REMOTE_USER"
+
       - name: Refresh only the Chromium page, not FFmpeg or Docker
         run: |
           set -euo pipefail
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key \
-            ubuntu@40.160.144.185 'bash -s' < ops/transport-ovh/refresh-browser.sh
+            "$REMOTE_USER@40.160.144.185" 'bash -s' < ops/transport-ovh/refresh-browser.sh
