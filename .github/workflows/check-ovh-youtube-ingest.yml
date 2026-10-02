@@ -1,0 +1,85 @@
+name: Check OVH YouTube Ingest
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/check-ovh-youtube-ingest.yml
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure production SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Inspect encoder and YouTube egress without changing production
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/fgb-transport
+
+          cid=$(sudo docker compose --env-file .env ps -q youtube)
+          test -n "$cid"
+          live=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || echo missing')
+          restarts=$(sudo docker inspect -f '{{.RestartCount}}' "$cid")
+          ffpid=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'pgrep -o ffmpeg || true')
+          test -n "$ffpid"
+
+          p1=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-ffmpeg.progress 2>/dev/null || true')
+          f1=$(printf '%s\n' "$p1" | awk -F= '$1=="frame"{v=$2} END{print v+0}')
+          t1=$(printf '%s\n' "$p1" | awk -F= '$1=="out_time_us"{v=$2} END{print v+0}')
+          b1=$(printf '%s\n' "$p1" | awk -F= '$1=="total_size"{v=$2} END{print v+0}')
+          sleep 6
+          p2=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-ffmpeg.progress 2>/dev/null || true')
+          f2=$(printf '%s\n' "$p2" | awk -F= '$1=="frame"{v=$2} END{print v+0}')
+          t2=$(printf '%s\n' "$p2" | awk -F= '$1=="out_time_us"{v=$2} END{print v+0}')
+          b2=$(printf '%s\n' "$p2" | awk -F= '$1=="total_size"{v=$2} END{print v+0}')
+
+          conn=$(sudo docker compose --env-file .env exec -T youtube sh -lc "ss -ntpH 2>/dev/null | grep 'pid=$ffpid' | wc -l" || true)
+          recent=$(sudo docker compose --env-file .env logs --since 15m youtube 2>&1 | grep -Eai 'error|failed|broken pipe|connection reset|server error|av_interleaved_write_frame|rtmp|tls' | tail -20 | sed -E 's#(rtmps?://[^/]+/)[^ ]+#\1[REDACTED]#g; s#(stream_key=)[^ ]+#\1[REDACTED]#g' || true)
+
+          latest=$(find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' -printf '%T@ %s %p\n' 2>/dev/null | sort -n | tail -1 || true)
+          latest_size=$(printf '%s\n' "$latest" | awk '{print $2+0}')
+          latest_path=$(printf '%s\n' "$latest" | awk '{print $3}')
+          if [ -n "$latest_path" ]; then
+            s1=$(stat -c %s "$latest_path")
+            sleep 4
+            s2=$(stat -c %s "$latest_path" 2>/dev/null || echo "$s1")
+          else
+            s1=0; s2=0
+          fi
+
+          printf 'LIVE_STATE=%s\n' "$live"
+          printf 'CONTAINER_RESTARTS=%s\n' "$restarts"
+          printf 'FFMPEG_PID=%s\n' "$ffpid"
+          printf 'FRAME_DELTA=%s\n' "$((f2-f1))"
+          printf 'OUT_TIME_US_DELTA=%s\n' "$((t2-t1))"
+          printf 'TOTAL_SIZE_DELTA=%s\n' "$((b2-b1))"
+          printf 'FFMPEG_TCP_CONNECTIONS=%s\n' "$conn"
+          printf 'ARCHIVE_FILE_GROWTH_BYTES=%s\n' "$((s2-s1))"
+          if [ -n "$recent" ]; then
+            printf 'RECENT_ENCODER_WARNINGS_BEGIN\n%s\nRECENT_ENCODER_WARNINGS_END\n' "$recent"
+          else
+            printf 'RECENT_ENCODER_WARNINGS=none\n'
+          fi
+
+          test "$live" = live
+          test "$f2" -gt "$f1"
+          test "$t2" -gt "$t1"
+          test "$s2" -ge "$s1"
+          REMOTE
