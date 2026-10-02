@@ -16,14 +16,14 @@ services:
     image: transport-ovh-youtube
     build: .
     restart: unless-stopped
-    env_file:
-      - .env
-      - /etc/fgbears-archive/oauth.env
+    env_file: .env
     environment:
       FGB_ARCHIVE_DIR: /archive
+      FGB_ARCHIVE_CONTROL_URL: https://epiccontentcreatorgrants.org/api/public/fgbears/archive
     volumes:
       - /srv/fgb-archive:/archive
-    command: ["python3", "./archive-uploader.py"]
+      - ./archive-token-wrapper.py:/opt/transport/archive-token-wrapper.py:ro
+    command: ["python3", "./archive-token-wrapper.py"]
     healthcheck:
       disable: true
 
