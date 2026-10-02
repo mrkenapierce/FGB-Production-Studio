@@ -1,0 +1,80 @@
+name: Refresh OVH FGB Browser Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/refresh-ovh-browser-source.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refresh-ovh-fgb-browser-source
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure OVH access
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Reload Chromium only and verify encoder continuity
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/fgb-transport
+
+          cid=$(sudo docker compose --env-file .env ps -q youtube)
+          test -n "$cid"
+          live_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state')
+          test "$live_before" = live
+          restart_before=$(sudo docker inspect -f '{{.RestartCount}}' "$cid")
+          ffmpeg_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc "pgrep -o ffmpeg")
+          test -n "$ffmpeg_before"
+
+          chrome_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc "ps -eo pid,args | awk '/chromium .*--remote-debugging-port=9222/ && !/awk/ {print \\$1; exit}'")
+          test -n "$chrome_before"
+          sudo docker compose --env-file .env exec -T youtube sh -lc "kill -TERM $chrome_before"
+
+          ready=0
+          for _ in $(seq 1 12); do
+            sleep 5
+            if sudo docker compose --env-file .env exec -T youtube curl -fsS --max-time 3 http://127.0.0.1:9222/json/version >/dev/null 2>&1; then
+              chrome_after=$(sudo docker compose --env-file .env exec -T youtube sh -lc "ps -eo pid,args | awk '/chromium .*--remote-debugging-port=9222/ && !/awk/ {print \\$1; exit}'")
+              if [[ -n "$chrome_after" && "$chrome_after" != "$chrome_before" ]]; then
+                ready=1
+                break
+              fi
+            fi
+          done
+          test "$ready" = 1
+
+          ffmpeg_after=$(sudo docker compose --env-file .env exec -T youtube sh -lc "pgrep -o ffmpeg")
+          restart_after=$(sudo docker inspect -f '{{.RestartCount}}' "$cid")
+          live_after=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state')
+          tabs=$(sudo docker compose --env-file .env exec -T youtube curl -fsS --max-time 5 http://127.0.0.1:9222/json)
+          page_url=$(printf '%s' "$tabs" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next((x.get("url","") for x in d if "/fgb-broadcast?target=youtube" in x.get("url","")), ""))')
+
+          test "$ffmpeg_after" = "$ffmpeg_before"
+          test "$restart_after" = "$restart_before"
+          test "$live_after" = live
+          [[ "$page_url" == *'/fgb-broadcast?target=youtube'* ]]
+
+          echo 'BROWSER_SOURCE_RELOADED=true'
+          echo 'FFMPEG_PID_UNCHANGED=true'
+          echo 'CONTAINER_RESTART_COUNT_UNCHANGED=true'
+          echo 'LIVE_STATE=live'
+          echo 'CURRENT_YOUTUBE_BROWSER_SOURCE_OK=true'
+          REMOTE
