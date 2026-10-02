@@ -1,0 +1,98 @@
+name: Reload OVH Browser Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/reload-ovh-browser-source.yml
+
+permissions:
+  contents: read
+
+jobs:
+  reload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure production SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Refresh only the Chromium browser target and verify continuity
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/fgb-transport
+
+          youtube_id_before=$(sudo docker compose --env-file .env ps -q youtube)
+          test -n "$youtube_id_before"
+          docker_restarts_before=$(sudo docker inspect -f '{{.RestartCount}}' "$youtube_id_before")
+          ffmpeg_pid_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'pgrep -o ffmpeg')
+          live_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state')
+          test "$live_before" = live
+
+          tabs=$(sudo docker compose --env-file .env exec -T youtube curl -fsS --max-time 5 http://127.0.0.1:9222/json)
+          old_id=$(printf '%s' "$tabs" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d[0]["id"] if d else "")')
+          test -n "$old_id"
+          target='https://epiccontentcreatorgrants.org/fgb-broadcast?target=youtube'
+          encoded=$(python3 -c 'import urllib.parse; print(urllib.parse.quote("https://epiccontentcreatorgrants.org/fgb-broadcast?target=youtube", safe=""))')
+          created=$(sudo docker compose --env-file .env exec -T youtube curl -fsS -X PUT --max-time 10 "http://127.0.0.1:9222/json/new?${encoded}")
+          new_id=$(printf '%s' "$created" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id",""))')
+          test -n "$new_id"
+          sudo docker compose --env-file .env exec -T youtube curl -fsS --max-time 5 "http://127.0.0.1:9222/json/activate/${new_id}" >/dev/null
+          sleep 8
+          sudo docker compose --env-file .env exec -T youtube curl -fsS --max-time 5 "http://127.0.0.1:9222/json/close/${old_id}" >/dev/null || true
+          sleep 3
+
+          youtube_id_after=$(sudo docker compose --env-file .env ps -q youtube)
+          docker_restarts_after=$(sudo docker inspect -f '{{.RestartCount}}' "$youtube_id_after")
+          ffmpeg_pid_after=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'pgrep -o ffmpeg')
+          live_after=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state')
+          tabs_after=$(sudo docker compose --env-file .env exec -T youtube curl -fsS --max-time 5 http://127.0.0.1:9222/json)
+          chrome_url=$(printf '%s' "$tabs_after" | python3 -c 'import json,sys; d=json.load(sys.stdin); print((d[0].get("url","") if d else "")[:400])')
+          chrome_title=$(printf '%s' "$tabs_after" | python3 -c 'import json,sys; d=json.load(sys.stdin); print((d[0].get("title","") if d else "").replace("\n"," ")[:200])')
+
+          test "$youtube_id_after" = "$youtube_id_before"
+          test "$docker_restarts_after" = "$docker_restarts_before"
+          test "$ffmpeg_pid_after" = "$ffmpeg_pid_before"
+          test "$live_after" = live
+          case "$chrome_url" in
+            *'/fgb-broadcast?target=youtube'*) ;;
+            *) echo "Unexpected Chromium URL: $chrome_url" >&2; exit 1 ;;
+          esac
+
+          for path in \
+            '/fgb-broadcast?target=youtube' \
+            '/api/public/fgbears/game-screen' \
+            '/api/public/fgbears/stream-routing' \
+            '/api/public/fgbears/encoder-state'; do
+            body=$(mktemp)
+            metrics=$(curl -sS -L --max-time 20 -o "$body" -w '%{http_code} %{time_total}' "https://epiccontentcreatorgrants.org${path}" || true)
+            code=${metrics%% *}
+            duration=${metrics#* }
+            test "$code" = 200
+            if grep -Eqi 'Error 1102|Worker exceeded resource limits' "$body"; then
+              echo "1102 still present on $path" >&2
+              rm -f "$body"
+              exit 1
+            fi
+            printf 'PROBE path=%s code=%s seconds=%s\n' "$path" "$code" "$duration"
+            rm -f "$body"
+          done
+
+          printf 'BROWSER_REFRESH_OK=true\n'
+          printf 'LIVE_STATE=%s\n' "$live_after"
+          printf 'YOUTUBE_CONTAINER_RESTARTS=%s\n' "$docker_restarts_after"
+          printf 'FFMPEG_PID_UNCHANGED=true\n'
+          printf 'CHROMIUM_TITLE=%s\n' "$chrome_title"
+          printf 'CHROMIUM_URL=%s\n' "$chrome_url"
+          REMOTE
