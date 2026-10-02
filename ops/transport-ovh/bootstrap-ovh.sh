@@ -10,6 +10,10 @@ systemctl enable --now docker
 
 install -d -m 0755 /opt/fgb-transport
 install -d -o 1000 -g 1000 -m 0750 /srv/fgb-archive
+install -d -m 0700 /etc/fgbears-archive
+if [ ! -f /etc/fgbears-archive/oauth.env ]; then
+  install -m 0600 /dev/null /etc/fgbears-archive/oauth.env
+fi
 rm -rf /tmp/fgb-prod-studio
 git clone --depth 1 --filter=blob:none --sparse https://github.com/mrkenapierce/FGB-Production-Studio.git /tmp/fgb-prod-studio
 cd /tmp/fgb-prod-studio
