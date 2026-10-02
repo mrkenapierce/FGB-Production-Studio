@@ -23,6 +23,10 @@ RELOAD_EVERY_SECONDS="${RELOAD_EVERY_SECONDS:-21600}"
 URL="${BROADCAST_ORIGIN%/}/fgb-broadcast?target=${TARGET}"
 PROGRESS=/tmp/fgb-ffmpeg.progress
 STATE=/tmp/fgb-transport.state
+ARCHIVE_ENABLED="${FGB_ARCHIVE_ENABLED:-0}"
+ARCHIVE_UDP_OUTPUT="${FGB_ARCHIVE_LOCAL_UDP_OUTPUT_URL:-udp://127.0.0.1:1944?pkt_size=1316}"
+ARCHIVE_PID=""
+ARCHIVE_LAST_START=0
 export DISPLAY=:99
 [ -n "${DESTINATIONS:-}" ] || { echo "DESTINATIONS required"; exit 2; }
 RESTARTS=0
@@ -54,17 +58,33 @@ wait_for_chromium() {
   log "chromium did not become capture-ready in time"
   return 1
 }
+start_archive_recorder() {
+  if [ "$OUTPUT" != youtube ] || [ "$ARCHIVE_ENABLED" != 1 ]; then return 0; fi
+  ARCHIVE_LAST_START=$(date +%s)
+  ./archive-recorder.sh >>/tmp/fgb-archive-recorder.log 2>&1 &
+  ARCHIVE_PID=$!
+  log "archive recorder pid $ARCHIVE_PID (isolated loopback tap)"
+}
 start_ffmpeg() {
   rm -f "$PROGRESS"
-  ffmpeg -hide_banner -loglevel warning -nostdin -thread_queue_size 1024 -f x11grab -draw_mouse 0 -video_size 1280x720 -framerate 30 -i :99.0 -thread_queue_size 1024 -f pulse -i fgb.monitor -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -b:v "$VIDEO_BITRATE" -minrate "$VIDEO_BITRATE" -maxrate "$VIDEO_BITRATE" -bufsize "$((${VIDEO_BITRATE%k} * 2))k" -x264-params nal-hrd=cbr -g 60 -keyint_min 60 -sc_threshold 0 -c:a aac -b:a "$AUDIO_BITRATE" -ar 48000 -ac 2 -map 0:v -map 1:a -flags +global_header -progress "$PROGRESS" -f flv "$DESTINATIONS" &
+  if [ "$OUTPUT" = youtube ] && [ "$ARCHIVE_ENABLED" = 1 ]; then
+    # The YouTube leg remains fatal so the existing watchdog reconnects it.
+    # The archive leg is explicitly onfail=ignore and writes only to loopback UDP,
+    # so recorder/storage/upload failures cannot stop the live destination.
+    TEE_DESTINATIONS="[f=flv:onfail=abort]${DESTINATIONS}|[f=mpegts:onfail=ignore]${ARCHIVE_UDP_OUTPUT}"
+    ffmpeg -hide_banner -loglevel warning -nostdin -thread_queue_size 1024 -f x11grab -draw_mouse 0 -video_size 1280x720 -framerate 30 -i :99.0 -thread_queue_size 1024 -f pulse -i fgb.monitor -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -b:v "$VIDEO_BITRATE" -minrate "$VIDEO_BITRATE" -maxrate "$VIDEO_BITRATE" -bufsize "$((${VIDEO_BITRATE%k} * 2))k" -x264-params nal-hrd=cbr -g 60 -keyint_min 60 -sc_threshold 0 -c:a aac -b:a "$AUDIO_BITRATE" -ar 48000 -ac 2 -map 0:v -map 1:a -flags +global_header -progress "$PROGRESS" -f tee "$TEE_DESTINATIONS" &
+  else
+    ffmpeg -hide_banner -loglevel warning -nostdin -thread_queue_size 1024 -f x11grab -draw_mouse 0 -video_size 1280x720 -framerate 30 -i :99.0 -thread_queue_size 1024 -f pulse -i fgb.monitor -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p -b:v "$VIDEO_BITRATE" -minrate "$VIDEO_BITRATE" -maxrate "$VIDEO_BITRATE" -bufsize "$((${VIDEO_BITRATE%k} * 2))k" -x264-params nal-hrd=cbr -g 60 -keyint_min 60 -sc_threshold 0 -c:a aac -b:a "$AUDIO_BITRATE" -ar 48000 -ac 2 -map 0:v -map 1:a -flags +global_header -progress "$PROGRESS" -f flv "$DESTINATIONS" &
+  fi
   FFMPEG_PID=$!; log "ffmpeg pid $FFMPEG_PID"
 }
 restart() { RESTARTS=$((RESTARTS + 1)); echo "$RESTARTS" >/tmp/fgb-restarts; echo degraded > "$STATE"; log "restart $1 (#$RESTARTS)"; }
-shutdown() { echo stopped > "$STATE"; [ -n "${HB_PID:-}" ] && ./heartbeat.sh once || true; kill "${FFMPEG_PID:-0}" "${CHROME_PID:-0}" "${HB_PID:-0}" "${XVFB_PID:-0}" 2>/dev/null; exit 0; }
+shutdown() { echo stopped > "$STATE"; [ -n "${HB_PID:-}" ] && ./heartbeat.sh once || true; kill "${FFMPEG_PID:-0}" "${CHROME_PID:-0}" "${ARCHIVE_PID:-0}" "${HB_PID:-0}" "${XVFB_PID:-0}" 2>/dev/null; exit 0; }
 trap shutdown TERM INT
 start_display
 start_chromium
 wait_for_chromium || { restart "chromium startup"; kill "$CHROME_PID" 2>/dev/null; start_chromium; wait_for_chromium || exit 3; }
+start_archive_recorder
 start_ffmpeg
 if [ -n "${HEARTBEAT_URL:-}" ] && [ -n "${FGB_TRANSPORT_HEARTBEAT_SECRET:-}" ]; then STARTED="$STARTED" ./heartbeat.sh loop & HB_PID=$!; fi
 while sleep 5; do
@@ -89,4 +109,12 @@ while sleep 5; do
   if ! kill -0 "$FFMPEG_PID" 2>/dev/null; then restart "ffmpeg exited"; sleep 2; start_ffmpeg; continue; fi
   if [ -f "$PROGRESS" ] && [ $((now - $(stat -c %Y "$PROGRESS"))) -gt "$STALL_SECONDS" ]; then restart "ffmpeg stalled"; kill -9 "$FFMPEG_PID" 2>/dev/null; sleep 2; start_ffmpeg; continue; fi
   if grep -q "progress=continue" "$PROGRESS" 2>/dev/null; then echo live > "$STATE"; fi
+  if [ "$OUTPUT" = youtube ] && [ "$ARCHIVE_ENABLED" = 1 ]; then
+    if [ -z "$ARCHIVE_PID" ] || ! kill -0 "$ARCHIVE_PID" 2>/dev/null; then
+      if [ $((now - ARCHIVE_LAST_START)) -ge 60 ]; then
+        log "archive recorder unavailable; restarting recorder without touching live ffmpeg"
+        start_archive_recorder
+      fi
+    fi
+  fi
 done
