@@ -10,6 +10,8 @@ source "$ENV_FILE"
 : "${RUMBLE_LOCAL_UDP_URL:=udp://127.0.0.1:1940?pkt_size=1316}"
 : "${RUMBLE_UPSTREAM_RTMP_BASE:=rtmp://rtmp.rumble.com/live}"
 : "${YOUTUBE_COPY_LOCAL_UDP_URL:=udp://127.0.0.1:1942?pkt_size=1316}"
+: "${FGB_ARCHIVE_ENABLED:=0}"
+: "${FGB_ARCHIVE_LOCAL_UDP_URL:=udp://127.0.0.1:1944?pkt_size=1316}"
 : "${FFMPEG_LOGLEVEL:=warning}"
 
 [[ "$RUMBLE_STREAM_KEY" != "REPLACE_WITH_RUMBLE_STREAM_KEY" ]] || {
@@ -36,17 +38,36 @@ source "$ENV_FILE"
   echo "YouTube copy mirror must use a different UDP port from the Rumble input." >&2
   exit 78
 }
+[[ "$FGB_ARCHIVE_ENABLED" == "0" || "$FGB_ARCHIVE_ENABLED" == "1" ]] || {
+  echo "FGB_ARCHIVE_ENABLED must be 0 or 1." >&2
+  exit 78
+}
+if [[ "$FGB_ARCHIVE_ENABLED" == "1" ]]; then
+  [[ "$FGB_ARCHIVE_LOCAL_UDP_URL" == udp://127.0.0.1:* ]] || {
+    echo "FGB_ARCHIVE_LOCAL_UDP_URL must remain a loopback UDP URL." >&2
+    exit 78
+  }
+  [[ "$FGB_ARCHIVE_LOCAL_UDP_URL" != "$RUMBLE_LOCAL_UDP_URL" && "$FGB_ARCHIVE_LOCAL_UDP_URL" != "$YOUTUBE_COPY_LOCAL_UDP_URL" ]] || {
+    echo "Archive mirror must use a distinct UDP port." >&2
+    exit 78
+  }
+fi
 
 LOCAL_BASE=${RUMBLE_LOCAL_UDP_URL%%\?*}
 LOCAL_INPUT="${LOCAL_BASE}?fifo_size=1000000&overrun_nonfatal=1&reuse=1"
 UPSTREAM_TARGET="${RUMBLE_UPSTREAM_RTMP_BASE%/}/${RUMBLE_STREAM_KEY}"
 
 # The master remains encoded exactly once. This relay keeps the existing Rumble
-# copy/remux output and adds only a loopback MPEG-TS mirror for the isolated
-# YouTube copy relay. The local UDP mirror cannot apply backpressure from
-# YouTube to Rumble and contains no decode, filter, or re-encode stage.
+# copy/remux output and loopback YouTube mirror. The optional archive mirror is
+# a third isolated MPEG-TS tee slave; onfail=ignore prevents archive failures
+# from applying backpressure to Rumble or YouTube.
 RUMBLE_SLAVE="[f=flv:flvflags=no_duration_filesize]${UPSTREAM_TARGET}"
 YOUTUBE_COPY_SLAVE="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${YOUTUBE_COPY_LOCAL_UDP_URL}"
+TEE_OUTPUTS="${RUMBLE_SLAVE}|${YOUTUBE_COPY_SLAVE}"
+if [[ "$FGB_ARCHIVE_ENABLED" == "1" ]]; then
+  ARCHIVE_SLAVE="[f=mpegts:mpegts_flags=resend_headers:bsfs/v=dump_extra=freq=keyframe:onfail=ignore]${FGB_ARCHIVE_LOCAL_UDP_URL}"
+  TEE_OUTPUTS="${TEE_OUTPUTS}|${ARCHIVE_SLAVE}"
+fi
 
 exec ffmpeg \
   -hide_banner -nostdin -loglevel "$FFMPEG_LOGLEVEL" \
@@ -56,4 +77,4 @@ exec ffmpeg \
   -c copy \
   -tag:v 7 -tag:a 10 \
   -f tee \
-  "${RUMBLE_SLAVE}|${YOUTUBE_COPY_SLAVE}"
+  "$TEE_OUTPUTS"
