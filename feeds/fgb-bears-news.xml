@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 02 Oct 2026 00:13:02 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 02 Oct 2026 05:36:05 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -14,7 +14,7 @@
       <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Reviewing the Bears’ PFN grades from Week 3 vs. Eagles</description>
       <link>https://sports.yahoo.com/articles/reviewing-bears-pfn-grades-week-000000894.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-8b6c8f8f7e3a1db5d5cf</guid>
-      <pubDate>Fri, 02 Oct 2026 00:00:00 GMT</pubDate>
+      <pubDate>Fri, 02 Oct 2026 02:34:23 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -27,6 +27,26 @@
       <pubDate>Thu, 01 Oct 2026 22:51:07 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>7 things we learned from Bears coordinators</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 7 things we learned from Bears coordinators</description>
+      <link>https://www.chicagobears.com/news/7-things-we-learned-from-bears-coordinators-week-4-2026</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-316b96c34ac40baea736</guid>
+      <pubDate>Thu, 01 Oct 2026 22:05:50 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Starter or backup, Bears QBs Case Keenum and Tyson Bagent are there for each other</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Starter or backup, Bears QBs Case Keenum and Tyson Bagent are there for each other</description>
+      <link>https://www.nytimes.com/athletic/7650533/2026/10/01/bears-qbs-tyson-bagent-case-keenum-jets/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-58c8eb8721ac3df440a2</guid>
+      <pubDate>Thu, 01 Oct 2026 16:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -67,26 +87,6 @@
       <pubDate>Thu, 01 Oct 2026 13:11:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears open DB Kyler Gordon&apos;s 21-day practice window</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears open DB Kyler Gordon&apos;s 21-day practice window</description>
-      <link>https://www.chicagobears.com/news/bears-open-db-kyler-gordon-s-21-day-practice-window</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1a8c0830d6cebb514de2</guid>
-      <pubDate>Thu, 01 Oct 2026 12:52:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson, Aaron Glenn clash as Bears host Jets</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Ben Johnson, Aaron Glenn clash as Bears host Jets</description>
-      <link>https://www.cbssports.com/nfl/news/ben-johnson-aaron-glenn-clash-as-bears-host-jets/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7118d6f8e46c1299ea29</guid>
-      <pubDate>Thu, 01 Oct 2026 11:43:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
