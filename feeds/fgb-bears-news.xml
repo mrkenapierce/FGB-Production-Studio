@@ -5,46 +5,66 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 02 Oct 2026 16:44:04 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 02 Oct 2026 20:59:31 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Case Keenum is a nice story, but Bears should pivot to Tyson Bagent | Opinion</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Case Keenum is a nice story, but Bears should pivot to Tyson Bagent | Opinion</description>
-      <link>https://sports.yahoo.com/articles/case-keenum-nice-story-bears-153305278.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f05eba7f4076661fdd80</guid>
-      <pubDate>Fri, 02 Oct 2026 15:33:05 GMT</pubDate>
+      <title>Bears vs. Jets Injury Report: Braxton Jones out for Chicago, N.Y. down 4 starters</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Jets Injury Report: Braxton Jones out for Chicago, N.Y. down 4 starters</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-jets-injury-report-193000641.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d68b6183e05b3c7a580d</guid>
+      <pubDate>Fri, 02 Oct 2026 19:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears vs. Jets: Keys to a Chicago victory</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Jets: Keys to a Chicago victory</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-jets-keys-chicago-153000243.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-92e3dfbd5ea3eeb624f8</guid>
-      <pubDate>Fri, 02 Oct 2026 15:30:00 GMT</pubDate>
+      <title>Jets at Bears Q&amp;A: A battle of former Lions Coordinators</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Jets at Bears Q&amp;A: A battle of former Lions Coordinators</description>
+      <link>https://sports.yahoo.com/articles/jets-bears-q-battle-former-190000754.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cf3312ce5792a19d3e13</guid>
+      <pubDate>Fri, 02 Oct 2026 19:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Chicago Bears commence 2026 UK Grand Tour</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears commence 2026 UK Grand Tour</description>
-      <link>https://www.chicagobears.com/news/chicago-bears-commence-2026-uk-grand-tour</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a5fb8e91e432800f714f</guid>
-      <pubDate>Fri, 02 Oct 2026 15:00:00 GMT</pubDate>
+      <title>Game prep a group effort for Bears quarterbacks</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game prep a group effort for Bears quarterbacks</description>
+      <link>https://www.chicagobears.com/news/game-prep-a-group-effort-for-bears-quarterbacks</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5646f3126bb7f23ee80d</guid>
+      <pubDate>Fri, 02 Oct 2026 17:16:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
-      <title>Bold Predictions For the Chicago Bears Week 4 Matchup Against the Jets</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bold Predictions For the Chicago Bears Week 4 Matchup Against the Jets</description>
-      <link>https://www.si.com/nfl/bears/onsi/bold-predictions-for-the-chicago-bears-week-4-matchup-against-the-jets</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-762ccd0d2498c3ad9e99</guid>
-      <pubDate>Fri, 02 Oct 2026 09:29:00 GMT</pubDate>
+      <title>A full-circle moment: My experience at the Bears&apos; Latino Heritage Month game</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: A full-circle moment: My experience at the Bears&apos; Latino Heritage Month game</description>
+      <link>https://www.chicagobears.com/news/a-full-circle-moment-my-experience-at-the-bears-latino-heritage-month-game</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-269384c91fba1c2423b0</guid>
+      <pubDate>Fri, 02 Oct 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears announce starting left tackle, but not QB, for Week 4 vs. Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears announce starting left tackle, but not QB, for Week 4 vs. Jets</description>
+      <link>https://www.si.com/nfl/bears/onsi/no-bears-qb-announcement-but-theo-benedet-gets-start-at-left-tackle</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6dbb442f2bf71565a1dc</guid>
+      <pubDate>Fri, 02 Oct 2026 13:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams, D&apos;Andre Swift Injury Updates From Bears&apos; Final Week 4 Practice Report</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams, D&apos;Andre Swift Injury Updates From Bears&apos; Final Week 4 Practice Report</description>
+      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-d-andre-swift-injury-updates-bears-final-week-4-practice-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-69a347a6c51be52f22f7</guid>
+      <pubDate>Fri, 02 Oct 2026 12:11:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -60,16 +80,6 @@
     </item>
 
     <item>
-      <title>Bears Acknowledge Embattled Rookie&apos;s Gaffes But Lend Support</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Acknowledge Embattled Rookie&apos;s Gaffes But Lend Support</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-acknowledge-embattled-rookie-s-gaffes-but-lend-support</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-956bb43e3d2bb60a6458</guid>
-      <pubDate>Fri, 02 Oct 2026 08:42:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Chicago Bears mailbag: What’s going on with Rome Odunze? Week 4 predictions vs. Jets</title>
       <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears mailbag: What’s going on with Rome Odunze? Week 4 predictions vs. Jets</description>
       <link>https://www.nytimes.com/athletic/7649784/2026/10/02/bears-mailbag-rome-odunze-case-keenum-jets/</link>
@@ -77,16 +87,6 @@
       <pubDate>Fri, 02 Oct 2026 06:54:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Breece Hall, Adonai Mitchell among Jets ruled out for Week 4 vs. Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Breece Hall, Adonai Mitchell among Jets ruled out for Week 4 vs. Bears</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/breece-hall-adonai-mitchell-among-jets-ruled-out-for-week-4-vs-bears?cid=nbcnews</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8a459f32fd890afbb8f2</guid>
-      <pubDate>Fri, 02 Oct 2026 04:08:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
