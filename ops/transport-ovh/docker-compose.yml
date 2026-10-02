@@ -8,6 +8,23 @@ services:
     environment:
       OUTPUT: youtube
       DESTINATIONS: ${YOUTUBE_DESTINATIONS}
+      FGB_ARCHIVE_DIR: /archive
+    volumes:
+      - /srv/fgb-archive:/archive
+
+  archive_uploader:
+    image: transport-ovh-youtube
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      FGB_ARCHIVE_DIR: /archive
+    volumes:
+      - /srv/fgb-archive:/archive
+    command: ["python3", "./archive-uploader.py"]
+    healthcheck:
+      disable: true
+
   rumble_bridge:
     profiles: ["fallback"]
     build: .
