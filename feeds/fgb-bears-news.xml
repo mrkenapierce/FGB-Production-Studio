@@ -5,26 +5,46 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 02 Oct 2026 05:36:05 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 02 Oct 2026 11:20:37 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Reviewing the Bears’ PFN grades from Week 3 vs. Eagles</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Reviewing the Bears’ PFN grades from Week 3 vs. Eagles</description>
-      <link>https://sports.yahoo.com/articles/reviewing-bears-pfn-grades-week-000000894.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8b6c8f8f7e3a1db5d5cf</guid>
-      <pubDate>Fri, 02 Oct 2026 02:34:23 GMT</pubDate>
+      <title>New York Jets News: Bears Playing QB Mind Games With Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: New York Jets News: Bears Playing QB Mind Games With Jets</description>
+      <link>https://sports.yahoo.com/articles/york-jets-news-bears-playing-110000585.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ab7ffdced38e07b1c108</guid>
+      <pubDate>Fri, 02 Oct 2026 11:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>NFL commissioner met with Illinois governor to discuss Bears stadium plans</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL commissioner met with Illinois governor to discuss Bears stadium plans</description>
-      <link>https://sports.yahoo.com/articles/nfl-commissioner-met-illinois-governor-225107832.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-816dd608a03dcbeb6b6b</guid>
-      <pubDate>Thu, 01 Oct 2026 22:51:07 GMT</pubDate>
+      <title>Chicago Bears mailbag: What’s going on with Rome Odunze? Week 4 prediction vs. Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears mailbag: What’s going on with Rome Odunze? Week 4 prediction vs. Jets</description>
+      <link>https://www.nytimes.com/athletic/7649784/2026/10/02/bears-mailbag-rome-odunze-case-keenum-jets/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9e2f9245f3a0cb7f64f8</guid>
+      <pubDate>Fri, 02 Oct 2026 03:55:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Kyler Gordon’s return to Bears practice turns heads, raises new questions</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Kyler Gordon’s return to Bears practice turns heads, raises new questions</description>
+      <link>https://www.nytimes.com/athletic/7650425/2026/10/02/bears-kyler-gordon-back-at-practice/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6ea9bcee3d65c29521ad</guid>
+      <pubDate>Fri, 02 Oct 2026 03:53:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Jets at Bears: Thursday injury reports for both teams</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Jets at Bears: Thursday injury reports for both teams</description>
+      <link>https://sports.yahoo.com/articles/jets-bears-thursday-injury-reports-104529184.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-bceb14c81564e8339bf3</guid>
+      <pubDate>Fri, 02 Oct 2026 03:45:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -37,16 +57,6 @@
       <pubDate>Thu, 01 Oct 2026 22:05:50 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Starter or backup, Bears QBs Case Keenum and Tyson Bagent are there for each other</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Starter or backup, Bears QBs Case Keenum and Tyson Bagent are there for each other</description>
-      <link>https://www.nytimes.com/athletic/7650533/2026/10/01/bears-qbs-tyson-bagent-case-keenum-jets/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-58c8eb8721ac3df440a2</guid>
-      <pubDate>Thu, 01 Oct 2026 16:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -75,16 +85,6 @@
       <link>https://www.si.com/nfl/bears/onsi/important-factors-that-will-decide-chicago-bears-week-4-showdown-against-the-jets</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-51158671cc7010124752</guid>
       <pubDate>Thu, 01 Oct 2026 13:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams, D&apos;Andre Swift and More Bears Injury Updates From Thursday Practice Report</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams, D&apos;Andre Swift and More Bears Injury Updates From Thursday Practice Report</description>
-      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-d-andre-swift-bears-injury-updates-thursday-practice-report</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-da17e3885b03f95bea78</guid>
-      <pubDate>Thu, 01 Oct 2026 13:11:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
