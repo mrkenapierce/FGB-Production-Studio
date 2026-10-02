@@ -1,0 +1,65 @@
+name: Activate FGB Archive Publishing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  OVH_HOST: 40.160.144.185
+
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Require protected credentials
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+          CLIENT_ID: ${{ secrets.FGB_YOUTUBE_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.FGB_YOUTUBE_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.FGB_YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          test -n "$CLIENT_ID"
+          test -n "$CLIENT_SECRET"
+          test -n "$REFRESH_TOKEN"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          umask 077
+          {
+            printf 'FGB_YOUTUBE_CLIENT_ID=%q\n' "$CLIENT_ID"
+            printf 'FGB_YOUTUBE_CLIENT_SECRET=%q\n' "$CLIENT_SECRET"
+            printf 'FGB_YOUTUBE_REFRESH_TOKEN=%q\n' "$REFRESH_TOKEN"
+          } > /tmp/oauth.env
+
+      - name: Install OAuth and validate without touching live encoder
+        run: |
+          set -euo pipefail
+          scp -q -i ~/.ssh/ovh_key /tmp/oauth.env ubuntu@$OVH_HOST:/tmp/fgb-oauth.env
+          scp -q -i ~/.ssh/ovh_key ops/transport-ovh/docker-compose.yml ubuntu@$OVH_HOST:/tmp/docker-compose.yml
+          ssh -i ~/.ssh/ovh_key ubuntu@$OVH_HOST 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/fgb-transport
+          live_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state')
+          test "$live_before" = live
+          sudo install -d -m 0700 /etc/fgbears-archive
+          sudo install -m 0600 /tmp/fgb-oauth.env /etc/fgbears-archive/oauth.env
+          sudo install -m 0644 /tmp/docker-compose.yml /opt/fgb-transport/docker-compose.yml
+          rm -f /tmp/fgb-oauth.env /tmp/docker-compose.yml
+          sudo docker compose --env-file .env config >/dev/null
+          sudo docker compose --env-file .env up -d --no-deps --force-recreate archive_uploader
+          sudo docker compose --env-file .env exec -T archive_uploader python3 ./archive-uploader.py --check-auth
+          sudo docker compose --env-file .env exec -T archive_uploader python3 ./archive-uploader.py --test-upload
+          # Capture began part-way through Oct 2. Do not publish that partial day as a full-day archive.
+          sudo find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-20261002-*.ts' -delete
+          sudo docker compose --env-file .env exec -T youtube sh -lc 'test "$(cat /tmp/fgb-transport.state)" = live'
+          echo 'ARCHIVE_PUBLISHING_AUTHORIZED=true'
+          echo 'FIRST_FULL_PUBLIC_ARCHIVE_DATE=2026-10-03'
+          REMOTE
