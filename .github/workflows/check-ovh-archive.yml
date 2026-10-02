@@ -1,0 +1,41 @@
+name: Check OVH Archive Health
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/check-ovh-archive.yml
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure read-only production access
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts
+      - name: Report archive health without exposing credentials
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -e
+          cd /opt/fgb-transport
+          sudo docker compose --env-file .env ps
+          echo "LIVE_STATE=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || echo missing')"
+          echo "LIVE_RESTARTS=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-restarts 2>/dev/null || echo missing')"
+          echo "ARCHIVE_CHUNK_COUNT=$(find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' 2>/dev/null | wc -l)"
+          latest=$(find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' -printf '%T@ %s %f\n' 2>/dev/null | sort -nr | head -1 || true)
+          if [ -n "$latest" ]; then echo "ARCHIVE_LATEST=$latest"; else echo 'ARCHIVE_LATEST=none'; fi
+          echo "ARCHIVE_FREE_GB=$(df -BG --output=avail /srv/fgb-archive | tail -1 | tr -dc '0-9')"
+          echo "UPLOADER_RUNNING=$(sudo docker compose --env-file .env ps --status running -q archive_uploader | grep -q . && echo true || echo false)"
+          echo "OAUTH_CONFIGURED=$(sudo docker compose --env-file .env exec -T archive_uploader sh -lc 'test -n "${FGB_YOUTUBE_CLIENT_ID:-}" && test -n "${FGB_YOUTUBE_CLIENT_SECRET:-}" && test -n "${FGB_YOUTUBE_REFRESH_TOKEN:-}" && echo true || echo false')"
+          REMOTE
