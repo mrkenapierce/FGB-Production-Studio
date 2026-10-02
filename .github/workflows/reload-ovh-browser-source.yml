@@ -43,7 +43,6 @@ jobs:
           tabs=$(sudo docker compose --env-file .env exec -T youtube curl -fsS --max-time 5 http://127.0.0.1:9222/json)
           old_id=$(printf '%s' "$tabs" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d[0]["id"] if d else "")')
           test -n "$old_id"
-          target='https://epiccontentcreatorgrants.org/fgb-broadcast?target=youtube'
           encoded=$(python3 -c 'import urllib.parse; print(urllib.parse.quote("https://epiccontentcreatorgrants.org/fgb-broadcast?target=youtube", safe=""))')
           created=$(sudo docker compose --env-file .env exec -T youtube curl -fsS -X PUT --max-time 10 "http://127.0.0.1:9222/json/new?${encoded}")
           new_id=$(printf '%s' "$created" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("id",""))')
