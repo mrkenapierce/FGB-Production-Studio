@@ -16,7 +16,9 @@ services:
     image: transport-ovh-youtube
     build: .
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - .env
+      - /etc/fgbears-archive/oauth.env
     environment:
       FGB_ARCHIVE_DIR: /archive
     volumes:
