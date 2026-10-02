@@ -23,16 +23,19 @@ jobs:
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
           chmod 600 ~/.ssh/ovh_key
           ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
-      - name: Report archive health without exposing credentials
+      - name: Enforce live and archive capture health
         run: |
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
           cd /opt/fgb-transport
           live=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || echo missing')
-          restarts=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-restarts 2>/dev/null || echo missing')
-          chunks=$(find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' 2>/dev/null | wc -l)
-          latest=$(find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' -printf '%s %f\n' 2>/dev/null | sort -nr | head -1 || true)
-          free=$(df -BG --output=avail /srv/fgb-archive 2>/dev/null | tail -1 | tr -dc '0-9')
-          uploader=$(sudo docker compose --env-file .env ps --status running -q archive_uploader | grep -q . && echo true || echo false)
-          oauth=$(sudo docker compose --env-file .env exec -T archive_uploader sh -lc 'test -n "${FGB_YOUTUBE_CLIENT_ID:-}" && test -n "${FGB_YOUTUBE_CLIENT_SECRET:-}" && test -n "${FGB_YOUTUBE_REFRESH_TOKEN:-}" && echo true || echo false')
-          printf 'LIVE_STATE=%s\nLIVE_RESTARTS=%s\nARCHIVE_CHUNK_COUNT=%s\nARCHIVE_LATEST=%s\nARCHIVE_FREE_GB=%s\nUPLOADER_RUNNING=%s\nOAUTH_CONFIGURED=%s\n' "$live" "$restarts" "$chunks" "${latest:-none}" "${free:-unknown}" "$uploader" "$oauth"
+          test "$live" = live
+          restarts=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-restarts 2>/dev/null || echo 999')
+          test "$restarts" -le 1
+          test -n "$(sudo docker compose --env-file .env ps --status running -q archive_uploader)"
+          chunk=$(find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' -size +1M -print -quit 2>/dev/null)
+          test -n "$chunk"
+          free=$(df -BG --output=avail /srv/fgb-archive | tail -1 | tr -dc '0-9')
+          test "$free" -ge 8
+          printf 'LIVE_STATE=live\nLIVE_RESTARTS=%s\nARCHIVE_CAPTURE=active\nARCHIVE_UPLOADER=running\nARCHIVE_FREE_GB=%s\n' "$restarts" "$free"
           REMOTE
