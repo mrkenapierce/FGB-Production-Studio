@@ -39,52 +39,50 @@ jobs:
           live_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || echo missing')
           test "$live_before" = live
 
-          # Reload only the existing Chromium page over the local Chrome DevTools Protocol.
-          # FFmpeg, RTMP, container, stream key and YouTube session remain untouched.
           sudo docker compose --env-file .env exec -T youtube python3 - <<'PY'
-import base64, json, os, socket, struct, urllib.parse, urllib.request
+          import base64, json, os, socket, struct, urllib.parse, urllib.request
 
-tabs = json.load(urllib.request.urlopen('http://127.0.0.1:9222/json', timeout=5))
-tab = next((t for t in tabs if '/fgb-broadcast' in t.get('url','')), None)
-if not tab:
-    raise SystemExit('No FGB broadcast tab found')
-ws = urllib.parse.urlsplit(tab['webSocketDebuggerUrl'])
-host = ws.hostname or '127.0.0.1'
-port = ws.port or 9222
-path = urllib.parse.urlunsplit(('', '', ws.path, ws.query, ''))
-s = socket.create_connection((host, port), timeout=5)
-key = base64.b64encode(os.urandom(16)).decode()
-handshake = (
-    f'GET {path} HTTP/1.1\r\n'
-    f'Host: {host}:{port}\r\n'
-    'Upgrade: websocket\r\n'
-    'Connection: Upgrade\r\n'
-    f'Sec-WebSocket-Key: {key}\r\n'
-    'Sec-WebSocket-Version: 13\r\n\r\n'
-)
-s.sendall(handshake.encode())
-resp = b''
-while b'\r\n\r\n' not in resp:
-    chunk = s.recv(4096)
-    if not chunk:
-        break
-    resp += chunk
-if b' 101 ' not in resp.split(b'\r\n',1)[0]:
-    raise SystemExit('CDP websocket upgrade failed')
-payload = json.dumps({'id':1,'method':'Page.reload','params':{'ignoreCache':True}}).encode()
-mask = os.urandom(4)
-length = len(payload)
-if length < 126:
-    header = bytes([0x81, 0x80 | length])
-elif length < 65536:
-    header = bytes([0x81, 0x80 | 126]) + struct.pack('!H', length)
-else:
-    header = bytes([0x81, 0x80 | 127]) + struct.pack('!Q', length)
-masked = bytes(b ^ mask[i % 4] for i,b in enumerate(payload))
-s.sendall(header + mask + masked)
-s.close()
-print('BROWSER_RELOAD_SENT=true')
-PY
+          tabs = json.load(urllib.request.urlopen('http://127.0.0.1:9222/json', timeout=5))
+          tab = next((t for t in tabs if '/fgb-broadcast' in t.get('url','')), None)
+          if not tab:
+              raise SystemExit('No FGB broadcast tab found')
+          ws = urllib.parse.urlsplit(tab['webSocketDebuggerUrl'])
+          host = ws.hostname or '127.0.0.1'
+          port = ws.port or 9222
+          path = urllib.parse.urlunsplit(('', '', ws.path, ws.query, ''))
+          s = socket.create_connection((host, port), timeout=5)
+          key = base64.b64encode(os.urandom(16)).decode()
+          handshake = (
+              f'GET {path} HTTP/1.1\r\n'
+              f'Host: {host}:{port}\r\n'
+              'Upgrade: websocket\r\n'
+              'Connection: Upgrade\r\n'
+              f'Sec-WebSocket-Key: {key}\r\n'
+              'Sec-WebSocket-Version: 13\r\n\r\n'
+          )
+          s.sendall(handshake.encode())
+          resp = b''
+          while b'\r\n\r\n' not in resp:
+              chunk = s.recv(4096)
+              if not chunk:
+                  break
+              resp += chunk
+          if b' 101 ' not in resp.split(b'\r\n',1)[0]:
+              raise SystemExit('CDP websocket upgrade failed')
+          payload = json.dumps({'id':1,'method':'Page.reload','params':{'ignoreCache':True}}).encode()
+          mask = os.urandom(4)
+          length = len(payload)
+          if length < 126:
+              header = bytes([0x81, 0x80 | length])
+          elif length < 65536:
+              header = bytes([0x81, 0x80 | 126]) + struct.pack('!H', length)
+          else:
+              header = bytes([0x81, 0x80 | 127]) + struct.pack('!Q', length)
+          masked = bytes(b ^ mask[i % 4] for i,b in enumerate(payload))
+          s.sendall(header + mask + masked)
+          s.close()
+          print('BROWSER_RELOAD_SENT=true')
+          PY
 
           sleep 10
 
