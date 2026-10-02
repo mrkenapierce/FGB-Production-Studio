@@ -29,7 +29,7 @@ jobs:
       - name: Inspect encoder and YouTube egress without changing production
         run: |
           set -euo pipefail
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE' | tee /tmp/ovh-youtube-ingest.txt
           set -euo pipefail
           cd /opt/fgb-transport
 
@@ -54,7 +54,6 @@ jobs:
           recent=$(sudo docker compose --env-file .env logs --since 15m youtube 2>&1 | grep -Eai 'error|failed|broken pipe|connection reset|server error|av_interleaved_write_frame|rtmp|tls' | tail -20 | sed -E 's#(rtmps?://[^/]+/)[^ ]+#\1[REDACTED]#g; s#(stream_key=)[^ ]+#\1[REDACTED]#g' || true)
 
           latest=$(find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' -printf '%T@ %s %p\n' 2>/dev/null | sort -n | tail -1 || true)
-          latest_size=$(printf '%s\n' "$latest" | awk '{print $2+0}')
           latest_path=$(printf '%s\n' "$latest" | awk '{print $3}')
           if [ -n "$latest_path" ]; then
             s1=$(stat -c %s "$latest_path")
@@ -83,3 +82,12 @@ jobs:
           test "$t2" -gt "$t1"
           test "$s2" -ge "$s1"
           REMOTE
+
+      - name: Upload sanitized diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ovh-youtube-ingest
+          path: /tmp/ovh-youtube-ingest.txt
+          if-no-files-found: error
+          retention-days: 1
