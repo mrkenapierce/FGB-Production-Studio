@@ -29,7 +29,7 @@ jobs:
       - name: Inspect encoder and YouTube egress without changing production
         run: |
           set -euo pipefail
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE' | tee /tmp/ovh-youtube-ingest.txt
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
           set -euo pipefail
           cd /opt/fgb-transport
 
@@ -63,25 +63,29 @@ jobs:
             s1=0; s2=0
           fi
 
-          printf 'LIVE_STATE=%s\n' "$live"
-          printf 'CONTAINER_RESTARTS=%s\n' "$restarts"
-          printf 'FFMPEG_PID=%s\n' "$ffpid"
-          printf 'FRAME_DELTA=%s\n' "$((f2-f1))"
-          printf 'OUT_TIME_US_DELTA=%s\n' "$((t2-t1))"
-          printf 'TOTAL_SIZE_DELTA=%s\n' "$((b2-b1))"
-          printf 'FFMPEG_TCP_CONNECTIONS=%s\n' "$conn"
-          printf 'ARCHIVE_FILE_GROWTH_BYTES=%s\n' "$((s2-s1))"
-          if [ -n "$recent" ]; then
-            printf 'RECENT_ENCODER_WARNINGS_BEGIN\n%s\nRECENT_ENCODER_WARNINGS_END\n' "$recent"
-          else
-            printf 'RECENT_ENCODER_WARNINGS=none\n'
-          fi
+          {
+            printf 'LIVE_STATE=%s\n' "$live"
+            printf 'CONTAINER_RESTARTS=%s\n' "$restarts"
+            printf 'FFMPEG_PID_PRESENT=true\n'
+            printf 'FRAME_DELTA=%s\n' "$((f2-f1))"
+            printf 'OUT_TIME_US_DELTA=%s\n' "$((t2-t1))"
+            printf 'TOTAL_SIZE_DELTA=%s\n' "$((b2-b1))"
+            printf 'FFMPEG_TCP_CONNECTIONS=%s\n' "$conn"
+            printf 'ARCHIVE_FILE_GROWTH_BYTES=%s\n' "$((s2-s1))"
+            if [ -n "$recent" ]; then
+              printf 'RECENT_ENCODER_WARNINGS_BEGIN\n%s\nRECENT_ENCODER_WARNINGS_END\n' "$recent"
+            else
+              printf 'RECENT_ENCODER_WARNINGS=none\n'
+            fi
+          } > /tmp/ovh-youtube-ingest.txt
 
           test "$live" = live
           test "$f2" -gt "$f1"
           test "$t2" -gt "$t1"
           test "$s2" -ge "$s1"
           REMOTE
+          scp -q -i ~/.ssh/ovh_key ubuntu@40.160.144.185:/tmp/ovh-youtube-ingest.txt /tmp/ovh-youtube-ingest.txt
+          cat /tmp/ovh-youtube-ingest.txt
 
       - name: Upload sanitized diagnostic
         if: always()
