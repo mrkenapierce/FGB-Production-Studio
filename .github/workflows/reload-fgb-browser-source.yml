@@ -1,0 +1,110 @@
+name: Reload FGB Browser Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/reload-fgb-browser-source.yml
+
+permissions:
+  contents: read
+
+jobs:
+  reload:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Configure OVH access
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Reload Chromium tab only and verify encoder unchanged
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/fgb-transport
+
+          container_before=$(sudo docker compose --env-file .env ps -q youtube)
+          test -n "$container_before"
+          restarts_before=$(sudo docker inspect -f '{{.RestartCount}}' "$container_before")
+          live_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || echo missing')
+          test "$live_before" = live
+
+          # Reload only the existing Chromium page over the local Chrome DevTools Protocol.
+          # FFmpeg, RTMP, container, stream key and YouTube session remain untouched.
+          sudo docker compose --env-file .env exec -T youtube python3 - <<'PY'
+import base64, json, os, socket, struct, urllib.parse, urllib.request
+
+tabs = json.load(urllib.request.urlopen('http://127.0.0.1:9222/json', timeout=5))
+tab = next((t for t in tabs if '/fgb-broadcast' in t.get('url','')), None)
+if not tab:
+    raise SystemExit('No FGB broadcast tab found')
+ws = urllib.parse.urlsplit(tab['webSocketDebuggerUrl'])
+host = ws.hostname or '127.0.0.1'
+port = ws.port or 9222
+path = urllib.parse.urlunsplit(('', '', ws.path, ws.query, ''))
+s = socket.create_connection((host, port), timeout=5)
+key = base64.b64encode(os.urandom(16)).decode()
+handshake = (
+    f'GET {path} HTTP/1.1\r\n'
+    f'Host: {host}:{port}\r\n'
+    'Upgrade: websocket\r\n'
+    'Connection: Upgrade\r\n'
+    f'Sec-WebSocket-Key: {key}\r\n'
+    'Sec-WebSocket-Version: 13\r\n\r\n'
+)
+s.sendall(handshake.encode())
+resp = b''
+while b'\r\n\r\n' not in resp:
+    chunk = s.recv(4096)
+    if not chunk:
+        break
+    resp += chunk
+if b' 101 ' not in resp.split(b'\r\n',1)[0]:
+    raise SystemExit('CDP websocket upgrade failed')
+payload = json.dumps({'id':1,'method':'Page.reload','params':{'ignoreCache':True}}).encode()
+mask = os.urandom(4)
+length = len(payload)
+if length < 126:
+    header = bytes([0x81, 0x80 | length])
+elif length < 65536:
+    header = bytes([0x81, 0x80 | 126]) + struct.pack('!H', length)
+else:
+    header = bytes([0x81, 0x80 | 127]) + struct.pack('!Q', length)
+masked = bytes(b ^ mask[i % 4] for i,b in enumerate(payload))
+s.sendall(header + mask + masked)
+s.close()
+print('BROWSER_RELOAD_SENT=true')
+PY
+
+          sleep 10
+
+          container_after=$(sudo docker compose --env-file .env ps -q youtube)
+          restarts_after=$(sudo docker inspect -f '{{.RestartCount}}' "$container_after")
+          live_after=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || echo missing')
+          test "$container_after" = "$container_before"
+          test "$restarts_after" = "$restarts_before"
+          test "$live_after" = live
+
+          tabs=$(sudo docker compose --env-file .env exec -T youtube curl -fsS --max-time 5 http://127.0.0.1:9222/json)
+          title=$(printf '%s' "$tabs" | python3 -c 'import json,sys; d=json.load(sys.stdin); t=next((x for x in d if "/fgb-broadcast" in x.get("url","")),{}); print(t.get("title",""))')
+          url=$(printf '%s' "$tabs" | python3 -c 'import json,sys; d=json.load(sys.stdin); t=next((x for x in d if "/fgb-broadcast" in x.get("url","")),{}); print(t.get("url",""))')
+          test -n "$url"
+          case "$title" in *1102*|*Cloudflare*|*Error*) echo "Unexpected browser title: $title" >&2; exit 1;; esac
+
+          echo "LIVE_STATE=$live_after"
+          echo "ENCODER_CONTAINER_UNCHANGED=true"
+          echo "ENCODER_RESTARTS_BEFORE=$restarts_before"
+          echo "ENCODER_RESTARTS_AFTER=$restarts_after"
+          echo "BROWSER_URL=$url"
+          echo "BROWSER_TITLE=$title"
+          REMOTE
