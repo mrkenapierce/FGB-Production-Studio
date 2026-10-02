@@ -1,0 +1,91 @@
+name: Refresh FGB Live Browser
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/refresh-fgb-live-browser.yml
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Configure production SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Refresh only the Chromium page, not FFmpeg or Docker
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/fgb-transport
+
+          cid_before=$(sudo docker compose --env-file .env ps -q youtube)
+          test -n "$cid_before"
+          restarts_before=$(sudo docker inspect -f '{{.RestartCount}}' "$cid_before")
+          ffmpeg_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'pgrep -o ffmpeg')
+          state_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || echo missing')
+          test "$state_before" = live
+
+          url='https://epiccontentcreatorgrants.org/fgb-broadcast?target=youtube'
+          http_code=$(sudo docker compose --env-file .env exec -T youtube sh -lc "curl -sS -m 15 -o /tmp/fgb-origin-probe.html -w '%{http_code}' '$url'")
+          case "$http_code" in
+            2??) ;;
+            *) echo "Broadcast page probe failed with HTTP $http_code; leaving browser untouched"; exit 20 ;;
+          esac
+          if sudo docker compose --env-file .env exec -T youtube sh -lc "grep -Eqi 'Error 1102|Cloudflare.*1102' /tmp/fgb-origin-probe.html"; then
+            echo 'Broadcast page is still serving Cloudflare Error 1102; leaving browser untouched'
+            exit 21
+          fi
+
+          new_target=$(sudo docker compose --env-file .env exec -T youtube sh -lc "curl -sS -X PUT 'http://127.0.0.1:9222/json/new?$url'")
+          new_id=$(printf '%s' "$new_target" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -1)
+          test -n "$new_id"
+          echo "Created replacement Chromium target $new_id"
+
+          sleep 12
+          sudo docker compose --env-file .env exec -T youtube sh -lc "curl -fsS -X GET 'http://127.0.0.1:9222/json/activate/$new_id' >/dev/null"
+          sleep 5
+
+          targets_after=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'curl -fsS http://127.0.0.1:9222/json/list')
+          printf '%s\n' "$targets_after" > /tmp/fgb-targets-after.json
+          printf '%s' "$targets_after" | grep -Fq "$new_id"
+          if printf '%s' "$targets_after" | grep -Eqi 'Error 1102|Cloudflare.*1102'; then
+            echo 'A Chromium target still reports Error 1102 after refresh; keeping live transport unchanged for manual review'
+            exit 22
+          fi
+
+          cid_after=$(sudo docker compose --env-file .env ps -q youtube)
+          restarts_after=$(sudo docker inspect -f '{{.RestartCount}}' "$cid_after")
+          ffmpeg_after=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'pgrep -o ffmpeg')
+          state_after=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || echo missing')
+
+          test "$cid_after" = "$cid_before"
+          test "$restarts_after" = "$restarts_before"
+          test "$ffmpeg_after" = "$ffmpeg_before"
+          test "$state_after" = live
+
+          sudo docker compose --env-file .env exec -T youtube sh -lc \
+            'ffmpeg -hide_banner -loglevel error -f x11grab -draw_mouse 0 -video_size 1280x720 -i :99.0 -frames:v 1 -f image2pipe -vcodec png -' > /tmp/fgb-browser-after.png
+          test -s /tmp/fgb-browser-after.png
+
+          echo "LIVE_STATE=$state_after"
+          echo "CONTAINER_ID_UNCHANGED=yes"
+          echo "CONTAINER_RESTARTS=$restarts_after"
+          echo "FFMPEG_PID_UNCHANGED=yes"
+          echo "NEW_CHROMIUM_TARGET=$new_id"
+          echo "BROWSER_REFRESH=complete"
+          REMOTE
