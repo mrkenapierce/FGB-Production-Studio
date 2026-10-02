@@ -49,5 +49,7 @@ jobs:
       - name: Refresh only the Chromium page, not FFmpeg or Docker
         run: |
           set -euo pipefail
+          payload=$(base64 -w0 ops/transport-ovh/refresh-browser.sh)
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key \
-            "$REMOTE_USER@40.160.144.185" 'bash -s' < ops/transport-ovh/refresh-browser.sh
+            "$REMOTE_USER@40.160.144.185" \
+            "printf '%s' '$payload' | base64 -d > /tmp/refresh-fgb-browser.sh && chmod 700 /tmp/refresh-fgb-browser.sh && bash /tmp/refresh-fgb-browser.sh"
