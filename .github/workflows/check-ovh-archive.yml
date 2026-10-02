@@ -28,8 +28,7 @@ jobs:
 
       - name: Enforce live, capture, publishing, and browser-source health
         run: |
-          set -o pipefail
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE' | tee /tmp/fgb-live-diagnostic.txt
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
           set -euo pipefail
           cd /opt/fgb-transport
 
@@ -58,8 +57,20 @@ jobs:
           body_bytes=$(wc -c </tmp/fgb-origin.body 2>/dev/null || echo 0)
           rm -f /tmp/fgb-origin.headers /tmp/fgb-origin.body
 
-          printf 'LIVE_STATE=%s\nLIVE_RESTARTS=%s\nARCHIVE_CAPTURE=%s\nARCHIVE_UPLOADER=%s\nARCHIVE_AUTH=%s\nARCHIVE_FREE_GB=%s\nCHROMIUM_TITLE=%s\nCHROMIUM_URL=%s\nORIGIN_HTTP=%s\nCF_ERROR_TYPE=%s\nORIGIN_BODY_MARKER=%s\nORIGIN_BODY_BYTES=%s\n' \
-            "$live" "$restarts" "$archive_capture" "$archive_uploader" "$archive_auth" "$free" "$chrome_title" "$chrome_url" "$origin_code" "${cf_error:-none}" "${body_marker:-none}" "$body_bytes"
+          cat >/tmp/fgb-live-diagnostic.txt <<EOF
+LIVE_STATE=$live
+LIVE_RESTARTS=$restarts
+ARCHIVE_CAPTURE=$archive_capture
+ARCHIVE_UPLOADER=$archive_uploader
+ARCHIVE_AUTH=$archive_auth
+ARCHIVE_FREE_GB=$free
+CHROMIUM_TITLE=$chrome_title
+CHROMIUM_URL=$chrome_url
+ORIGIN_HTTP=$origin_code
+CF_ERROR_TYPE=${cf_error:-none}
+ORIGIN_BODY_MARKER=${body_marker:-none}
+ORIGIN_BODY_BYTES=$body_bytes
+EOF
 
           test "$live" = live
           test "$restarts" -le 1
@@ -68,6 +79,7 @@ jobs:
           test "$archive_auth" = ready
           test "$free" -ge 8
           REMOTE
+          scp -q -i ~/.ssh/ovh_key ubuntu@40.160.144.185:/tmp/fgb-live-diagnostic.txt /tmp/fgb-live-diagnostic.txt
 
       - name: Persist sanitized diagnostic
         if: always()
@@ -91,10 +103,7 @@ jobs:
                   key, value = raw.split('=', 1)
                   if key in allowed:
                       values[key] = value
-          out = {
-              'checkedAt': datetime.now(timezone.utc).isoformat(),
-              'diagnostic': values,
-          }
+          out = {'checkedAt': datetime.now(timezone.utc).isoformat(), 'diagnostic': values}
           target = Path('.github/deployment-status/fgb-live-diagnostic.json')
           target.parent.mkdir(parents=True, exist_ok=True)
           target.write_text(json.dumps(out, indent=2, sort_keys=True) + '\n', encoding='utf-8')
