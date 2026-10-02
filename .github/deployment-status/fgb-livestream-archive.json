@@ -2,11 +2,12 @@
   "architecture": "Lovable -> OVH Docker -> YouTube with isolated archive tap",
   "archiveCaptureActive": true,
   "archiveUploaderRunning": true,
-  "checkedAt": "2026-10-02T21:03:00Z",
+  "archiveAuthorization": "existing FGB YouTube OAuth via short-lived token bridge",
+  "checkedAt": "2026-10-02T21:30:00Z",
   "firstFullPublicArchiveDate": "2026-10-03",
   "liveEncoderState": "live",
-  "liveRestartCountAtCheck": 0,
   "obsoleteOracleArchiveWorkflowRetired": true,
-  "publicPublishingActive": false,
-  "youtubeOAuthReady": false
+  "publicPublishingActive": true,
+  "testUploadValidated": true,
+  "youtubeOAuthReady": true
 }
