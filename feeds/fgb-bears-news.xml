@@ -5,18 +5,28 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 03 Oct 2026 00:13:37 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 03 Oct 2026 05:18:35 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears vs. Jets Injury Report: Braxton Jones out for Chicago, N.Y. down 4 starters</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Jets Injury Report: Braxton Jones out for Chicago, N.Y. down 4 starters</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-jets-injury-report-193000641.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d68b6183e05b3c7a580d</guid>
-      <pubDate>Fri, 02 Oct 2026 19:30:00 GMT</pubDate>
+      <title>Banged-up Jets look to avoid three-game losing streak without five key players against Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Banged-up Jets look to avoid three-game losing streak without five key players against Bears</description>
+      <link>https://sports.yahoo.com/articles/banged-jets-look-avoid-three-225318201.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4d67d2615f3120d85d06</guid>
+      <pubDate>Fri, 02 Oct 2026 22:53:18 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Braxton Jones: Ruled out for Week 4</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Braxton Jones: Ruled out for Week 4</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-braxton-jones-ruled-out-for-week-4/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a025ac12f3e09975032c</guid>
+      <pubDate>Fri, 02 Oct 2026 18:12:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -37,6 +47,46 @@
       <pubDate>Fri, 02 Oct 2026 17:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>NFL Network: QB Tyson Bagent likely to start for Bears on Sunday vs. Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: NFL Network: QB Tyson Bagent likely to start for Bears on Sunday vs. Jets</description>
+      <link>https://www.nfl.com/news/nfl-network-qb-tyson-bagent-likely-to-start-for-bears-on-sunday-vs-jets</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2d5b37a3410972c0b3ea</guid>
+      <pubDate>Fri, 02 Oct 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
+      <title>Will Bears beat the Jets? Our game picks and bold predictions</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Will Bears beat the Jets? Our game picks and bold predictions</description>
+      <link>https://sports.yahoo.com/articles/bears-beat-jets-game-picks-023912782.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0ffb3a349da83ee6dbf9</guid>
+      <pubDate>Fri, 02 Oct 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Containing Kenyon Sadiq is Bears&apos; Top Priority Against Injury-Riddled Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Containing Kenyon Sadiq is Bears&apos; Top Priority Against Injury-Riddled Jets</description>
+      <link>https://www.si.com/nfl/bears/onsi/containing-kenyon-sadiq-is-bears-top-priority-against-injury-riddled-jets</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5c2c26051c3c34b4fb14</guid>
+      <pubDate>Fri, 02 Oct 2026 15:23:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>New Bears stadium in Illinois could be publicly owned</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: New Bears stadium in Illinois could be publicly owned</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/new-bears-stadium-in-illinois-could-be-publicly-owned</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-813be8c3b09588dc474d</guid>
+      <pubDate>Fri, 02 Oct 2026 14:09:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
