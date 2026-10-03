@@ -5,78 +5,88 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 03 Oct 2026 14:48:43 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 03 Oct 2026 18:25:30 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>‘All signs point to Tyson Bagent’ starting for the Chicago Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: ‘All signs point to Tyson Bagent’ starting for the Chicago Bears</description>
-      <link>https://sports.yahoo.com/articles/signs-point-tyson-bagent-starting-140000715.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4e6244aca96568067c66</guid>
-      <pubDate>Sat, 03 Oct 2026 14:00:00 GMT</pubDate>
+      <title>Bears reportedly expected to start Tyson Bagent at QB in Week 4 vs. Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears reportedly expected to start Tyson Bagent at QB in Week 4 vs. Jets</description>
+      <link>https://sports.yahoo.com/nfl/article/bears-reportedly-expected-to-start-tyson-bagent-at-qb-in-week-4-vs-jets-171230036.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ae4fbce7abed37d34edd</guid>
+      <pubDate>Sat, 03 Oct 2026 17:12:30 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Previewing the New York Jets’ opposition: Chicago Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Previewing the New York Jets’ opposition: Chicago Bears</description>
-      <link>https://sports.yahoo.com/articles/previewing-york-jets-opposition-chicago-130000671.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-59c4948420d7b020f9c1</guid>
-      <pubDate>Sat, 03 Oct 2026 13:00:00 GMT</pubDate>
+      <title>Three things I’m looking for in the New York Jets vs. Chicago Bears game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Three things I’m looking for in the New York Jets vs. Chicago Bears game</description>
+      <link>https://sports.yahoo.com/articles/three-things-m-looking-york-170000705.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-21cb892b390975ea9e6f</guid>
+      <pubDate>Sat, 03 Oct 2026 17:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears starting QB Tyson Bagent against the Jets: Sources</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears starting QB Tyson Bagent against the Jets: Sources</description>
-      <link>https://www.nytimes.com/athletic/7652664/2026/10/03/bears-tyson-bagent-starting-jets/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-74d3aeceb0af77bd6974</guid>
-      <pubDate>Sat, 03 Oct 2026 07:33:00 GMT</pubDate>
+      <title>Bears make starting QB decision for Week 4 matchup vs. Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears make starting QB decision for Week 4 matchup vs. Jets</description>
+      <link>https://www.cbssports.com/nfl/news/bears-make-starting-qb-decision-week-4-matchup-jets/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-87262b9bc014afd5aa3f</guid>
+      <pubDate>Sat, 03 Oct 2026 16:17:57 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
-      <title>Game prep a group effort for Bears quarterbacks</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game prep a group effort for Bears quarterbacks</description>
-      <link>https://www.chicagobears.com/news/game-prep-a-group-effort-for-bears-quarterbacks</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5646f3126bb7f23ee80d</guid>
-      <pubDate>Fri, 02 Oct 2026 17:16:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>NFL Network: QB Tyson Bagent likely to start for Bears on Sunday vs. Jets</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: NFL Network: QB Tyson Bagent likely to start for Bears on Sunday vs. Jets</description>
-      <link>https://www.nfl.com/news/nfl-network-qb-tyson-bagent-likely-to-start-for-bears-on-sunday-vs-jets</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2d5b37a3410972c0b3ea</guid>
-      <pubDate>Fri, 02 Oct 2026 17:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>A full-circle moment: My experience at the Bears&apos; Latino Heritage Month game</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: A full-circle moment: My experience at the Bears&apos; Latino Heritage Month game</description>
-      <link>https://www.chicagobears.com/news/a-full-circle-moment-my-experience-at-the-bears-latino-heritage-month-game</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-269384c91fba1c2423b0</guid>
-      <pubDate>Fri, 02 Oct 2026 17:00:00 GMT</pubDate>
+      <title>Game Preview: Jets vs. Bears | 2026 Week 4</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Preview: Jets vs. Bears | 2026 Week 4</description>
+      <link>https://www.chicagobears.com/news/game-preview-jets-vs-bears-2026-week-4</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-91de9ab3a8a79bec0cc1</guid>
+      <pubDate>Sat, 03 Oct 2026 15:13:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
-      <title>Jets rule out RB Hall, WR Mitchell, TE Taylor, LG Parham vs. Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Jets rule out RB Hall, WR Mitchell, TE Taylor, LG Parham vs. Bears</description>
-      <link>https://www.espn.com/nfl/story/_/id/50085069/jets-rule-rb-hall-wr-mitchell-te-taylor-lg-parham-vs-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ed2a6440d328472b9f71</guid>
-      <pubDate>Fri, 02 Oct 2026 09:15:00 GMT</pubDate>
+      <title>Bears Catch a Big Break for Week 5 with Latest Packers Injury Update</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Catch a Big Break for Week 5 with Latest Packers Injury Update</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-catch-a-big-break-for-week-5-with-latest-packers-injury-update</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2bfe2fa51008923aafb3</guid>
+      <pubDate>Sat, 03 Oct 2026 11:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Case Keenum Endorses &apos;Baller&apos; Tyson Bagent as Bears Stay Mum on QB1 vs. Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Case Keenum Endorses &apos;Baller&apos; Tyson Bagent as Bears Stay Mum on QB1 vs. Jets</description>
+      <link>https://www.si.com/nfl/bears/onsi/case-keenum-endorses-baller-tyson-bagent-as-bears-stay-mum-on-qb1-vs-jets</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c046de7b45d57810b5ff</guid>
+      <pubDate>Sat, 03 Oct 2026 10:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Source: Bears expected to start QB Tyson Bagent vs. Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Source: Bears expected to start QB Tyson Bagent vs. Jets</description>
+      <link>https://www.espn.com/nfl/story/_/id/50090746/source-bears-expected-start-qb-tyson-bagent-vs-jets</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2de1590bb31a287e6167</guid>
+      <pubDate>Sat, 03 Oct 2026 09:40:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Bears to Start QB Tyson Bagent vs. the Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears to Start QB Tyson Bagent vs. the Jets</description>
+      <link>https://www.cbssports.com/watch/nfl/video/bears-to-start-qb-tyson-bagent-vs-the-jets</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b8c0f1e8bf9eae982440</guid>
+      <pubDate>Sat, 03 Oct 2026 08:50:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
