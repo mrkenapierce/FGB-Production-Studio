@@ -1,0 +1,49 @@
+name: Inspect OVH Archive Runtime
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/inspect-ovh-archive-runtime.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Inspect runtime
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set +e
+          cd /opt/fgb-transport || exit 1
+          echo '=== FILES ==='
+          ls -la | sed -n '1,120p'
+          echo '=== COMPOSE SANITIZED ==='
+          sed -E 's#(rtmp[s]?://)[^ ]+#\1[REDACTED]#g; s#(STREAM_KEY|SECRET|TOKEN|PASSWORD|CLIENT_SECRET):.*#\1: [REDACTED]#Ig' docker-compose.yml 2>/dev/null | sed -n '1,180p'
+          echo '=== SERVICES ==='
+          sudo docker compose --env-file .env ps -a 2>&1 || true
+          echo '=== ARCHIVE ENV FLAGS ==='
+          grep -E '^(FGB_ARCHIVE_|FGB_YOUTUBE_)' .env 2>/dev/null | sed -E 's#=(.*)#=[SET]#' | sort || true
+          echo '=== ARCHIVE FILE COUNTS ==='
+          for d in /srv/fgb-archive/hourly /srv/fgb-archive/final /srv/fgb-archive/state; do
+            printf '%s=' "$d"; find "$d" -maxdepth 1 -type f 2>/dev/null | wc -l
+          done
+          echo '=== RECENT ARCHIVE FILES ==='
+          find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' -printf '%f %s\n' 2>/dev/null | sort | tail -12
+          find /srv/fgb-archive/state -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | sort | tail -12
+          echo '=== UPLOADER LOG ==='
+          sudo docker compose --env-file .env logs --tail=80 archive_uploader 2>&1 | sed -E 's#(Bearer |access_token=|refresh_token=|client_secret=)[^ ]+#\1[REDACTED]#Ig' | tail -80 || true
+          REMOTE
