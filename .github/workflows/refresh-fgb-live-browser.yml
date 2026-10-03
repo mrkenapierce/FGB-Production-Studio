@@ -53,3 +53,26 @@ jobs:
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key \
             "$REMOTE_USER@40.160.144.185" \
             "printf '%s' '$payload' | base64 -d > /tmp/refresh-fgb-browser.sh && chmod 700 /tmp/refresh-fgb-browser.sh && bash /tmp/refresh-fgb-browser.sh"
+
+      - name: Provision archive API key and expose only its hash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key "$REMOTE_USER@40.160.144.185" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          envfile=/opt/fgb-transport/.env
+          key=$(sudo sed -n 's/^FGB_ARCHIVE_API_KEY=//p' "$envfile" | tail -1)
+          if [ -z "$key" ]; then
+            key=$(openssl rand -hex 32)
+            tmp=$(mktemp)
+            sudo cat "$envfile" > "$tmp"
+            sed -i '/^FGB_ARCHIVE_API_KEY=/d' "$tmp"
+            printf 'FGB_ARCHIVE_API_KEY=%s\n' "$key" >> "$tmp"
+            sudo install -o root -g root -m 600 "$tmp" "$envfile"
+            rm -f "$tmp"
+            echo 'ARCHIVE_API_KEY_CREATED=yes'
+          else
+            echo 'ARCHIVE_API_KEY_CREATED=no'
+          fi
+          hash=$(printf '%s' "$key" | sha256sum | awk '{print $1}')
+          echo "ARCHIVE_API_KEY_SHA256=$hash"
+          REMOTE
