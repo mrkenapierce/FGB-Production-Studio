@@ -1,0 +1,53 @@
+name: Provision FGB Archive API Key
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/provision-fgb-archive-api-key.yml
+
+permissions:
+  contents: read
+
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY }}
+          FALLBACK_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          key="$DEPLOY_KEY"
+          if [ -z "$key" ]; then key="$FALLBACK_KEY"; fi
+          test -n "$key"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Generate key on OVH and print only its hash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          envfile=/opt/fgb-transport/.env
+          key=$(sudo sed -n 's/^FGB_ARCHIVE_API_KEY=//p' "$envfile" | tail -1)
+          if [ -z "$key" ]; then
+            key=$(openssl rand -hex 32)
+            tmp=$(mktemp)
+            sudo cat "$envfile" > "$tmp"
+            sed -i '/^FGB_ARCHIVE_API_KEY=/d' "$tmp"
+            printf 'FGB_ARCHIVE_API_KEY=%s\n' "$key" >> "$tmp"
+            sudo install -o root -g root -m 600 "$tmp" "$envfile"
+            rm -f "$tmp"
+            echo 'ARCHIVE_API_KEY_CREATED=yes'
+          else
+            echo 'ARCHIVE_API_KEY_CREATED=no'
+          fi
+          hash=$(printf '%s' "$key" | sha256sum | awk '{print $1}')
+          echo "ARCHIVE_API_KEY_SHA256=$hash"
+          REMOTE
