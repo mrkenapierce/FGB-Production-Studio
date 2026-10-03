@@ -19,31 +19,56 @@ jobs:
         env:
           DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
         run: |
+          set -euo pipefail
           test -n "$DEPLOY_KEY"
           install -d -m 700 ~/.ssh
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
           chmod 600 ~/.ssh/ovh_key
           ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
       - name: Inspect runtime
+        env:
+          GH_HEARTBEAT_SECRET: ${{ secrets.FGB_TRANSPORT_HEARTBEAT_SECRET }}
         run: |
+          set -euo pipefail
+          if [ -n "$GH_HEARTBEAT_SECRET" ]; then echo 'GITHUB_HEARTBEAT_SECRET_SET=yes'; else echo 'GITHUB_HEARTBEAT_SECRET_SET=no'; fi
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
           set +e
           cd /opt/fgb-transport || exit 1
-          echo '=== FILES ==='
-          ls -la | sed -n '1,120p'
-          echo '=== COMPOSE SANITIZED ==='
-          sed -E 's#(rtmp[s]?://)[^ ]+#\1[REDACTED]#g; s#(STREAM_KEY|SECRET|TOKEN|PASSWORD|CLIENT_SECRET):.*#\1: [REDACTED]#Ig' docker-compose.yml 2>/dev/null | sed -n '1,180p'
+          secret=$(sed -n 's/^FGB_TRANSPORT_HEARTBEAT_SECRET=//p' .env | tail -1)
+          if [ -n "$secret" ]; then
+            echo 'OVH_HEARTBEAT_SECRET_SET=yes'
+            python3 - "$secret" <<'PY'
+import hashlib,hmac,json,sys,time,urllib.request,urllib.error
+secret=sys.argv[1]
+url='https://epiccontentcreatorgrants.org/api/public/fgbears/archive'
+body=json.dumps({'action':'token'},separators=(',',':')).encode()
+ts=str(int(time.time()))
+sig=hmac.new(secret.encode(),ts.encode()+b'.'+body,hashlib.sha256).hexdigest()
+req=urllib.request.Request(url,data=body,method='POST',headers={'content-type':'application/json','x-fgb-timestamp':ts,'x-fgb-signature':sig})
+try:
+    with urllib.request.urlopen(req,timeout=20) as r:
+        payload=json.loads(r.read().decode())
+    print('ARCHIVE_TOKEN_BRIDGE_OK='+('yes' if payload.get('ok') and payload.get('accessToken') else 'no'))
+    print('ARCHIVE_CONTROL_PRIVACY='+str(payload.get('privacy','unknown')))
+    print('ARCHIVE_CONTROL_PAUSED='+str(bool(payload.get('paused'))).lower())
+except urllib.error.HTTPError as e:
+    print('ARCHIVE_TOKEN_BRIDGE_OK=no')
+    print('ARCHIVE_TOKEN_BRIDGE_HTTP='+str(e.code))
+except Exception as e:
+    print('ARCHIVE_TOKEN_BRIDGE_OK=no')
+    print('ARCHIVE_TOKEN_BRIDGE_ERROR='+type(e).__name__)
+PY
+          else
+            echo 'OVH_HEARTBEAT_SECRET_SET=no'
+          fi
           echo '=== SERVICES ==='
           sudo docker compose --env-file .env ps -a 2>&1 || true
-          echo '=== ARCHIVE ENV FLAGS ==='
-          grep -E '^(FGB_ARCHIVE_|FGB_YOUTUBE_)' .env 2>/dev/null | sed -E 's#=(.*)#=[SET]#' | sort || true
           echo '=== ARCHIVE FILE COUNTS ==='
           for d in /srv/fgb-archive/hourly /srv/fgb-archive/final /srv/fgb-archive/state; do
             printf '%s=' "$d"; find "$d" -maxdepth 1 -type f 2>/dev/null | wc -l
           done
           echo '=== RECENT ARCHIVE FILES ==='
           find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' -printf '%f %s\n' 2>/dev/null | sort | tail -12
-          find /srv/fgb-archive/state -maxdepth 1 -type f -printf '%f\n' 2>/dev/null | sort | tail -12
           echo '=== UPLOADER LOG ==='
-          sudo docker compose --env-file .env logs --tail=80 archive_uploader 2>&1 | sed -E 's#(Bearer |access_token=|refresh_token=|client_secret=)[^ ]+#\1[REDACTED]#Ig' | tail -80 || true
+          sudo docker compose --env-file .env logs --tail=40 archive_uploader 2>&1 | sed -E 's#(Bearer |access_token=|refresh_token=|client_secret=)[^ ]+#\1[REDACTED]#Ig' | tail -40 || true
           REMOTE
