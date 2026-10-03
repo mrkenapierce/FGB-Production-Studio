@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""Assemble hourly FGB capture chunks into daily YouTube archive videos.
+"""FGB hourly YouTube archive publisher.
 
-The live encoder never depends on this process. Hourly MPEG-TS chunks are
-created by archive-recorder.sh from a loopback UDP copy of the already encoded
-program. This worker waits until a Central-time calendar day is closed, remuxes
-those chunks into YouTube-ready MP4 parts, uploads them resumably, verifies the
-requested privacy, adds them to the archive playlist, and only then removes the
-raw chunks.
+This process is isolated from the live encoder. It scans completed, clock-aligned
+MPEG-TS segments written by archive-recorder.sh, remuxes each full hour to MP4
+with stream copy, uploads exactly one YouTube video per hour, and asks the
+application archive endpoint to add that video to the archive playlist.
+
+The application owns YouTube OAuth, title/description generation, playlist
+creation, and the authoritative idempotency ledger. This host receives only
+short-lived access tokens.
 """
-
 from __future__ import annotations
 
 import argparse
 import datetime as dt
+import hashlib
+import hmac
 import http.client
 import json
 import os
@@ -25,16 +28,20 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from zoneinfo import ZoneInfo
+from typing import Any
 
 API_BASE = "https://www.googleapis.com/youtube/v3"
 UPLOAD_START = "https://www.googleapis.com/upload/youtube/v3/videos"
-TOKEN_URL = "https://oauth2.googleapis.com/token"
 CHUNK_RE = re.compile(r"^live-(?P<date>\d{8})-(?P<time>\d{6})-(?P<offset>[+-]\d{4})\.ts$")
 UPLOAD_CHUNK = 8 * 1024 * 1024
+EXPECTED_CHANNEL_ID = "UC3qyMq_KCg7aF08x7LZyVtg"
 
 
 class ArchiveError(RuntimeError):
+    pass
+
+
+class ApiError(RuntimeError):
     pass
 
 
@@ -50,304 +57,162 @@ def env(name: str, default: str = "") -> str:
     return os.environ.get(name, default).strip()
 
 
-def oauth_ready() -> bool:
-    return all(env(name) for name in (
-        "FGB_YOUTUBE_CLIENT_ID",
-        "FGB_YOUTUBE_CLIENT_SECRET",
-        "FGB_YOUTUBE_REFRESH_TOKEN",
-    ))
+def now_iso() -> str:
+    return dt.datetime.now(dt.timezone.utc).isoformat()
 
 
-def http_json(url: str, *, method: str = "GET", headers: dict[str, str] | None = None,
-              body: dict | None = None, form: dict[str, str] | None = None,
-              timeout: int = 60) -> tuple[dict, dict[str, str]]:
-    request_headers = {"Accept": "application/json"}
-    if headers:
-        request_headers.update(headers)
+def atomic_json(path: Path, value: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    tmp.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    os.replace(tmp, path)
+
+
+def load_json(path: Path) -> dict[str, Any]:
+    try:
+        if not path.exists():
+            return {}
+        data = json.loads(path.read_text(encoding="utf-8"))
+        return data if isinstance(data, dict) else {}
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def api_call(payload: dict[str, Any], timeout: int = 45) -> dict[str, Any]:
+    url = env("FGB_ARCHIVE_CONTROL_URL", "https://epiccontentcreatorgrants.org/api/public/fgbears/archive")
+    secret = env("FGB_TRANSPORT_HEARTBEAT_SECRET")
+    if not secret:
+        raise ApiError("FGB_TRANSPORT_HEARTBEAT_SECRET is not configured")
+    raw = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    ts = str(int(time.time()))
+    signature = hmac.new(secret.encode("utf-8"), ts.encode("ascii") + b"." + raw, hashlib.sha256).hexdigest()
+    req = urllib.request.Request(
+        url,
+        data=raw,
+        method="POST",
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "x-fgb-timestamp": ts,
+            "x-fgb-signature": signature,
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as response:
+            body = response.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise ApiError(f"archive endpoint HTTP {exc.code}: {body[:500]}") from exc
+    except urllib.error.URLError as exc:
+        raise ApiError(f"archive endpoint network error: {exc.reason}") from exc
+    try:
+        result = json.loads(body)
+    except json.JSONDecodeError as exc:
+        raise ApiError("archive endpoint returned non-JSON response") from exc
+    if not isinstance(result, dict):
+        raise ApiError("archive endpoint returned invalid JSON shape")
+    return result
+
+
+def youtube_json(
+    token: str,
+    resource: str,
+    *,
+    method: str = "GET",
+    params: dict[str, str] | None = None,
+    body: dict[str, Any] | None = None,
+    timeout: int = 60,
+) -> dict[str, Any]:
+    query = urllib.parse.urlencode(params or {})
+    url = f"{API_BASE}/{resource}"
+    if query:
+        url += f"?{query}"
     data = None
+    headers = {"Accept": "application/json", "Authorization": f"Bearer {token}"}
     if body is not None:
         data = json.dumps(body).encode("utf-8")
-        request_headers["Content-Type"] = "application/json; charset=utf-8"
-    elif form is not None:
-        data = urllib.parse.urlencode(form).encode("utf-8")
-        request_headers["Content-Type"] = "application/x-www-form-urlencoded"
-    req = urllib.request.Request(url, data=data, headers=request_headers, method=method)
+        headers["Content-Type"] = "application/json; charset=utf-8"
+    req = urllib.request.Request(url, data=data, method=method, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as response:
             raw = response.read().decode("utf-8", errors="replace")
-            response_headers = dict(response.headers.items())
     except urllib.error.HTTPError as exc:
         raw = exc.read().decode("utf-8", errors="replace")
-        raise YouTubeError(f"HTTP {exc.code}: {raw[:1200]}") from exc
+        raise YouTubeError(f"YouTube HTTP {exc.code}: {raw[:800]}") from exc
     except urllib.error.URLError as exc:
-        raise YouTubeError(f"Network error: {exc.reason}") from exc
+        raise YouTubeError(f"YouTube network error: {exc.reason}") from exc
     if not raw:
-        return {}, response_headers
-    return json.loads(raw), response_headers
+        return {}
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise YouTubeError("YouTube returned non-JSON response") from exc
+    return result if isinstance(result, dict) else {}
 
 
-def access_token() -> str:
-    if not oauth_ready():
-        raise YouTubeError("YouTube OAuth credentials are not configured")
-    payload, _ = http_json(
-        TOKEN_URL,
-        method="POST",
-        form={
-            "client_id": env("FGB_YOUTUBE_CLIENT_ID"),
-            "client_secret": env("FGB_YOUTUBE_CLIENT_SECRET"),
-            "refresh_token": env("FGB_YOUTUBE_REFRESH_TOKEN"),
-            "grant_type": "refresh_token",
-        },
-    )
-    token = payload.get("access_token", "")
+def get_token() -> tuple[str, dict[str, Any]]:
+    response = api_call({"action": "token"})
+    if not response.get("ok"):
+        raise ApiError(f"token request rejected: {response.get('error', 'unknown')}")
+    token = str(response.get("accessToken") or "")
     if not token:
-        raise YouTubeError("OAuth refresh returned no access token")
-    return token
+        raise ApiError("token response contained no accessToken")
+    return token, response
 
 
-class YouTube:
-    def __init__(self, token: str):
-        self.token = token
-        self.headers = {"Authorization": f"Bearer {token}"}
-
-    def request(self, resource: str, *, method: str = "GET",
-                params: dict[str, str] | None = None, body: dict | None = None) -> dict:
-        query = urllib.parse.urlencode(params or {})
-        url = f"{API_BASE}/{resource}"
-        if query:
-            url += f"?{query}"
-        payload, _ = http_json(url, method=method, headers=self.headers, body=body)
-        return payload
-
-    def verify_channel(self) -> tuple[str, str]:
-        payload = self.request("channels", params={"part": "id,snippet", "mine": "true", "maxResults": "1"})
-        items = payload.get("items", [])
-        if not items:
-            raise YouTubeError("OAuth token is valid but no YouTube channel is available")
-        item = items[0]
-        return item.get("id", ""), item.get("snippet", {}).get("title", "")
-
-    def ensure_playlist(self, title: str, privacy: str) -> str:
-        page = ""
-        while True:
-            params = {"part": "id,snippet,status", "mine": "true", "maxResults": "50"}
-            if page:
-                params["pageToken"] = page
-            payload = self.request("playlists", params=params)
-            for item in payload.get("items", []):
-                if item.get("snippet", {}).get("title") == title:
-                    playlist_id = item.get("id", "")
-                    current = item.get("status", {}).get("privacyStatus", "")
-                    if playlist_id and privacy == "public" and current != "public":
-                        self.request(
-                            "playlists",
-                            method="PUT",
-                            params={"part": "status"},
-                            body={"id": playlist_id, "status": {"privacyStatus": "public"}},
-                        )
-                    return playlist_id
-            page = payload.get("nextPageToken", "")
-            if not page:
-                break
-        created = self.request(
-            "playlists",
-            method="POST",
-            params={"part": "snippet,status"},
-            body={
-                "snippet": {
-                    "title": title,
-                    "description": "Daily archive of the Football's Greatest Bears continuous livestream.",
-                },
-                "status": {"privacyStatus": "public" if privacy == "public" else "unlisted"},
-            },
-        )
-        playlist_id = created.get("id", "")
-        if not playlist_id:
-            raise YouTubeError("Playlist creation returned no id")
-        return playlist_id
-
-    def add_to_playlist(self, playlist_id: str, video_id: str) -> None:
-        self.request(
-            "playlistItems",
-            method="POST",
-            params={"part": "snippet"},
-            body={
-                "snippet": {
-                    "playlistId": playlist_id,
-                    "resourceId": {"kind": "youtube#video", "videoId": video_id},
-                }
-            },
-        )
-
-    def video_privacy(self, video_id: str) -> str:
-        payload = self.request("videos", params={"part": "status", "id": video_id, "maxResults": "1"})
-        items = payload.get("items", [])
-        if not items:
-            raise YouTubeError(f"Video {video_id} could not be verified")
-        return items[0].get("status", {}).get("privacyStatus", "unknown")
-
-    def delete_video(self, video_id: str) -> None:
-        self.request("videos", method="DELETE", params={"id": video_id})
-
-    def start_upload(self, path: Path, metadata: dict) -> str:
-        query = urllib.parse.urlencode({
-            "uploadType": "resumable",
-            "part": "snippet,status",
-            "notifySubscribers": "false",
-        })
-        body = json.dumps(metadata).encode("utf-8")
-        req = urllib.request.Request(
-            f"{UPLOAD_START}?{query}",
-            data=body,
-            method="POST",
-            headers={
-                "Authorization": f"Bearer {self.token}",
-                "Accept": "application/json",
-                "Content-Type": "application/json; charset=utf-8",
-                "Content-Length": str(len(body)),
-                "X-Upload-Content-Type": "video/mp4",
-                "X-Upload-Content-Length": str(path.stat().st_size),
-            },
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=60) as response:
-                location = response.headers.get("Location", "")
-                response.read()
-        except urllib.error.HTTPError as exc:
-            raw = exc.read().decode("utf-8", errors="replace")
-            raise YouTubeError(f"Upload session start failed ({exc.code}): {raw[:1200]}") from exc
-        except urllib.error.URLError as exc:
-            raise YouTubeError(f"Upload session network error: {exc.reason}") from exc
-        if not location.startswith("https://"):
-            raise YouTubeError("YouTube did not return a secure upload session URL")
-        return location
-
-    @staticmethod
-    def put_chunk(session_url: str, data: bytes, start: int, total: int) -> tuple[int, dict[str, str], bytes]:
-        parts = urllib.parse.urlsplit(session_url)
-        path = urllib.parse.urlunsplit(("", "", parts.path, parts.query, ""))
-        end = start + len(data) - 1
-        conn = http.client.HTTPSConnection(parts.hostname, parts.port or 443, timeout=180)
-        try:
-            conn.request(
-                "PUT",
-                path,
-                body=data,
-                headers={
-                    "Content-Type": "video/mp4",
-                    "Content-Length": str(len(data)),
-                    "Content-Range": f"bytes {start}-{end}/{total}",
-                },
-            )
-            response = conn.getresponse()
-            return response.status, dict(response.getheaders()), response.read()
-        finally:
-            conn.close()
-
-    @staticmethod
-    def query_offset(session_url: str, total: int) -> tuple[int, dict | None]:
-        parts = urllib.parse.urlsplit(session_url)
-        path = urllib.parse.urlunsplit(("", "", parts.path, parts.query, ""))
-        conn = http.client.HTTPSConnection(parts.hostname, parts.port or 443, timeout=60)
-        try:
-            conn.request("PUT", path, body=b"", headers={"Content-Length": "0", "Content-Range": f"bytes */{total}"})
-            response = conn.getresponse()
-            raw = response.read()
-            if response.status in (200, 201):
-                return total, json.loads(raw.decode("utf-8")) if raw else {}
-            if response.status == 308:
-                value = response.getheader("Range", "")
-                if value.startswith("bytes=0-"):
-                    return int(value.split("-", 1)[1]) + 1, None
-                return 0, None
-            raise YouTubeError(f"Upload status query failed ({response.status}): {raw[:800]!r}")
-        finally:
-            conn.close()
-
-    def upload(self, path: Path, metadata: dict, chunk_bytes: int = UPLOAD_CHUNK) -> dict:
-        total = path.stat().st_size
-        if total <= 0:
-            raise YouTubeError(f"Refusing to upload empty file {path}")
-        session = self.start_upload(path, metadata)
-        offset = 0
-        final: dict | None = None
-        with path.open("rb") as handle:
-            while offset < total:
-                handle.seek(offset)
-                data = handle.read(min(chunk_bytes, total - offset))
-                if not data:
-                    raise YouTubeError("Unexpected EOF during upload")
-                for attempt in range(1, 7):
-                    try:
-                        status, headers, raw = self.put_chunk(session, data, offset, total)
-                        if status in (200, 201):
-                            final = json.loads(raw.decode("utf-8")) if raw else {}
-                            offset = total
-                            break
-                        if status == 308:
-                            value = headers.get("Range", headers.get("range", ""))
-                            offset = int(value.split("-", 1)[1]) + 1 if value.startswith("bytes=0-") else offset + len(data)
-                            break
-                        if status in (500, 502, 503, 504) and attempt < 6:
-                            time.sleep(min(30, 2 ** attempt))
-                            continue
-                        raise YouTubeError(f"Upload failed ({status}): {raw[:800]!r}")
-                    except (OSError, http.client.HTTPException) as exc:
-                        if attempt >= 6:
-                            raise YouTubeError(f"Upload network failure after retries: {exc}") from exc
-                        time.sleep(min(30, 2 ** attempt))
-                        try:
-                            offset, completed = self.query_offset(session, total)
-                            if completed is not None:
-                                final = completed
-                                offset = total
-                                break
-                        except Exception:
-                            pass
-                if final is not None and offset >= total:
-                    break
-        if final is None:
-            offset, final = self.query_offset(session, total)
-        if offset != total or final is None:
-            raise YouTubeError("Upload did not complete")
-        return final
+def verify_channel(token: str) -> tuple[str, str]:
+    payload = youtube_json(token, "channels", params={"part": "id,snippet", "mine": "true", "maxResults": "1"})
+    items = payload.get("items") or []
+    if not items:
+        raise YouTubeError("OAuth token has no YouTube channel")
+    item = items[0]
+    cid = str(item.get("id") or "")
+    title = str((item.get("snippet") or {}).get("title") or "")
+    expected = env("FGB_EXPECTED_YOUTUBE_CHANNEL_ID", EXPECTED_CHANNEL_ID)
+    if expected and cid != expected:
+        raise YouTubeError(f"OAuth channel mismatch: expected {expected}, got {cid}")
+    return cid, title
 
 
-def parse_chunk(path: Path) -> dt.datetime:
+def parse_chunk(path: Path) -> tuple[dt.datetime, str]:
     match = CHUNK_RE.match(path.name)
     if not match:
-        raise ArchiveError(f"Unexpected archive filename: {path.name}")
+        raise ArchiveError(f"unexpected filename: {path.name}")
     stamp = f"{match.group('date')}{match.group('time')}{match.group('offset')}"
-    return dt.datetime.strptime(stamp, "%Y%m%d%H%M%S%z")
-
-
-def run_json(args: list[str]) -> dict:
-    proc = subprocess.run(args, check=False, capture_output=True, text=True, timeout=120)
-    if proc.returncode != 0:
-        raise ArchiveError(f"Command failed ({proc.returncode}): {' '.join(args[:4])}: {proc.stderr[-1000:]}")
-    try:
-        return json.loads(proc.stdout)
-    except json.JSONDecodeError as exc:
-        raise ArchiveError(f"Invalid JSON from {' '.join(args[:2])}") from exc
+    start = dt.datetime.strptime(stamp, "%Y%m%d%H%M%S%z")
+    segment_id = f"{match.group('date')}T{match.group('time')}{match.group('offset')}"
+    return start, segment_id
 
 
 def probe(path: Path) -> tuple[float, bool, bool]:
-    payload = run_json([
-        "ffprobe", "-v", "error", "-show_entries", "format=duration", "-show_streams", "-of", "json", str(path)
-    ])
+    proc = subprocess.run(
+        [
+            "ffprobe", "-v", "error", "-show_entries", "format=duration",
+            "-show_entries", "stream=codec_type", "-of", "json", str(path),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    if proc.returncode != 0:
+        raise ArchiveError(f"ffprobe failed for {path.name}: {proc.stderr[-500:]}")
     try:
-        duration = float(payload.get("format", {}).get("duration", 0.0))
-    except (TypeError, ValueError):
-        duration = 0.0
-    streams = payload.get("streams", [])
-    has_video = any(s.get("codec_type") == "video" for s in streams)
-    has_audio = any(s.get("codec_type") == "audio" for s in streams)
-    return duration, has_video, has_audio
+        data = json.loads(proc.stdout)
+        duration = float((data.get("format") or {}).get("duration") or 0)
+        streams = data.get("streams") or []
+    except (json.JSONDecodeError, TypeError, ValueError) as exc:
+        raise ArchiveError(f"invalid ffprobe response for {path.name}") from exc
+    return (
+        duration,
+        any(s.get("codec_type") == "video" for s in streams),
+        any(s.get("codec_type") == "audio" for s in streams),
+    )
 
 
 def stable_chunks(hourly: Path, stable_age: int) -> list[Path]:
     cutoff = time.time() - stable_age
-    result: list[Path] = []
+    found: list[Path] = []
     for path in hourly.glob("live-*.ts"):
         if not CHUNK_RE.match(path.name):
             continue
@@ -356,224 +221,423 @@ def stable_chunks(hourly: Path, stable_age: int) -> list[Path]:
         except FileNotFoundError:
             continue
         if stat.st_size > 0 and stat.st_mtime <= cutoff:
-            result.append(path)
-    return sorted(result, key=parse_chunk)
+            found.append(path)
+    return sorted(found, key=lambda p: parse_chunk(p)[0])
 
 
-def group_parts(chunks: list[Path], max_seconds: float) -> list[list[Path]]:
-    parts: list[list[Path]] = []
-    current: list[Path] = []
-    elapsed = 0.0
-    for path in chunks:
-        duration, video, audio = probe(path)
-        if duration <= 0 or not video or not audio:
-            raise ArchiveError(f"Invalid archive chunk: {path.name}")
-        # A one-second tolerance prevents harmless transport timestamp rounding
-        # from turning an otherwise exact 12-hour half-day into a tiny third part.
-        if current and elapsed + duration > max_seconds + 1.0:
-            parts.append(current)
-            current = []
-            elapsed = 0.0
-        current.append(path)
-        elapsed += duration
-    if current:
-        parts.append(current)
-    return parts
+def state_path_for(state_dir: Path, segment_id: str) -> Path:
+    safe = segment_id.replace("+", "p").replace("-", "m").replace(":", "")
+    return state_dir / f"hourly-{safe}.json"
 
 
-def concat_part(chunks: list[Path], output: Path, max_seconds: float) -> float:
+def remux(source: Path, output: Path) -> None:
     output.parent.mkdir(parents=True, exist_ok=True)
-    tmp_output = output.with_suffix(".tmp.mp4")
-    manifest = output.with_suffix(".concat.txt")
-    manifest.write_text("".join(f"file '{path}'\n" for path in chunks), encoding="utf-8")
-    try:
-        proc = subprocess.run(
-            [
-                "ffmpeg", "-hide_banner", "-nostdin", "-loglevel", "warning", "-y",
-                "-fflags", "+genpts", "-f", "concat", "-safe", "0", "-i", str(manifest),
-                "-map", "0:v:0", "-map", "0:a:0", "-c", "copy",
-                "-avoid_negative_ts", "make_zero", "-movflags", "+faststart", str(tmp_output),
-            ],
-            check=False,
-            capture_output=True,
-            text=True,
-            timeout=7200,
-        )
-        if proc.returncode != 0:
-            raise ArchiveError(f"Daily remux failed: {proc.stderr[-2000:]}")
-        duration, video, audio = probe(tmp_output)
-        if duration <= 0 or not video or not audio:
-            raise ArchiveError("Daily remux did not contain valid audio and video")
-        if duration > max_seconds + 2.0:
-            raise ArchiveError(f"Daily archive part exceeds 12-hour ceiling: {duration:.3f}s")
-        os.replace(tmp_output, output)
-        return duration
-    finally:
-        manifest.unlink(missing_ok=True)
-        tmp_output.unlink(missing_ok=True)
-
-
-def load_state(path: Path) -> dict:
-    try:
-        return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-    except (OSError, json.JSONDecodeError):
-        return {}
-
-
-def save_state(path: Path, state: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    os.replace(tmp, path)
-
-
-def title_for(day: dt.date, part: int, total: int) -> str:
-    base = f"{day.strftime('%B')} {day.day}, {day.year} Livestream"
-    return base if total == 1 else f"{base} — Part {part}"
-
-
-def metadata_for(day: dt.date, part: int, total: int, privacy: str) -> dict:
-    title = title_for(day, part, total)
-    description = (
-        "Football's Greatest Bears daily livestream archive.\n\n"
-        f"Date: {day.strftime('%B')} {day.day}, {day.year}\n"
-        f"Archive part: {part} of {total}\n"
-        "The live broadcast continues independently while these daily archive videos are created.\n\n"
-        "Live: https://youtube.com/@FootballsGreatestBears/live"
+    tmp = output.with_suffix(".tmp.mp4")
+    proc = subprocess.run(
+        [
+            "ffmpeg", "-hide_banner", "-nostdin", "-loglevel", "warning", "-y",
+            "-fflags", "+genpts", "-i", str(source),
+            "-map", "0:v:0", "-map", "0:a:0", "-c", "copy",
+            "-avoid_negative_ts", "make_zero", "-movflags", "+faststart", str(tmp),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+        timeout=1800,
     )
-    return {
+    if proc.returncode != 0:
+        tmp.unlink(missing_ok=True)
+        raise ArchiveError(f"remux failed for {source.name}: {proc.stderr[-1200:]}")
+    duration, video, audio = probe(tmp)
+    if duration <= 0 or not video or not audio:
+        tmp.unlink(missing_ok=True)
+        raise ArchiveError(f"remux validation failed for {source.name}")
+    os.replace(tmp, output)
+
+
+def start_upload_session(token: str, path: Path, title: str, description: str, privacy: str) -> str:
+    query = urllib.parse.urlencode(
+        {"uploadType": "resumable", "part": "snippet,status", "notifySubscribers": "false"}
+    )
+    metadata = {
         "snippet": {"title": title[:100], "description": description, "categoryId": "17"},
         "status": {"privacyStatus": privacy, "selfDeclaredMadeForKids": False},
     }
+    raw = json.dumps(metadata).encode("utf-8")
+    req = urllib.request.Request(
+        f"{UPLOAD_START}?{query}",
+        data=raw,
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+            "Content-Type": "application/json; charset=utf-8",
+            "Content-Length": str(len(raw)),
+            "X-Upload-Content-Type": "video/mp4",
+            "X-Upload-Content-Length": str(path.stat().st_size),
+        },
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=60) as response:
+            location = response.headers.get("Location", "")
+            response.read()
+    except urllib.error.HTTPError as exc:
+        body = exc.read().decode("utf-8", errors="replace")
+        raise YouTubeError(f"upload session start failed ({exc.code}): {body[:800]}") from exc
+    except urllib.error.URLError as exc:
+        raise YouTubeError(f"upload session network error: {exc.reason}") from exc
+    if not location.startswith("https://"):
+        raise YouTubeError("YouTube returned no secure upload session URL")
+    return location
 
 
-def protect_disk(root: Path, hourly: Path, min_free_gb: float) -> None:
-    free_gb = shutil.disk_usage(root).free / (1024 ** 3)
-    if free_gb >= min_free_gb:
-        return
-    log(f"ARCHIVE_LOW_DISK_FREE_GB={free_gb:.2f}")
-    # Preserve the live transport at all costs. If uploads have been blocked long
-    # enough to threaten the host disk, discard the oldest archive chunks first.
-    for path in sorted(hourly.glob("live-*.ts"), key=lambda p: p.stat().st_mtime):
-        try:
-            path.unlink()
-            log(f"ARCHIVE_LOW_DISK_DROPPED={path.name}")
-        except FileNotFoundError:
-            pass
-        free_gb = shutil.disk_usage(root).free / (1024 ** 3)
-        if free_gb >= min_free_gb + 2.0:
-            break
+def upload_request(session_url: str, data: bytes, start: int, total: int) -> tuple[int, dict[str, str], bytes]:
+    parts = urllib.parse.urlsplit(session_url)
+    path = urllib.parse.urlunsplit(("", "", parts.path, parts.query, ""))
+    conn = http.client.HTTPSConnection(parts.hostname, parts.port or 443, timeout=240)
+    try:
+        end = start + len(data) - 1
+        conn.request(
+            "PUT",
+            path,
+            body=data,
+            headers={
+                "Content-Type": "video/mp4",
+                "Content-Length": str(len(data)),
+                "Content-Range": f"bytes {start}-{end}/{total}",
+            },
+        )
+        response = conn.getresponse()
+        return response.status, dict(response.getheaders()), response.read()
+    finally:
+        conn.close()
 
 
-def process_day(day: dt.date, chunks: list[Path], root: Path, yt: YouTube,
-                privacy: str, playlist_title: str, max_seconds: float) -> None:
-    state_path = root / "state" / f"daily-{day:%Y%m%d}.json"
-    state = load_state(state_path)
-    if state.get("complete") is True:
-        for path in chunks:
-            path.unlink(missing_ok=True)
-        return
+def query_session(session_url: str, total: int) -> tuple[str, int, dict[str, Any] | None]:
+    parts = urllib.parse.urlsplit(session_url)
+    path = urllib.parse.urlunsplit(("", "", parts.path, parts.query, ""))
+    conn = http.client.HTTPSConnection(parts.hostname, parts.port or 443, timeout=60)
+    try:
+        conn.request(
+            "PUT", path, body=b"",
+            headers={"Content-Length": "0", "Content-Range": f"bytes */{total}"},
+        )
+        response = conn.getresponse()
+        raw = response.read()
+        if response.status in (200, 201):
+            payload = json.loads(raw.decode("utf-8")) if raw else {}
+            return "complete", total, payload if isinstance(payload, dict) else {}
+        if response.status == 308:
+            value = response.getheader("Range", "")
+            offset = int(value.rsplit("-", 1)[1]) + 1 if value.startswith("bytes=0-") else 0
+            return "resume", offset, None
+        if response.status in (404, 410):
+            return "expired", 0, None
+        raise YouTubeError(f"upload status query failed ({response.status}): {raw[:500]!r}")
+    finally:
+        conn.close()
 
-    source_names = [p.name for p in chunks]
-    previous_sources = state.get("source_files")
-    if previous_sources and previous_sources != source_names and any(p.get("video_id") for p in state.get("parts", [])):
-        raise ArchiveError(f"Source set changed after uploads began for {day}; refusing duplicate/misaligned uploads")
 
-    groups = group_parts(chunks, max_seconds)
-    if not groups:
-        return
-    state.setdefault("date", day.isoformat())
-    state["source_files"] = source_names
-    state["part_count"] = len(groups)
-    state.setdefault("parts", [])
-    while len(state["parts"]) < len(groups):
-        state["parts"].append({})
-    save_state(state_path, state)
+def resumable_upload(path: Path, state_path: Path, state: dict[str, Any], title: str,
+                     description: str, privacy: str) -> tuple[str, dict[str, Any]]:
+    total = path.stat().st_size
+    if total <= 0:
+        raise YouTubeError("refusing empty upload")
 
-    playlist_id = state.get("playlist_id", "")
-    if not playlist_id:
-        playlist_id = yt.ensure_playlist(playlist_title, privacy)
-        state["playlist_id"] = playlist_id
-        save_state(state_path, state)
+    token, _ = get_token()
+    session = str(state.get("upload_session") or "")
+    offset = int(state.get("upload_offset") or 0)
 
-    for index, group in enumerate(groups, start=1):
-        part_state = state["parts"][index - 1]
-        if part_state.get("complete") is True:
-            continue
-        output = root / "final" / f"{day:%Y%m%d}-part-{index:02d}.mp4"
-        if not part_state.get("video_id"):
-            duration = concat_part(group, output, max_seconds)
-            log(f"ARCHIVE_PART_READY={output.name} duration={duration:.3f}")
-            uploaded = yt.upload(output, metadata_for(day, index, len(groups), privacy))
-            video_id = uploaded.get("id", "")
+    if session:
+        status, offset, completed = query_session(session, total)
+        if status == "complete":
+            video_id = str((completed or {}).get("id") or state.get("video_id") or "")
             if not video_id:
-                raise YouTubeError("Upload completed without a video id")
-            actual = yt.video_privacy(video_id)
-            part_state.update({
-                "video_id": video_id,
-                "requested_privacy": privacy,
-                "actual_privacy": actual,
-                "uploaded_at": dt.datetime.now(dt.timezone.utc).isoformat(),
-                "playlist_added": False,
-                "complete": False,
-                "title": title_for(day, index, len(groups)),
-            })
-            save_state(state_path, state)
-            log(f"ARCHIVE_UPLOAD_VIDEO_ID={video_id}")
-            if actual != privacy:
-                raise YouTubeError(
-                    f"YouTube returned privacyStatus={actual}, expected {privacy}; public API uploads may require project audit"
-                )
+                raise YouTubeError("completed resumable session returned no video id")
+            state["video_id"] = video_id
+            state["upload_offset"] = total
+            state["uploaded_at"] = state.get("uploaded_at") or now_iso()
+            atomic_json(state_path, state)
+            return video_id, state
+        if status == "expired":
+            session = ""
+            offset = 0
+            state.pop("upload_session", None)
+            state["upload_offset"] = 0
+            atomic_json(state_path, state)
+
+    if not session:
+        session = start_upload_session(token, path, title, description, privacy)
+        state["upload_session"] = session
+        state["upload_offset"] = 0
+        state["upload_started_at"] = now_iso()
+        atomic_json(state_path, state)
+        offset = 0
+
+    final: dict[str, Any] | None = None
+    with path.open("rb") as handle:
+        while offset < total:
+            handle.seek(offset)
+            data = handle.read(min(UPLOAD_CHUNK, total - offset))
+            if not data:
+                raise YouTubeError("unexpected EOF during upload")
+            for attempt in range(1, 7):
+                try:
+                    status, headers, raw = upload_request(session, data, offset, total)
+                    if status in (200, 201):
+                        payload = json.loads(raw.decode("utf-8")) if raw else {}
+                        final = payload if isinstance(payload, dict) else {}
+                        offset = total
+                        break
+                    if status == 308:
+                        value = headers.get("Range", headers.get("range", ""))
+                        offset = int(value.rsplit("-", 1)[1]) + 1 if value.startswith("bytes=0-") else offset + len(data)
+                        break
+                    if status in (404, 410):
+                        state.pop("upload_session", None)
+                        state["upload_offset"] = 0
+                        atomic_json(state_path, state)
+                        raise YouTubeError("resumable upload session expired; retry will create a new session")
+                    if status in (500, 502, 503, 504) and attempt < 6:
+                        time.sleep(min(30, 2 ** attempt))
+                        continue
+                    raise YouTubeError(f"upload failed ({status}): {raw[:500]!r}")
+                except (OSError, http.client.HTTPException) as exc:
+                    if attempt >= 6:
+                        raise YouTubeError(f"upload network failure: {exc}") from exc
+                    time.sleep(min(30, 2 ** attempt))
+                    try:
+                        qstatus, qoffset, completed = query_session(session, total)
+                        if qstatus == "complete":
+                            final = completed or {}
+                            offset = total
+                            break
+                        if qstatus == "resume":
+                            offset = qoffset
+                            break
+                    except Exception:
+                        pass
+            state["upload_offset"] = offset
+            atomic_json(state_path, state)
+            if final is not None:
+                break
+
+    if final is None:
+        qstatus, qoffset, completed = query_session(session, total)
+        if qstatus == "complete":
+            final = completed or {}
+            offset = total
         else:
-            video_id = part_state["video_id"]
-            actual = yt.video_privacy(video_id)
-            if actual != privacy:
-                raise YouTubeError(f"Existing archive video {video_id} privacy is {actual}, expected {privacy}")
+            offset = qoffset
 
-        if not part_state.get("playlist_added"):
-            yt.add_to_playlist(playlist_id, video_id)
-            part_state["playlist_added"] = True
-            save_state(state_path, state)
-
-        part_state["complete"] = True
-        part_state["completed_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
-        save_state(state_path, state)
-        output.unlink(missing_ok=True)
-        log(f"ARCHIVE_PART_COMPLETE={day:%Y%m%d}:{index}/{len(groups)}")
-
-    if all(item.get("complete") is True for item in state["parts"][:len(groups)]):
-        state["complete"] = True
-        state["completed_at"] = dt.datetime.now(dt.timezone.utc).isoformat()
-        save_state(state_path, state)
-        for path in chunks:
-            path.unlink(missing_ok=True)
-        log(f"ARCHIVE_DAY_COMPLETE={day:%Y%m%d} parts={len(groups)}")
+    video_id = str((final or {}).get("id") or "")
+    if offset != total or not video_id:
+        raise YouTubeError("resumable upload did not complete with a video id")
+    state["video_id"] = video_id
+    state["upload_offset"] = total
+    state["uploaded_at"] = now_iso()
+    atomic_json(state_path, state)
+    return video_id, state
 
 
-def closed_days(chunks: list[Path], timezone: ZoneInfo, grace_seconds: int) -> list[dt.date]:
-    now = dt.datetime.now(timezone)
-    dates = sorted({parse_chunk(path).astimezone(timezone).date() for path in chunks})
-    result: list[dt.date] = []
-    for day in dates:
-        next_midnight = dt.datetime.combine(day + dt.timedelta(days=1), dt.time.min, tzinfo=timezone)
-        if now >= next_midnight + dt.timedelta(seconds=grace_seconds):
-            result.append(day)
-    return result
+def verify_video(token: str, video_id: str, expected_privacy: str | None = None) -> str:
+    payload = youtube_json(token, "videos", params={"part": "status", "id": video_id, "maxResults": "1"})
+    items = payload.get("items") or []
+    if not items:
+        raise YouTubeError(f"video {video_id} could not be verified")
+    privacy = str((items[0].get("status") or {}).get("privacyStatus") or "unknown")
+    if expected_privacy and privacy != expected_privacy:
+        raise YouTubeError(f"video {video_id} privacy is {privacy}, expected {expected_privacy}")
+    return privacy
+
+
+def delete_video(token: str, video_id: str) -> None:
+    youtube_json(token, "videos", method="DELETE", params={"id": video_id})
+
+
+def notify_failed(segment_id: str, message: str) -> None:
+    try:
+        api_call({"action": "failed", "segmentId": segment_id, "error": message[:290]})
+    except Exception:
+        pass
+
+
+def backoff_state(state_path: Path, state: dict[str, Any], exc: Exception) -> None:
+    attempts = int(state.get("attempts") or 0) + 1
+    delay = min(3600, max(60, 60 * (2 ** min(attempts - 1, 6))))
+    state["attempts"] = attempts
+    state["next_try"] = int(time.time()) + delay
+    state["last_error"] = f"{type(exc).__name__}: {str(exc)[:260]}"
+    state["last_error_at"] = now_iso()
+    atomic_json(state_path, state)
+    log(f"ARCHIVE_RETRY_IN={delay} error={type(exc).__name__}:{str(exc)[:220]}")
+
+
+def cleanup_confirmed(root: Path, retention_hours: int) -> None:
+    state_dir = root / "state"
+    cutoff = time.time() - retention_hours * 3600
+    for path in state_dir.glob("hourly-*.json"):
+        state = load_json(path)
+        confirmed_epoch = state.get("confirmed_epoch")
+        if not isinstance(confirmed_epoch, (int, float)) or confirmed_epoch > cutoff:
+            continue
+        for key in ("source", "mp4"):
+            value = state.get(key)
+            if value:
+                try:
+                    Path(str(value)).unlink(missing_ok=True)
+                except OSError:
+                    pass
+        if not state.get("media_removed"):
+            state["media_removed"] = True
+            state["media_removed_at"] = now_iso()
+            atomic_json(path, state)
+
+
+def ignore_short_file(path: Path, state_dir: Path, duration: float, retention_hours: int) -> None:
+    _, segment_id = parse_chunk(path)
+    state_path = state_path_for(state_dir, segment_id)
+    state = load_json(state_path)
+    state.update({
+        "segment_id": segment_id,
+        "source": str(path),
+        "ignored": True,
+        "ignored_reason": f"duration {duration:.3f}s below full-hour minimum",
+        "updated_at": now_iso(),
+    })
+    atomic_json(state_path, state)
+    if path.stat().st_mtime < time.time() - retention_hours * 3600:
+        path.unlink(missing_ok=True)
+        state["media_removed"] = True
+        state["media_removed_at"] = now_iso()
+        atomic_json(state_path, state)
+
+
+def process_segment(source: Path, root: Path, minimum_duration: float) -> bool:
+    start, segment_id = parse_chunk(source)
+    state_dir = root / "state"
+    final_dir = root / "final"
+    state_path = state_path_for(state_dir, segment_id)
+    state = load_json(state_path)
+
+    if state.get("confirmed"):
+        return True
+    if int(state.get("next_try") or 0) > int(time.time()):
+        return False
+
+    duration, video, audio = probe(source)
+    if duration < minimum_duration:
+        ignore_short_file(source, state_dir, duration, int(env("FGB_ARCHIVE_RETENTION_HOURS", "24")))
+        return True
+    if not video or not audio:
+        raise ArchiveError(f"{source.name} does not contain both video and audio")
+
+    state.update({
+        "segment_id": segment_id,
+        "source": str(source),
+        "duration": duration,
+        "starts_at": start.isoformat(),
+        "updated_at": now_iso(),
+    })
+    atomic_json(state_path, state)
+
+    register = api_call({"action": "register", "segmentId": segment_id})
+    if not register.get("ok"):
+        raise ApiError(f"register rejected: {register.get('error', 'unknown')}")
+    if register.get("paused"):
+        log(f"ARCHIVE_PUBLISHING_PAUSED=true segment={segment_id}")
+        return False
+
+    title = str(register.get("title") or "")
+    description = str(register.get("description") or "")
+    privacy = str(register.get("privacy") or "unlisted")
+    server_status = str(register.get("status") or "")
+    server_video_id = str(register.get("videoId") or "")
+    if not title:
+        raise ApiError("register returned no title")
+    if privacy not in {"private", "unlisted", "public"}:
+        raise ApiError(f"invalid privacy from control endpoint: {privacy}")
+
+    state.update({"title": title, "privacy": privacy, "server_status": server_status, "updated_at": now_iso()})
+    if server_video_id and not state.get("video_id"):
+        state["video_id"] = server_video_id
+    atomic_json(state_path, state)
+
+    if server_status == "confirmed":
+        state["confirmed"] = True
+        state["confirmed_at"] = state.get("confirmed_at") or now_iso()
+        state["confirmed_epoch"] = state.get("confirmed_epoch") or int(time.time())
+        state["attempts"] = 0
+        state["next_try"] = 0
+        atomic_json(state_path, state)
+        log(f"ARCHIVE_SEGMENT_CONFIRMED={segment_id} video_id={state.get('video_id','')}")
+        return True
+
+    video_id = str(state.get("video_id") or "")
+    output = final_dir / f"{segment_id.replace('+', 'p').replace('-', 'm')}.mp4"
+    state["mp4"] = str(output)
+
+    if not video_id:
+        if not output.exists():
+            remux(source, output)
+            log(f"ARCHIVE_HOUR_READY={segment_id} file={output.name}")
+        marker = f"[FGB-ARCHIVE-ID:{segment_id}]"
+        full_description = description.rstrip() + "\n\n" + marker
+        video_id, state = resumable_upload(output, state_path, state, title, full_description, privacy)
+        token, _ = get_token()
+        verify_video(token, video_id, privacy)
+        log(f"ARCHIVE_UPLOAD_COMPLETE={segment_id} video_id={video_id} privacy={privacy}")
+
+    uploaded = api_call({"action": "uploaded", "segmentId": segment_id, "videoId": video_id})
+    if not uploaded.get("ok") or not uploaded.get("confirmed"):
+        raise ApiError(f"playlist confirmation failed: {uploaded.get('error', 'unconfirmed')}")
+
+    state["video_id"] = video_id
+    state["confirmed"] = True
+    state["confirmed_at"] = now_iso()
+    state["confirmed_epoch"] = int(time.time())
+    state["attempts"] = 0
+    state["next_try"] = 0
+    state.pop("last_error", None)
+    atomic_json(state_path, state)
+    log(f"ARCHIVE_SEGMENT_CONFIRMED={segment_id} video_id={video_id} title={title}")
+    return True
+
+
+def post_status(root: Path, current_id: str | None, pending: int, last_error: str = "") -> None:
+    try:
+        free_mb = shutil.disk_usage(root).free / (1024 * 1024)
+        recorder: dict[str, Any] = {
+            "state": "running",
+            "segmentSeconds": 3600,
+            "pendingUploads": pending,
+            "testMode": False,
+            "diskFreeMb": free_mb,
+            "host": env("HOST_LABEL", "ovh-archive-uploader"),
+        }
+        if current_id:
+            recorder["currentSegmentId"] = current_id
+        if last_error:
+            recorder["lastError"] = last_error[:290]
+        api_call({"action": "status", "recorder": recorder}, timeout=20)
+    except Exception:
+        pass
 
 
 def check_auth() -> int:
-    yt = YouTube(access_token())
-    channel_id, title = yt.verify_channel()
-    log(f"ARCHIVE_OAUTH_READY=true channel_id={channel_id} channel_title={title}")
+    token, control = get_token()
+    cid, title = verify_channel(token)
+    privacy = control.get("privacy", "unknown")
+    log(f"ARCHIVE_OAUTH_READY=true channel_id={cid} channel_title={title} privacy={privacy}")
     return 0
 
 
 def test_upload(root: Path) -> int:
-    yt = YouTube(access_token())
-    yt.verify_channel()
+    token, _ = get_token()
+    verify_channel(token)
     root.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=root) as tempdir:
-        sample = Path(tempdir) / "fgb-archive-test.mp4"
+        sample = Path(tempdir) / "fgb-hourly-archive-test.mp4"
         proc = subprocess.run(
             [
                 "ffmpeg", "-hide_banner", "-nostdin", "-loglevel", "error", "-y",
@@ -588,27 +652,25 @@ def test_upload(root: Path) -> int:
             timeout=120,
         )
         if proc.returncode != 0:
-            raise ArchiveError(f"Could not create upload test: {proc.stderr[-1000:]}")
-        metadata = {
-            "snippet": {
-                "title": "FGB Archive Automation Test",
-                "description": "Automated deployment verification. This temporary video is deleted after validation.",
-                "categoryId": "17",
-            },
-            "status": {"privacyStatus": "unlisted", "selfDeclaredMadeForKids": False},
-        }
-        uploaded = yt.upload(sample, metadata)
-        video_id = uploaded.get("id", "")
-        if not video_id:
-            raise YouTubeError("Test upload returned no video id")
+            raise ArchiveError(f"could not create test file: {proc.stderr[-800:]}")
+        session = start_upload_session(
+            token, sample, "FGB Hourly Archive Automation Test",
+            "Temporary unlisted validation video. Deleted automatically after verification.",
+            "unlisted",
+        )
+        state_path = Path(tempdir) / "test-state.json"
+        state = {"upload_session": session, "upload_offset": 0}
+        atomic_json(state_path, state)
+        vid, _ = resumable_upload(
+            sample, state_path, state, "FGB Hourly Archive Automation Test",
+            "Temporary unlisted validation video. Deleted automatically after verification.", "unlisted"
+        )
         try:
-            actual = yt.video_privacy(video_id)
-            if actual != "unlisted":
-                raise YouTubeError(f"Test upload privacy is {actual}, expected unlisted")
-            log(f"ARCHIVE_TEST_UPLOAD_PASS=true video_id={video_id}")
+            verify_video(token, vid, "unlisted")
+            log(f"ARCHIVE_TEST_UPLOAD_PASS=true video_id={vid}")
         finally:
             try:
-                yt.delete_video(video_id)
+                delete_video(token, vid)
                 log("ARCHIVE_TEST_VIDEO_DELETED=true")
             except Exception as exc:
                 log(f"ARCHIVE_TEST_DELETE_WARNING={type(exc).__name__}")
@@ -619,13 +681,14 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--check-auth", action="store_true")
     parser.add_argument("--test-upload", action="store_true")
+    parser.add_argument("--once", action="store_true")
     args = parser.parse_args()
 
     root = Path(env("FGB_ARCHIVE_DIR", "/archive")).resolve()
     hourly = root / "hourly"
     final = root / "final"
-    state = root / "state"
-    for directory in (root, hourly, final, state):
+    state_dir = root / "state"
+    for directory in (root, hourly, final, state_dir):
         directory.mkdir(parents=True, exist_ok=True)
 
     if args.check_auth:
@@ -633,51 +696,66 @@ def main() -> int:
     if args.test_upload:
         return test_upload(root)
 
-    timezone_name = env("FGB_ARCHIVE_TIMEZONE", "America/Chicago")
-    timezone = ZoneInfo(timezone_name)
-    privacy = env("FGB_ARCHIVE_PRIVACY", "public")
-    if privacy not in {"private", "unlisted", "public"}:
-        raise SystemExit("FGB_ARCHIVE_PRIVACY must be private, unlisted, or public")
-    playlist_title = env("FGB_ARCHIVE_PLAYLIST_TITLE", "FGB Daily Livestream Archive") or "FGB Daily Livestream Archive"
-    poll_seconds = max(15, int(env("FGB_ARCHIVE_POLL_SECONDS", "60")))
-    stable_age = max(20, int(env("FGB_ARCHIVE_STABLE_AGE_SECONDS", "90")))
-    grace_seconds = max(60, int(env("FGB_ARCHIVE_DAY_CLOSE_GRACE_SECONDS", "180")))
-    max_seconds = min(43200.0, max(3600.0, float(env("FGB_ARCHIVE_MAX_PART_SECONDS", "43200"))))
+    stable_age = max(30, int(env("FGB_ARCHIVE_STABLE_AGE_SECONDS", "90")))
+    poll_seconds = max(15, int(env("FGB_ARCHIVE_POLL_SECONDS", "30")))
+    min_duration = max(60.0, float(env("FGB_ARCHIVE_MIN_FULL_HOUR_SECONDS", "3000")))
+    retention_hours = max(1, int(env("FGB_ARCHIVE_RETENTION_HOURS", "24")))
     min_free_gb = max(2.0, float(env("FGB_ARCHIVE_MIN_FREE_GB", "8")))
-    upload_enabled = env("FGB_ARCHIVE_UPLOAD_ENABLED", "1") == "1"
 
-    log(f"ARCHIVE_UPLOADER_STARTED=true timezone={timezone_name} privacy={privacy}")
-    consecutive_errors = 0
-    oauth_notice_at = 0.0
+    log("ARCHIVE_HOURLY_UPLOADER_STARTED=true")
+    last_status = 0.0
+    last_error = ""
+
     while True:
         try:
-            protect_disk(root, hourly, min_free_gb)
+            free_gb = shutil.disk_usage(root).free / (1024 ** 3)
+            if free_gb < min_free_gb:
+                log(f"ARCHIVE_LOW_DISK_FREE_GB={free_gb:.2f}")
+            cleanup_confirmed(root, retention_hours)
             chunks = stable_chunks(hourly, stable_age)
-            days = closed_days(chunks, timezone, grace_seconds)
-            if not upload_enabled:
-                time.sleep(poll_seconds)
-                continue
-            if not oauth_ready():
-                if time.time() - oauth_notice_at > 900:
-                    log("ARCHIVE_UPLOADER_WAITING_FOR_OAUTH=true")
-                    oauth_notice_at = time.time()
-                time.sleep(poll_seconds)
-                continue
-            if not days:
-                time.sleep(poll_seconds)
-                continue
-            yt = YouTube(access_token())
-            yt.verify_channel()
-            for day in days:
-                day_chunks = [p for p in chunks if parse_chunk(p).astimezone(timezone).date() == day]
-                process_day(day, day_chunks, root, yt, privacy, playlist_title, max_seconds)
-            consecutive_errors = 0
-        except (ArchiveError, YouTubeError, OSError, ValueError, subprocess.SubprocessError) as exc:
-            consecutive_errors += 1
-            log(f"ARCHIVE_UPLOADER_ERROR={type(exc).__name__}:{exc}")
-            time.sleep(min(300, max(poll_seconds, 10 * consecutive_errors)))
+            pending = 0
+            current_id: str | None = None
+            for path in chunks:
+                _, sid = parse_chunk(path)
+                current_id = sid
+                s = load_json(state_path_for(state_dir, sid))
+                if not s.get("confirmed") and not s.get("ignored"):
+                    pending += 1
+
+            if time.time() - last_status >= 30:
+                post_status(root, current_id, pending, last_error)
+                last_status = time.time()
+
+            for source in chunks:
+                _, sid = parse_chunk(source)
+                s_path = state_path_for(state_dir, sid)
+                s = load_json(s_path)
+                if s.get("confirmed") or s.get("ignored"):
+                    continue
+                if int(s.get("next_try") or 0) > int(time.time()):
+                    continue
+                try:
+                    process_segment(source, root, min_duration)
+                    last_error = ""
+                except (ArchiveError, ApiError, YouTubeError, OSError, ValueError, subprocess.SubprocessError) as exc:
+                    state = load_json(s_path)
+                    state.setdefault("segment_id", sid)
+                    state.setdefault("source", str(source))
+                    backoff_state(s_path, state, exc)
+                    notify_failed(sid, str(exc))
+                    last_error = f"{sid}: {type(exc).__name__}: {str(exc)[:180]}"
+                    break
+
+            if args.once:
+                return 0
+            time.sleep(poll_seconds)
         except KeyboardInterrupt:
             return 0
+        except Exception as exc:
+            log(f"ARCHIVE_UPLOADER_LOOP_ERROR={type(exc).__name__}:{str(exc)[:250]}")
+            if args.once:
+                return 1
+            time.sleep(min(300, poll_seconds * 2))
 
 
 if __name__ == "__main__":
