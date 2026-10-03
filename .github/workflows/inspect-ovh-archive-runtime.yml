@@ -13,7 +13,7 @@ permissions:
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - name: Configure SSH
         env:
@@ -25,50 +25,44 @@ jobs:
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
           chmod 600 ~/.ssh/ovh_key
           ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
-      - name: Inspect runtime
-        env:
-          GH_HEARTBEAT_SECRET: ${{ secrets.FGB_TRANSPORT_HEARTBEAT_SECRET }}
+
+      - name: Inspect sanitized archive runtime
         run: |
           set -euo pipefail
-          if [ -n "$GH_HEARTBEAT_SECRET" ]; then echo 'GITHUB_HEARTBEAT_SECRET_SET=yes'; else echo 'GITHUB_HEARTBEAT_SECRET_SET=no'; fi
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
-          set +e
-          cd /opt/fgb-transport || exit 1
-          secret=$(sed -n 's/^FGB_TRANSPORT_HEARTBEAT_SECRET=//p' .env | tail -1)
-          if [ -n "$secret" ]; then
-            echo 'OVH_HEARTBEAT_SECRET_SET=yes'
-            python3 - "$secret" <<'PY'
-import hashlib,hmac,json,sys,time,urllib.request,urllib.error
-secret=sys.argv[1]
-url='https://epiccontentcreatorgrants.org/api/public/fgbears/archive'
-body=json.dumps({'action':'token'},separators=(',',':')).encode()
-ts=str(int(time.time()))
-sig=hmac.new(secret.encode(),ts.encode()+b'.'+body,hashlib.sha256).hexdigest()
-req=urllib.request.Request(url,data=body,method='POST',headers={'content-type':'application/json','x-fgb-timestamp':ts,'x-fgb-signature':sig})
-try:
-    with urllib.request.urlopen(req,timeout=20) as r:
-        payload=json.loads(r.read().decode())
-    print('ARCHIVE_TOKEN_BRIDGE_OK='+('yes' if payload.get('ok') and payload.get('accessToken') else 'no'))
-    print('ARCHIVE_CONTROL_PRIVACY='+str(payload.get('privacy','unknown')))
-    print('ARCHIVE_CONTROL_PAUSED='+str(bool(payload.get('paused'))).lower())
-except urllib.error.HTTPError as e:
-    print('ARCHIVE_TOKEN_BRIDGE_OK=no')
-    print('ARCHIVE_TOKEN_BRIDGE_HTTP='+str(e.code))
-except Exception as e:
-    print('ARCHIVE_TOKEN_BRIDGE_OK=no')
-    print('ARCHIVE_TOKEN_BRIDGE_ERROR='+type(e).__name__)
-PY
-          else
-            echo 'OVH_HEARTBEAT_SECRET_SET=no'
-          fi
+          set -euo pipefail
+          cd /opt/fgb-transport
+
+          echo '=== LIVE SAFETY ==='
+          live=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || true')
+          echo "LIVE_STATE=${live:-unknown}"
+          youtube_id=$(sudo docker compose --env-file .env ps -q youtube)
+          echo "YOUTUBE_CONTAINER_PRESENT=$([ -n "$youtube_id" ] && echo yes || echo no)"
+          [ -n "$youtube_id" ] && echo "YOUTUBE_RESTARTS=$(sudo docker inspect -f '{{.RestartCount}}' "$youtube_id")"
+
+          echo '=== CONFIG PRESENCE ==='
+          if sudo grep -q '^FGB_ARCHIVE_API_KEY=..' .env; then echo 'ARCHIVE_API_KEY_SET=yes'; else echo 'ARCHIVE_API_KEY_SET=no'; fi
+          if sudo grep -q '^FGB_TRANSPORT_HEARTBEAT_SECRET=..' .env; then echo 'HEARTBEAT_SECRET_SET=yes'; else echo 'HEARTBEAT_SECRET_SET=no'; fi
+          echo "UPLOADER_COMMAND=$(sudo docker compose --env-file .env config | awk '/archive_uploader:/{f=1} f&&/command:/{getline; print; exit}' | sed 's/^[[:space:]]*//')"
+          echo "HOST_UPLOADER_ARCHIVE_KEY_LINE=$(sudo grep -c 'archive_key = env' archive-uploader.py || true)"
+          echo "HOST_UPLOADER_ARCHIVE_HEADER_LINE=$(sudo grep -c 'x-fgb-archive-key' archive-uploader.py || true)"
+
           echo '=== SERVICES ==='
-          sudo docker compose --env-file .env ps -a 2>&1 || true
+          sudo docker compose --env-file .env ps -a archive_uploader youtube
+
+          echo '=== CONTAINER UPLOADER CODE ==='
+          sudo docker compose --env-file .env exec -T archive_uploader sh -lc "grep -c 'archive_key = env' ./archive-uploader.py 2>/dev/null || true; grep -c 'x-fgb-archive-key' ./archive-uploader.py 2>/dev/null || true" || true
+
+          echo '=== AUTH CHECK ==='
+          sudo docker compose --env-file .env exec -T archive_uploader python3 ./archive-uploader.py --check-auth 2>&1 | sed -E 's/(accessToken|Bearer)[^ ]*/[REDACTED]/Ig' || true
+
           echo '=== ARCHIVE FILE COUNTS ==='
           for d in /srv/fgb-archive/hourly /srv/fgb-archive/final /srv/fgb-archive/state; do
-            printf '%s=' "$d"; find "$d" -maxdepth 1 -type f 2>/dev/null | wc -l
+            printf '%s=' "$d"; sudo find "$d" -maxdepth 1 -type f 2>/dev/null | wc -l
           done
-          echo '=== RECENT ARCHIVE FILES ==='
-          find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' -printf '%f %s\n' 2>/dev/null | sort | tail -12
+          echo '=== RECENT HOURLY FILES ==='
+          sudo find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' -printf '%f %s\n' 2>/dev/null | sort | tail -16
+
           echo '=== UPLOADER LOG ==='
-          sudo docker compose --env-file .env logs --tail=40 archive_uploader 2>&1 | sed -E 's#(Bearer |access_token=|refresh_token=|client_secret=)[^ ]+#\1[REDACTED]#Ig' | tail -40 || true
+          sudo docker compose --env-file .env logs --tail=120 archive_uploader 2>&1 | sed -E 's/(accessToken|Bearer)[^ ]*/[REDACTED]/Ig' | tail -120 || true
           REMOTE
