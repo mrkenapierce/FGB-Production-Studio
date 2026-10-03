@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 02 Oct 2026 20:59:31 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 03 Oct 2026 00:13:37 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -15,16 +15,6 @@
       <link>https://sports.yahoo.com/articles/bears-vs-jets-injury-report-193000641.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-d68b6183e05b3c7a580d</guid>
       <pubDate>Fri, 02 Oct 2026 19:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Jets at Bears Q&amp;A: A battle of former Lions Coordinators</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Jets at Bears Q&amp;A: A battle of former Lions Coordinators</description>
-      <link>https://sports.yahoo.com/articles/jets-bears-q-battle-former-190000754.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cf3312ce5792a19d3e13</guid>
-      <pubDate>Fri, 02 Oct 2026 19:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -47,46 +37,6 @@
       <pubDate>Fri, 02 Oct 2026 17:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears announce starting left tackle, but not QB, for Week 4 vs. Jets</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears announce starting left tackle, but not QB, for Week 4 vs. Jets</description>
-      <link>https://www.si.com/nfl/bears/onsi/no-bears-qb-announcement-but-theo-benedet-gets-start-at-left-tackle</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6dbb442f2bf71565a1dc</guid>
-      <pubDate>Fri, 02 Oct 2026 13:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams, D&apos;Andre Swift Injury Updates From Bears&apos; Final Week 4 Practice Report</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams, D&apos;Andre Swift Injury Updates From Bears&apos; Final Week 4 Practice Report</description>
-      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-d-andre-swift-injury-updates-bears-final-week-4-practice-report</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-69a347a6c51be52f22f7</guid>
-      <pubDate>Fri, 02 Oct 2026 12:11:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Jets rule out RB Hall, WR Mitchell, TE Taylor, LG Parham vs. Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Jets rule out RB Hall, WR Mitchell, TE Taylor, LG Parham vs. Bears</description>
-      <link>https://www.espn.com/nfl/story/_/id/50085069/jets-rule-rb-hall-wr-mitchell-te-taylor-lg-parham-vs-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ed2a6440d328472b9f71</guid>
-      <pubDate>Fri, 02 Oct 2026 09:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears mailbag: What’s going on with Rome Odunze? Week 4 predictions vs. Jets</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears mailbag: What’s going on with Rome Odunze? Week 4 predictions vs. Jets</description>
-      <link>https://www.nytimes.com/athletic/7649784/2026/10/02/bears-mailbag-rome-odunze-case-keenum-jets/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9e2f9245f3a0cb7f64f8</guid>
-      <pubDate>Fri, 02 Oct 2026 06:54:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
