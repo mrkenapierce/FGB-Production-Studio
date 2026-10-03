@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 03 Oct 2026 05:18:35 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 03 Oct 2026 10:29:57 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>NFL predictions: New York Jets vs Chicago Bears - Can the Jets pull off the upset?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL predictions: New York Jets vs Chicago Bears - Can the Jets pull off the upset?</description>
+      <link>https://sports.yahoo.com/articles/nfl-predictions-york-jets-vs-054513668.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-38766276942fb56435cf</guid>
+      <pubDate>Sat, 03 Oct 2026 05:45:13 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Banged-up Jets look to avoid three-game losing streak without five key players against Bears</title>
@@ -40,6 +50,16 @@
     </item>
 
     <item>
+      <title>NFL Network: QB Tyson Bagent likely to start for Bears on Sunday vs. Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: NFL Network: QB Tyson Bagent likely to start for Bears on Sunday vs. Jets</description>
+      <link>https://www.nfl.com/news/nfl-network-qb-tyson-bagent-likely-to-start-for-bears-on-sunday-vs-jets</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2d5b37a3410972c0b3ea</guid>
+      <pubDate>Fri, 02 Oct 2026 17:15:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
       <title>A full-circle moment: My experience at the Bears&apos; Latino Heritage Month game</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: A full-circle moment: My experience at the Bears&apos; Latino Heritage Month game</description>
       <link>https://www.chicagobears.com/news/a-full-circle-moment-my-experience-at-the-bears-latino-heritage-month-game</link>
@@ -47,26 +67,6 @@
       <pubDate>Fri, 02 Oct 2026 17:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>NFL Network: QB Tyson Bagent likely to start for Bears on Sunday vs. Jets</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: NFL Network: QB Tyson Bagent likely to start for Bears on Sunday vs. Jets</description>
-      <link>https://www.nfl.com/news/nfl-network-qb-tyson-bagent-likely-to-start-for-bears-on-sunday-vs-jets</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2d5b37a3410972c0b3ea</guid>
-      <pubDate>Fri, 02 Oct 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Will Bears beat the Jets? Our game picks and bold predictions</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Will Bears beat the Jets? Our game picks and bold predictions</description>
-      <link>https://sports.yahoo.com/articles/bears-beat-jets-game-picks-023912782.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0ffb3a349da83ee6dbf9</guid>
-      <pubDate>Fri, 02 Oct 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
