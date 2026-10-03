@@ -36,45 +36,47 @@ jobs:
           set -euo pipefail
           scp -q -i ~/.ssh/ovh_key ops/transport-ovh/archive-uploader.py ubuntu@$OVH_HOST:/tmp/archive-uploader.py
           scp -q -i ~/.ssh/ovh_key ops/transport-ovh/docker-compose.yml ubuntu@$OVH_HOST:/tmp/docker-compose.yml
-          ssh -i ~/.ssh/ovh_key ubuntu@$OVH_HOST 'bash -s' <<'REMOTE'
+          ssh -i ~/.ssh/ovh_key ubuntu@$OVH_HOST 'cat >/tmp/activate-fgb-hourly.sh && chmod 700 /tmp/activate-fgb-hourly.sh && /tmp/activate-fgb-hourly.sh' <<'REMOTE'
+          #!/usr/bin/env bash
           set -euo pipefail
           cd /opt/fgb-transport
 
-          live_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state')
+          live_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state' </dev/null)
           test "$live_before" = live
           youtube_id_before=$(sudo docker compose --env-file .env ps -q youtube)
           youtube_restarts_before=$(sudo docker inspect -f '{{.RestartCount}}' "$youtube_id_before")
-          ffmpeg_pid_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'pgrep -o ffmpeg')
+          ffmpeg_pid_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'pgrep -o ffmpeg' </dev/null)
 
           sudo install -m 0755 /tmp/archive-uploader.py /opt/fgb-transport/archive-uploader.py
           sudo install -m 0644 /tmp/docker-compose.yml /opt/fgb-transport/docker-compose.yml
           rm -f /tmp/archive-uploader.py /tmp/docker-compose.yml
 
-          # Production-only compatibility patch: the control endpoint accepts the
-          # dedicated archive credential already present in the protected OVH env.
           sudo sed -i '0,/secret = env("FGB_TRANSPORT_HEARTBEAT_SECRET")/s//secret = env("FGB_TRANSPORT_HEARTBEAT_SECRET")\n    archive_key = env("FGB_ARCHIVE_API_KEY")/' archive-uploader.py
           sudo sed -i '0,/if not secret:/s//if not secret and not archive_key:/' archive-uploader.py
           sudo sed -i '0,/"Content-Type": "application\/json",/s//"Content-Type": "application\/json",\n            "x-fgb-archive-key": archive_key,/' archive-uploader.py
 
-          # Run the uploader directly; no legacy token wrapper is needed.
           sudo sed -i '/archive-token-wrapper.py:.*archive-token-wrapper.py/d' docker-compose.yml
           sudo sed -i 's#\["python3", "\./archive-token-wrapper.py"\]#["python3", "./archive-uploader.py"]#' docker-compose.yml
+          if ! sudo sed -n '/^  archive_uploader:/,/^  rumble_bridge:/p' docker-compose.yml | grep -q 'archive-uploader.py:/opt/transport/archive-uploader.py'; then
+            sudo sed -i '/^  archive_uploader:/,/^  rumble_bridge:/ { /- \/srv\/fgb-archive:\/archive/a\      - ./archive-uploader.py:/opt/transport/archive-uploader.py:ro
+            }' docker-compose.yml
+          fi
 
           sudo docker compose --env-file .env config >/dev/null
           test -n "$(sudo sed -n 's/^FGB_ARCHIVE_API_KEY=//p' .env | tail -1)"
 
-          sudo docker compose --env-file .env run --rm --no-deps --entrypoint python3 archive_uploader ./archive-uploader.py --check-auth
-          sudo docker compose --env-file .env run --rm --no-deps --entrypoint python3 archive_uploader ./archive-uploader.py --test-upload
+          sudo docker compose --env-file .env run --rm --no-deps --entrypoint python3 archive_uploader ./archive-uploader.py --check-auth </dev/null
+          sudo docker compose --env-file .env run --rm --no-deps --entrypoint python3 archive_uploader ./archive-uploader.py --test-upload </dev/null
 
-          sudo docker compose --env-file .env up -d --no-deps --force-recreate archive_uploader
-          sleep 10
-          sudo docker compose --env-file .env ps archive_uploader
-          sudo docker compose --env-file .env logs --tail=100 archive_uploader
+          sudo docker compose --env-file .env up -d --no-deps --force-recreate archive_uploader </dev/null
+          sleep 12
+          sudo docker compose --env-file .env ps archive_uploader </dev/null
+          sudo docker compose --env-file .env logs --tail=100 archive_uploader </dev/null
 
-          test "$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state')" = live
+          test "$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state' </dev/null)" = live
           youtube_id_after=$(sudo docker compose --env-file .env ps -q youtube)
           youtube_restarts_after=$(sudo docker inspect -f '{{.RestartCount}}' "$youtube_id_after")
-          ffmpeg_pid_after=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'pgrep -o ffmpeg')
+          ffmpeg_pid_after=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'pgrep -o ffmpeg' </dev/null)
           test "$youtube_id_after" = "$youtube_id_before"
           test "$youtube_restarts_after" = "$youtube_restarts_before"
           test "$ffmpeg_pid_after" = "$ffmpeg_pid_before"
