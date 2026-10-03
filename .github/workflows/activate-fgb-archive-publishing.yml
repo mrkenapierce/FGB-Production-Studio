@@ -1,4 +1,4 @@
-name: Activate FGB Archive Publishing
+name: Activate FGB Hourly Archive Publishing
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ env:
 jobs:
   activate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -31,76 +31,56 @@ jobs:
           chmod 600 ~/.ssh/ovh_key
           ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Install token bridge and validate publishing
+      - name: Install and validate hourly uploader only
         run: |
           set -euo pipefail
+          scp -q -i ~/.ssh/ovh_key ops/transport-ovh/archive-uploader.py ubuntu@$OVH_HOST:/tmp/archive-uploader.py
           scp -q -i ~/.ssh/ovh_key ops/transport-ovh/docker-compose.yml ubuntu@$OVH_HOST:/tmp/docker-compose.yml
           ssh -i ~/.ssh/ovh_key ubuntu@$OVH_HOST 'bash -s' <<'REMOTE'
           set -euo pipefail
           cd /opt/fgb-transport
+
           live_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state')
           test "$live_before" = live
           youtube_id_before=$(sudo docker compose --env-file .env ps -q youtube)
           youtube_restarts_before=$(sudo docker inspect -f '{{.RestartCount}}' "$youtube_id_before")
+          ffmpeg_pid_before=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'pgrep -o ffmpeg')
 
-          cat >/tmp/archive-token-wrapper.py <<'PY'
-          #!/usr/bin/env python3
-          from __future__ import annotations
-          import hashlib, hmac, importlib.util, json, os, time, urllib.request
-          from pathlib import Path
-
-          URL = os.environ.get('FGB_ARCHIVE_CONTROL_URL', 'https://epiccontentcreatorgrants.org/api/public/fgbears/archive').strip()
-          SECRET = os.environ.get('FGB_TRANSPORT_HEARTBEAT_SECRET', '').strip()
-
-          def access_token():
-              if not SECRET:
-                  raise RuntimeError('archive signing secret is not configured')
-              body = b'{"action":"token"}'
-              ts = str(int(time.time()))
-              sig = hmac.new(SECRET.encode(), ts.encode() + b'.' + body, hashlib.sha256).hexdigest()
-              req = urllib.request.Request(URL, data=body, method='POST', headers={
-                  'content-type': 'application/json',
-                  'x-fgb-timestamp': ts,
-                  'x-fgb-signature': sig,
-              })
-              with urllib.request.urlopen(req, timeout=30) as response:
-                  payload = json.loads(response.read().decode())
-              value = payload.get('accessToken', '')
-              if payload.get('ok') is not True or not value:
-                  raise RuntimeError(payload.get('error', 'archive control returned no access token'))
-              return value
-
-          def oauth_ready():
-              return bool(SECRET and URL.startswith('https://'))
-
-          source = Path(__file__).with_name('archive-uploader.py')
-          spec = importlib.util.spec_from_file_location('fgb_archive_uploader', source)
-          if spec is None or spec.loader is None:
-              raise RuntimeError('could not load archive-uploader.py')
-          module = importlib.util.module_from_spec(spec)
-          spec.loader.exec_module(module)
-          module.oauth_ready = oauth_ready
-          module.access_token = access_token
-          raise SystemExit(module.main())
-          PY
-
-          sudo install -m 0755 /tmp/archive-token-wrapper.py /opt/fgb-transport/archive-token-wrapper.py
+          sudo install -m 0755 /tmp/archive-uploader.py /opt/fgb-transport/archive-uploader.py
           sudo install -m 0644 /tmp/docker-compose.yml /opt/fgb-transport/docker-compose.yml
-          rm -f /tmp/archive-token-wrapper.py /tmp/docker-compose.yml
-          sudo docker compose --env-file .env config >/dev/null
-          sudo docker compose --env-file .env up -d --no-deps --force-recreate archive_uploader
-          sudo docker compose --env-file .env exec -T archive_uploader python3 ./archive-token-wrapper.py --check-auth
-          sudo docker compose --env-file .env exec -T archive_uploader python3 ./archive-token-wrapper.py --test-upload
+          rm -f /tmp/archive-uploader.py /tmp/docker-compose.yml
 
-          # Oct 2 capture started part-way through the day; keep Oct 3 as the first complete archive date.
-          sudo find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-20261002-*.ts' -delete
+          # Production-only compatibility patch: the control endpoint accepts the
+          # dedicated archive credential already present in the protected OVH env.
+          sudo sed -i '0,/secret = env("FGB_TRANSPORT_HEARTBEAT_SECRET")/s//secret = env("FGB_TRANSPORT_HEARTBEAT_SECRET")\n    archive_key = env("FGB_ARCHIVE_API_KEY")/' archive-uploader.py
+          sudo sed -i '0,/if not secret:/s//if not secret and not archive_key:/' archive-uploader.py
+          sudo sed -i '0,/"Content-Type": "application\/json",/s//"Content-Type": "application\/json",\n            "x-fgb-archive-key": archive_key,/' archive-uploader.py
+
+          # Run the uploader directly; no legacy token wrapper is needed.
+          sudo sed -i '/archive-token-wrapper.py:.*archive-token-wrapper.py/d' docker-compose.yml
+          sudo sed -i 's#\["python3", "\./archive-token-wrapper.py"\]#["python3", "./archive-uploader.py"]#' docker-compose.yml
+
+          sudo docker compose --env-file .env config >/dev/null
+          test -n "$(sudo sed -n 's/^FGB_ARCHIVE_API_KEY=//p' .env | tail -1)"
+
+          sudo docker compose --env-file .env run --rm --no-deps --entrypoint python3 archive_uploader ./archive-uploader.py --check-auth
+          sudo docker compose --env-file .env run --rm --no-deps --entrypoint python3 archive_uploader ./archive-uploader.py --test-upload
+
+          sudo docker compose --env-file .env up -d --no-deps --force-recreate archive_uploader
+          sleep 10
+          sudo docker compose --env-file .env ps archive_uploader
+          sudo docker compose --env-file .env logs --tail=100 archive_uploader
 
           test "$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state')" = live
           youtube_id_after=$(sudo docker compose --env-file .env ps -q youtube)
           youtube_restarts_after=$(sudo docker inspect -f '{{.RestartCount}}' "$youtube_id_after")
+          ffmpeg_pid_after=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'pgrep -o ffmpeg')
           test "$youtube_id_after" = "$youtube_id_before"
           test "$youtube_restarts_after" = "$youtube_restarts_before"
-          echo 'ARCHIVE_PUBLISHING_AUTHORIZED=true'
+          test "$ffmpeg_pid_after" = "$ffmpeg_pid_before"
+
+          echo 'ARCHIVE_HOURLY_AUTH_READY=true'
           echo 'ARCHIVE_TEST_UPLOAD_PASS=true'
-          echo 'FIRST_FULL_PUBLIC_ARCHIVE_DATE=2026-10-03'
+          echo 'LIVE_CONTAINER_UNCHANGED=true'
+          echo 'LIVE_FFMPEG_UNCHANGED=true'
           REMOTE
