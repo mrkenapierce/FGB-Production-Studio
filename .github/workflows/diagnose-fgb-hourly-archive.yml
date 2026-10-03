@@ -1,0 +1,64 @@
+name: Diagnose FGB Hourly Archive
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/diagnose-fgb-hourly-archive.yml
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Configure production SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Inspect archive state without changing production
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/fgb-transport
+          echo "=== LIVE ==="
+          echo "STATE=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || echo missing')"
+          echo "RESTARTS=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-restarts 2>/dev/null || echo missing')"
+          echo "=== ARCHIVE SERVICE ==="
+          sudo docker compose --env-file .env ps archive_uploader
+          echo "=== AUTH ==="
+          sudo docker compose --env-file .env exec -T archive_uploader python3 ./archive-token-wrapper.py --check-auth 2>&1 | sed -E 's/(access_token|refresh_token|client_secret)=[^ ]+/\1=[REDACTED]/g' || true
+          echo "=== HOURLY FILES ==="
+          count=$(find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' 2>/dev/null | wc -l)
+          echo "HOURLY_COUNT=$count"
+          find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' -printf '%f %s %TY-%Tm-%TdT%TH:%TM:%TS\n' 2>/dev/null | sort | tail -30
+          echo "=== STATE SUMMARY ==="
+          sudo python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('/srv/fgb-archive/state')
+          files=sorted(root.glob('*.json'))
+          print('STATE_COUNT='+str(len(files)))
+          for p in files[-30:]:
+              try: d=json.loads(p.read_text())
+              except Exception as e:
+                  print(p.name, 'INVALID', type(e).__name__); continue
+              safe={k:d.get(k) for k in ('date','complete','part_count','video_id','playlist_added','segment_id','title','completed_at','uploaded_at') if k in d}
+              if 'parts' in d:
+                  safe['parts']=[{k:x.get(k) for k in ('video_id','playlist_added','complete','title','uploaded_at','completed_at') if k in x} for x in d.get('parts',[])]
+              print(p.name, json.dumps(safe, sort_keys=True))
+          PY
+          echo "=== RECENT UPLOADER LOG ==="
+          sudo docker compose --env-file .env logs --tail=120 archive_uploader 2>&1 | grep -E 'ARCHIVE_|error|ERROR|warning|WARNING' | tail -120 || true
+          REMOTE
