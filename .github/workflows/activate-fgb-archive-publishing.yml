@@ -53,14 +53,7 @@ jobs:
 
           sudo sed -i '0,/secret = env("FGB_TRANSPORT_HEARTBEAT_SECRET")/s//secret = env("FGB_TRANSPORT_HEARTBEAT_SECRET")\n    archive_key = env("FGB_ARCHIVE_API_KEY")/' archive-uploader.py
           sudo sed -i '0,/if not secret:/s//if not secret and not archive_key:/' archive-uploader.py
-          sudo sed -i '0,/"Content-Type": "application\/json",/s//"Content-Type": "application\/json",\n            "x-fgb-archive-key": archive_key,/' archive-uploader.py
-
-          sudo sed -i '/archive-token-wrapper.py:.*archive-token-wrapper.py/d' docker-compose.yml
-          sudo sed -i 's#\["python3", "\./archive-token-wrapper.py"\]#["python3", "./archive-uploader.py"]#' docker-compose.yml
-          if ! sudo sed -n '/^  archive_uploader:/,/^  rumble_bridge:/p' docker-compose.yml | grep -q 'archive-uploader.py:/opt/transport/archive-uploader.py'; then
-            sudo sed -i '/^  archive_uploader:/,/^  rumble_bridge:/ { /- \/srv\/fgb-archive:\/archive/a\      - ./archive-uploader.py:/opt/transport/archive-uploader.py:ro
-            }' docker-compose.yml
-          fi
+          sudo sed -i '0,/"Content-Type": "application\/json",/s//"Content-Type": "application\/json",\n            "User-Agent": "curl\/8.5.0",\n            "x-fgb-archive-key": archive_key,/' archive-uploader.py
 
           sudo docker compose --env-file .env config >/dev/null
           test -n "$(sudo sed -n 's/^FGB_ARCHIVE_API_KEY=//p' .env | tail -1)"
