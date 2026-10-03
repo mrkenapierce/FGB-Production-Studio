@@ -1,0 +1,28 @@
+name: Check FGB Archive Endpoint Config
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/check-fgb-archive-endpoint-config.yml
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Probe configured state without credentials
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/body -w '%{http_code}' -X POST \
+            -H 'content-type: application/json' \
+            -H 'x-fgb-timestamp: 1' \
+            -H 'x-fgb-signature: 00' \
+            --data '{"action":"token"}' \
+            https://epiccontentcreatorgrants.org/api/public/fgbears/archive || true)
+          echo "ARCHIVE_ENDPOINT_HTTP=$code"
+          if grep -q 'not_configured' /tmp/body; then echo 'ARCHIVE_ENDPOINT_SECRET_CONFIGURED=no'; else echo 'ARCHIVE_ENDPOINT_SECRET_CONFIGURED=yes_or_protected'; fi
