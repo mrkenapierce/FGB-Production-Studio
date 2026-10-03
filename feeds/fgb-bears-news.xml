@@ -5,28 +5,38 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 03 Oct 2026 18:25:30 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 03 Oct 2026 21:35:16 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears reportedly expected to start Tyson Bagent at QB in Week 4 vs. Jets</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears reportedly expected to start Tyson Bagent at QB in Week 4 vs. Jets</description>
-      <link>https://sports.yahoo.com/nfl/article/bears-reportedly-expected-to-start-tyson-bagent-at-qb-in-week-4-vs-jets-171230036.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ae4fbce7abed37d34edd</guid>
-      <pubDate>Sat, 03 Oct 2026 17:12:30 GMT</pubDate>
+      <title>Bears OT Braxton Jones lands on injured reserve</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears OT Braxton Jones lands on injured reserve</description>
+      <link>https://sports.yahoo.com/articles/bears-ot-braxton-jones-lands-205136538.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-19e60af4c967c399cc0d</guid>
+      <pubDate>Sat, 03 Oct 2026 20:51:36 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Three things I’m looking for in the New York Jets vs. Chicago Bears game</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Three things I’m looking for in the New York Jets vs. Chicago Bears game</description>
-      <link>https://sports.yahoo.com/articles/three-things-m-looking-york-170000705.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-21cb892b390975ea9e6f</guid>
-      <pubDate>Sat, 03 Oct 2026 17:00:00 GMT</pubDate>
+      <title>Chicago Bears place Braxton Jones on Injured Reserve</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears place Braxton Jones on Injured Reserve</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-place-braxton-jones-203822361.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c8218c4663bb306967a3</guid>
+      <pubDate>Sat, 03 Oct 2026 20:38:22 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Roster Moves: Chicago Bears place Braxton Jones on IR, elevate 2</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Roster Moves: Chicago Bears place Braxton Jones on IR, elevate 2</description>
+      <link>https://www.chicagobears.com/news/roster-moves-chicago-bears-place-braxton-jones-on-ir-elevate-2</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9c0ca3f58ec0ebb17a26</guid>
+      <pubDate>Sat, 03 Oct 2026 20:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
@@ -50,43 +60,33 @@
     </item>
 
     <item>
-      <title>Bears Catch a Big Break for Week 5 with Latest Packers Injury Update</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Catch a Big Break for Week 5 with Latest Packers Injury Update</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-catch-a-big-break-for-week-5-with-latest-packers-injury-update</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2bfe2fa51008923aafb3</guid>
-      <pubDate>Sat, 03 Oct 2026 11:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Case Keenum Endorses &apos;Baller&apos; Tyson Bagent as Bears Stay Mum on QB1 vs. Jets</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Case Keenum Endorses &apos;Baller&apos; Tyson Bagent as Bears Stay Mum on QB1 vs. Jets</description>
-      <link>https://www.si.com/nfl/bears/onsi/case-keenum-endorses-baller-tyson-bagent-as-bears-stay-mum-on-qb1-vs-jets</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c046de7b45d57810b5ff</guid>
-      <pubDate>Sat, 03 Oct 2026 10:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Source: Bears expected to start QB Tyson Bagent vs. Jets</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Source: Bears expected to start QB Tyson Bagent vs. Jets</description>
-      <link>https://www.espn.com/nfl/story/_/id/50090746/source-bears-expected-start-qb-tyson-bagent-vs-jets</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2de1590bb31a287e6167</guid>
-      <pubDate>Sat, 03 Oct 2026 09:40:00 GMT</pubDate>
+      <title>Bears LT Braxton Jones on IR; Theo Benedet to start vs. Eagles</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears LT Braxton Jones on IR; Theo Benedet to start vs. Eagles</description>
+      <link>https://www.espn.com/wnba/story/_/id/359...</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6b0f05a5709fa94ac601</guid>
+      <pubDate>Sat, 03 Oct 2026 14:16:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
-      <title>Bears to Start QB Tyson Bagent vs. the Jets</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears to Start QB Tyson Bagent vs. the Jets</description>
-      <link>https://www.cbssports.com/watch/nfl/video/bears-to-start-qb-tyson-bagent-vs-the-jets</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b8c0f1e8bf9eae982440</guid>
-      <pubDate>Sat, 03 Oct 2026 08:50:00 GMT</pubDate>
+      <title>Bears Place Braxton Jones on IR Among 3 Roster Moves Before Week 4 Game</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Place Braxton Jones on IR Among 3 Roster Moves Before Week 4 Game</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-place-braxton-jones-on-ir-roster-moves-week-4-game</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-11e3f96e1c51d243c522</guid>
+      <pubDate>Sat, 03 Oct 2026 13:27:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>How Bears Will Replace Caleb Williams, 2 Other Injured Starters in Week 4</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: How Bears Will Replace Caleb Williams, 2 Other Injured Starters in Week 4</description>
+      <link>https://www.si.com/nfl/bears/onsi/projecting-bears-week-4-lineup-with-caleb-williams-and-two-other-starters-injured</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-03a89284838a265b7547</guid>
+      <pubDate>Sat, 03 Oct 2026 13:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
