@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 03 Oct 2026 21:35:16 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 04 Oct 2026 00:01:36 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears vs. New York Jets – Game Picks and Predictions</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. New York Jets – Game Picks and Predictions</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-vs-york-jets-220000996.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-69ae7aa74b66aa841e63</guid>
+      <pubDate>Sat, 03 Oct 2026 22:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears OT Braxton Jones lands on injured reserve</title>
@@ -15,16 +25,6 @@
       <link>https://sports.yahoo.com/articles/bears-ot-braxton-jones-lands-205136538.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-19e60af4c967c399cc0d</guid>
       <pubDate>Sat, 03 Oct 2026 20:51:36 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears place Braxton Jones on Injured Reserve</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears place Braxton Jones on Injured Reserve</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-place-braxton-jones-203822361.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c8218c4663bb306967a3</guid>
-      <pubDate>Sat, 03 Oct 2026 20:38:22 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -60,6 +60,16 @@
     </item>
 
     <item>
+      <title>Coby Bryant&apos;s Cryptic Post Has Bears Fans Dreaming of Best-Case Scenario</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Coby Bryant&apos;s Cryptic Post Has Bears Fans Dreaming of Best-Case Scenario</description>
+      <link>https://www.si.com/nfl/bears/onsi/coby-bryant-cryptic-post-bears-fans-dreaming-best-case-scenario</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9908d2fea59554ad46c2</guid>
+      <pubDate>Sat, 03 Oct 2026 14:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
       <title>Bears LT Braxton Jones on IR; Theo Benedet to start vs. Eagles</title>
       <description>Football&apos;s Greatest Bears news brief from ESPN: Bears LT Braxton Jones on IR; Theo Benedet to start vs. Eagles</description>
       <link>https://www.espn.com/wnba/story/_/id/359...</link>
@@ -75,16 +85,6 @@
       <link>https://www.si.com/nfl/bears/onsi/bears-place-braxton-jones-on-ir-roster-moves-week-4-game</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-11e3f96e1c51d243c522</guid>
       <pubDate>Sat, 03 Oct 2026 13:27:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>How Bears Will Replace Caleb Williams, 2 Other Injured Starters in Week 4</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: How Bears Will Replace Caleb Williams, 2 Other Injured Starters in Week 4</description>
-      <link>https://www.si.com/nfl/bears/onsi/projecting-bears-week-4-lineup-with-caleb-williams-and-two-other-starters-injured</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-03a89284838a265b7547</guid>
-      <pubDate>Sat, 03 Oct 2026 13:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
