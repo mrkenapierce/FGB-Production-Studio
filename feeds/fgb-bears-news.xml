@@ -5,26 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 04 Oct 2026 00:01:36 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 04 Oct 2026 05:46:21 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears vs. New York Jets – Game Picks and Predictions</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. New York Jets – Game Picks and Predictions</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-vs-york-jets-220000996.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-69ae7aa74b66aa841e63</guid>
-      <pubDate>Sat, 03 Oct 2026 22:00:00 GMT</pubDate>
+      <title>Bears vs. Jets: How to watch and listen, previews, odds, and more</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Jets: How to watch and listen, previews, odds, and more</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-jets-watch-listen-041510990.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3a778a25f8614d247fbb</guid>
+      <pubDate>Sun, 04 Oct 2026 04:15:10 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears OT Braxton Jones lands on injured reserve</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears OT Braxton Jones lands on injured reserve</description>
-      <link>https://sports.yahoo.com/articles/bears-ot-braxton-jones-lands-205136538.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-19e60af4c967c399cc0d</guid>
-      <pubDate>Sat, 03 Oct 2026 20:51:36 GMT</pubDate>
+      <title>Tyson Bagent is expected to start for the Bears on Sunday vs. Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Tyson Bagent is expected to start for the Bears on Sunday vs. Jets</description>
+      <link>https://sports.yahoo.com/articles/tyson-bagent-expected-start-bears-001205828.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8304ca8b7a7bbeacd428</guid>
+      <pubDate>Sun, 04 Oct 2026 00:12:05 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -37,6 +37,26 @@
       <pubDate>Sat, 03 Oct 2026 20:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Braxton Jones: Out at least four games</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Braxton Jones: Out at least four games</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-braxton-jones-out-at-least-four-games/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b45f8ccd3bfe632b8d73</guid>
+      <pubDate>Sat, 03 Oct 2026 18:03:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears Should Monitor Rumored Steelers, Commanders Trade Candidates</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Should Monitor Rumored Steelers, Commanders Trade Candidates</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-monitor-rumored-steelers-commanders-trade-candidates</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f6abc6a88225afe865c2</guid>
+      <pubDate>Sat, 03 Oct 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -65,26 +85,6 @@
       <link>https://www.si.com/nfl/bears/onsi/coby-bryant-cryptic-post-bears-fans-dreaming-best-case-scenario</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-9908d2fea59554ad46c2</guid>
       <pubDate>Sat, 03 Oct 2026 14:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears LT Braxton Jones on IR; Theo Benedet to start vs. Eagles</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears LT Braxton Jones on IR; Theo Benedet to start vs. Eagles</description>
-      <link>https://www.espn.com/wnba/story/_/id/359...</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6b0f05a5709fa94ac601</guid>
-      <pubDate>Sat, 03 Oct 2026 14:16:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Bears Place Braxton Jones on IR Among 3 Roster Moves Before Week 4 Game</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Place Braxton Jones on IR Among 3 Roster Moves Before Week 4 Game</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-place-braxton-jones-on-ir-roster-moves-week-4-game</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-11e3f96e1c51d243c522</guid>
-      <pubDate>Sat, 03 Oct 2026 13:27:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
