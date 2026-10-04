@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 04 Oct 2026 05:46:21 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 04 Oct 2026 11:31:25 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Packers fans expect one win in next two games vs. Bucs, Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Packers fans expect one win in next two games vs. Bucs, Bears</description>
+      <link>https://sports.yahoo.com/articles/packers-fans-expect-one-win-110000561.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-856360b0ad2a3a08b79d</guid>
+      <pubDate>Sun, 04 Oct 2026 11:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Jets vs. Bears odds, picks, prediction, spread, line: NFL Week 4 start time, preview, best bets</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Jets vs. Bears odds, picks, prediction, spread, line: NFL Week 4 start time, preview, best bets</description>
+      <link>https://www.cbssports.com/betting/news/jets-vs-bears-odds-picks-prediction-spread-line-nfl-week-4-start-time-preview-best-bets/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-77cb117e6e063a6cb8e2</guid>
+      <pubDate>Sun, 04 Oct 2026 10:01:08 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
 
     <item>
       <title>Bears vs. Jets: How to watch and listen, previews, odds, and more</title>
@@ -20,16 +40,6 @@
     </item>
 
     <item>
-      <title>Tyson Bagent is expected to start for the Bears on Sunday vs. Jets</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Tyson Bagent is expected to start for the Bears on Sunday vs. Jets</description>
-      <link>https://sports.yahoo.com/articles/tyson-bagent-expected-start-bears-001205828.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8304ca8b7a7bbeacd428</guid>
-      <pubDate>Sun, 04 Oct 2026 00:12:05 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Roster Moves: Chicago Bears place Braxton Jones on IR, elevate 2</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Roster Moves: Chicago Bears place Braxton Jones on IR, elevate 2</description>
       <link>https://www.chicagobears.com/news/roster-moves-chicago-bears-place-braxton-jones-on-ir-elevate-2</link>
@@ -37,16 +47,6 @@
       <pubDate>Sat, 03 Oct 2026 20:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Braxton Jones: Out at least four games</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Braxton Jones: Out at least four games</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-braxton-jones-out-at-least-four-games/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b45f8ccd3bfe632b8d73</guid>
-      <pubDate>Sat, 03 Oct 2026 18:03:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
