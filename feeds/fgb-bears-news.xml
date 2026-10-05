@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 05 Oct 2026 01:04:01 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 05 Oct 2026 06:59:27 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -14,29 +14,9 @@
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 4 grades for all 32 teams: Ben Johnson, Bears earn &apos;A-&apos; despite injury woes; Bengals slip again</description>
       <link>https://www.cbssports.com/nfl/news/nfl-week-4-grades-for-all-32-teams-bears-bengals-patriots-rams/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-d21710c4c87c48f3efb1</guid>
-      <pubDate>Mon, 05 Oct 2026 00:31:32 GMT</pubDate>
+      <pubDate>Mon, 05 Oct 2026 04:01:21 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears vs. Packers odds: Opening lines for Week 5 matchup</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Packers odds: Opening lines for Week 5 matchup</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-packers-odds-opening-001638398.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ce496b5aeb74d58d2fee</guid>
-      <pubDate>Mon, 05 Oct 2026 00:16:38 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears latest win shows they have formula beyond Caleb Williams | Opinion</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears latest win shows they have formula beyond Caleb Williams | Opinion</description>
-      <link>https://sports.yahoo.com/articles/bears-latest-win-shows-formula-233648094.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fdf9332d01e7f560eaaf</guid>
-      <pubDate>Sun, 04 Oct 2026 23:36:48 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -70,16 +50,6 @@
     </item>
 
     <item>
-      <title>Chicago Bears&apos; punishing final drive symbolizes the grit of Ben Johnson&apos;s team</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Chicago Bears&apos; punishing final drive symbolizes the grit of Ben Johnson&apos;s team</description>
-      <link>https://www.nfl.com/news/chicago-bears-punishing-final-drive-symbolizes-the-grit-of-ben-johnson-s-team</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d51e7d7a6fffc8143d66</guid>
-      <pubDate>Sun, 04 Oct 2026 17:52:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
       <title>Wild stats from NFL Week 4 featuring Cowboys, Bears, Eagles, Seahawks, more</title>
       <description>Football&apos;s Greatest Bears news brief from ESPN: Wild stats from NFL Week 4 featuring Cowboys, Bears, Eagles, Seahawks, more</description>
       <link>https://www.espn.com/nfl/story/_/id/50100789/week-4-key-stats-solak-cee-dee-lamb-cowboys</link>
@@ -87,6 +57,36 @@
       <pubDate>Sun, 04 Oct 2026 17:50:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>New York Jets Good and Not-So-Good From Chicago Bears Loss</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: New York Jets Good and Not-So-Good From Chicago Bears Loss</description>
+      <link>https://sports.yahoo.com/articles/york-jets-good-not-good-211428537.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2e5858e5300eaf2ffc21</guid>
+      <pubDate>Sun, 04 Oct 2026 17:15:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears&apos; punishing final drive symbolizes the grit of Ben Johnson&apos;s team</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Chicago Bears&apos; punishing final drive symbolizes the grit of Ben Johnson&apos;s team</description>
+      <link>https://www.nfl.com/news/chicago-bears-punishing-final-drive-symbolizes-the-grit-of-ben-johnson-s-team</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d51e7d7a6fffc8143d66</guid>
+      <pubDate>Sun, 04 Oct 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
+      <title>‘Showing the Jets What They’re Missing,’ ‘Wouldn’t Take Any Coach Over Ben Johnson’ — NFL Fans Label Bears HC a ‘Wizard’ After Win vs. New York</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: ‘Showing the Jets What They’re Missing,’ ‘Wouldn’t Take Any Coach Over Ben Johnson’ — NFL Fans Label Bears HC a ‘Wizard’ After Win vs. New York</description>
+      <link>https://sports.yahoo.com/articles/showing-jets-missing-wouldn-t-015922709.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-31434b4ee10ae37dc50b</guid>
+      <pubDate>Sun, 04 Oct 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
   </channel>
 </rss>
