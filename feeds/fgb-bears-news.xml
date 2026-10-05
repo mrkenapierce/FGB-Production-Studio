@@ -5,88 +5,88 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 05 Oct 2026 06:59:27 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 05 Oct 2026 15:35:47 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>10 Bears Takes: Ben Johnson beats Aaron Glenn, Soldier Field Domination, and More</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 10 Bears Takes: Ben Johnson beats Aaron Glenn, Soldier Field Domination, and More</description>
+      <link>https://sports.yahoo.com/articles/10-bears-takes-ben-johnson-150000351.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-06dcb844095364b5f0f0</guid>
+      <pubDate>Mon, 05 Oct 2026 15:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears vs. Jets: Inside the Snap Counts, Stats, and Chasing Records</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Jets: Inside the Snap Counts, Stats, and Chasing Records</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-jets-inside-snap-133000612.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d526456ed5b0436cae5c</guid>
+      <pubDate>Mon, 05 Oct 2026 13:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>NFL Week 4 grades for all 32 teams: Ben Johnson, Bears earn &apos;A-&apos; despite injury woes; Bengals slip again</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 4 grades for all 32 teams: Ben Johnson, Bears earn &apos;A-&apos; despite injury woes; Bengals slip again</description>
       <link>https://www.cbssports.com/nfl/news/nfl-week-4-grades-for-all-32-teams-bears-bengals-patriots-rams/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-d21710c4c87c48f3efb1</guid>
-      <pubDate>Mon, 05 Oct 2026 04:01:21 GMT</pubDate>
+      <pubDate>Mon, 05 Oct 2026 12:29:57 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
-      <title>&apos;You just want to keep feeding him&apos;: Kyle Monangai powers Bears offense vs. Jets with 146-yard, 2-TD performance</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: &apos;You just want to keep feeding him&apos;: Kyle Monangai powers Bears offense vs. Jets with 146-yard, 2-TD performance</description>
-      <link>https://www.chicagobears.com/news/you-just-want-to-keep-feeding-him-kyle-monangai-powers-bears-offense-vs-jets-146-yards-2-tds</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f68a58190baeb5bf36cc</guid>
-      <pubDate>Sun, 04 Oct 2026 23:11:48 GMT</pubDate>
+      <title>NFL Week 5 early odds: Bears favorites at Lambeau, Bills underdogs to Rams</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 5 early odds: Bears favorites at Lambeau, Bills underdogs to Rams</description>
+      <link>https://www.cbssports.com/nfl/news/nfl-week-5-odds-lines-spreads-betting-2026/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4e4ad110e69d461a97e1</guid>
+      <pubDate>Mon, 05 Oct 2026 12:01:04 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
-      <title>By the Numbers: Bears&apos; Week 4 win over Jets</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: By the Numbers: Bears&apos; Week 4 win over Jets</description>
-      <link>https://www.chicagobears.com/news/by-the-numbers-bears-week-4-win-over-jets</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c3d3d9504f7d859c26c6</guid>
-      <pubDate>Sun, 04 Oct 2026 23:05:00 GMT</pubDate>
+      <title>Ben Johnson Leaves No Doubt About Bears&apos; Week 5 QB Decision Between Tyson Bagent, Case Keenum</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Leaves No Doubt About Bears&apos; Week 5 QB Decision Between Tyson Bagent, Case Keenum</description>
+      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-leaves-no-doubt-about-bears-week-5-qb-decision-between-tyson-bagent-case-keenum</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0c6049705fe485a585db</guid>
+      <pubDate>Mon, 05 Oct 2026 08:08:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Bears call Case Keenum co-start a &apos;ceremonial first pitch&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears call Case Keenum co-start a &apos;ceremonial first pitch&apos;</description>
-      <link>https://www.espn.com/nfl/story/_/id/50105493/bears-call-case-keenum-co-start-ceremonial-first-pitch</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-df0756ec3b26a22bffd6</guid>
-      <pubDate>Sun, 04 Oct 2026 17:58:00 GMT</pubDate>
+      <title>How Tyson Bagent’s poise, third-down performance helped Chicago Bears get to 3-1</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: How Tyson Bagent’s poise, third-down performance helped Chicago Bears get to 3-1</description>
+      <link>https://www.nytimes.com/athletic/7661044/2026/10/05/bears-tyson-bagent-start-jets/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c4d894cbf10994765bc0</guid>
+      <pubDate>Mon, 05 Oct 2026 07:16:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
-      <title>Wild stats from NFL Week 4 featuring Cowboys, Bears, Eagles, Seahawks, more</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Wild stats from NFL Week 4 featuring Cowboys, Bears, Eagles, Seahawks, more</description>
-      <link>https://www.espn.com/nfl/story/_/id/50100789/week-4-key-stats-solak-cee-dee-lamb-cowboys</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9ae37534bf1fcea129ed</guid>
-      <pubDate>Sun, 04 Oct 2026 17:50:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>New York Jets Good and Not-So-Good From Chicago Bears Loss</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: New York Jets Good and Not-So-Good From Chicago Bears Loss</description>
-      <link>https://sports.yahoo.com/articles/york-jets-good-not-good-211428537.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2e5858e5300eaf2ffc21</guid>
-      <pubDate>Sun, 04 Oct 2026 17:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears&apos; punishing final drive symbolizes the grit of Ben Johnson&apos;s team</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Chicago Bears&apos; punishing final drive symbolizes the grit of Ben Johnson&apos;s team</description>
-      <link>https://www.nfl.com/news/chicago-bears-punishing-final-drive-symbolizes-the-grit-of-ben-johnson-s-team</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d51e7d7a6fffc8143d66</guid>
-      <pubDate>Sun, 04 Oct 2026 17:00:00 GMT</pubDate>
+      <title>Thoughts on Bears Week 4 offensive dominance vs. Jets? | &apos;GMFB&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Thoughts on Bears Week 4 offensive dominance vs. Jets? | &apos;GMFB&apos;</description>
+      <link>https://www.nfl.com/videos/thoughts-on-bears-week-4-offensive-dominance-vs-jets-gmfb</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e19cffe1553cb0d20b85</guid>
+      <pubDate>Mon, 05 Oct 2026 06:54:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
-      <title>‘Showing the Jets What They’re Missing,’ ‘Wouldn’t Take Any Coach Over Ben Johnson’ — NFL Fans Label Bears HC a ‘Wizard’ After Win vs. New York</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: ‘Showing the Jets What They’re Missing,’ ‘Wouldn’t Take Any Coach Over Ben Johnson’ — NFL Fans Label Bears HC a ‘Wizard’ After Win vs. New York</description>
-      <link>https://sports.yahoo.com/articles/showing-jets-missing-wouldn-t-015922709.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-31434b4ee10ae37dc50b</guid>
-      <pubDate>Sun, 04 Oct 2026 17:00:00 GMT</pubDate>
+      <title>Bears QB ID Game Shouldn&apos;t Be Necessary After Tyson Bagent&apos;s Effort</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears QB ID Game Shouldn&apos;t Be Necessary After Tyson Bagent&apos;s Effort</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-qb-id-game-shouldn-t-be-necessary-after-tyson-bagent-s-effort</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-75c06c95b086c519abb9</guid>
+      <pubDate>Mon, 05 Oct 2026 05:30:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
