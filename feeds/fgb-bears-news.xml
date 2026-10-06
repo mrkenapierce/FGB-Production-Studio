@@ -5,28 +5,78 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 06 Oct 2026 09:09:12 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 06 Oct 2026 15:54:28 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears release Marcus Davenport at his request; he then retires</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears release Marcus Davenport at his request; he then retires</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-release-marcus-davenport-022741857.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-70cd54be932c1ee6ac9a</guid>
-      <pubDate>Tue, 06 Oct 2026 02:27:41 GMT</pubDate>
+      <title>3 Reasons Why the Chicago Bears Won vs. the New York Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 3 Reasons Why the Chicago Bears Won vs. the New York Jets</description>
+      <link>https://sports.yahoo.com/articles/3-reasons-why-chicago-bears-150050529.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-016710136b3702db4761</guid>
+      <pubDate>Tue, 06 Oct 2026 15:00:50 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Marcus Davenport asks for release after 12 snaps with Bears — and then retires</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Marcus Davenport asks for release after 12 snaps with Bears — and then retires</description>
-      <link>https://sports.yahoo.com/articles/marcus-davenport-asks-release-12-020135076.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a4f909437ef9c86bba84</guid>
-      <pubDate>Tue, 06 Oct 2026 02:01:35 GMT</pubDate>
+      <title>Week 5 NFL odds, spreads, totals, betting lines, for all 16 games, including Buccaneers-Cowboys, Bears-Packers</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Week 5 NFL odds, spreads, totals, betting lines, for all 16 games, including Buccaneers-Cowboys, Bears-Packers</description>
+      <link>https://www.cbssports.com/betting/news/week-5-nfl-betting-odds-lines-totals-spreads/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0237554d1610f99fe3a5</guid>
+      <pubDate>Tue, 06 Oct 2026 14:28:37 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>NFL Week 5 betting: 5 biggest storylines, including the Bears as road favorites at Green Bay</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Week 5 betting: 5 biggest storylines, including the Bears as road favorites at Green Bay</description>
+      <link>https://sports.yahoo.com/nfl/betting/article/nfl-week-5-betting-5-biggest-storylines-including-the-bears-as-road-favorites-at-green-bay-140604056.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7d706eb40c2c022fcbbc</guid>
+      <pubDate>Tue, 06 Oct 2026 14:06:04 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Key Observations From Chicago Bears Snap Count in Week 4 Win Over Jets</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Key Observations From Chicago Bears Snap Count in Week 4 Win Over Jets</description>
+      <link>https://www.si.com/nfl/bears/onsi/key-observations-from-chicago-bears-snap-count-in-week-4-win-over-jets</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-11cac98689cbcfee89cc</guid>
+      <pubDate>Tue, 06 Oct 2026 08:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears NFL Power Rankings Week 5: Almost Everyone Has Chicago Moving Up</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears NFL Power Rankings Week 5: Almost Everyone Has Chicago Moving Up</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-nfl-power-rankings-week-5-almost-everyone-has-chicago-moving-up</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-42b4580211cdf6b05dd3</guid>
+      <pubDate>Tue, 06 Oct 2026 07:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>The Chicago Bears defense has played great the last 3 games. What’s working best?</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: The Chicago Bears defense has played great the last 3 games. What’s working best?</description>
+      <link>https://www.nytimes.com/athletic/7663993/2026/10/06/bears-defense-excellent-stretch/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-85946d25cd721964ab12</guid>
+      <pubDate>Tue, 06 Oct 2026 04:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Former Bears LB Otis Wilson had altercation with security at Soldier Field</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Former Bears LB Otis Wilson had altercation with security at Soldier Field</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/former-bears-lb-otis-wilson-had-altercation-with-security-at-soldier-field</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6cd3cb1cc3d28e7d49ab</guid>
+      <pubDate>Tue, 06 Oct 2026 02:47:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
@@ -35,56 +85,6 @@
       <link>https://www.chicagobears.com/news/5-things-we-learned-from-bears-coach-ben-johnson-in-week-4-win-jets-2026</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-ac6e277ce905758c5cf4</guid>
       <pubDate>Mon, 05 Oct 2026 22:44:12 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams to miss Bears&apos; Week 5 rivalry game against Packers, Tyson Bagent set for second start</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Caleb Williams to miss Bears&apos; Week 5 rivalry game against Packers, Tyson Bagent set for second start</description>
-      <link>https://www.cbssports.com/nfl/news/caleb-williams-to-miss-bears-week-5-rivalry-packers-tyson-bagent/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a2b9b2b308736e8d0566</guid>
-      <pubDate>Mon, 05 Oct 2026 17:54:55 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Ex-Bears LB Wilson in altercation with security at Soldier Field</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Ex-Bears LB Wilson in altercation with security at Soldier Field</description>
-      <link>https://www.espn.com/nfl/story/_/id/50112984/ex-bears-lb-wilson-altercation-security-soldier-field</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f3c28ee54fec941f5fa0</guid>
-      <pubDate>Mon, 05 Oct 2026 17:22:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Tyson Bagent announced as Bears Week 5 starting QB | &apos;The NFL Report&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Tyson Bagent announced as Bears Week 5 starting QB | &apos;The NFL Report&apos;</description>
-      <link>https://www.nfl.com/videos/tyson-bagent-announced-as-bears-week-5-starting-qb-the-nfl-report</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-667a24182c17e8130690</guid>
-      <pubDate>Mon, 05 Oct 2026 16:16:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Bears HC Ben Johnson praises team after win over Jets</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears HC Ben Johnson praises team after win over Jets</description>
-      <link>https://www.nfl.com/videos/bears-hc-ben-johnson-praises-team-after-win-over-jets</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f8cbce524ba244318228</guid>
-      <pubDate>Mon, 05 Oct 2026 15:24:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Bears in Bournemouth: Postcards with Israel Idonije | Monday, Oct. 5</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears in Bournemouth: Postcards with Israel Idonije | Monday, Oct. 5</description>
-      <link>https://www.chicagobears.com/news/bears-in-bournemouth-postcards-with-israel-idonije-monday-oct-5</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6de936e031cf58a3c17c</guid>
-      <pubDate>Mon, 05 Oct 2026 14:20:35 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
