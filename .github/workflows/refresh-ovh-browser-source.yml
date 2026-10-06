@@ -1,4 +1,4 @@
-# Manual refresh trigger 2026-10-05
+# Manual refresh trigger 2026-10-05 20:40 CT — pool-impact fix verification
 name: Refresh OVH FGB Browser Source
 
 on:
