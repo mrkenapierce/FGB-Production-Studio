@@ -1,4 +1,4 @@
-# Diagnostic trigger 2026-10-05 20:40 CT — verify production pool impact
+# Diagnostic trigger 2026-10-05 20:59 CT — capture post-reload live frame
 name: Inspect OVH YouTube Source
 
 on:
