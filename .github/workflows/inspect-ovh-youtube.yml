@@ -1,3 +1,4 @@
+# Diagnostic trigger 2026-10-05 20:40 CT — verify production pool impact
 name: Inspect OVH YouTube Source
 
 on:
@@ -50,6 +51,11 @@ jobs:
           '
           sudo -n docker cp "$C:/tmp/youtube-source.png" /tmp/youtube-source.png
           sudo -n chown ubuntu:ubuntu /tmp/youtube-source.png
+
+          echo POOL_IMPACT_PROBE_BEGIN
+          crawl=$(curl -fsSL --max-time 20 "https://epiccontentcreatorgrants.org/api/public/fgbears/crawl?t=$(date +%s)")
+          printf '%s' "$crawl" | python3 -c 'import json,sys; d=json.load(sys.stdin); msgs=d.get("messages",[]); print(next((m for m in msgs if "MY $0.02 POOL IMPACT" in m), "POOL_IMPACT_LINE_NOT_FOUND")); s=((d.get("twoCentsPromo") or {}).get("state") or {}); print("POOL_STATE="+str({k:s.get(k) for k in ("qualifyingAttempts","baseCents","crowdGrowthCents","totalImpactCents","sponsorAddedCents","combinedCents","attemptsRemaining")}))'
+          echo POOL_IMPACT_PROBE_END
           REMOTE
           scp -q -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "ubuntu@$OVH_HOST:/tmp/youtube-source.png" /tmp/youtube-source.png
 
