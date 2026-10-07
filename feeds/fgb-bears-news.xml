@@ -5,48 +5,78 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 07 Oct 2026 05:52:10 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 07 Oct 2026 12:18:06 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears Week 5 power rankings roundup</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Week 5 power rankings roundup</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-week-5-power-020640536.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9c8082a3a8ef5437d149</guid>
-      <pubDate>Wed, 07 Oct 2026 02:06:40 GMT</pubDate>
+      <title>Chicago Bears Midweek Musings: Dennis Allen, Magician</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Midweek Musings: Dennis Allen, Magician</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-midweek-musings-dennis-120000219.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-fbb50f4799387195dd8c</guid>
+      <pubDate>Wed, 07 Oct 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears are favored at Lambeau Field for the first time in Week 1 2006</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears are favored at Lambeau Field for the first time in Week 1 2006</description>
-      <link>https://sports.yahoo.com/articles/bears-favored-lambeau-field-first-004833420.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-772427200b1d00dd26f0</guid>
-      <pubDate>Wed, 07 Oct 2026 00:48:33 GMT</pubDate>
+      <title>Prisco&apos;s Week 5 NFL picks: Cowboys rout Buccaneers on Thursday, Packers upset Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Prisco&apos;s Week 5 NFL picks: Cowboys rout Buccaneers on Thursday, Packers upset Bears</description>
+      <link>https://www.cbssports.com/nfl/news/pete-priscos-week-5-nfl-picks-odds/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ddcf8f07453b560f6a21</guid>
+      <pubDate>Wed, 07 Oct 2026 10:00:48 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>The Bear’s Den: How the Chicago Bears prepare for the Green Bay Packers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: How the Chicago Bears prepare for the Green Bay Packers</description>
+      <link>https://sports.yahoo.com/articles/bear-den-chicago-bears-prepare-100000760.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ea1719f8b50a8a3e978f</guid>
+      <pubDate>Wed, 07 Oct 2026 10:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Chicago Bears Week 4 Rookie Report: Who&apos;s Rising and Falling After Week 4 Win?</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Week 4 Rookie Report: Who&apos;s Rising and Falling After Week 4 Win?</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-week-4-rookie-report-who-s-rising-and-falling-after-week-4-win</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e39c2fc1425d82476b08</guid>
-      <pubDate>Tue, 06 Oct 2026 15:30:00 GMT</pubDate>
+      <title>Two Bears Earn Early NFL All-Rookie Honors, And One Surprising Honorable Mention</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Two Bears Earn Early NFL All-Rookie Honors, And One Surprising Honorable Mention</description>
+      <link>https://www.si.com/nfl/bears/onsi/two-bears-earn-early-nfl-all-rookie-honors-and-one-surprising-honorable-mention</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cbd9145b310286b1cb22</guid>
+      <pubDate>Wed, 07 Oct 2026 05:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Why No-Name Chicago Bears Defense Can&apos;t Be Too Proud of Surge Just Yet</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why No-Name Chicago Bears Defense Can&apos;t Be Too Proud of Surge Just Yet</description>
-      <link>https://www.si.com/nfl/bears/onsi/why-no-name-chicago-bears-defense-can-t-be-too-proud-of-surge-just-yet</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-68c30ee63c25179431b6</guid>
-      <pubDate>Tue, 06 Oct 2026 14:30:00 GMT</pubDate>
+      <title>Kyler Gordon&apos;s Bears Return Set to Disrupt Malik Muhammad, Tyrique Stevenson</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyler Gordon&apos;s Bears Return Set to Disrupt Malik Muhammad, Tyrique Stevenson</description>
+      <link>https://www.si.com/nfl/bears/onsi/kyler-gordon-s-bears-return-set-to-disrupt-malik-muhammad-tyrique-stevenson</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ab29129168474aed0c22</guid>
+      <pubDate>Wed, 07 Oct 2026 04:04:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears’ QB situation has gone from wasteland to ‘no worries’ under Ben Johnson</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears’ QB situation has gone from wasteland to ‘no worries’ under Ben Johnson</description>
+      <link>https://www.nytimes.com/athletic/7665438/2026/10/07/bears-quarterback-quality-tyson-bagent/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5a1ed0fcccca3136afdc</guid>
+      <pubDate>Wed, 07 Oct 2026 04:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Matt LaFleur doesn’t need to trash talk; he just needs to beat the Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Matt LaFleur doesn’t need to trash talk; he just needs to beat the Bears</description>
+      <link>https://www.nytimes.com/athletic/7665699/2026/10/07/matt-lafleur-ben-johnson-packers-bears/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1f9f52f1034d1f432bf9</guid>
+      <pubDate>Wed, 07 Oct 2026 03:13:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -57,36 +87,6 @@
       <pubDate>Tue, 06 Oct 2026 14:28:37 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears are favored at Lambeau Field for the first time in Week 1 2006</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears are favored at Lambeau Field for the first time in Week 1 2006</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-are-favored-at-lambeau-field-for-the-first-time-in-week-1-2006</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5bb517b70fcff4d339c2</guid>
-      <pubDate>Tue, 06 Oct 2026 13:48:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
-      <title>Bears re-signing Scotty Miller to practice squad</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears re-signing Scotty Miller to practice squad</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-re-signing-scotty-miller-to-practice-squad</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3dbd4c0962945b746eb4</guid>
-      <pubDate>Tue, 06 Oct 2026 06:23:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
-      <title>The Chicago Bears defense has played great the last 3 games. What&apos;s working best?</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: The Chicago Bears defense has played great the last 3 games. What&apos;s working best?</description>
-      <link>https://www.nfl.com/news/the-chicago-bears-defense-has-played-great-the-last-3-games-what-s-working-best</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f5f100514b9cc95d8474</guid>
-      <pubDate>Tue, 06 Oct 2026 04:46:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
   </channel>
 </rss>
