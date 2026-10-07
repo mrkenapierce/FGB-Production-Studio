@@ -5,9 +5,59 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 07 Oct 2026 19:00:23 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 07 Oct 2026 23:33:46 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Matt Spiegel: The Bears are unequivocally better than the Packers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Matt Spiegel: The Bears are unequivocally better than the Packers</description>
+      <link>https://sports.yahoo.com/articles/matt-spiegel-bears-unequivocally-better-203000018.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8ef9c584fef94373eb00</guid>
+      <pubDate>Wed, 07 Oct 2026 20:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears vs. Packers Injury Report: Swift and Monangai DNP, OL Injuries</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Packers Injury Report: Swift and Monangai DNP, OL Injuries</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-packers-injury-report-202646885.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-075928e3fd08059344e1</guid>
+      <pubDate>Wed, 07 Oct 2026 20:26:46 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Kyler Gordon: Logs full practice Wednesday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyler Gordon: Logs full practice Wednesday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-kyler-gordon-logs-full-practice-wednesday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-13aac645de726059b9bc</guid>
+      <pubDate>Wed, 07 Oct 2026 16:18:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Cam Lewis: Full participant Wednesday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Cam Lewis: Full participant Wednesday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-cam-lewis-full-participant-wednesday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d155dbe3e016fa5aa2c8</guid>
+      <pubDate>Wed, 07 Oct 2026 16:13:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Packers Player Fires Shot at Bears&apos; Ben Johnson Ahead of Week 5 Rivalry Game</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Packers Player Fires Shot at Bears&apos; Ben Johnson Ahead of Week 5 Rivalry Game</description>
+      <link>https://www.si.com/nfl/bears/onsi/packers-player-bears-ben-johnson-week-5</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0463bc129c2f662b13d4</guid>
+      <pubDate>Wed, 07 Oct 2026 16:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
 
     <item>
       <title>How to watch, listen to, stream Bears-Packers Week 5 game</title>
@@ -20,73 +70,23 @@
     </item>
 
     <item>
-      <title>Ben Johnson sounds off on Bears RB D&apos;Andre Swift&apos;s fumble</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ben Johnson sounds off on Bears RB D&apos;Andre Swift&apos;s fumble</description>
-      <link>https://sports.yahoo.com/articles/ben-johnson-sounds-off-bears-184026668.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d7f1521c0a4ff4bfd933</guid>
-      <pubDate>Wed, 07 Oct 2026 11:40:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears vs. Packers preview | Week 5</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears vs. Packers preview | Week 5</description>
-      <link>https://www.nfl.com/videos/bears-vs-packers-preview-week-5</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1c5676cb3333bd12098f</guid>
-      <pubDate>Wed, 07 Oct 2026 11:01:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Prisco&apos;s Week 5 NFL picks: Cowboys rout Buccaneers on Thursday, Packers upset Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Prisco&apos;s Week 5 NFL picks: Cowboys rout Buccaneers on Thursday, Packers upset Bears</description>
-      <link>https://www.cbssports.com/nfl/news/pete-priscos-week-5-nfl-picks-odds/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ddcf8f07453b560f6a21</guid>
-      <pubDate>Wed, 07 Oct 2026 10:00:48 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears power rankings roundup: Where Chicago lands ahead of Week 5</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears power rankings roundup: Where Chicago lands ahead of Week 5</description>
-      <link>https://sports.yahoo.com/articles/bears-power-rankings-roundup-where-164027178.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3efe50a8ae2cb0849793</guid>
-      <pubDate>Wed, 07 Oct 2026 09:40:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Lane Johnson Retirement Leaves Bears&apos; Darnell Wright as NFL&apos;s Best Right Tackle</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Lane Johnson Retirement Leaves Bears&apos; Darnell Wright as NFL&apos;s Best Right Tackle</description>
-      <link>https://www.si.com/nfl/bears/onsi/lane-johnson-retirement-bears-darnell-wright-best-right-tackle</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b307328a2f91bbad2629</guid>
-      <pubDate>Wed, 07 Oct 2026 09:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>2 Big-Swing Bears Trade Targets on the Edge That Ryan Poles Must Pursue</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 2 Big-Swing Bears Trade Targets on the Edge That Ryan Poles Must Pursue</description>
-      <link>https://www.si.com/nfl/bears/onsi/2-big-swing-bears-trade-targets-on-the-edge-that-ryan-poles-must-pursue</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f1b132b0c94d991500ad</guid>
-      <pubDate>Wed, 07 Oct 2026 08:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears’ QB situation has gone from wasteland to ‘no worries’ under Ben Johnson</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears’ QB situation has gone from wasteland to ‘no worries’ under Ben Johnson</description>
-      <link>https://www.nytimes.com/athletic/7665438/2026/10/07/bears-quarterback-quality-tyson-bagent/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5a1ed0fcccca3136afdc</guid>
-      <pubDate>Wed, 07 Oct 2026 04:01:00 GMT</pubDate>
+      <title>Video: Tyson Bagent becomes next Chicago QB to take on Bears-Packers rivalry</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Video: Tyson Bagent becomes next Chicago QB to take on Bears-Packers rivalry</description>
+      <link>https://www.nytimes.com/athletic/video/GWEHjy5hKnZd7n4/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8aff4815503b1e83adc6</guid>
+      <pubDate>Wed, 07 Oct 2026 14:14:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>D&apos;Andre Swift Gets Positive Outlook From Bears Coach After Benching For &apos;Egregious&apos; Fumble</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: D&apos;Andre Swift Gets Positive Outlook From Bears Coach After Benching For &apos;Egregious&apos; Fumble</description>
+      <link>https://www.si.com/nfl/bears/onsi/d-andre-swift-positive-outlook-bears-benching-egregious-fumble</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8e8faf741ccd3b55b55e</guid>
+      <pubDate>Wed, 07 Oct 2026 14:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
