@@ -5,16 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 07 Oct 2026 00:07:19 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 07 Oct 2026 05:52:10 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Which quarterback gives the Bears the best chance against the Packers?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Which quarterback gives the Bears the best chance against the Packers?</description>
-      <link>https://sports.yahoo.com/articles/quarterback-gives-bears-best-chance-223000264.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-82d09d75198761211171</guid>
-      <pubDate>Tue, 06 Oct 2026 22:30:00 GMT</pubDate>
+      <title>Chicago Bears Week 5 power rankings roundup</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Week 5 power rankings roundup</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-week-5-power-020640536.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9c8082a3a8ef5437d149</guid>
+      <pubDate>Wed, 07 Oct 2026 02:06:40 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears are favored at Lambeau Field for the first time in Week 1 2006</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears are favored at Lambeau Field for the first time in Week 1 2006</description>
+      <link>https://sports.yahoo.com/articles/bears-favored-lambeau-field-first-004833420.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-772427200b1d00dd26f0</guid>
+      <pubDate>Wed, 07 Oct 2026 00:48:33 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -27,16 +37,6 @@
       <pubDate>Tue, 06 Oct 2026 15:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>In Bizarre Twist, Vikings Turncoat Opts to Retire Rather than Keep Playing for Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: In Bizarre Twist, Vikings Turncoat Opts to Retire Rather than Keep Playing for Bears</description>
-      <link>https://sports.yahoo.com/articles/bizarre-twist-vikings-turncoat-opts-214500327.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-62c9c8d7b007c73ac744</guid>
-      <pubDate>Tue, 06 Oct 2026 14:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -60,6 +60,16 @@
     </item>
 
     <item>
+      <title>Bears are favored at Lambeau Field for the first time in Week 1 2006</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears are favored at Lambeau Field for the first time in Week 1 2006</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-are-favored-at-lambeau-field-for-the-first-time-in-week-1-2006</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5bb517b70fcff4d339c2</guid>
+      <pubDate>Tue, 06 Oct 2026 13:48:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
+    </item>
+
+    <item>
       <title>Bears re-signing Scotty Miller to practice squad</title>
       <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears re-signing Scotty Miller to practice squad</description>
       <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-re-signing-scotty-miller-to-practice-squad</link>
@@ -77,16 +87,6 @@
       <pubDate>Tue, 06 Oct 2026 04:46:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>The Chicago Bears defense has played great the last 3 games. What’s working best?</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: The Chicago Bears defense has played great the last 3 games. What’s working best?</description>
-      <link>https://www.nytimes.com/athletic/7663993/2026/10/06/bears-defense-excellent-stretch/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-85946d25cd721964ab12</guid>
-      <pubDate>Tue, 06 Oct 2026 04:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
