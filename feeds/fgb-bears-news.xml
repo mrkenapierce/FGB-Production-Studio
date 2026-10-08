@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 08 Oct 2026 02:54:14 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 08 Oct 2026 09:42:38 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -35,16 +35,6 @@
       <link>https://www.cbssports.com/fantasy/football/news/bears-kyler-gordon-logs-full-practice-wednesday/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-13aac645de726059b9bc</guid>
       <pubDate>Wed, 07 Oct 2026 16:18:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Cam Lewis: Full participant Wednesday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Cam Lewis: Full participant Wednesday</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-cam-lewis-full-participant-wednesday/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d155dbe3e016fa5aa2c8</guid>
-      <pubDate>Wed, 07 Oct 2026 16:13:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
@@ -87,6 +77,16 @@
       <pubDate>Wed, 07 Oct 2026 14:17:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Video: Tyson Bagent becomes next Chicago QB to take on Bears-Packers rivalry</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Video: Tyson Bagent becomes next Chicago QB to take on Bears-Packers rivalry</description>
+      <link>https://www.nytimes.com/athletic/video/GWEHjy5hKnZd7n4/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8aff4815503b1e83adc6</guid>
+      <pubDate>Wed, 07 Oct 2026 14:14:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
