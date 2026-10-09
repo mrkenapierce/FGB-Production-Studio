@@ -5,9 +5,49 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 09 Oct 2026 15:02:27 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 09 Oct 2026 20:05:29 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Who should the Chicago Bears avoid at the trade deadline?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Who should the Chicago Bears avoid at the trade deadline?</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-avoid-trade-deadline-190000432.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cad16da6eca43094a895</guid>
+      <pubDate>Fri, 09 Oct 2026 19:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Mike Ditka, Hall of Fame tight end and Bears&apos; Super Bowl-winning coach, dies at age 86</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Mike Ditka, Hall of Fame tight end and Bears&apos; Super Bowl-winning coach, dies at age 86</description>
+      <link>https://www.cbssports.com/nfl/news/mike-ditka-bears-super-bowl-winning-coach-dies-at-age-86/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-65a23c965b6022137861</guid>
+      <pubDate>Fri, 09 Oct 2026 16:48:01 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears legend Mike Ditka passes away at 86</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears legend Mike Ditka passes away at 86</description>
+      <link>https://www.chicagobears.com/news/bears-legend-mike-ditka-passes-away-at-86</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a1c2bdbd7b462ce0b793</guid>
+      <pubDate>Fri, 09 Oct 2026 16:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Social media tributes pour in for former Bears head coach Mike Ditka, who dies at 86</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Social media tributes pour in for former Bears head coach Mike Ditka, who dies at 86</description>
+      <link>https://sports.yahoo.com/nfl/article/social-media-tributes-pour-in-for-former-bears-head-coach-mike-ditka-who-dies-at-86-161906037.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-504189fcc4552c9b71ef</guid>
+      <pubDate>Fri, 09 Oct 2026 16:01:34 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Week 5 NFL odds, spreads, totals, betting lines, for all 16 games, including Bears-Packers, Falcons-Ravens</title>
@@ -20,73 +60,33 @@
     </item>
 
     <item>
-      <title>Bears at Packers Q&amp;A: We asked ChatGPT since our sister site is running scared</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears at Packers Q&amp;A: We asked ChatGPT since our sister site is running scared</description>
-      <link>https://sports.yahoo.com/articles/bears-packers-q-asked-chatgpt-133000912.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0d8ab433349d58158032</guid>
-      <pubDate>Fri, 09 Oct 2026 13:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Week 5 NFL bold predictions: Bijan Robinson makes NFL primetime history, struggling Packers upset Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Week 5 NFL bold predictions: Bijan Robinson makes NFL primetime history, struggling Packers upset Bears</description>
-      <link>https://www.cbssports.com/nfl/news/week-5-nfl-bold-predictions-bijan-robinson-packers-upset-bears/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3a6231cbc1d0dd7d852b</guid>
-      <pubDate>Fri, 09 Oct 2026 12:53:06 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>D&apos;Andre Swift Injury Update Details Likelihood Bears RB Plays and Highlights Concern</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: D&apos;Andre Swift Injury Update Details Likelihood Bears RB Plays and Highlights Concern</description>
-      <link>https://www.si.com/nfl/bears/onsi/d-andre-swift-injury-update-likelihood-bears-plays-highlights-concern</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-252339aa0ca3640f7162</guid>
-      <pubDate>Fri, 09 Oct 2026 07:19:00 GMT</pubDate>
+      <title>Caleb Williams, D&apos;Andre Swift Progress and More From Bears&apos; Final Week 5 Injury Report</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams, D&apos;Andre Swift Progress and More From Bears&apos; Final Week 5 Injury Report</description>
+      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-d-andre-swift-progress-bears-final-week-5-injury-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3a424a609623653eece1</guid>
+      <pubDate>Fri, 09 Oct 2026 12:07:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>&apos;GMFB&apos; previews Bears-Packers Week 5 matchup</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: &apos;GMFB&apos; previews Bears-Packers Week 5 matchup</description>
-      <link>https://www.nfl.com/videos/gmfb-previews-bears-packers-week-5-matchup</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0fced776a8a4718f3810</guid>
-      <pubDate>Fri, 09 Oct 2026 06:34:00 GMT</pubDate>
+      <title>Mike Ditka, Hall of Fame tight end and legendary Chicago Bears coach, dies at 86</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Mike Ditka, Hall of Fame tight end and legendary Chicago Bears coach, dies at 86</description>
+      <link>https://www.nytimes.com/athletic/2947063/2026/10/09/mike-ditka-dies-bears/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-53d5f5bcf4d5c2d3d10e</guid>
+      <pubDate>Fri, 09 Oct 2026 10:51:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
-      <title>Everything Chicago Bears Have to Fear About Green Bay Packers in Week 5</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Everything Chicago Bears Have to Fear About Green Bay Packers in Week 5</description>
-      <link>https://www.si.com/nfl/bears/onsi/everything-chicago-bears-fear-green-bay-packers-week-5</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a08ae9c533011e0796a7</guid>
-      <pubDate>Fri, 09 Oct 2026 06:31:00 GMT</pubDate>
+      <title>Mike Ditka&apos;s Greatest Bears Victories as Player and Coach Go Well Beyond Super Bowl XX</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Mike Ditka&apos;s Greatest Bears Victories as Player and Coach Go Well Beyond Super Bowl XX</description>
+      <link>https://www.si.com/nfl/bears/onsi/mike-ditka-s-greatest-bears-victories-as-player-and-coach-go-well-beyond-super-bowl-xx</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8dfe39d9493a43c56819</guid>
+      <pubDate>Fri, 09 Oct 2026 10:38:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Pulse of the Packers: Focus issues, rushing woes and ‘bad blood’ ahead of Bears game</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Pulse of the Packers: Focus issues, rushing woes and ‘bad blood’ ahead of Bears game</description>
-      <link>https://www.nytimes.com/athletic/7672770/2026/10/09/packers-bears-rivalry-week-5-preview/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ab24c7e0561c74aff5bd</guid>
-      <pubDate>Fri, 09 Oct 2026 06:18:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Bears mailbag: What’s with their goal-line issues? Week 5 predictions vs. Packers</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears mailbag: What’s with their goal-line issues? Week 5 predictions vs. Packers</description>
-      <link>https://www.nytimes.com/athletic/7672803/2026/10/09/bears-mailbag-tyson-bagent-packers/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-406df4a4e613987a0853</guid>
-      <pubDate>Fri, 09 Oct 2026 05:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
