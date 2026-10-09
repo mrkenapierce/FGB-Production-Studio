@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 08 Oct 2026 21:46:38 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 09 Oct 2026 01:33:24 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Prisco&apos;s Week 5 NFL picks: Packers upset Bears, Rams edge Bills on &apos;MNF&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Prisco&apos;s Week 5 NFL picks: Packers upset Bears, Rams edge Bills on &apos;MNF&apos;</description>
+      <link>https://www.cbssports.com/nfl/news/pete-priscos-week-5-nfl-picks-odds/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ddcf8f07453b560f6a21</guid>
+      <pubDate>Fri, 09 Oct 2026 01:13:51 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
 
     <item>
       <title>Bears QB Tyson Bagent lauded for &apos;crisp&apos; operation of offense</title>
@@ -30,53 +40,53 @@
     </item>
 
     <item>
-      <title>Packers vs. Bears injury report: Chicago returns 5 players to practice</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Packers vs. Bears injury report: Chicago returns 5 players to practice</description>
-      <link>https://sports.yahoo.com/articles/packers-vs-bears-injury-report-211656630.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-13d95ab989ef329a51da</guid>
-      <pubDate>Thu, 08 Oct 2026 14:16:00 GMT</pubDate>
+      <title>Bears have opportunity to show again they&apos;ve gained the upper hand in their rivalry with Packers</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears have opportunity to show again they&apos;ve gained the upper hand in their rivalry with Packers</description>
+      <link>https://www.espn.com/espn/story/_/id/30...</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7bbad64c258d5ecf36e9</guid>
+      <pubDate>Thu, 08 Oct 2026 17:02:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
-      <title>Bears get crucial running back injury updates ahead of Packers game</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears get crucial running back injury updates ahead of Packers game</description>
-      <link>https://sports.yahoo.com/articles/bears-crucial-running-back-injury-204430298.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d36782107905456d63fa</guid>
-      <pubDate>Thu, 08 Oct 2026 13:43:00 GMT</pubDate>
+      <title>Bears RB Kyle Monangai out with turf toe | &apos;The NFL Report&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears RB Kyle Monangai out with turf toe | &apos;The NFL Report&apos;</description>
+      <link>https://www.nfl.com/videos/bears-rb-kyle-monangai-out-with-turf-toe-the-nfl-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2ee7aa9c92571455ad06</guid>
+      <pubDate>Thu, 08 Oct 2026 16:31:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
-      <title>Week 5 NFL odds, spreads, totals, betting lines, for all 16 games, including Buccaneers-Cowboys, Bears-Packers</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Week 5 NFL odds, spreads, totals, betting lines, for all 16 games, including Buccaneers-Cowboys, Bears-Packers</description>
-      <link>https://www.cbssports.com/betting/news/week-5-nfl-betting-odds-lines-spreads-totals/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7384f0f469d6872def9f</guid>
-      <pubDate>Thu, 08 Oct 2026 11:50:37 GMT</pubDate>
+      <title>Bears 1st Quarter Report Card: Caleb Williams&apos; Injury Can&apos;t Slow This Offense Down</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears 1st Quarter Report Card: Caleb Williams&apos; Injury Can&apos;t Slow This Offense Down</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-1st-quarter-report-card-caleb-williams-injury-can-t-slow-this-offense-down-01m4ds5334ya</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3d537ccc1a73a522b0c8</guid>
+      <pubDate>Thu, 08 Oct 2026 16:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Injured Packers look for revenge vs. rival Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Injured Packers look for revenge vs. rival Bears</description>
+      <link>https://www.cbssports.com/nfl/news/injured-packers-look-for-revenge-vs-rival-bears/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-80e9241109055b8bfe76</guid>
+      <pubDate>Thu, 08 Oct 2026 16:08:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
-      <title>Bears coach Ben Johnson can be an unapologetic agitator. Just ask the Packers</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears coach Ben Johnson can be an unapologetic agitator. Just ask the Packers</description>
-      <link>https://www.nfl.com/news/bears-coach-ben-johnson-can-be-an-unapologetic-agitator-just-ask-the-packers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dc8a4fffe84b7acd0e4f</guid>
-      <pubDate>Thu, 08 Oct 2026 03:47:00 GMT</pubDate>
+      <title>&apos;That ain&apos;t me&apos;: Bears&apos; D&apos;Andre Swift laments early fumble issues</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: &apos;That ain&apos;t me&apos;: Bears&apos; D&apos;Andre Swift laments early fumble issues</description>
+      <link>https://www.espn.com/nfl/story/_/id/50135427/that-aint-bears-dandre-swift-laments-early-season-fumbles</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f2bf6411a7721c91eb3d</guid>
+      <pubDate>Thu, 08 Oct 2026 15:35:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Bears HC Ben Johnson talks about the QB situation in Chicago</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears HC Ben Johnson talks about the QB situation in Chicago</description>
-      <link>https://www.nfl.com/videos/bears-hc-ben-johnson-talks-about-the-qb-situation-in-chicago</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d2b84ec8efa483763a31</guid>
-      <pubDate>Wed, 07 Oct 2026 15:07:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
