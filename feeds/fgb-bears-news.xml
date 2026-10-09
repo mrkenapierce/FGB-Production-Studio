@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 09 Oct 2026 01:33:24 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 09 Oct 2026 07:59:19 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Mac &amp; Read Talk Bears vs. Packers!</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Mac &amp; Read Talk Bears vs. Packers!</description>
+      <link>https://sports.yahoo.com/articles/mac-read-talk-bears-vs-035809149.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-71998678c0a2b0a700fb</guid>
+      <pubDate>Fri, 09 Oct 2026 03:58:09 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Frank Reich points finger at himself for Jets’ miserable showing against Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Frank Reich points finger at himself for Jets’ miserable showing against Bears</description>
+      <link>https://sports.yahoo.com/articles/frank-reich-points-finger-himself-011932822.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ec2d78070fcffa480619</guid>
+      <pubDate>Fri, 09 Oct 2026 01:19:32 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Prisco&apos;s Week 5 NFL picks: Packers upset Bears, Rams edge Bills on &apos;MNF&apos;</title>
@@ -37,26 +57,6 @@
       <pubDate>Thu, 08 Oct 2026 19:41:12 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears have opportunity to show again they&apos;ve gained the upper hand in their rivalry with Packers</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears have opportunity to show again they&apos;ve gained the upper hand in their rivalry with Packers</description>
-      <link>https://www.espn.com/espn/story/_/id/30...</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7bbad64c258d5ecf36e9</guid>
-      <pubDate>Thu, 08 Oct 2026 17:02:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Bears RB Kyle Monangai out with turf toe | &apos;The NFL Report&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears RB Kyle Monangai out with turf toe | &apos;The NFL Report&apos;</description>
-      <link>https://www.nfl.com/videos/bears-rb-kyle-monangai-out-with-turf-toe-the-nfl-report</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2ee7aa9c92571455ad06</guid>
-      <pubDate>Thu, 08 Oct 2026 16:31:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
