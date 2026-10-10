@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 10 Oct 2026 05:45:30 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 10 Oct 2026 11:34:38 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>How wild-card game sent Bears, Packers in opposite directions</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: How wild-card game sent Bears, Packers in opposite directions</description>
+      <link>https://www.espn.com/nfl/story/_/id/50140859/green-bay-packers-chicago-bears-jordan-love-caleb-williams</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7316a27dc8bfa2b75dcc</guid>
+      <pubDate>Sat, 10 Oct 2026 04:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
 
     <item>
       <title>The complete history of the Bears-Packers rivalry</title>
@@ -40,6 +50,16 @@
     </item>
 
     <item>
+      <title>NFL coaches, former Chicago players remember the legacy of Mike Ditka: ‘He was the Bears’</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: NFL coaches, former Chicago players remember the legacy of Mike Ditka: ‘He was the Bears’</description>
+      <link>https://www.nytimes.com/athletic/7676112/2026/10/10/mike-ditka-chicago-bears-legacy-nfl-impact/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0b76e2420db567f1e84e</guid>
+      <pubDate>Sat, 10 Oct 2026 00:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
       <title>NFL Week 5 injury report: Eagles&apos; Saquon Barkley and DeVonta Smith out, Bears&apos; Caleb Williams questionable</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 5 injury report: Eagles&apos; Saquon Barkley and DeVonta Smith out, Bears&apos; Caleb Williams questionable</description>
       <link>https://www.cbssports.com/nfl/news/nfl-week-5-injury-report-eagles-saquon-barkley-devonta-smith-out/</link>
@@ -67,26 +87,6 @@
       <pubDate>Fri, 09 Oct 2026 20:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>&apos;GMFB&apos; previews Bears-Packers Week 5 matchup</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: &apos;GMFB&apos; previews Bears-Packers Week 5 matchup</description>
-      <link>https://www.nfl.com/videos/gmfb-previews-bears-packers-week-5-matchup</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0fced776a8a4718f3810</guid>
-      <pubDate>Fri, 09 Oct 2026 06:34:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Bears rule Kyle Monangai out for Week 5</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears rule Kyle Monangai out for Week 5</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-rule-kyle-monangai-out-for-week-5</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-159c8a1592334011b1c2</guid>
-      <pubDate>Fri, 09 Oct 2026 05:58:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
