@@ -5,18 +5,38 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 10 Oct 2026 00:00:44 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 10 Oct 2026 05:45:30 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Packers Injury Report: 7 given statuses vs. Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Packers Injury Report: 7 given statuses vs. Bears</description>
-      <link>https://sports.yahoo.com/articles/packers-injury-report-7-given-223447615.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b9851520d1be7a9da3e6</guid>
-      <pubDate>Fri, 09 Oct 2026 22:34:47 GMT</pubDate>
+      <title>The complete history of the Bears-Packers rivalry</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The complete history of the Bears-Packers rivalry</description>
+      <link>https://sports.yahoo.com/articles/complete-history-bears-packers-rivalry-021311720.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7752386e108d53b52fae</guid>
+      <pubDate>Sat, 10 Oct 2026 02:13:11 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Former Bears Coach, Vikings Nemesis Mike Ditka Passes Away</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Former Bears Coach, Vikings Nemesis Mike Ditka Passes Away</description>
+      <link>https://sports.yahoo.com/articles/former-bears-coach-vikings-nemesis-012653466.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-285ba896e2d3a11d1dee</guid>
+      <pubDate>Sat, 10 Oct 2026 01:26:53 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Mike Ditka, Hall of Fame tight end and Bears&apos; Super Bowl-winning coach, dies at age 86</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Mike Ditka, Hall of Fame tight end and Bears&apos; Super Bowl-winning coach, dies at age 86</description>
+      <link>https://www.cbssports.com/nfl/news/mike-ditka-bears-super-bowl-winning-coach-dies-at-age-86/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-65a23c965b6022137861</guid>
+      <pubDate>Sat, 10 Oct 2026 01:09:50 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -30,16 +50,6 @@
     </item>
 
     <item>
-      <title>Chicago Bears-Green Bay Packers: Keys for a Chicago victory</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears-Green Bay Packers: Keys for a Chicago victory</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-green-bay-packers-220000037.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-163058bd7a53959157d0</guid>
-      <pubDate>Fri, 09 Oct 2026 22:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Injury Update: Bears RB Kyle Monangai ruled out, QB Caleb Williams questionable for Packers game</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Injury Update: Bears RB Kyle Monangai ruled out, QB Caleb Williams questionable for Packers game</description>
       <link>https://www.chicagobears.com/news/injury-update-bears-rb-kyle-monangai-ruled-out-qb-caleb-williams-questionable-for-packers-game</link>
@@ -50,43 +60,33 @@
     </item>
 
     <item>
-      <title>Mike Ditka, Hall of Fame tight end and Bears&apos; Super Bowl-winning coach, dies at age 86</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Mike Ditka, Hall of Fame tight end and Bears&apos; Super Bowl-winning coach, dies at age 86</description>
-      <link>https://www.cbssports.com/nfl/news/mike-ditka-bears-super-bowl-winning-coach-dies-at-age-86/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-65a23c965b6022137861</guid>
-      <pubDate>Fri, 09 Oct 2026 16:48:01 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears legend Mike Ditka passes away at 86</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears legend Mike Ditka passes away at 86</description>
-      <link>https://www.chicagobears.com/news/bears-legend-mike-ditka-passes-away-at-86</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a1c2bdbd7b462ce0b793</guid>
-      <pubDate>Fri, 09 Oct 2026 16:30:00 GMT</pubDate>
+      <title>Bears coach Ben Johnson pays tribute to Mike Ditka</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears coach Ben Johnson pays tribute to Mike Ditka</description>
+      <link>https://www.chicagobears.com/news/bears-coach-ben-johnson-pays-tribute-to-mike-ditka</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-66f4e3561cbdb199f46d</guid>
+      <pubDate>Fri, 09 Oct 2026 20:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
-      <title>Bears OT Theo Benedet Can Earn His Place or Fall on His Face Against Packers</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears OT Theo Benedet Can Earn His Place or Fall on His Face Against Packers</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-ot-theo-benedet-can-earn-his-place-or-fall-on-his-face-against-packers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2b214123463081a9169c</guid>
-      <pubDate>Fri, 09 Oct 2026 15:59:00 GMT</pubDate>
+      <title>&apos;GMFB&apos; previews Bears-Packers Week 5 matchup</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: &apos;GMFB&apos; previews Bears-Packers Week 5 matchup</description>
+      <link>https://www.nfl.com/videos/gmfb-previews-bears-packers-week-5-matchup</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0fced776a8a4718f3810</guid>
+      <pubDate>Fri, 09 Oct 2026 06:34:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
-      <title>Ben Johnson Acknowledges the Lasting Bears Legacy Set by Mike Ditka</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Acknowledges the Lasting Bears Legacy Set by Mike Ditka</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-acknowledges-the-lasting-bears-legacy-set-by-mike-ditka</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9ac8c558ca7dc7d74ec3</guid>
-      <pubDate>Fri, 09 Oct 2026 15:00:00 GMT</pubDate>
+      <title>Bears rule Kyle Monangai out for Week 5</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears rule Kyle Monangai out for Week 5</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-rule-kyle-monangai-out-for-week-5</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-159c8a1592334011b1c2</guid>
+      <pubDate>Fri, 09 Oct 2026 05:58:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
