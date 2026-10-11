@@ -5,9 +5,39 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 11 Oct 2026 02:10:10 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 11 Oct 2026 08:44:33 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Prisco&apos;s Week 5 NFL picks: Jaguars roll over Eagles, Packers upset Bears, Rams edge Bills on &apos;MNF&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Prisco&apos;s Week 5 NFL picks: Jaguars roll over Eagles, Packers upset Bears, Rams edge Bills on &apos;MNF&apos;</description>
+      <link>https://www.cbssports.com/nfl/news/pete-priscos-week-5-nfl-picks-odds/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ddcf8f07453b560f6a21</guid>
+      <pubDate>Sun, 11 Oct 2026 05:00:53 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears vs. Packers: How to watch and listen, previews, odds, and more</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Packers: How to watch and listen, previews, odds, and more</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-packers-watch-listen-050000804.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-05ff7968b572b8b32464</guid>
+      <pubDate>Sun, 11 Oct 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Matt LaFleur takes 12-3 record vs. Bears into Sunday&apos;s showdown</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Matt LaFleur takes 12-3 record vs. Bears into Sunday&apos;s showdown</description>
+      <link>https://sports.yahoo.com/articles/matt-lafleur-takes-12-3-044725712.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-18ea2ad660f95d151a2b</guid>
+      <pubDate>Sun, 11 Oct 2026 04:47:25 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Last minute best bets for NFL Week 5: Steelers capitalize on rest advantage, Bears stand strong</title>
@@ -17,26 +47,6 @@
       <pubDate>Sun, 11 Oct 2026 01:01:03 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears vs Green Bay Packers – Game Picks and Predictions</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs Green Bay Packers – Game Picks and Predictions</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-vs-green-bay-220000313.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b87352dd04f3df4d4704</guid>
-      <pubDate>Sat, 10 Oct 2026 22:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears activate Noah Sewell from the PUP list</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears activate Noah Sewell from the PUP list</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-activate-noah-sewell-210153081.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dca5512463e5334f4138</guid>
-      <pubDate>Sat, 10 Oct 2026 21:01:53 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -60,33 +70,23 @@
     </item>
 
     <item>
-      <title>2026 Week 5 NFL odds, picks, best bets, predictions: Experts backing Bears, Titans, Seahawks on Sunday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: 2026 Week 5 NFL odds, picks, best bets, predictions: Experts backing Bears, Titans, Seahawks on Sunday</description>
-      <link>https://www.cbssports.com/betting/news/2026-week-5-nfl-odds-picks-best-bets-predictions-experts-backing-bears-titans-seahawks-sunday/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-30522aeb0e15b185c3c6</guid>
-      <pubDate>Sat, 10 Oct 2026 17:27:12 GMT</pubDate>
+      <title>Matt LaFleur takes 12-3 record vs. Bears into Sunday’s showdown</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Matt LaFleur takes 12-3 record vs. Bears into Sunday’s showdown</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/matt-lafleur-takes-12-3-record-vs-bears-into-sundays-showdown</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b052fa013ada4bc6fe1f</guid>
+      <pubDate>Sat, 10 Oct 2026 17:47:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
-      <title>Return of the Mack?: What Would Khalil Mack Bring to Bears&apos; Defense?</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Return of the Mack?: What Would Khalil Mack Bring to Bears&apos; Defense?</description>
-      <link>https://www.si.com/nfl/bears/onsi/return-of-the-mack-what-would-khalil-mack-bring-to-bears-defense</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-687cc507b962b286eec1</guid>
-      <pubDate>Sat, 10 Oct 2026 14:00:00 GMT</pubDate>
+      <title>Packers will honor Mike Ditka with a moment of silence before Sunday’s game vs. Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Packers will honor Mike Ditka with a moment of silence before Sunday’s game vs. Bears</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/packers-will-honor-mike-ditka-with-a-moment-of-silence-before-sundays-game-vs-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0b22edacd141598af3a0</guid>
+      <pubDate>Sat, 10 Oct 2026 15:46:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears Elevate RB for Week 5 With Kyle Monangai Ruled Out, Activate LB off PUP list</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Elevate RB for Week 5 With Kyle Monangai Ruled Out, Activate LB off PUP list</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-elevate-rb-week-5-kyle-monangai-ruled-out-activate-lb-pup-list</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-caa0dcf337f08c9c5b55</guid>
-      <pubDate>Sat, 10 Oct 2026 11:48:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
