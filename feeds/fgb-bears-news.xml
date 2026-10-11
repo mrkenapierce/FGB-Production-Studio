@@ -5,16 +5,36 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 11 Oct 2026 19:31:29 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 11 Oct 2026 23:08:23 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Packers lead Bears 14-7 at halftime</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Packers lead Bears 14-7 at halftime</description>
-      <link>https://sports.yahoo.com/articles/packers-lead-bears-14-7-182607134.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-40f411ee0b50f62a84ed</guid>
-      <pubDate>Sun, 11 Oct 2026 18:26:07 GMT</pubDate>
+      <title>Chicago Bears Injury Update: Caleb Williams is ‘on track’ and ‘close’</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Injury Update: Caleb Williams is ‘on track’ and ‘close’</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-injury-caleb-williams-221134398.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-345709332817fd31478d</guid>
+      <pubDate>Sun, 11 Oct 2026 22:11:34 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Game Recap: Bears fall to Packers in Green Bay</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Recap: Bears fall to Packers in Green Bay</description>
+      <link>https://www.chicagobears.com/news/game-recap-bears-fall-to-packers-in-green-bay-2026-week-5</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-084401c3c366ecab83a1</guid>
+      <pubDate>Sun, 11 Oct 2026 20:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears bench Tyson Bagent, turn back to Case Keenum after 2-interception game vs. Packers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears bench Tyson Bagent, turn back to Case Keenum after 2-interception game vs. Packers</description>
+      <link>https://sports.yahoo.com/nfl/breaking-news/article/bears-bench-tyson-bagent-turn-back-to-case-keenum-after-two-interception-game-vs-packers-193216308.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3dfbc68d2cd25d3b0a9f</guid>
+      <pubDate>Sun, 11 Oct 2026 19:32:16 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -40,53 +60,33 @@
     </item>
 
     <item>
-      <title>Bears vs. Packers live updates, inactives, where to watch: Tyson Bagent starts for Caleb Williams, Green Bay seeks first home win of the season at Lambeau</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Packers live updates, inactives, where to watch: Tyson Bagent starts for Caleb Williams, Green Bay seeks first home win of the season at Lambeau</description>
-      <link>https://sports.yahoo.com/nfl/live/bears-packers-score-live-updates-inactives-highlights-stats-where-to-watch-154653343.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-11596d1b8ee5fe64d3e7</guid>
-      <pubDate>Sun, 11 Oct 2026 15:46:53 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Jordan Love&apos;s 31-yard completion to Christian Watson gets Packers into Bears&apos; territory</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Jordan Love&apos;s 31-yard completion to Christian Watson gets Packers into Bears&apos; territory</description>
-      <link>https://www.nfl.com/videos/jordan-love-s-31-yard-completion-to-christian-watson-gets-packers-into-bears-territory</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c1bb480fe0d2af687923</guid>
-      <pubDate>Sun, 11 Oct 2026 12:01:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Can&apos;t-Miss Play: Love dials launch codes to Watson for 53-yard TD strike vs. Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Can&apos;t-Miss Play: Love dials launch codes to Watson for 53-yard TD strike vs. Bears</description>
-      <link>https://www.nfl.com/videos/can-t-miss-play-love-dials-launch-codes-to-watson-for-53-yard-td-strike-vs-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-059f78db35e980135b07</guid>
-      <pubDate>Sun, 11 Oct 2026 11:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Tyson Bagent Struggles in First Half of Bears vs. Packers and Fans Want Case Keenum</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Tyson Bagent Struggles in First Half of Bears vs. Packers and Fans Want Case Keenum</description>
-      <link>https://www.si.com/nfl/bears/onsi/tyson-bagent-struggles-first-half-bears-packers-fans-case-keenum</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-36e0d34aa38e85430913</guid>
-      <pubDate>Sun, 11 Oct 2026 11:22:00 GMT</pubDate>
+      <title>3 Winners and 4 Losers From the Bears Week 5 Blowout Loss Against Green Bay</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 3 Winners and 4 Losers From the Bears Week 5 Blowout Loss Against Green Bay</description>
+      <link>https://www.si.com/nfl/bears/onsi/3-winners-and-4-losers-from-the-bears-week-5-blowout-loss-against-green-bay</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7cc6f631b806472459c8</guid>
+      <pubDate>Sun, 11 Oct 2026 15:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Why Tyson Bagent is Starting Instead of Case Keenum, Caleb Williams in Bears-Packers</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why Tyson Bagent is Starting Instead of Case Keenum, Caleb Williams in Bears-Packers</description>
-      <link>https://www.si.com/nfl/bears/onsi/why-tyson-bagent-starting-instead-case-keenum-caleb-williams-bears-packers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0bca4ec04d733cb3ed6a</guid>
-      <pubDate>Sun, 11 Oct 2026 09:55:00 GMT</pubDate>
+      <title>Ben Johnson Offers Hopeful Caleb Williams Injury Update After Bears&apos; Loss to Packers</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Offers Hopeful Caleb Williams Injury Update After Bears&apos; Loss to Packers</description>
+      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-injury-update-ben-johnson-bears-hope-week-6-return</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-bd79c4116c48300f52e6</guid>
+      <pubDate>Sun, 11 Oct 2026 14:52:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Packers&apos; top plays vs. Bears | Week 5</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Packers&apos; top plays vs. Bears | Week 5</description>
+      <link>https://www.nfl.com/videos/packers-top-plays-vs-bears-week-5</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2e7e376427c6d63fef3a</guid>
+      <pubDate>Sun, 11 Oct 2026 14:49:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
   </channel>
 </rss>
