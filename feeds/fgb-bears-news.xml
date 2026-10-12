@@ -5,9 +5,79 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 12 Oct 2026 09:30:07 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 12 Oct 2026 19:14:23 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>The Bears Already Have a $76 Million Cut Candidate for 2027</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Bears Already Have a $76 Million Cut Candidate for 2027</description>
+      <link>https://www.si.com/nfl/bears/onsi/the-bears-already-have-a-76-million-cut-candidate-for-2027</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-bf6795e60dcf70283565</guid>
+      <pubDate>Mon, 12 Oct 2026 12:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Jordan Love recaps Packers offensive dominance vs. Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Jordan Love recaps Packers offensive dominance vs. Bears</description>
+      <link>https://www.nfl.com/videos/jordan-love-recaps-packers-offensive-dominance-vs-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9e087db4e24331e6227b</guid>
+      <pubDate>Mon, 12 Oct 2026 11:24:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
+      <title>Aaron Rodgers may own Bears, but Packers’ Jordan Love now owns new Lambeau Field record vs. bitter rival</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Aaron Rodgers may own Bears, but Packers’ Jordan Love now owns new Lambeau Field record vs. bitter rival</description>
+      <link>https://sports.yahoo.com/articles/aaron-rodgers-may-own-bears-181858558.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b5728ea32c606ea5c7e4</guid>
+      <pubDate>Mon, 12 Oct 2026 11:18:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears’ Jaylon Johnson looks totally cooked, and that’s a huge problem for Chicago</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Jaylon Johnson looks totally cooked, and that’s a huge problem for Chicago</description>
+      <link>https://sports.yahoo.com/articles/bears-jaylon-johnson-looks-totally-181028238.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6b596dc4a2857608fb1a</guid>
+      <pubDate>Mon, 12 Oct 2026 11:10:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Austin Booker Stats vs. Packers: DL Secures Multi-Sack Performance in Bears Defeat</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Austin Booker Stats vs. Packers: DL Secures Multi-Sack Performance in Bears Defeat</description>
+      <link>https://www.si.com/nfl/bears/onsi/austin-booker-stats-vs-packers-dl-secures-multi-sack-performance-in-bears-defeat</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2757c8386e3ff07a4a6b</guid>
+      <pubDate>Mon, 12 Oct 2026 10:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Thoughts on Packers Week 5 blowout win vs. Bears | &apos;GMFB&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Thoughts on Packers Week 5 blowout win vs. Bears | &apos;GMFB&apos;</description>
+      <link>https://www.nfl.com/videos/thoughts-on-packers-week-5-blowout-win-vs-bears-gmfb</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4a3fb623edccb430a9bc</guid>
+      <pubDate>Mon, 12 Oct 2026 06:43:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears’ defensive hot streak ends with a thud. Did Packers expose serious flaws?</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears’ defensive hot streak ends with a thud. Did Packers expose serious flaws?</description>
+      <link>https://www.nytimes.com/athletic/7682329/2026/10/12/bears-defense-blowout-packers/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cc977e18023992476d36</guid>
+      <pubDate>Mon, 12 Oct 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
 
     <item>
       <title>Are the Pack back? Green Bay, Jordan Love erupt in dominant win vs. Bears behind retooled offensive line</title>
@@ -17,76 +87,6 @@
       <pubDate>Mon, 12 Oct 2026 03:38:08 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Jordan Love’s Wife Ronika Stone Takes 3-Word Victory Lap After Packers Handle Rivalry Business With Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Jordan Love’s Wife Ronika Stone Takes 3-Word Victory Lap After Packers Handle Rivalry Business With Bears</description>
-      <link>https://sports.yahoo.com/articles/jordan-love-wife-ronika-stone-072436168.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cb2d809fafd61b22379d</guid>
-      <pubDate>Mon, 12 Oct 2026 00:24:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Game Recap: Bears fall to Packers in Green Bay</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Recap: Bears fall to Packers in Green Bay</description>
-      <link>https://www.chicagobears.com/news/game-recap-bears-fall-to-packers-in-green-bay-2026-week-5</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-084401c3c366ecab83a1</guid>
-      <pubDate>Sun, 11 Oct 2026 20:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Packers’ Zaire Franklin unloads on Luther Burden III, ‘weird’ Bears after trash talk makes them look stupid</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Packers’ Zaire Franklin unloads on Luther Burden III, ‘weird’ Bears after trash talk makes them look stupid</description>
-      <link>https://sports.yahoo.com/articles/packers-zaire-franklin-unloads-luther-025655547.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0ae3e50a0147f4351483</guid>
-      <pubDate>Sun, 11 Oct 2026 19:56:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears vs. Green Bay Packers Game Highlights</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Chicago Bears vs. Green Bay Packers Game Highlights</description>
-      <link>https://www.espn.com/video/clip/_/id/50161113</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-032852790793fb9fbf2b</guid>
-      <pubDate>Sun, 11 Oct 2026 18:07:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson Explains Decision to Bench Tyson Bagent in Bears&apos; Loss to Packers</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Explains Decision to Bench Tyson Bagent in Bears&apos; Loss to Packers</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-explains-decision-bench-tyson-bagent-bears-packers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-93ca8df1fbabc3efd9b3</guid>
-      <pubDate>Sun, 11 Oct 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears QBs flop in lopsided loss to rival Packers. Now what?</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears QBs flop in lopsided loss to rival Packers. Now what?</description>
-      <link>https://www.nytimes.com/athletic/7682243/2026/10/11/bears-tyson-bagent-case-keenum-packers/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5c9cf1138d5f951eede6</guid>
-      <pubDate>Sun, 11 Oct 2026 16:58:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Bears QB Caleb Williams &apos;close&apos; to returning, Ben Johnson says</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears QB Caleb Williams &apos;close&apos; to returning, Ben Johnson says</description>
-      <link>https://www.espn.com/nfl/story/_/id/50161771/bears-qb-caleb-williams-close-returning-ben-johnson-says</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8e74f6e099e592e89dd4</guid>
-      <pubDate>Sun, 11 Oct 2026 16:49:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
