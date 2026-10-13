@@ -5,9 +5,39 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 13 Oct 2026 20:44:55 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 13 Oct 2026 23:56:46 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Hot Take Tuesday: Bears-Packers: A Brutal Beating and the End of a Brutal Discourse</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Hot Take Tuesday: Bears-Packers: A Brutal Beating and the End of a Brutal Discourse</description>
+      <link>https://sports.yahoo.com/articles/hot-tuesday-bears-packers-brutal-230000567.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-987dd0b04dc505bdc9e7</guid>
+      <pubDate>Tue, 13 Oct 2026 23:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears activate DE Shemar Turner from PUP</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears activate DE Shemar Turner from PUP</description>
+      <link>https://sports.yahoo.com/articles/bears-activate-shemar-turner-pup-211906232.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-59d5e0bd4f0717b9d627</guid>
+      <pubDate>Tue, 13 Oct 2026 21:19:06 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Montez Sweat suspended for violating NFL&apos;s performance-enhancing substances policy</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Montez Sweat suspended for violating NFL&apos;s performance-enhancing substances policy</description>
+      <link>https://www.cbssports.com/nfl/news/nfl-suspends-bears-montez-violating-ped-policy/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f5953f820a7b83330c72</guid>
+      <pubDate>Tue, 13 Oct 2026 20:53:06 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
 
     <item>
       <title>Chicago Bears announce roster moves</title>
@@ -20,33 +50,13 @@
     </item>
 
     <item>
-      <title>Bears&apos; Montez Sweat suspended for violating NFL&apos;s performance-enhancing substances policy</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Montez Sweat suspended for violating NFL&apos;s performance-enhancing substances policy</description>
-      <link>https://www.cbssports.com/nfl/news/nfl-suspends-bears-montez-violating-ped-policy/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f5953f820a7b83330c72</guid>
-      <pubDate>Tue, 13 Oct 2026 20:34:12 GMT</pubDate>
+      <title>Montez Sweat&apos;s Suspension Isn&apos;t Only Problem Bears Have in Edge Rusher&apos;s Room</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Montez Sweat&apos;s Suspension Isn&apos;t Only Problem Bears Have in Edge Rusher&apos;s Room</description>
+      <link>https://www.si.com/nfl/bears/onsi/montez-sweat-s-suspension-isn-t-only-problem-bears-have-in-edge-rusher-s-room</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1752ad7e54fdadd6ab46</guid>
+      <pubDate>Tue, 13 Oct 2026 14:15:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Rome Odunze needs to be better, but the drop narrative is unfair</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Rome Odunze needs to be better, but the drop narrative is unfair</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-rome-odunze-needs-203000358.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a0621757a00949f4e674</guid>
-      <pubDate>Tue, 13 Oct 2026 20:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears’ Montez Sweat suspended 2 games for PED violation</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Montez Sweat suspended 2 games for PED violation</description>
-      <link>https://sports.yahoo.com/articles/bears-montez-sweat-suspended-2-202729420.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e9241ace51610c1c2b69</guid>
-      <pubDate>Tue, 13 Oct 2026 20:27:29 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -60,33 +70,23 @@
     </item>
 
     <item>
-      <title>Bears Coach Ben Johnson Catching Blame For Packers DT Javon Hargrave&apos;s Injury</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Coach Ben Johnson Catching Blame For Packers DT Javon Hargrave&apos;s Injury</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-ben-johnson-catching-blame-packers-javon-hargrave-injury</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6f2e0fea7beb8ffd2328</guid>
-      <pubDate>Tue, 13 Oct 2026 13:08:00 GMT</pubDate>
+      <title>Week 6 NFL power rankings: 5-0 Vikings continue rise as Bears, Raiders, Cowboys stumble</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Week 6 NFL power rankings: 5-0 Vikings continue rise as Bears, Raiders, Cowboys stumble</description>
+      <link>https://www.nytimes.com/athletic/7684474/2026/10/13/nfl-power-rankings-week-6-vikings-bears-raiders-cowboys/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1b196374363e4deddf52</guid>
+      <pubDate>Tue, 13 Oct 2026 06:27:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
-      <title>Chicago Bears Football Night at McHenry Outdoor Theater</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears Football Night at McHenry Outdoor Theater</description>
-      <link>https://www.chicagobears.com/fan-zone/drivein</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-217538c2d78e46a59795</guid>
-      <pubDate>Tue, 13 Oct 2026 12:36:00 GMT</pubDate>
+      <title>Bears looking to level out their roller-coaster season after beatdown in Green Bay</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears looking to level out their roller-coaster season after beatdown in Green Bay</description>
+      <link>https://www.nytimes.com/athletic/7685020/2026/10/13/bears-ben-johnson-nfc-north-packers/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-95bf362a6825e490803b</guid>
+      <pubDate>Tue, 13 Oct 2026 04:30:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears’ Montez Sweat suspended two games for performance-enhancing substance violation</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears’ Montez Sweat suspended two games for performance-enhancing substance violation</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-montez-sweat-suspended-two-games-for-performance-enhancing-substance-violation</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b49a0f06461d100e32fd</guid>
-      <pubDate>Tue, 13 Oct 2026 09:24:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
