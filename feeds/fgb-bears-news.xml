@@ -5,29 +5,9 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 13 Oct 2026 01:22:12 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 13 Oct 2026 07:54:36 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
-
-    <item>
-      <title>Bears vs Packers: Bomb’s Away</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs Packers: Bomb’s Away</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-packers-bomb-away-223000797.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ac19e2a3afac260ae34f</guid>
-      <pubDate>Mon, 12 Oct 2026 22:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears’ Ben Johnson doesn’t name a starting QB if Caleb Williams is out</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Ben Johnson doesn’t name a starting QB if Caleb Williams is out</description>
-      <link>https://sports.yahoo.com/articles/bears-ben-johnson-doesn-t-220244680.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5da5505cf48b096cb6f9</guid>
-      <pubDate>Mon, 12 Oct 2026 22:02:44 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
 
     <item>
       <title>5 things we learned from Bears coach Ben Johnson in Week 5 loss</title>
@@ -37,6 +17,26 @@
       <pubDate>Mon, 12 Oct 2026 21:41:06 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Packers’ Dani Dennis-Sutton drops NSFW admission about coaches before beating Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Packers’ Dani Dennis-Sutton drops NSFW admission about coaches before beating Bears</description>
+      <link>https://sports.yahoo.com/articles/packers-dani-dennis-sutton-drops-045435116.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-424e480e66735eb71861</guid>
+      <pubDate>Mon, 12 Oct 2026 17:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Packers QB Jordan Love was literally ‘off charts’ vs. Bears with deep-ball dominance only bested by Russell Wilson</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Packers QB Jordan Love was literally ‘off charts’ vs. Bears with deep-ball dominance only bested by Russell Wilson</description>
+      <link>https://sports.yahoo.com/articles/packers-qb-jordan-love-literally-041847189.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e1c3091ca1e6561f3a0f</guid>
+      <pubDate>Mon, 12 Oct 2026 17:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
