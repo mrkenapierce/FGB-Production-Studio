@@ -5,16 +5,66 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 12 Oct 2026 19:14:23 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 13 Oct 2026 01:22:12 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>The Bears Already Have a $76 Million Cut Candidate for 2027</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Bears Already Have a $76 Million Cut Candidate for 2027</description>
-      <link>https://www.si.com/nfl/bears/onsi/the-bears-already-have-a-76-million-cut-candidate-for-2027</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-bf6795e60dcf70283565</guid>
-      <pubDate>Mon, 12 Oct 2026 12:00:00 GMT</pubDate>
+      <title>Bears vs Packers: Bomb’s Away</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs Packers: Bomb’s Away</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-packers-bomb-away-223000797.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ac19e2a3afac260ae34f</guid>
+      <pubDate>Mon, 12 Oct 2026 22:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears’ Ben Johnson doesn’t name a starting QB if Caleb Williams is out</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Ben Johnson doesn’t name a starting QB if Caleb Williams is out</description>
+      <link>https://sports.yahoo.com/articles/bears-ben-johnson-doesn-t-220244680.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5da5505cf48b096cb6f9</guid>
+      <pubDate>Mon, 12 Oct 2026 22:02:44 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>5 things we learned from Bears coach Ben Johnson in Week 5 loss</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 5 things we learned from Bears coach Ben Johnson in Week 5 loss</description>
+      <link>https://www.chicagobears.com/news/5-things-we-learned-from-bears-coach-ben-johnson-in-week-5-loss-packers-2026</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1e26b0c16efda8c4358b</guid>
+      <pubDate>Mon, 12 Oct 2026 21:41:06 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Jonah Jackson Hints Packers Caught Ben Johnson&apos;s Bears Offense Off Guard</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Jonah Jackson Hints Packers Caught Ben Johnson&apos;s Bears Offense Off Guard</description>
+      <link>https://www.si.com/nfl/bears/onsi/jonah-jackson-hints-packers-caught-ben-johnson-s-bears-offense-off-guard</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-996080f93095d91fa486</guid>
+      <pubDate>Mon, 12 Oct 2026 16:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Johnson undecided on QB vs. Falcons if Williams can&apos;t go</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; Johnson undecided on QB vs. Falcons if Williams can&apos;t go</description>
+      <link>https://www.espn.com/nfl/story/_/id/50168772/bears-johnson-undecided-qb-vs-falcons-williams-go</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7f8fcf41981a9071caed</guid>
+      <pubDate>Mon, 12 Oct 2026 15:23:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Packers&apos; Matthew Golden Calls out Bears&apos; Cairo Santos Over Sideline Incident</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Packers&apos; Matthew Golden Calls out Bears&apos; Cairo Santos Over Sideline Incident</description>
+      <link>https://www.si.com/nfl/bears/onsi/packers-matthew-golden-calls-out-bears-cairo-santos-over-sideline-incident</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-22ca6a26ac4883e710cf</guid>
+      <pubDate>Mon, 12 Oct 2026 14:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -30,63 +80,13 @@
     </item>
 
     <item>
-      <title>Aaron Rodgers may own Bears, but Packers’ Jordan Love now owns new Lambeau Field record vs. bitter rival</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Aaron Rodgers may own Bears, but Packers’ Jordan Love now owns new Lambeau Field record vs. bitter rival</description>
-      <link>https://sports.yahoo.com/articles/aaron-rodgers-may-own-bears-181858558.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b5728ea32c606ea5c7e4</guid>
-      <pubDate>Mon, 12 Oct 2026 11:18:00 GMT</pubDate>
+      <title>Caleb Williams is “progressing” but Bears haven’t determined who will start if he can’t</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Caleb Williams is “progressing” but Bears haven’t determined who will start if he can’t</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/caleb-williams-is-progressing-but-bears-havent-determined-who-will-start-if-he-cant</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9b432cdfcd38d3e5e0c9</guid>
+      <pubDate>Mon, 12 Oct 2026 09:52:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears’ Jaylon Johnson looks totally cooked, and that’s a huge problem for Chicago</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Jaylon Johnson looks totally cooked, and that’s a huge problem for Chicago</description>
-      <link>https://sports.yahoo.com/articles/bears-jaylon-johnson-looks-totally-181028238.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6b596dc4a2857608fb1a</guid>
-      <pubDate>Mon, 12 Oct 2026 11:10:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Austin Booker Stats vs. Packers: DL Secures Multi-Sack Performance in Bears Defeat</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Austin Booker Stats vs. Packers: DL Secures Multi-Sack Performance in Bears Defeat</description>
-      <link>https://www.si.com/nfl/bears/onsi/austin-booker-stats-vs-packers-dl-secures-multi-sack-performance-in-bears-defeat</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2757c8386e3ff07a4a6b</guid>
-      <pubDate>Mon, 12 Oct 2026 10:01:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Thoughts on Packers Week 5 blowout win vs. Bears | &apos;GMFB&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Thoughts on Packers Week 5 blowout win vs. Bears | &apos;GMFB&apos;</description>
-      <link>https://www.nfl.com/videos/thoughts-on-packers-week-5-blowout-win-vs-bears-gmfb</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4a3fb623edccb430a9bc</guid>
-      <pubDate>Mon, 12 Oct 2026 06:43:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears’ defensive hot streak ends with a thud. Did Packers expose serious flaws?</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears’ defensive hot streak ends with a thud. Did Packers expose serious flaws?</description>
-      <link>https://www.nytimes.com/athletic/7682329/2026/10/12/bears-defense-blowout-packers/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cc977e18023992476d36</guid>
-      <pubDate>Mon, 12 Oct 2026 05:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Are the Pack back? Green Bay, Jordan Love erupt in dominant win vs. Bears behind retooled offensive line</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Are the Pack back? Green Bay, Jordan Love erupt in dominant win vs. Bears behind retooled offensive line</description>
-      <link>https://www.cbssports.com/nfl/news/are-the-pack-back-green-bay-jordan-love-erupt-dominant-win-bears/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a7b7ce862e0f1a8e9745</guid>
-      <pubDate>Mon, 12 Oct 2026 03:38:08 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
