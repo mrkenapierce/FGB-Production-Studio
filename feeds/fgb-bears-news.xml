@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 13 Oct 2026 23:56:46 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 14 Oct 2026 03:11:47 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Reviewing the Bears’ PFN grades from Week 5 vs. Packers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Reviewing the Bears’ PFN grades from Week 5 vs. Packers</description>
+      <link>https://sports.yahoo.com/articles/reviewing-bears-pfn-grades-week-000000722.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ed7bfa9d66dcfb382c0a</guid>
+      <pubDate>Wed, 14 Oct 2026 00:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Hot Take Tuesday: Bears-Packers: A Brutal Beating and the End of a Brutal Discourse</title>
@@ -15,16 +25,6 @@
       <link>https://sports.yahoo.com/articles/hot-tuesday-bears-packers-brutal-230000567.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-987dd0b04dc505bdc9e7</guid>
       <pubDate>Tue, 13 Oct 2026 23:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears activate DE Shemar Turner from PUP</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears activate DE Shemar Turner from PUP</description>
-      <link>https://sports.yahoo.com/articles/bears-activate-shemar-turner-pup-211906232.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-59d5e0bd4f0717b9d627</guid>
-      <pubDate>Tue, 13 Oct 2026 21:19:06 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -50,6 +50,26 @@
     </item>
 
     <item>
+      <title>Bears Add Montez Sweat Replacement to Active Roster After Suspension</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Add Montez Sweat Replacement to Active Roster After Suspension</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-montez-sweat-replacement-active-roster-suspension</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e334bf51fe7374721888</guid>
+      <pubDate>Tue, 13 Oct 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Kalif Raymond: Quiet in Week 5 loss at Lambeau Field</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kalif Raymond: Quiet in Week 5 loss at Lambeau Field</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-kalif-raymond-quiet-in-week-5-loss-at-lambeau-field/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6241ba3b08eecc40e6c5</guid>
+      <pubDate>Tue, 13 Oct 2026 16:34:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
       <title>Montez Sweat&apos;s Suspension Isn&apos;t Only Problem Bears Have in Edge Rusher&apos;s Room</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Montez Sweat&apos;s Suspension Isn&apos;t Only Problem Bears Have in Edge Rusher&apos;s Room</description>
       <link>https://www.si.com/nfl/bears/onsi/montez-sweat-s-suspension-isn-t-only-problem-bears-have-in-edge-rusher-s-room</link>
@@ -60,33 +80,13 @@
     </item>
 
     <item>
-      <title>Bears&apos; Montez Sweat Suspended for Next Two Games for Violating NFL Policy</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Montez Sweat Suspended for Next Two Games for Violating NFL Policy</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-montez-sweat-suspended-for-next-two-games-for-violating-nfl-policy</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2418247c3665dbc690f4</guid>
-      <pubDate>Tue, 13 Oct 2026 13:15:00 GMT</pubDate>
+      <title>Chicago Bears Football Night at McHenry Outdoor Theater</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears Football Night at McHenry Outdoor Theater</description>
+      <link>https://www.chicagobears.com/fan-zone/drivein</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-217538c2d78e46a59795</guid>
+      <pubDate>Tue, 13 Oct 2026 12:36:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Week 6 NFL power rankings: 5-0 Vikings continue rise as Bears, Raiders, Cowboys stumble</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Week 6 NFL power rankings: 5-0 Vikings continue rise as Bears, Raiders, Cowboys stumble</description>
-      <link>https://www.nytimes.com/athletic/7684474/2026/10/13/nfl-power-rankings-week-6-vikings-bears-raiders-cowboys/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1b196374363e4deddf52</guid>
-      <pubDate>Tue, 13 Oct 2026 06:27:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Bears looking to level out their roller-coaster season after beatdown in Green Bay</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears looking to level out their roller-coaster season after beatdown in Green Bay</description>
-      <link>https://www.nytimes.com/athletic/7685020/2026/10/13/bears-ben-johnson-nfc-north-packers/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-95bf362a6825e490803b</guid>
-      <pubDate>Tue, 13 Oct 2026 04:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
