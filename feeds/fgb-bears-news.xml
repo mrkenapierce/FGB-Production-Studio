@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 14 Oct 2026 03:11:47 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 14 Oct 2026 08:39:52 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Packers fans will love MarShawn Lloyd’s hate for the Bears after 2 TD performance</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Packers fans will love MarShawn Lloyd’s hate for the Bears after 2 TD performance</description>
+      <link>https://sports.yahoo.com/articles/packers-fans-love-marshawn-lloyd-070248821.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-29282f6208472e1fe276</guid>
+      <pubDate>Wed, 14 Oct 2026 00:02:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Reviewing the Bears’ PFN grades from Week 5 vs. Packers</title>
@@ -15,16 +25,6 @@
       <link>https://sports.yahoo.com/articles/reviewing-bears-pfn-grades-week-000000722.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-ed7bfa9d66dcfb382c0a</guid>
       <pubDate>Wed, 14 Oct 2026 00:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Hot Take Tuesday: Bears-Packers: A Brutal Beating and the End of a Brutal Discourse</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Hot Take Tuesday: Bears-Packers: A Brutal Beating and the End of a Brutal Discourse</description>
-      <link>https://sports.yahoo.com/articles/hot-tuesday-bears-packers-brutal-230000567.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-987dd0b04dc505bdc9e7</guid>
-      <pubDate>Tue, 13 Oct 2026 23:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -50,16 +50,6 @@
     </item>
 
     <item>
-      <title>Bears Add Montez Sweat Replacement to Active Roster After Suspension</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Add Montez Sweat Replacement to Active Roster After Suspension</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-montez-sweat-replacement-active-roster-suspension</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e334bf51fe7374721888</guid>
-      <pubDate>Tue, 13 Oct 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Bears&apos; Kalif Raymond: Quiet in Week 5 loss at Lambeau Field</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kalif Raymond: Quiet in Week 5 loss at Lambeau Field</description>
       <link>https://www.cbssports.com/fantasy/football/news/bears-kalif-raymond-quiet-in-week-5-loss-at-lambeau-field/</link>
@@ -70,16 +60,6 @@
     </item>
 
     <item>
-      <title>Montez Sweat&apos;s Suspension Isn&apos;t Only Problem Bears Have in Edge Rusher&apos;s Room</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Montez Sweat&apos;s Suspension Isn&apos;t Only Problem Bears Have in Edge Rusher&apos;s Room</description>
-      <link>https://www.si.com/nfl/bears/onsi/montez-sweat-s-suspension-isn-t-only-problem-bears-have-in-edge-rusher-s-room</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1752ad7e54fdadd6ab46</guid>
-      <pubDate>Tue, 13 Oct 2026 14:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Chicago Bears Football Night at McHenry Outdoor Theater</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears Football Night at McHenry Outdoor Theater</description>
       <link>https://www.chicagobears.com/fan-zone/drivein</link>
@@ -87,6 +67,26 @@
       <pubDate>Tue, 13 Oct 2026 12:36:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears’ Montez Sweat suspended two games for performance-enhancing substance violation</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears’ Montez Sweat suspended two games for performance-enhancing substance violation</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-montez-sweat-suspended-two-games-for-performance-enhancing-substance-violation</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b49a0f06461d100e32fd</guid>
+      <pubDate>Tue, 13 Oct 2026 09:24:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
+    </item>
+
+    <item>
+      <title>Week 6 NFL power rankings: 5-0 Vikings continue rise as Bears, Raiders, Cowboys stumble</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Week 6 NFL power rankings: 5-0 Vikings continue rise as Bears, Raiders, Cowboys stumble</description>
+      <link>https://www.nytimes.com/athletic/7684474/2026/10/13/nfl-power-rankings-week-6-vikings-bears-raiders-cowboys/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1b196374363e4deddf52</guid>
+      <pubDate>Tue, 13 Oct 2026 06:27:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
