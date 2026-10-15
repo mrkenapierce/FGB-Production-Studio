@@ -5,16 +5,36 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 15 Oct 2026 21:35:07 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 15 Oct 2026 23:50:29 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Caleb Williams Shuts Down Bears Reporter Over Injury Secrecy Questions, Responds to Ridicule</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams Shuts Down Bears Reporter Over Injury Secrecy Questions, Responds to Ridicule</description>
-      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-shuts-down-bears-reporter-injury-secrecy-questions-responds-ridicule</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d108166244ecdfb90178</guid>
-      <pubDate>Thu, 15 Oct 2026 13:59:00 GMT</pubDate>
+      <title>Bears QB Williams unsure if he&apos;s playing, has to still go through protocols</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears QB Williams unsure if he&apos;s playing, has to still go through protocols</description>
+      <link>https://www.espn.com/nfl/story/_/id/50192123/bears-caleb-williams-yet-know-playing</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-80632f7151de2cbbbfe1</guid>
+      <pubDate>Thu, 15 Oct 2026 16:06:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Familiar Face to Bears May Have Provided Path to Open up Ground Game</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Familiar Face to Bears May Have Provided Path to Open up Ground Game</description>
+      <link>https://www.si.com/nfl/bears/onsi/familiar-face-to-bears-may-have-provided-path-to-open-up-ground-game-01m50bh1dd64</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2e1ee9582e0193017ed5</guid>
+      <pubDate>Thu, 15 Oct 2026 16:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears Show Faith in Tyson Bagent Even After Catastrophic Packers Game</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Show Faith in Tyson Bagent Even After Catastrophic Packers Game</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-show-faith-in-tyson-bagent-even-after-catastrophic-packers-game</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e0bcddb58b1fd2c83724</guid>
+      <pubDate>Thu, 15 Oct 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -30,53 +50,33 @@
     </item>
 
     <item>
-      <title>Bears QB Caleb Williams says injury was a hamstring tear; unclear if he’ll start this week</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears QB Caleb Williams says injury was a hamstring tear; unclear if he’ll start this week</description>
-      <link>https://www.nytimes.com/athletic/7693346/2026/10/15/bears-caleb-williams-hamstring-injury-falcons/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2ea6ba7d16aacbd58756</guid>
-      <pubDate>Thu, 15 Oct 2026 13:54:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Caleb Williams: Logs full practice Thursday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Caleb Williams: Logs full practice Thursday</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-caleb-williams-logs-full-practice-thursday/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2b86214d49a72f18dcaa</guid>
-      <pubDate>Thu, 15 Oct 2026 13:39:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Kyle Monangai: Misses practice again Thursday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyle Monangai: Misses practice again Thursday</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-kyle-monangai-misses-practice-again-thursday/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3cace95bab0b379aa80a</guid>
-      <pubDate>Thu, 15 Oct 2026 13:38:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears Must Act Before Trade Deadline To Fix Sack Struggle</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Must Act Before Trade Deadline To Fix Sack Struggle</description>
-      <link>https://sports.yahoo.com/articles/bears-must-act-trade-deadline-203010805.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-90c5e37fcdb765c53861</guid>
-      <pubDate>Thu, 15 Oct 2026 13:29:00 GMT</pubDate>
+      <title>Bears QB Caleb Williams gets another big practice update ahead of Week 6</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears QB Caleb Williams gets another big practice update ahead of Week 6</description>
+      <link>https://sports.yahoo.com/articles/bears-qb-caleb-williams-gets-205343720.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7d70b1c4c7cc17fe7ca2</guid>
+      <pubDate>Thu, 15 Oct 2026 13:53:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Chicago Bears Are Logical Landing Spot For 2 Tampa Bay Buccaneers Trade Candidates</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Are Logical Landing Spot For 2 Tampa Bay Buccaneers Trade Candidates</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-tampa-bay-buccaneers-trade-candidates</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-716fb0d542b476b7c815</guid>
-      <pubDate>Thu, 15 Oct 2026 12:17:00 GMT</pubDate>
+      <title>Super Bowl stock report for NFL Week 6: 49ers emerge as new favorites, Bears await Caleb Williams&apos; return</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Super Bowl stock report for NFL Week 6: 49ers emerge as new favorites, Bears await Caleb Williams&apos; return</description>
+      <link>https://www.cbssports.com/nfl/news/super-bowl-stock-report-for-nfl-week-6/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a07d24085c748a2f4104</guid>
+      <pubDate>Thu, 15 Oct 2026 11:22:54 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears and Falcons lean on run games but have endured stressful starts to the season at quarterback</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears and Falcons lean on run games but have endured stressful starts to the season at quarterback</description>
+      <link>https://www.espn.com/nfl/preview/_/gameId/401872999</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9eace696f4b378c6daa2</guid>
+      <pubDate>Thu, 15 Oct 2026 10:43:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
