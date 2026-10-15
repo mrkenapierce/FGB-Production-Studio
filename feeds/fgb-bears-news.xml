@@ -5,29 +5,9 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 15 Oct 2026 14:15:27 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 15 Oct 2026 18:26:05 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
-
-    <item>
-      <title>Tyson Bagent Week 5 QB Grade: Bears @ Packers Film Breakdown</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Tyson Bagent Week 5 QB Grade: Bears @ Packers Film Breakdown</description>
-      <link>https://sports.yahoo.com/articles/tyson-bagent-week-5-qb-140000610.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7003aa3693f580aebbff</guid>
-      <pubDate>Thu, 15 Oct 2026 14:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Scouting Report: California Golden Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Scouting Report: California Golden Bears</description>
-      <link>https://sports.yahoo.com/articles/scouting-report-california-golden-bears-140000791.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4998d9ad589b1a9344cb</guid>
-      <pubDate>Thu, 15 Oct 2026 14:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
 
     <item>
       <title>Super Bowl stock report for NFL Week 6: 49ers emerge as new favorites, Bears await Caleb Williams&apos; return</title>
@@ -40,11 +20,41 @@
     </item>
 
     <item>
-      <title>Everything Chicago Bears Have to Fear About Atlanta Falcons in Week 6</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Everything Chicago Bears Have to Fear About Atlanta Falcons in Week 6</description>
-      <link>https://www.si.com/nfl/bears/onsi/everything-chicago-bears-fear-atlanta-falcons-week-6</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3cc6f23ca02cb05e5b0d</guid>
-      <pubDate>Thu, 15 Oct 2026 06:01:00 GMT</pubDate>
+      <title>Pritzker says Bears get to pick stadium site</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Pritzker says Bears get to pick stadium site</description>
+      <link>https://sports.yahoo.com/articles/pritzker-says-bears-pick-stadium-171300953.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-151b8d1bda99bb6d5256</guid>
+      <pubDate>Thu, 15 Oct 2026 10:13:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>An Inconvenient Bears Truth Over Losing Dayo Odeyingbo and Montez Sweat</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: An Inconvenient Bears Truth Over Losing Dayo Odeyingbo and Montez Sweat</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-dayo-odeyingbo-montez-sweat-injuries-suspension-edge-depth</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-795c82b830346a7cf5ef</guid>
+      <pubDate>Thu, 15 Oct 2026 09:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>3 causes for concern as the Bears face the Falcons in Week 6</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 3 causes for concern as the Bears face the Falcons in Week 6</description>
+      <link>https://sports.yahoo.com/articles/3-causes-concern-bears-face-154119651.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a6898eabbd491a7555bd</guid>
+      <pubDate>Thu, 15 Oct 2026 08:41:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Six Bears Who Need a Bounce Back Game in Week 6 vs Falcons</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Six Bears Who Need a Bounce Back Game in Week 6 vs Falcons</description>
+      <link>https://www.si.com/nfl/bears/onsi/six-bears-who-need-a-bounce-back-game-in-week-6-vs-falcons</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-50224a447a9f4a5d0cbb</guid>
+      <pubDate>Thu, 15 Oct 2026 08:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -67,16 +77,6 @@
       <pubDate>Thu, 15 Oct 2026 04:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Roster Analysis: 3 Players Ben Johnson Can&apos;t Trust</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Roster Analysis: 3 Players Ben Johnson Can&apos;t Trust</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-roster-analysis-3-players-ben-johnson-can-t-trust</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0b9933a1a654d60b8e42</guid>
-      <pubDate>Thu, 15 Oct 2026 04:01:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
