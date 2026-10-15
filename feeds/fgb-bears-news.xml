@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 14 Oct 2026 21:55:45 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 15 Oct 2026 00:12:02 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears vs. Falcons Injury Report: Caleb Williams Full Participant</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Falcons Injury Report: Caleb Williams Full Participant</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-falcons-injury-report-230844961.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a456087d428e7a1c1b40</guid>
+      <pubDate>Wed, 14 Oct 2026 23:08:44 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Can Falcons bounce back against Bears? Falcoholic Live, Ep393</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Can Falcons bounce back against Bears? Falcoholic Live, Ep393</description>
+      <link>https://sports.yahoo.com/articles/falcons-bounce-back-against-bears-220000846.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-bba101986fe30dd3bfd7</guid>
+      <pubDate>Wed, 14 Oct 2026 22:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears Care works with Hallmark to support first responders mourning loss of firefighter</title>
@@ -17,16 +37,6 @@
       <pubDate>Wed, 14 Oct 2026 20:24:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Michael Penix should be ‘good to play’ vs. Bears despite rib injury</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Michael Penix should be ‘good to play’ vs. Bears despite rib injury</description>
-      <link>https://sports.yahoo.com/articles/michael-penix-good-play-vs-201523641.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d5cf436d63ad09aa5efe</guid>
-      <pubDate>Wed, 14 Oct 2026 20:15:23 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -40,6 +50,26 @@
     </item>
 
     <item>
+      <title>Bears Wednesday Injury Report: Bad News For Kyle Monangai, Caleb Williams Progresses</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Wednesday Injury Report: Bad News For Kyle Monangai, Caleb Williams Progresses</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-wednesday-injury-report-bad-news-kyle-monangai-caleb-williams-progresses</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-fb5fec02460d6f65ffef</guid>
+      <pubDate>Wed, 14 Oct 2026 16:02:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Matt LaFleur discusses Packers&apos; success vs. Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Matt LaFleur discusses Packers&apos; success vs. Bears</description>
+      <link>https://www.nfl.com/videos/matt-lafleur-discusses-packers-success-vs-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-38fae16e106e35962096</guid>
+      <pubDate>Wed, 14 Oct 2026 15:42:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
       <title>Bears take former players on first-ever alumni road trip</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears take former players on first-ever alumni road trip</description>
       <link>https://www.chicagobears.com/news/bears-take-former-players-on-first-ever-alumni-road-trip</link>
@@ -50,41 +80,11 @@
     </item>
 
     <item>
-      <title>Ben Johnson won&apos;t like this take on Bears&apos; upcoming game against Falcons</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ben Johnson won&apos;t like this take on Bears&apos; upcoming game against Falcons</description>
-      <link>https://sports.yahoo.com/articles/ben-johnson-wont-bears-upcoming-210755855.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1db618b7e48f8e9bbc26</guid>
-      <pubDate>Wed, 14 Oct 2026 14:07:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Montez Sweat Suspension Only Makes Bears&apos; Need for Khalil Mack Stronger</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Montez Sweat Suspension Only Makes Bears&apos; Need for Khalil Mack Stronger</description>
-      <link>https://www.si.com/nfl/bears/onsi/montez-sweat-suspension-only-makes-bears-need-for-khalil-mack-stronger</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cbe9eed26a55dc7b59fe</guid>
-      <pubDate>Wed, 14 Oct 2026 12:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears vs. Falcons preview | Week 6</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears vs. Falcons preview | Week 6</description>
-      <link>https://www.nfl.com/videos/bears-vs-falcons-preview-week-6</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-319b52ea100d3a6f8d7c</guid>
-      <pubDate>Wed, 14 Oct 2026 11:50:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Bears Hallmark Movie Question Gets Predictable Ben Johnson Answer</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Hallmark Movie Question Gets Predictable Ben Johnson Answer</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-hallmark-movie-question-gets-predictable-ben-johnson-answer</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-21370d3b1fe5eb4ab5c6</guid>
-      <pubDate>Wed, 14 Oct 2026 11:31:00 GMT</pubDate>
+      <title>Gervon Dexter Trade Looking Worse for Bears With Each Quality Game Former DT Plays</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Gervon Dexter Trade Looking Worse for Bears With Each Quality Game Former DT Plays</description>
+      <link>https://www.si.com/nfl/bears/onsi/gervon-dexter-trade-bears-falcons-results</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-801a3ef84b1dde33b937</guid>
+      <pubDate>Wed, 14 Oct 2026 15:33:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
