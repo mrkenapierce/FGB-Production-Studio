@@ -5,18 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 16 Oct 2026 07:11:42 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 16 Oct 2026 12:23:18 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Falcons vs. Bears injury report: C.J. Henderson not practicing</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Falcons vs. Bears injury report: C.J. Henderson not practicing</description>
-      <link>https://sports.yahoo.com/articles/falcons-vs-bears-injury-report-023019682.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-30dffe840945620c137c</guid>
-      <pubDate>Fri, 16 Oct 2026 02:30:19 GMT</pubDate>
+      <title>What to know about Falcons – Bears in Week 6</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: What to know about Falcons – Bears in Week 6</description>
+      <link>https://sports.yahoo.com/articles/know-falcons-bears-week-6-120000573.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4b166387f599dda9ea13</guid>
+      <pubDate>Fri, 16 Oct 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Prisco&apos;s Week 6 NFL picks: Buccaneers upset Steelers, Falcons over Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Prisco&apos;s Week 6 NFL picks: Buccaneers upset Steelers, Falcons over Bears</description>
+      <link>https://www.cbssports.com/nfl/news/pete-priscos-week-6-nfl-picks-odds-predictions/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-86575505350f64d49274</guid>
+      <pubDate>Fri, 16 Oct 2026 11:44:32 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>NFL predictions: Falcons must win trenches against the Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL predictions: Falcons must win trenches against the Bears</description>
+      <link>https://sports.yahoo.com/articles/nfl-predictions-falcons-must-win-100000374.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a5554bb83402ef049730</guid>
+      <pubDate>Fri, 16 Oct 2026 10:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams Gives Himself Thumbs Up But Bears&apos; Will Have Last Word</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams Gives Himself Thumbs Up But Bears&apos; Will Have Last Word</description>
+      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-gives-himself-thumbs-up-but-bears-will-have-last-word</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c3ee890a262b9a3273f0</guid>
+      <pubDate>Fri, 16 Oct 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears mailbag: Jaylon Johnson’s drop-off, defensive injuries raise concerns ahead of Falcons game</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears mailbag: Jaylon Johnson’s drop-off, defensive injuries raise concerns ahead of Falcons game</description>
+      <link>https://www.nytimes.com/athletic/7694036/2026/10/16/bears-jaylon-johnson-shemar-turner-mailbag/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5bcb94acea62a5505998</guid>
+      <pubDate>Fri, 16 Oct 2026 04:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Who the Experts Are Picking in Bears vs. Falcons Week 6</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Who the Experts Are Picking in Bears vs. Falcons Week 6</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-falcons-expert-picks-nfl-week-6</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0da944ac3349a6f9a158</guid>
+      <pubDate>Fri, 16 Oct 2026 04:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -37,56 +87,6 @@
       <pubDate>Thu, 15 Oct 2026 16:06:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Familiar Face to Bears May Have Provided Path to Open up Ground Game</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Familiar Face to Bears May Have Provided Path to Open up Ground Game</description>
-      <link>https://www.si.com/nfl/bears/onsi/familiar-face-to-bears-may-have-provided-path-to-open-up-ground-game-01m50bh1dd64</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2e1ee9582e0193017ed5</guid>
-      <pubDate>Thu, 15 Oct 2026 16:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears Show Faith in Tyson Bagent Even After Catastrophic Packers Game</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Show Faith in Tyson Bagent Even After Catastrophic Packers Game</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-show-faith-in-tyson-bagent-even-after-catastrophic-packers-game</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e0bcddb58b1fd2c83724</guid>
-      <pubDate>Thu, 15 Oct 2026 15:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Ex-Chicago Bears RB Joins Eagles Amid Jalen Hurts Blood Clot</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ex-Chicago Bears RB Joins Eagles Amid Jalen Hurts Blood Clot</description>
-      <link>https://sports.yahoo.com/articles/ex-chicago-bears-rb-joins-214918396.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f01ef388ed8b0a4656ad</guid>
-      <pubDate>Thu, 15 Oct 2026 14:49:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams, Michael Penix Jr. eye returns as Bears visit Falcons</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Caleb Williams, Michael Penix Jr. eye returns as Bears visit Falcons</description>
-      <link>https://www.cbssports.com/nfl/news/caleb-williams-michael-penix-jr-eye-returns-as-bears-visit-falcons/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-052d089ed8e9908fd747</guid>
-      <pubDate>Thu, 15 Oct 2026 14:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Kyle Monangai: Misses practice again Thursday</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyle Monangai: Misses practice again Thursday</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-kyle-monangai-misses-practice-again-thursday/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3cace95bab0b379aa80a</guid>
-      <pubDate>Thu, 15 Oct 2026 13:38:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
