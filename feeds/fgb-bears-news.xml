@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 16 Oct 2026 02:14:54 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 16 Oct 2026 07:11:42 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Falcons vs. Bears injury report: C.J. Henderson not practicing</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Falcons vs. Bears injury report: C.J. Henderson not practicing</description>
+      <link>https://sports.yahoo.com/articles/falcons-vs-bears-injury-report-023019682.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-30dffe840945620c137c</guid>
+      <pubDate>Fri, 16 Oct 2026 02:30:19 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears QB Caleb Williams practices in full, but game status still uncertain</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears QB Caleb Williams practices in full, but game status still uncertain</description>
+      <link>https://www.chicagobears.com/news/bears-qb-caleb-williams-practices-in-full-but-game-status-still-uncertain</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-83af209635783149942d</guid>
+      <pubDate>Thu, 15 Oct 2026 23:49:21 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
 
     <item>
       <title>Bears QB Williams unsure if he&apos;s playing, has to still go through protocols</title>
@@ -60,16 +80,6 @@
     </item>
 
     <item>
-      <title>Caleb Williams Shuts Down Bears Reporter Over Injury Secrecy Questions, Responds to Ridicule</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Caleb Williams Shuts Down Bears Reporter Over Injury Secrecy Questions, Responds to Ridicule</description>
-      <link>https://sports.yahoo.com/articles/caleb-williams-shuts-down-bears-205941554.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-44bdb23e63fcaa267917</guid>
-      <pubDate>Thu, 15 Oct 2026 13:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Bears&apos; Kyle Monangai: Misses practice again Thursday</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyle Monangai: Misses practice again Thursday</description>
       <link>https://www.cbssports.com/fantasy/football/news/bears-kyle-monangai-misses-practice-again-thursday/</link>
@@ -77,16 +87,6 @@
       <pubDate>Thu, 15 Oct 2026 13:38:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears and Falcons lean on run games but have endured stressful starts to the season at quarterback</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears and Falcons lean on run games but have endured stressful starts to the season at quarterback</description>
-      <link>https://www.espn.com/nfl/preview/_/gameId/401872999</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9eace696f4b378c6daa2</guid>
-      <pubDate>Thu, 15 Oct 2026 10:43:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
