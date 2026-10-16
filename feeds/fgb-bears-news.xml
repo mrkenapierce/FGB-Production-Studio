@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 15 Oct 2026 23:50:29 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 16 Oct 2026 02:14:54 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -40,31 +40,41 @@
     </item>
 
     <item>
-      <title>Falcons release DB from roster ahead of Week 6 game vs. Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Falcons release DB from roster ahead of Week 6 game vs. Bears</description>
-      <link>https://sports.yahoo.com/articles/falcons-release-db-roster-ahead-205516448.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-92f674075c2b310bad1d</guid>
-      <pubDate>Thu, 15 Oct 2026 13:55:00 GMT</pubDate>
+      <title>Ex-Chicago Bears RB Joins Eagles Amid Jalen Hurts Blood Clot</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ex-Chicago Bears RB Joins Eagles Amid Jalen Hurts Blood Clot</description>
+      <link>https://sports.yahoo.com/articles/ex-chicago-bears-rb-joins-214918396.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f01ef388ed8b0a4656ad</guid>
+      <pubDate>Thu, 15 Oct 2026 14:49:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears QB Caleb Williams gets another big practice update ahead of Week 6</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears QB Caleb Williams gets another big practice update ahead of Week 6</description>
-      <link>https://sports.yahoo.com/articles/bears-qb-caleb-williams-gets-205343720.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7d70b1c4c7cc17fe7ca2</guid>
-      <pubDate>Thu, 15 Oct 2026 13:53:00 GMT</pubDate>
+      <title>Caleb Williams, Michael Penix Jr. eye returns as Bears visit Falcons</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Caleb Williams, Michael Penix Jr. eye returns as Bears visit Falcons</description>
+      <link>https://www.cbssports.com/nfl/news/caleb-williams-michael-penix-jr-eye-returns-as-bears-visit-falcons/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-052d089ed8e9908fd747</guid>
+      <pubDate>Thu, 15 Oct 2026 14:45:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams Shuts Down Bears Reporter Over Injury Secrecy Questions, Responds to Ridicule</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Caleb Williams Shuts Down Bears Reporter Over Injury Secrecy Questions, Responds to Ridicule</description>
+      <link>https://sports.yahoo.com/articles/caleb-williams-shuts-down-bears-205941554.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-44bdb23e63fcaa267917</guid>
+      <pubDate>Thu, 15 Oct 2026 13:59:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Super Bowl stock report for NFL Week 6: 49ers emerge as new favorites, Bears await Caleb Williams&apos; return</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Super Bowl stock report for NFL Week 6: 49ers emerge as new favorites, Bears await Caleb Williams&apos; return</description>
-      <link>https://www.cbssports.com/nfl/news/super-bowl-stock-report-for-nfl-week-6/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a07d24085c748a2f4104</guid>
-      <pubDate>Thu, 15 Oct 2026 11:22:54 GMT</pubDate>
+      <title>Bears&apos; Kyle Monangai: Misses practice again Thursday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyle Monangai: Misses practice again Thursday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-kyle-monangai-misses-practice-again-thursday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3cace95bab0b379aa80a</guid>
+      <pubDate>Thu, 15 Oct 2026 13:38:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
@@ -77,16 +87,6 @@
       <pubDate>Thu, 15 Oct 2026 10:43:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Bears’ Caleb Williams expected to practice in full, but Ben Johnson isn’t committing to a return</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears’ Caleb Williams expected to practice in full, but Ben Johnson isn’t committing to a return</description>
-      <link>https://www.nytimes.com/athletic/7690477/2026/10/15/bears-caleb-williams-possible-return/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5a9d9a41b41392ae6ff8</guid>
-      <pubDate>Thu, 15 Oct 2026 04:01:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
