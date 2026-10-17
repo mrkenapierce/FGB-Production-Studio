@@ -5,9 +5,39 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 17 Oct 2026 20:47:45 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 17 Oct 2026 22:46:29 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>All NFC North teams are above .500; Bears 5th-best NFC Playoff odds</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: All NFC North teams are above .500; Bears 5th-best NFC Playoff odds</description>
+      <link>https://sports.yahoo.com/articles/nfc-north-teams-above-500-220000139.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3a20803be882a841da5d</guid>
+      <pubDate>Sat, 17 Oct 2026 22:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears expected to start Caleb Williams vs. Falcons, per report</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears expected to start Caleb Williams vs. Falcons, per report</description>
+      <link>https://www.cbssports.com/nfl/news/bears-expected-to-start-caleb-williams-vs-falcons/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8af15ef0e314c1ea3105</guid>
+      <pubDate>Sat, 17 Oct 2026 21:03:22 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Reports: Caleb Williams to start for Bears Sunday</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Reports: Caleb Williams to start for Bears Sunday</description>
+      <link>https://sports.yahoo.com/articles/reports-caleb-williams-start-bears-204747789.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f6658c57a65fbb388998</guid>
+      <pubDate>Sat, 17 Oct 2026 20:47:47 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears, Hallmark put on &apos;Holiday Touchdown: A Bears Love Story&apos; premiere events</title>
@@ -17,26 +47,6 @@
       <pubDate>Sat, 17 Oct 2026 20:23:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears vs. Atlanta Falcons – Game Picks and Predictions</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. Atlanta Falcons – Game Picks and Predictions</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-vs-atlanta-falcons-193000538.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fbd337192cf804571fab</guid>
-      <pubDate>Sat, 17 Oct 2026 19:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears activate Kyler Gordon, Dayo Odeyingbo to injured reserve</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears activate Kyler Gordon, Dayo Odeyingbo to injured reserve</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-activate-kyler-gordon-181726230.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-af84927731249534cd49</guid>
-      <pubDate>Sat, 17 Oct 2026 18:17:26 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -50,6 +60,26 @@
     </item>
 
     <item>
+      <title>Bears&apos; Caleb Williams Makes Official Return from Injury in Week 6 vs Falcons</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Caleb Williams Makes Official Return from Injury in Week 6 vs Falcons</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-caleb-williams-will-play-week-6-falcons</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7f9a39b9c49923724dbe</guid>
+      <pubDate>Sat, 17 Oct 2026 15:34:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Caleb Williams: Expected to start Sunday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Caleb Williams: Expected to start Sunday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-caleb-williams-expected-to-start-sunday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-59db601a18d130813148</guid>
+      <pubDate>Sat, 17 Oct 2026 13:38:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
       <title>What History Says About Caleb Williams and Bears Trying to Bounce Back</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: What History Says About Caleb Williams and Bears Trying to Bounce Back</description>
       <link>https://www.si.com/nfl/bears/onsi/what-history-says-about-caleb-williams-and-bears-trying-to-bounce-back-</link>
@@ -57,36 +87,6 @@
       <pubDate>Sat, 17 Oct 2026 13:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears CB Kyler Gordon set for 2026 debut after PUP activation</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears CB Kyler Gordon set for 2026 debut after PUP activation</description>
-      <link>https://www.espn.com/nfl/story/_/id/50202598/bears-cb-kyler-gordon-set-2026-debut-pup-activation</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d4863272d63606af448f</guid>
-      <pubDate>Sat, 17 Oct 2026 12:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Two Unheralded Bears LBs Will be Vital to Team&apos;s Success Against Falcons</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Two Unheralded Bears LBs Will be Vital to Team&apos;s Success Against Falcons</description>
-      <link>https://www.si.com/nfl/bears/onsi/two-unheralded-bears-lbs-will-be-vital-to-team-s-success-against-falcons</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3cf9c7a01de5d4f66600</guid>
-      <pubDate>Sat, 17 Oct 2026 12:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears activate Kyler Gordon, sign Nick McCloud to active roster</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears activate Kyler Gordon, sign Nick McCloud to active roster</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-activate-kyler-gordon-sign-nick-mccloud-to-active-roster</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9a2edf7125158755d34b</guid>
-      <pubDate>Sat, 17 Oct 2026 06:40:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
