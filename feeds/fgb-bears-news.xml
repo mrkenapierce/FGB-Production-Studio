@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 17 Oct 2026 00:38:04 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 17 Oct 2026 04:58:31 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -27,6 +27,16 @@
       <pubDate>Fri, 16 Oct 2026 22:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Case Keenum: Unclear role for Week 6</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Case Keenum: Unclear role for Week 6</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-case-keenum-unclear-role-for-week-6/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b8962c713628673ea6dc</guid>
+      <pubDate>Fri, 16 Oct 2026 17:40:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -77,16 +87,6 @@
       <pubDate>Fri, 16 Oct 2026 12:24:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>NFL Week 6 best bets: Texans to shine against Jaguars in London, two anytime TD scorers for Bears-Falcons</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 6 best bets: Texans to shine against Jaguars in London, two anytime TD scorers for Bears-Falcons</description>
-      <link>https://www.cbssports.com/nfl/news/nfl-week-6-best-bets-texans-jaguars-london-two-anytime-td-scorers/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-860b16653106e0e86b1f</guid>
-      <pubDate>Fri, 16 Oct 2026 11:53:06 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
