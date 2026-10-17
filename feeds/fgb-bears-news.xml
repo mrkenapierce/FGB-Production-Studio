@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 16 Oct 2026 22:19:22 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 17 Oct 2026 00:38:04 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>NFL predictions: Bears will bounce back big against the Falcons</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL predictions: Bears will bounce back big against the Falcons</description>
+      <link>https://sports.yahoo.com/articles/nfl-predictions-bears-bounce-back-000000526.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-001ff798bc4df1f22fe4</guid>
+      <pubDate>Sat, 17 Oct 2026 00:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears at Falcons: 3 Props to Play</title>
@@ -20,13 +30,13 @@
     </item>
 
     <item>
-      <title>Is Chicago Bears’ secondary the team’s biggest concern?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Is Chicago Bears’ secondary the team’s biggest concern?</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-secondary-team-biggest-210000446.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7b7d10b2346abb41fda1</guid>
-      <pubDate>Fri, 16 Oct 2026 21:00:00 GMT</pubDate>
+      <title>Bears&apos; Tyson Bagent: Could be QB2 against Atlanta</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Tyson Bagent: Could be QB2 against Atlanta</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-tyson-bagent-could-be-qb2-against-atlanta/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8a984fd04fb36857578c</guid>
+      <pubDate>Fri, 16 Oct 2026 16:33:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -75,16 +85,6 @@
       <link>https://www.cbssports.com/nfl/news/nfl-week-6-best-bets-texans-jaguars-london-two-anytime-td-scorers/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-860b16653106e0e86b1f</guid>
       <pubDate>Fri, 16 Oct 2026 11:53:06 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Prisco&apos;s Week 6 NFL picks: Buccaneers upset Steelers, Falcons over Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Prisco&apos;s Week 6 NFL picks: Buccaneers upset Steelers, Falcons over Bears</description>
-      <link>https://www.cbssports.com/nfl/news/pete-priscos-week-6-nfl-picks-odds-predictions/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-86575505350f64d49274</guid>
-      <pubDate>Fri, 16 Oct 2026 11:44:32 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
