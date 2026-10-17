@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 17 Oct 2026 04:58:31 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 17 Oct 2026 09:01:09 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -60,16 +60,6 @@
     </item>
 
     <item>
-      <title>Bears&apos; Caleb Williams questionable after 3 days of practice</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; Caleb Williams questionable after 3 days of practice</description>
-      <link>https://www.espn.com/nfl/story/_/id/50197730/bears-caleb-williams-questionable-falcons</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-60d88546a283b6e947fc</guid>
-      <pubDate>Fri, 16 Oct 2026 14:02:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
       <title>Top Matchups that Will Make or Break the Bears in Week 6 vs Falcons</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Top Matchups that Will Make or Break the Bears in Week 6 vs Falcons</description>
       <link>https://www.si.com/nfl/bears/onsi/top-matchups-that-will-make-or-break-the-bears-in-week-6-vs-falcons</link>
@@ -80,13 +70,23 @@
     </item>
 
     <item>
-      <title>Falcons&apos; Michael Penix Jr. (ribs) cleared to play vs. Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Falcons&apos; Michael Penix Jr. (ribs) cleared to play vs. Bears</description>
-      <link>https://www.espn.com/nfl/story/_/id/50197497/falcons-michael-penix-jr-ribs-cleared-play-vs-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0ba9981c4d6583125e6f</guid>
-      <pubDate>Fri, 16 Oct 2026 12:24:00 GMT</pubDate>
+      <title>Ben Johnson pleased with Bears&apos; week of practice | Press Conference</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Ben Johnson pleased with Bears&apos; week of practice | Press Conference</description>
+      <link>https://www.chicagobears.com/video/ben-johnson-pleased-with-bears-week-of-practice-press-conference</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c6b9aac36fcc91a39599</guid>
+      <pubDate>Fri, 16 Oct 2026 10:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears mailbag: Jaylon Johnson’s drop-off, defensive injuries raise concerns ahead of Falcons game</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears mailbag: Jaylon Johnson’s drop-off, defensive injuries raise concerns ahead of Falcons game</description>
+      <link>https://www.nytimes.com/athletic/7694036/2026/10/16/bears-jaylon-johnson-shemar-turner-mailbag/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5bcb94acea62a5505998</guid>
+      <pubDate>Fri, 16 Oct 2026 04:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
