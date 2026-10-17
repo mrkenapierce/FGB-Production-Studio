@@ -5,26 +5,36 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 17 Oct 2026 09:01:09 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 17 Oct 2026 12:56:11 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>NFL predictions: Bears will bounce back big against the Falcons</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL predictions: Bears will bounce back big against the Falcons</description>
-      <link>https://sports.yahoo.com/articles/nfl-predictions-bears-bounce-back-000000526.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-001ff798bc4df1f22fe4</guid>
-      <pubDate>Sat, 17 Oct 2026 00:00:00 GMT</pubDate>
+      <title>Chicago Bears Week 6 Flashbacks: A meltdown, a milestone, and a breakout</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Week 6 Flashbacks: A meltdown, a milestone, and a breakout</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-week-6-flashbacks-120000568.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8a9c328329023758dc37</guid>
+      <pubDate>Sat, 17 Oct 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears at Falcons: 3 Props to Play</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears at Falcons: 3 Props to Play</description>
-      <link>https://sports.yahoo.com/articles/bears-falcons-3-props-play-220000574.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-72a44a40a0dd042a037d</guid>
-      <pubDate>Fri, 16 Oct 2026 22:00:00 GMT</pubDate>
+      <title>Chicago Bears at Atlanta Falcons: Who Wins and Why for Week 6</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears at Atlanta Falcons: Who Wins and Why for Week 6</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-at-atlanta-falcons-picks</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-43a9fa8ece47c74deafb</guid>
+      <pubDate>Sat, 17 Oct 2026 05:05:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>TV broadcast map for Bears vs. Falcons in Week 6</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: TV broadcast map for Bears vs. Falcons in Week 6</description>
+      <link>https://sports.yahoo.com/articles/tv-broadcast-map-bears-vs-120041264.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9ff13933b4c4f6399657</guid>
+      <pubDate>Sat, 17 Oct 2026 05:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -60,33 +70,23 @@
     </item>
 
     <item>
-      <title>Top Matchups that Will Make or Break the Bears in Week 6 vs Falcons</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Top Matchups that Will Make or Break the Bears in Week 6 vs Falcons</description>
-      <link>https://www.si.com/nfl/bears/onsi/top-matchups-that-will-make-or-break-the-bears-in-week-6-vs-falcons</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8402d5a94639f92b1b4d</guid>
-      <pubDate>Fri, 16 Oct 2026 13:01:00 GMT</pubDate>
+      <title>Bears&apos; Caleb Williams questionable after 3 days of practice</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; Caleb Williams questionable after 3 days of practice</description>
+      <link>https://www.espn.com/nfl/story/_/id/50197730/bears-caleb-williams-questionable-falcons</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-60d88546a283b6e947fc</guid>
+      <pubDate>Fri, 16 Oct 2026 14:02:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
-      <title>Ben Johnson pleased with Bears&apos; week of practice | Press Conference</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Ben Johnson pleased with Bears&apos; week of practice | Press Conference</description>
-      <link>https://www.chicagobears.com/video/ben-johnson-pleased-with-bears-week-of-practice-press-conference</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c6b9aac36fcc91a39599</guid>
-      <pubDate>Fri, 16 Oct 2026 10:00:00 GMT</pubDate>
+      <title>Falcons&apos; Michael Penix Jr. (ribs) cleared to play vs. Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Falcons&apos; Michael Penix Jr. (ribs) cleared to play vs. Bears</description>
+      <link>https://www.espn.com/nfl/story/_/id/50197497/falcons-michael-penix-jr-ribs-cleared-play-vs-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0ba9981c4d6583125e6f</guid>
+      <pubDate>Fri, 16 Oct 2026 12:24:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears mailbag: Jaylon Johnson’s drop-off, defensive injuries raise concerns ahead of Falcons game</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears mailbag: Jaylon Johnson’s drop-off, defensive injuries raise concerns ahead of Falcons game</description>
-      <link>https://www.nytimes.com/athletic/7694036/2026/10/16/bears-jaylon-johnson-shemar-turner-mailbag/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5bcb94acea62a5505998</guid>
-      <pubDate>Fri, 16 Oct 2026 04:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
