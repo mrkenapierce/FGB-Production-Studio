@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 18 Oct 2026 18:55:25 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 18 Oct 2026 21:10:52 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Caleb Williams is back, so is Chicago&apos;s hope: Bears vs. Falcons winners, losers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Caleb Williams is back, so is Chicago&apos;s hope: Bears vs. Falcons winners, losers</description>
+      <link>https://sports.yahoo.com/articles/caleb-williams-back-chicagos-big-205002062.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4d9e18e6da5cc278d597</guid>
+      <pubDate>Sun, 18 Oct 2026 20:50:02 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Ground the Atlanta Falcons in Caleb Williams’ Return</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Ground the Atlanta Falcons in Caleb Williams’ Return</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-ground-atlanta-falcons-204641168.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-174588c791ab93e7dda3</guid>
+      <pubDate>Sun, 18 Oct 2026 20:46:41 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears vs. Falcons odds, predictions: Use Polymarket promo code CBSSPORTS to get a $25 bonus for NFL Week 6</title>
@@ -20,13 +40,33 @@
     </item>
 
     <item>
-      <title>Bears vs. Falcons score, live updates: Caleb Williams returns in Week 6; Michael Penix Jr. good to go after rib injury</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Falcons score, live updates: Caleb Williams returns in Week 6; Michael Penix Jr. good to go after rib injury</description>
-      <link>https://sports.yahoo.com/nfl/live/bears-falcons-score-live-updates-inactives-highlights-stats-where-to-watch-caleb-williams-return-152116446.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4a72562bd906f4adf54a</guid>
-      <pubDate>Sun, 18 Oct 2026 15:21:16 GMT</pubDate>
+      <title>FULL HIGHLIGHTS: Bears&apos; 31-23 Week 6 win over Falcons</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: FULL HIGHLIGHTS: Bears&apos; 31-23 Week 6 win over Falcons</description>
+      <link>https://www.chicagobears.com/video/full-highlights-bears-31-23-week-6-win-over-falcons</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9b1bc68655e7532187f8</guid>
+      <pubDate>Sun, 18 Oct 2026 14:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams Headlines Biggest Winners From Bears Week 6 Win in Atlanta</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams Headlines Biggest Winners From Bears Week 6 Win in Atlanta</description>
+      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-headlines-biggest-winners-from-bears-week-6-win-in-atlanta</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c588dca475021b7052e3</guid>
+      <pubDate>Sun, 18 Oct 2026 14:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears vs. Atlanta Falcons: Game Highlights</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Chicago Bears vs. Atlanta Falcons: Game Highlights</description>
+      <link>https://www.espn.com/video/clip/_/id/50212998/game-highlights</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-aeaf43c19f192712b62d</guid>
+      <pubDate>Sun, 18 Oct 2026 13:55:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
@@ -40,53 +80,13 @@
     </item>
 
     <item>
-      <title>Chicago Bears announce roster moves</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears announce roster moves</description>
-      <link>https://www.chicagobears.com/news/chicago-bears-announce-roster-moves-october-17-2026</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-75780f24c54a53da3422</guid>
-      <pubDate>Sun, 18 Oct 2026 13:52:00 GMT</pubDate>
+      <title>Caleb Williams looks anything but rusty as Bears rebound, survive late Falcons rally</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Caleb Williams looks anything but rusty as Bears rebound, survive late Falcons rally</description>
+      <link>https://www.nytimes.com/athletic/7701442/2026/10/18/bears-falcons-nfl-week-6-result-takeaways/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-39d1c07d2c565f55f0dd</guid>
+      <pubDate>Sun, 18 Oct 2026 13:42:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears QB Caleb Williams joins elite company vs. Falcons</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears QB Caleb Williams joins elite company vs. Falcons</description>
-      <link>https://sports.yahoo.com/articles/bears-qb-caleb-williams-joins-183618290.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-62a8c5f2fe468ecc5c33</guid>
-      <pubDate>Sun, 18 Oct 2026 11:36:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bijan Robinson mashes his accelerator on 23-yard burst into Bears&apos; territory</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bijan Robinson mashes his accelerator on 23-yard burst into Bears&apos; territory</description>
-      <link>https://www.nfl.com/videos/bijan-robinson-mashes-his-accelerator-on-23-yard-burst-into-bears-territory</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-83eb2228970382e5d05d</guid>
-      <pubDate>Sun, 18 Oct 2026 11:08:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams&apos; 23-yard strike to Rome Odunze gets Bears inside Falcons&apos; territory</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Caleb Williams&apos; 23-yard strike to Rome Odunze gets Bears inside Falcons&apos; territory</description>
-      <link>https://www.nfl.com/videos/caleb-williams-23-yard-strike-to-rome-odunze-gets-bears-inside-falcons-territory</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3ad19f49d69a1d02689e</guid>
-      <pubDate>Sun, 18 Oct 2026 10:31:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Tyson Bagent: Chicago&apos;s backup for Week 6</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Tyson Bagent: Chicago&apos;s backup for Week 6</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-tyson-bagent-chicagos-backup-for-week-6/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-72289c19a22b408268d1</guid>
-      <pubDate>Sun, 18 Oct 2026 10:08:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
