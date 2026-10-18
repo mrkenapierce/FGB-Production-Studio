@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 18 Oct 2026 00:30:04 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 18 Oct 2026 04:59:02 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears vs. Falcons: How to watch and listen, previews, odds, and more</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Falcons: How to watch and listen, previews, odds, and more</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-falcons-watch-listen-040100750.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-22dd28c6c2952e67fe4f</guid>
+      <pubDate>Sun, 18 Oct 2026 04:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>NFL Week 6 best bets: Texans to shine against Jaguars in London, two anytime TD scorers for Bears-Falcons</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 6 best bets: Texans to shine against Jaguars in London, two anytime TD scorers for Bears-Falcons</description>
+      <link>https://www.cbssports.com/nfl/news/nfl-week-6-best-bets-texans-jaguars-london-two-anytime-td-scorers/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-860b16653106e0e86b1f</guid>
+      <pubDate>Sun, 18 Oct 2026 03:43:24 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
 
     <item>
       <title>Behind the Scenes: Filming &apos;Holiday Touchdown: A Bears Love Story&apos;</title>
@@ -50,43 +70,23 @@
     </item>
 
     <item>
-      <title>Reports: Caleb Williams to start for Bears Sunday</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Reports: Caleb Williams to start for Bears Sunday</description>
-      <link>https://sports.yahoo.com/articles/reports-caleb-williams-start-bears-204747789.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f6658c57a65fbb388998</guid>
-      <pubDate>Sat, 17 Oct 2026 20:47:47 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Zavier Scott: Elevated by Chicago</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Zavier Scott: Elevated by Chicago</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-zavier-scott-elevated-by-chicago/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c205c2768123e78a033e</guid>
-      <pubDate>Sat, 17 Oct 2026 16:21:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears CB Kyler Gordon set for 2026 debut after PUP activation</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears CB Kyler Gordon set for 2026 debut after PUP activation</description>
-      <link>https://www.espn.com/nfl/story/_/id/50202598/bears-cb-kyler-gordon-set-2026-debut-pup-activation</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d4863272d63606af448f</guid>
-      <pubDate>Sat, 17 Oct 2026 12:15:00 GMT</pubDate>
+      <title>Jaden Craig throws 2 TDs as TCU beats Baylor 17-6 to end the Bears&apos; 4-game winning streak</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Jaden Craig throws 2 TDs as TCU beats Baylor 17-6 to end the Bears&apos; 4-game winning streak</description>
+      <link>https://www.espn.com/college-football/recap?gameId=401856832</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4a20ae0f8d699c85c1af</guid>
+      <pubDate>Sat, 17 Oct 2026 17:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
-      <title>Reports: Caleb Williams to start for Bears Sunday</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Reports: Caleb Williams to start for Bears Sunday</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/reports-caleb-williams-to-start-for-bears-sunday</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-bf30829ec1727c722c6a</guid>
-      <pubDate>Sat, 17 Oct 2026 09:47:00 GMT</pubDate>
+      <title>Trip Attempt by Bears Kicker Against Packers Draws No NFL Fine</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Trip Attempt by Bears Kicker Against Packers Draws No NFL Fine</description>
+      <link>https://www.si.com/nfl/bears/onsi/trip-attempt-by-bears-kicker-against-packers-draws-no-nfl-fine</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5886a1b00eef25c2a14d</guid>
+      <pubDate>Sat, 17 Oct 2026 16:30:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
