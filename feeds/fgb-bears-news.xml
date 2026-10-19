@@ -5,78 +5,88 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 19 Oct 2026 13:03:50 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 19 Oct 2026 19:17:50 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Falcons – Bears Week 6 recap: A whole lot of stumbling</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Falcons – Bears Week 6 recap: A whole lot of stumbling</description>
-      <link>https://sports.yahoo.com/articles/falcons-bears-week-6-recap-120000938.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e6b13fc88519479941e9</guid>
-      <pubDate>Mon, 19 Oct 2026 12:00:00 GMT</pubDate>
+      <title>The 2026 Chicago Bears just had their statement game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The 2026 Chicago Bears just had their statement game</description>
+      <link>https://sports.yahoo.com/articles/2026-chicago-bears-just-had-160000872.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-dc2b606722f2403d1bed</guid>
+      <pubDate>Mon, 19 Oct 2026 16:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears rebound with explosive offense in win over Falcons</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears rebound with explosive offense in win over Falcons</description>
-      <link>https://sports.yahoo.com/articles/bears-rebound-explosive-offense-win-120000453.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-09bcbd485e7f293ad258</guid>
+      <title>Bears in Belfast: Postcards with Zach Miller | Monday, Oct. 19</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears in Belfast: Postcards with Zach Miller | Monday, Oct. 19</description>
+      <link>https://www.chicagobears.com/news/bears-in-belfast-postcards-with-zach-miller-monday-oct-19</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ec2381a63226a3d2ef92</guid>
+      <pubDate>Mon, 19 Oct 2026 13:57:23 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>By the Numbers: Bears&apos; Week 6 victory over Falcons</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: By the Numbers: Bears&apos; Week 6 victory over Falcons</description>
+      <link>https://www.chicagobears.com/news/by-the-numbers-bears-week-6-victory-over-falcons</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e1c85d7ad8fd1af39a34</guid>
+      <pubDate>Mon, 19 Oct 2026 13:44:34 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Why the Bears Must Trade for Colts&apos; Star DT After Chris Ballard Firing</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why the Bears Must Trade for Colts&apos; Star DT After Chris Ballard Firing</description>
+      <link>https://www.si.com/nfl/bears/onsi/why-the-bears-must-trade-for-colts-star-dt-after-chris-ballard-firing</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-93e86705020f7fdf6465</guid>
       <pubDate>Mon, 19 Oct 2026 12:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Jahdae Walker: Ejected from Week 6 win</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Jahdae Walker: Ejected from Week 6 win</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-jahdae-walker-ejected-from-week-6-win/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6e183640181fc342f715</guid>
+      <pubDate>Mon, 19 Oct 2026 11:44:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Give Major Caleb Williams Injury Update</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Give Major Caleb Williams Injury Update</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-major-caleb-williams-171623155.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6245202b2310c432129d</guid>
+      <pubDate>Mon, 19 Oct 2026 10:16:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Chicago Bears QB Caleb Williams Sets Impressive Record in Win Over Falcons</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears QB Caleb Williams Sets Impressive Record in Win Over Falcons</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-qb-caleb-williams-sets-impressive-record-in-win-over-falcons</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-eef84801034c327fb5fa</guid>
-      <pubDate>Mon, 19 Oct 2026 04:00:00 GMT</pubDate>
+      <title>Chicago Bears, Tampa Bay Buccaneers Trending Toward Becoming Perfect Trade Partners</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears, Tampa Bay Buccaneers Trending Toward Becoming Perfect Trade Partners</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-tampa-bay-buccaneers-trade-options</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-838926fb897a445bad53</guid>
+      <pubDate>Mon, 19 Oct 2026 10:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Bears DB Kyler Gordon makes history in return to game action</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears DB Kyler Gordon makes history in return to game action</description>
-      <link>https://www.chicagobears.com/news/bears-db-kyler-gordon-makes-history-in-return-to-game-action</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0d25b7ba50f8cde3f148</guid>
-      <pubDate>Mon, 19 Oct 2026 00:39:20 GMT</pubDate>
+      <title>Bears&apos; Kyler Gordon returns with vengeance, answers critics</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; Kyler Gordon returns with vengeance, answers critics</description>
+      <link>https://www.espn.com/nfl/story/_/id/50212900/chicago-bears-kyler-gordon-future-injuries-critics</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-45508c5d4f1b67fdbecc</guid>
+      <pubDate>Mon, 19 Oct 2026 05:11:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Game Recap: Bears improve to 4-2 with road victory in Atlanta</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Recap: Bears improve to 4-2 with road victory in Atlanta</description>
-      <link>https://www.chicagobears.com/news/game-recap-bears-improve-to-4-2-with-road-victory-in-atlanta-2026-week-6</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1a4d5bd6c80046dc4364</guid>
-      <pubDate>Sun, 18 Oct 2026 20:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson Forced to Explain Why Bears Took Their Foot Off the Gas</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Forced to Explain Why Bears Took Their Foot Off the Gas</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-forced-to-explain-why-bears-took-their-foot-off-the-gas</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d948e1e4051a5f67515e</guid>
-      <pubDate>Sun, 18 Oct 2026 16:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams and the Bears jump out to big lead, hold on to win 31-23</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Caleb Williams and the Bears jump out to big lead, hold on to win 31-23</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/caleb-williams-and-the-bears-jump-out-to-big-lead-hold-on-to-win-31-23</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-00e0d96bd06b588ed7cf</guid>
-      <pubDate>Sun, 18 Oct 2026 09:22:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
