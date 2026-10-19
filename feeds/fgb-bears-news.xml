@@ -5,19 +5,9 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 19 Oct 2026 01:11:49 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 19 Oct 2026 06:10:42 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
-
-    <item>
-      <title>Bears vs. Patriots odds: Opening lines for Week 7 matchup</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Patriots odds: Opening lines for Week 7 matchup</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-patriots-odds-opening-004654709.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8acf9cad5df305a65181</guid>
-      <pubDate>Mon, 19 Oct 2026 00:46:54 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
 
     <item>
       <title>Bears DB Kyler Gordon makes history in return to game action</title>
@@ -30,13 +20,13 @@
     </item>
 
     <item>
-      <title>Bears’ Kyler Gordon was ‘Confident’ and ‘Absolutely’ ready to play</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Kyler Gordon was ‘Confident’ and ‘Absolutely’ ready to play</description>
-      <link>https://sports.yahoo.com/articles/bears-kyler-gordon-confident-absolutely-233401373.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a29ce8106196cfda9685</guid>
-      <pubDate>Sun, 18 Oct 2026 23:34:01 GMT</pubDate>
+      <title>NFL Week 6 Reaction Caleb Williams returns to Bears, Steelers win in OT | NFL Primetime</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: NFL Week 6 Reaction Caleb Williams returns to Bears, Steelers win in OT | NFL Primetime</description>
+      <link>https://www.espn.com/video/clip/_/id/50215079/nfl-week-6-reaction-caleb-williams-returns-bears-steelers-win-ot-nfl-prime</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b293c4007db1db5e53e5</guid>
+      <pubDate>Sun, 18 Oct 2026 22:07:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
@@ -50,33 +40,23 @@
     </item>
 
     <item>
-      <title>Bears&apos; Kyler Gordon proves season debut worth the wait with historic performance</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears&apos; Kyler Gordon proves season debut worth the wait with historic performance</description>
-      <link>https://www.nfl.com/news/bears-kyler-gordon-proves-season-debut-worth-the-wait-with-historic-performance</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b35431c3b73c910ca9a5</guid>
+      <title>Bears&apos; Caleb Williams gets candid after dominant return</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears&apos; Caleb Williams gets candid after dominant return</description>
+      <link>https://sports.yahoo.com/articles/bears-caleb-williams-gets-candid-003000684.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9e027430c8daa83fabd6</guid>
       <pubDate>Sun, 18 Oct 2026 16:59:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Ben Johnson Forced to Explain Why Bears Took Their Foot Off the Gas</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Forced to Explain Why Bears Took Their Foot Off the Gas</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-forced-to-explain-why-bears-took-their-foot-off-the-gas</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d948e1e4051a5f67515e</guid>
+      <title>Bears’ Caleb Williams reached out to ‘John Wick’ for motivation before Falcons clash</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Caleb Williams reached out to ‘John Wick’ for motivation before Falcons clash</description>
+      <link>https://sports.yahoo.com/articles/bears-caleb-williams-reached-john-032812170.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d52913a07c0e903e22c6</guid>
       <pubDate>Sun, 18 Oct 2026 16:59:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Kyler Gordon Makes NFL History With Electric Performance in Bears&apos; Week 6 Win</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyler Gordon Makes NFL History With Electric Performance in Bears&apos; Week 6 Win</description>
-      <link>https://www.si.com/nfl/bears/onsi/kyler-gordon-nfl-history-week-6</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cbdf04e4bc13b2c8b33c</guid>
-      <pubDate>Sun, 18 Oct 2026 16:09:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -87,6 +67,26 @@
       <pubDate>Sun, 18 Oct 2026 16:01:16 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams sharp in return as Bears hold off Falcons 31-23</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Caleb Williams sharp in return as Bears hold off Falcons 31-23</description>
+      <link>https://www.cbssports.com/nfl/news/caleb-williams-sharp-in-return-as-bears-hold-off-falcons-31-23/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9ceaf35a2aab28b4a779</guid>
+      <pubDate>Sun, 18 Oct 2026 15:18:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears vs. Atlanta Falcons: Game Highlights</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Chicago Bears vs. Atlanta Falcons: Game Highlights</description>
+      <link>https://www.espn.com/video/clip/_/id/50212998</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e9abd498def1681f5152</guid>
+      <pubDate>Sun, 18 Oct 2026 15:16:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
