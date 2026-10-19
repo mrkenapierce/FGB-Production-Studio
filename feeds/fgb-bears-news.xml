@@ -5,18 +5,58 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 19 Oct 2026 19:17:50 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 19 Oct 2026 22:57:44 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>The 2026 Chicago Bears just had their statement game</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The 2026 Chicago Bears just had their statement game</description>
-      <link>https://sports.yahoo.com/articles/2026-chicago-bears-just-had-160000872.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dc2b606722f2403d1bed</guid>
-      <pubDate>Mon, 19 Oct 2026 16:00:00 GMT</pubDate>
+      <title>Is Kyler Gordon the Chicago Bears’ Most Important Defender?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Is Kyler Gordon the Chicago Bears’ Most Important Defender?</description>
+      <link>https://sports.yahoo.com/articles/kyler-gordon-chicago-bears-most-223000930.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b9c7137aaab0fe2e24a0</guid>
+      <pubDate>Mon, 19 Oct 2026 22:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>5 things that stood out to Bears coordinators in Week 6 win</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 5 things that stood out to Bears coordinators in Week 6 win</description>
+      <link>https://www.chicagobears.com/news/5-things-that-stood-out-to-bears-coordinators-in-week-6-win</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-acf366562827901eac3c</guid>
+      <pubDate>Mon, 19 Oct 2026 20:40:31 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Caleb Williams has joined rarified air with 2 MVP QBs after his Bears return</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Caleb Williams has joined rarified air with 2 MVP QBs after his Bears return</description>
+      <link>https://sports.yahoo.com/articles/caleb-williams-joined-rarified-air-222409097.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0b22847783b07c984e10</guid>
+      <pubDate>Mon, 19 Oct 2026 15:23:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Falcons HC Kevin Stefanski reflects on Week 6 loss to Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Falcons HC Kevin Stefanski reflects on Week 6 loss to Bears</description>
+      <link>https://www.nfl.com/videos/falcons-hc-kevin-stefanski-reflects-on-week-6-loss-to-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-332fc7d7db46e25ce28f</guid>
+      <pubDate>Mon, 19 Oct 2026 14:58:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Reunite With Defensive Back Ahead of Week 7 Game vs. Patriots</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Reunite With Defensive Back Ahead of Week 7 Game vs. Patriots</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-transactions-roster-signings-week-7-patriots</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e83d7c69519a2955f360</guid>
+      <pubDate>Mon, 19 Oct 2026 14:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -30,21 +70,11 @@
     </item>
 
     <item>
-      <title>By the Numbers: Bears&apos; Week 6 victory over Falcons</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: By the Numbers: Bears&apos; Week 6 victory over Falcons</description>
-      <link>https://www.chicagobears.com/news/by-the-numbers-bears-week-6-victory-over-falcons</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e1c85d7ad8fd1af39a34</guid>
-      <pubDate>Mon, 19 Oct 2026 13:44:34 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Why the Bears Must Trade for Colts&apos; Star DT After Chris Ballard Firing</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why the Bears Must Trade for Colts&apos; Star DT After Chris Ballard Firing</description>
-      <link>https://www.si.com/nfl/bears/onsi/why-the-bears-must-trade-for-colts-star-dt-after-chris-ballard-firing</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-93e86705020f7fdf6465</guid>
-      <pubDate>Mon, 19 Oct 2026 12:00:00 GMT</pubDate>
+      <title>Kyler Gordon&apos;s Playing Time and Other Bears Snap Count Observations From Week 6 Win</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyler Gordon&apos;s Playing Time and Other Bears Snap Count Observations From Week 6 Win</description>
+      <link>https://www.si.com/nfl/bears/onsi/kyler-gordon-s-playing-time-and-other-bears-snap-count-observations-from-week-6-win</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-77aaed54217714d41bd4</guid>
+      <pubDate>Mon, 19 Oct 2026 12:59:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -57,36 +87,6 @@
       <pubDate>Mon, 19 Oct 2026 11:44:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Give Major Caleb Williams Injury Update</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Give Major Caleb Williams Injury Update</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-major-caleb-williams-171623155.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6245202b2310c432129d</guid>
-      <pubDate>Mon, 19 Oct 2026 10:16:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears, Tampa Bay Buccaneers Trending Toward Becoming Perfect Trade Partners</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears, Tampa Bay Buccaneers Trending Toward Becoming Perfect Trade Partners</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-tampa-bay-buccaneers-trade-options</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-838926fb897a445bad53</guid>
-      <pubDate>Mon, 19 Oct 2026 10:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Kyler Gordon returns with vengeance, answers critics</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears&apos; Kyler Gordon returns with vengeance, answers critics</description>
-      <link>https://www.espn.com/nfl/story/_/id/50212900/chicago-bears-kyler-gordon-future-injuries-critics</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-45508c5d4f1b67fdbecc</guid>
-      <pubDate>Mon, 19 Oct 2026 05:11:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
