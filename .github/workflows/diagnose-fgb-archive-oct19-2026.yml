@@ -1,0 +1,88 @@
+name: Diagnose FGB Archive October 19
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnose-fgb-archive-oct19-2026.yml'
+permissions:
+  contents: write
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare protected OVH SSH connection
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Read only diagnosis on OVH
+        run: |
+          set -euo pipefail
+          u=''
+          for candidate in ubuntu admin debian root; do
+            if ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=7 -i ~/.ssh/ovh_key "$candidate@40.160.144.185" 'printf ready' 2>/dev/null | grep -q ready; then u="$candidate"; break; fi
+          done
+          test -n "$u" || { echo 'No authorized SSH session'; exit 1; }
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "$u@40.160.144.185" 'bash -s' > archive-diagnosis.txt <<'REMOTE'
+          set -euo pipefail
+          if [ "$(id -u)" = 0 ]; then SUDO=''; else SUDO='sudo -n'; fi
+          echo "FGB_ARCHIVE_OCT19_DIAG"
+          echo "UTC_CHECK=$(date -u +%FT%TZ)"
+          echo 'DOCKER_ARCHIVE_CONTAINERS'
+          $SUDO docker ps -a --filter label=com.docker.compose.service=archive --format '{{.Names}}|{{.Status}}'
+          $SUDO docker ps -a --filter label=com.docker.compose.service=archive_uploader --format '{{.Names}}|{{.Status}}'
+          cid=$($SUDO docker ps -aq --filter label=com.docker.compose.service=archive | head -1)
+          if [ -n "$cid" ]; then
+            echo 'ARCHIVE_SIDECAR=PRESENT'
+            $SUDO docker inspect --format 'STARTED={{.State.StartedAt}} STATUS={{.State.Status}} RESTARTS={{.RestartCount}}' "$cid"
+            mnt=$($SUDO docker inspect --format '{{range .Mounts}}{{if eq .Destination "/archive"}}{{.Source}}{{end}}{{end}}' "$cid")
+            if [ -n "$mnt" ]; then
+              echo 'ARCHIVE_VOLUME=FOUND'
+              for dir in partial ready; do
+                echo "SEGMENTS_$dir"
+                $SUDO find "$mnt/$dir" -maxdepth 1 -type f -name '20261019T*.ts' -printf '%f|bytes=%s|modified=%TY-%Tm-%TdT%TH:%TM:%TS\n' 2>/dev/null | sort || true
+              done
+              echo 'SEEN_CONTROL'
+              for f in force_seen retry_seen; do
+                if $SUDO test -f "$mnt/state/$f"; then echo "$f=$($SUDO cat "$mnt/state/$f")"; else echo "$f=ABSENT"; fi
+              done
+            else echo 'ARCHIVE_VOLUME=MISSING'; fi
+          else echo 'ARCHIVE_SIDECAR=ABSENT'; fi
+          echo 'LEGACY_ARCHIVE_FILES'
+          for dir in /srv/fgb-archive/hourly /srv/fgb-archive/state; do
+            if $SUDO test -d "$dir"; then
+              echo "$dir=EXISTS"
+              $SUDO find "$dir" -maxdepth 1 -type f -name '*20261019*' -printf '%f|bytes=%s\n' 2>/dev/null | sort | tail -30 || true
+            else echo "$dir=ABSENT"; fi
+          done
+          REMOTE
+          cat archive-diagnosis.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: archive-oct19-diagnosis
+          path: archive-diagnosis.txt
+          if-no-files-found: ignore
+      - name: Preserve sanitized report in repository
+        if: success()
+        run: |
+          set -euo pipefail
+          mkdir -p .github/diagnostics
+          cp archive-diagnosis.txt .github/diagnostics/archive-oct19-2026.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/diagnostics/archive-oct19-2026.txt
+          if ! git diff --cached --quiet; then
+            git commit -m 'Store Oct 19 FGB archive inspection'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
