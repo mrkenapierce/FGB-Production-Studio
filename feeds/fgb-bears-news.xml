@@ -5,18 +5,28 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 20 Oct 2026 12:10:02 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 20 Oct 2026 16:57:48 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>3 Reasons Why the Chicago Bears Won vs. the Falcons</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 3 Reasons Why the Chicago Bears Won vs. the Falcons</description>
-      <link>https://sports.yahoo.com/articles/3-reasons-why-chicago-bears-113000475.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-30c40cf53cc0657be6cd</guid>
-      <pubDate>Tue, 20 Oct 2026 11:30:00 GMT</pubDate>
+      <title>6 lessons learned in Week 6: Bears&apos; defense gets a weapon back, lackluster Giants have two superstars</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: 6 lessons learned in Week 6: Bears&apos; defense gets a weapon back, lackluster Giants have two superstars</description>
+      <link>https://www.cbssports.com/nfl/news/6-lessons-learned-in-week-6-bears-defense-giants/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6bb06162334d575556d0</guid>
+      <pubDate>Tue, 20 Oct 2026 16:53:28 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>How to watch, listen to, stream Bears-Patriots Thursday Night Football Week 7 game</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: How to watch, listen to, stream Bears-Patriots Thursday Night Football Week 7 game</description>
+      <link>https://www.chicagobears.com/news/how-to-watch-chicago-bears-new-england-patriots-thursday-night-football-2026-week-7-listen-stream-tv-radio-online-nfl</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5743d4fc33eb8663d35b</guid>
+      <pubDate>Tue, 20 Oct 2026 13:11:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
@@ -24,29 +34,19 @@
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 7 picks and score predictions: Bears top Patriots in Thursday thriller, Chiefs edge Seahawks</description>
       <link>https://www.cbssports.com/nfl/news/nfl-week-7-picks-score-predictions-odds-chiefs-seahawks/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-44371338f30adca1e858</guid>
-      <pubDate>Tue, 20 Oct 2026 11:00:57 GMT</pubDate>
+      <pubDate>Tue, 20 Oct 2026 13:07:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
-      <title>Examining the roster ties between Patriots, Bears ahead of Week 7</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Examining the roster ties between Patriots, Bears ahead of Week 7</description>
-      <link>https://sports.yahoo.com/articles/examining-roster-ties-between-patriots-110000222.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-13fb4fca2a3ffa84b91c</guid>
-      <pubDate>Tue, 20 Oct 2026 11:00:00 GMT</pubDate>
+      <title>Chicago Bears Deemed Potential Trade Landing Spot for 2 Arizona Cardinals Pro Bowlers</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Deemed Potential Trade Landing Spot for 2 Arizona Cardinals Pro Bowlers</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-deemed-potential-trade-landing-spot-cardinals</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-643f50b62a4529bbf3e2</guid>
+      <pubDate>Tue, 20 Oct 2026 09:14:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Five Bears moments that mattered in Atlanta: Hook and ladder, banana ball, more</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Five Bears moments that mattered in Atlanta: Hook and ladder, banana ball, more</description>
-      <link>https://www.nytimes.com/athletic/7705539/2026/10/20/bears-rome-odunze-hook-and-ladder-falcons/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-246bee27b09b234ea700</guid>
-      <pubDate>Tue, 20 Oct 2026 04:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -54,39 +54,39 @@
       <description>Football&apos;s Greatest Bears news brief from The Athletic: Week 7 NFL power rankings: Bears bounce back as Seahawks, Rams, Eagles continue free fall</description>
       <link>https://www.nytimes.com/athletic/7704974/2026/10/20/nfl-power-rankings-week-7-bears-seahawks-rams-eagles/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-73f6f054c052171dddbe</guid>
-      <pubDate>Tue, 20 Oct 2026 02:30:00 GMT</pubDate>
+      <pubDate>Tue, 20 Oct 2026 08:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
-      <title>5 things that stood out to Bears coordinators in Week 6 win</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 5 things that stood out to Bears coordinators in Week 6 win</description>
-      <link>https://www.chicagobears.com/news/5-things-that-stood-out-to-bears-coordinators-in-week-6-win</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-acf366562827901eac3c</guid>
-      <pubDate>Mon, 19 Oct 2026 20:40:31 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; T.J. Edwards: Still dealing with hamstring injury</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; T.J. Edwards: Still dealing with hamstring injury</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-t-j-edwards-still-dealing-with-hamstring-injury/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fd2381aff481f72005d4</guid>
-      <pubDate>Mon, 19 Oct 2026 17:21:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Kyle Monangai Injury Update and More From Bears&apos; Monday Practice Report For Week 7</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyle Monangai Injury Update and More From Bears&apos; Monday Practice Report For Week 7</description>
-      <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-bears-monday-practice-report-week-7</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fc6abd5e79b4b2747ed4</guid>
-      <pubDate>Mon, 19 Oct 2026 17:00:00 GMT</pubDate>
+      <title>Should the Bears Start Luke Newman or Jordan McFadden in Place of Jonah Jackson?</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Should the Bears Start Luke Newman or Jordan McFadden in Place of Jonah Jackson?</description>
+      <link>https://www.si.com/nfl/bears/onsi/should-the-bears-start-luke-newman-or-jordan-mcfadden-in-place-of-jonah-jackson</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d1e35589216afc278487</guid>
+      <pubDate>Tue, 20 Oct 2026 08:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Top Graded Bears Entering Week 7 vs. Patriots</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Top Graded Bears Entering Week 7 vs. Patriots</description>
+      <link>https://sports.yahoo.com/articles/top-graded-bears-entering-week-123000720.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f00651624cfa5f6c6f02</guid>
+      <pubDate>Tue, 20 Oct 2026 05:31:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears’ perfect Josh Sweat trade offer to Cardinals before NFL trade deadline</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ perfect Josh Sweat trade offer to Cardinals before NFL trade deadline</description>
+      <link>https://sports.yahoo.com/articles/bears-perfect-josh-sweat-trade-122357988.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-93756fd6e38f752113c6</guid>
+      <pubDate>Tue, 20 Oct 2026 05:23:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
   </channel>
 </rss>
