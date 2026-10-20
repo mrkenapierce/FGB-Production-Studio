@@ -34,6 +34,7 @@ jobs:
               print('OVH_API=CONNECTED')
               print('VPS_STATE='+str(v.get('state')))
               print('VPS_BOOT='+str(v.get('netbootMode')))
+              print('VPS_IP_METADATA='+str(v.get('ip','unavailable')))
               try:
                   ips=client.get('/vps/'+service+'/ips')
                   print('VPS_IPS='+','.join(str(s) for s in ips))
