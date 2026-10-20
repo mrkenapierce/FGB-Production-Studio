@@ -1,0 +1,66 @@
+name: Check OVH FGB VPS management status
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/check-ovh-fgb-vps-oct19.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      OVH_APPLICATION_KEY: ${{ secrets.OVH_APPLICATION_KEY }}
+      OVH_APPLICATION_SECRET: ${{ secrets.OVH_APPLICATION_SECRET }}
+      OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read OVH VPS metadata only
+        run: |
+          set -euo pipefail
+          echo 'FGB_OVH_MANAGEMENT_CHECK' > ovh-result.txt
+          if [ -z "$OVH_APPLICATION_KEY" ] || [ -z "$OVH_APPLICATION_SECRET" ] || [ -z "$OVH_CONSUMER_KEY" ]; then
+            echo 'OVH_API_CREDENTIALS=NOT_CONNECTED' >> ovh-result.txt
+          else
+            python -m pip -q install 'ovh>=1.2,<2'
+            python - <<'PY' >> ovh-result.txt
+          import ovh, os
+          client=ovh.Client(endpoint='ovh-us', application_key=os.environ['OVH_APPLICATION_KEY'], application_secret=os.environ['OVH_APPLICATION_SECRET'], consumer_key=os.environ['OVH_CONSUMER_KEY'])
+          service='vps-a13eee97.vps.ovh.us'
+          try:
+              v=client.get('/vps/'+service)
+              print('OVH_API=CONNECTED')
+              print('VPS_STATE='+str(v.get('state')))
+              print('VPS_BOOT='+str(v.get('netbootMode')))
+              try:
+                  ips=client.get('/vps/'+service+'/ips')
+                  print('VPS_IPS='+','.join(str(s) for s in ips))
+              except Exception as e:
+                  print('VPS_IPS=UNAVAILABLE:'+type(e).__name__)
+          except Exception as e:
+              print('OVH_API=FAILED:'+type(e).__name__)
+          PY
+          fi
+          cat ovh-result.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ovh-management-check
+          path: ovh-result.txt
+          if-no-files-found: ignore
+      - name: Record diagnostic report
+        if: success()
+        run: |
+          set -euo pipefail
+          mkdir -p .github/diagnostics
+          cp ovh-result.txt .github/diagnostics/ovh-api-oct19.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/diagnostics/ovh-api-oct19.txt
+          if ! git diff --cached --quiet; then
+            git commit -m 'Record OVH management API diagnostic'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
