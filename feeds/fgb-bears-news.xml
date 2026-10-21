@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 20 Oct 2026 23:15:10 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 21 Oct 2026 01:36:56 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears looking to stack strong performances on short week</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears looking to stack strong performances on short week</description>
+      <link>https://www.chicagobears.com/news/bears-looking-to-stack-strong-performances-on-short-week</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6f994263dff3a25b0e75</guid>
+      <pubDate>Tue, 20 Oct 2026 23:49:49 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Hot Take Tuesday: Chicago Bears’ Offense is Real, and it’s Spectacular</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Hot Take Tuesday: Chicago Bears’ Offense is Real, and it’s Spectacular</description>
+      <link>https://sports.yahoo.com/articles/hot-tuesday-chicago-bears-offense-230000517.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5e78b51e3911f9fb3818</guid>
+      <pubDate>Tue, 20 Oct 2026 23:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Patriots vs. Bears Tuesday injury report: Carlton Davis III returns, leaving three non-participants</title>
@@ -15,16 +35,6 @@
       <link>https://sports.yahoo.com/articles/patriots-vs-bears-tuesday-injury-222804740.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-fd752ba8d767df6d7fe7</guid>
       <pubDate>Tue, 20 Oct 2026 22:28:04 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears list Jonah Jackson as a limited practice participant</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears list Jonah Jackson as a limited practice participant</description>
-      <link>https://sports.yahoo.com/articles/bears-list-jonah-jackson-limited-214121789.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-160d9fbfb5cad14a0439</guid>
-      <pubDate>Tue, 20 Oct 2026 21:41:21 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -40,21 +50,31 @@
     </item>
 
     <item>
-      <title>6 lessons learned in Week 6: Bears&apos; defense gets a weapon back, lackluster Giants have two superstars</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: 6 lessons learned in Week 6: Bears&apos; defense gets a weapon back, lackluster Giants have two superstars</description>
-      <link>https://www.cbssports.com/nfl/news/6-lessons-learned-in-week-6-bears-defense-giants/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6bb06162334d575556d0</guid>
-      <pubDate>Tue, 20 Oct 2026 16:53:28 GMT</pubDate>
+      <title>Bears&apos; Jack Sanborn: Dealing with concussion</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Jack Sanborn: Dealing with concussion</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-jack-sanborn-dealing-with-concussion/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-79339307d92d6a2ef7ac</guid>
+      <pubDate>Tue, 20 Oct 2026 17:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
-      <title>Bears-Patriots TNF preview | Bears Weekly</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears-Patriots TNF preview | Bears Weekly</description>
-      <link>https://www.chicagobears.com/audio/bears-patriots-tnf-preview-bears-weekly</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6112fc07574662f17c52</guid>
-      <pubDate>Tue, 20 Oct 2026 14:44:00 GMT</pubDate>
+      <title>Mike Vrabel and Ben Johnson evaluate the Patriots vs. Bears Week 7 matchup | &apos;The NFL Report&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Mike Vrabel and Ben Johnson evaluate the Patriots vs. Bears Week 7 matchup | &apos;The NFL Report&apos;</description>
+      <link>https://www.nfl.com/videos/mike-vrabel-and-ben-johnson-evaluate-the-patriots-vs-bears-week-7-matchup-the-nfl-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-eac9e421cdc09b833485</guid>
+      <pubDate>Tue, 20 Oct 2026 16:22:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears announce That&apos;s Caring as second 2026 Small Business All-Pros Winner, presented by PNC</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears announce That&apos;s Caring as second 2026 Small Business All-Pros Winner, presented by PNC</description>
+      <link>https://www.chicagobears.com/news/chicago-bears-announce-that-s-caring-as-second-2026-small-business-all-pros-winner-presented-by-pnc</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6c2f368438eeb5f3b959</guid>
+      <pubDate>Tue, 20 Oct 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
@@ -65,26 +85,6 @@
       <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-everything-bears-tuesday-practice-report</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-16f0469a3c1520a09216</guid>
       <pubDate>Tue, 20 Oct 2026 14:11:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>NFL best bets Week 7: Bears to cover vs. Patriots, Bengals-Ravens under, more picks</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: NFL best bets Week 7: Bears to cover vs. Patriots, Bengals-Ravens under, more picks</description>
-      <link>https://www.nytimes.com/athletic/7707824/2026/10/20/nfl-best-bets-bears-patriots-bengals-ravens-week-7/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a3f7230139799060f30b</guid>
-      <pubDate>Tue, 20 Oct 2026 13:40:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Named Perfect Landing Spot For Pro Bowl Cornerback</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Named Perfect Landing Spot For Pro Bowl Cornerback</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-named-perfect-landing-spot-for-pro-bowl-cornerback-</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e2aec00ddd95e3402104</guid>
-      <pubDate>Tue, 20 Oct 2026 13:14:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
