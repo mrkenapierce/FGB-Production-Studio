@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 21 Oct 2026 23:48:01 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 22 Oct 2026 02:27:52 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears Over Beers: Caleb Williams, Drake Maye Battle For Class Supremacy</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Over Beers: Caleb Williams, Drake Maye Battle For Class Supremacy</description>
+      <link>https://sports.yahoo.com/articles/bears-over-beers-caleb-williams-234816225.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-11aaf4817207f30aeb70</guid>
+      <pubDate>Wed, 21 Oct 2026 23:48:16 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Who has the edge between the Patriots and Bears?</title>
@@ -20,16 +30,6 @@
     </item>
 
     <item>
-      <title>Bears vs. Patriots Injury Report: Jonah Jackson Ready To Go</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Patriots Injury Report: Jonah Jackson Ready To Go</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-patriots-injury-report-202048243.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-634e8dc45be60eea2eaa</guid>
-      <pubDate>Wed, 21 Oct 2026 20:20:48 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Injury Update: Bears RG Jonah Jackson set to play vs. Patriots</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Injury Update: Bears RG Jonah Jackson set to play vs. Patriots</description>
       <link>https://www.chicagobears.com/news/injury-update-bears-rg-jonah-jackson-set-to-play-vs-patriots</link>
@@ -37,16 +37,6 @@
       <pubDate>Wed, 21 Oct 2026 20:12:13 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bold Predictions For the Chicago Bears Week 7 Matchup Against Patriots</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bold Predictions For the Chicago Bears Week 7 Matchup Against Patriots</description>
-      <link>https://www.si.com/nfl/bears/onsi/bold-predictions-for-the-chicago-bears-week-7-matchup-against-patriots</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a31996bea6f40bf445db</guid>
-      <pubDate>Wed, 21 Oct 2026 16:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -70,16 +60,6 @@
     </item>
 
     <item>
-      <title>Mike Vrabel Gives Bears Needed &apos;TNF&apos; Trench Optimism With Patriots Injury News</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Mike Vrabel Gives Bears Needed &apos;TNF&apos; Trench Optimism With Patriots Injury News</description>
-      <link>https://www.si.com/nfl/bears/onsi/mike-vrabel-gives-bears-needed-tnf-trench-optimism-with-patriots-injury-news</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dc5bc58b4afd711db438</guid>
-      <pubDate>Wed, 21 Oct 2026 14:42:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Bears RB Kyle Monangai (toe, thumb) out Thursday vs. Patriots</title>
       <description>Football&apos;s Greatest Bears news brief from ESPN: Bears RB Kyle Monangai (toe, thumb) out Thursday vs. Patriots</description>
       <link>https://www.espn.com/nfl/story/_/id/50240756/bears-rb-kyle-monangai-toe-thumb-thursday-vs-patriots</link>
@@ -87,6 +67,26 @@
       <pubDate>Wed, 21 Oct 2026 13:48:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Patriots&apos; Alijah Vera-Tucker, Ben Brown ruled out vs. Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Patriots&apos; Alijah Vera-Tucker, Ben Brown ruled out vs. Bears</description>
+      <link>https://www.espn.com/nfl/story/_/id/50240235/patriots-alijah-vera-tucker-ben-brown-ruled-vs-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e0a2bd1265afb2c322b3</guid>
+      <pubDate>Wed, 21 Oct 2026 12:53:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>After a Packers rout shook the Bears, Ben Johnson challenged his team. They answered</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: After a Packers rout shook the Bears, Ben Johnson challenged his team. They answered</description>
+      <link>https://www.nytimes.com/athletic/7707970/2026/10/21/bears-ben-johnson-caleb-williams-falcons/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-be6ef68ce31cfea1156d</guid>
+      <pubDate>Wed, 21 Oct 2026 03:55:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
