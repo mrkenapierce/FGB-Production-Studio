@@ -5,38 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 23 Oct 2026 09:34:57 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 23 Oct 2026 14:25:41 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>6 winners and losers from Patriots’ loss to the Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 6 winners and losers from Patriots’ loss to the Bears</description>
-      <link>https://sports.yahoo.com/articles/6-winners-losers-patriots-loss-090000643.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b10c68ccaa1d82581991</guid>
-      <pubDate>Fri, 23 Oct 2026 09:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>&apos;They&apos;re young superstars&apos;: Caleb Williams, Drake Maye deliver fireworks but Bears QB does just enough to top Patriots</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: &apos;They&apos;re young superstars&apos;: Caleb Williams, Drake Maye deliver fireworks but Bears QB does just enough to top Patriots</description>
-      <link>https://sports.yahoo.com/nfl/article/theyre-young-superstars-caleb-williams-drake-maye-deliver-fireworks-but-bears-qb-does-just-enough-to-top-patriots-064400148.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0b9eb7d9c1fbe0e6c1eb</guid>
-      <pubDate>Fri, 23 Oct 2026 06:44:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>&apos;I&apos;m always going to shake back&apos;: Rome Odunze makes clutch plays in 4th quarter of Bears&apos; primetime win</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: &apos;I&apos;m always going to shake back&apos;: Rome Odunze makes clutch plays in 4th quarter of Bears&apos; primetime win</description>
-      <link>https://www.chicagobears.com/news/i-m-always-going-to-shake-back-rome-odunze-makes-clutch-plays-in-4th-quarter-of-bears-primetime-win</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9143657b9daab30bf104</guid>
-      <pubDate>Fri, 23 Oct 2026 04:15:00 GMT</pubDate>
+      <title>By the Numbers: Bears&apos; Thursday Night Football win over Patriots</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: By the Numbers: Bears&apos; Thursday Night Football win over Patriots</description>
+      <link>https://www.chicagobears.com/news/by-the-numbers-bears-thursday-night-football-win-over-patriots</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-50163bbf99a3a31a81e7</guid>
+      <pubDate>Fri, 23 Oct 2026 13:35:39 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears send a message to the NFL with the win over Patriots</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears send a message to the NFL with the win over Patriots</description>
+      <link>https://sports.yahoo.com/articles/bears-send-message-nfl-win-120000844.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-68b61d5de6c29c9ec551</guid>
+      <pubDate>Fri, 23 Oct 2026 12:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>6 NFL trades we want to see at the deadline, including a Bears blockbuster</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 6 NFL trades we want to see at the deadline, including a Bears blockbuster</description>
+      <link>https://sports.yahoo.com/articles/6-nfl-trades-want-see-120000962.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-dab84fa87803f72293a8</guid>
+      <pubDate>Fri, 23 Oct 2026 12:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>What is Bears’ identity? As they showed Thursday night, they’re a primetime team</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: What is Bears’ identity? As they showed Thursday night, they’re a primetime team</description>
+      <link>https://www.nytimes.com/athletic/7716342/2026/10/23/bears-patriots-thursday-night-football-ben-johnson-identity/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6981abda188c97def846</guid>
+      <pubDate>Fri, 23 Oct 2026 06:37:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>An illegal handoff, a defensive meltdown and, yes, one big final kick all folded into Bears win</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: An illegal handoff, a defensive meltdown and, yes, one big final kick all folded into Bears win</description>
+      <link>https://www.nytimes.com/athletic/7716345/2026/10/23/bears-illegal-handoff-defensive-meltdown-santos-field-goal/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-876c5c6aca3c59418c99</guid>
+      <pubDate>Fri, 23 Oct 2026 06:35:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Bears Lose Key Skill-Position Players to Injury in Costly Win Over Patriots</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Lose Key Skill-Position Players to Injury in Costly Win Over Patriots</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-lose-key-skill-position-players-to-injury-in-costly-win-over-patriots</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b50de7079b148cf87ef9</guid>
+      <pubDate>Fri, 23 Oct 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -50,43 +80,13 @@
     </item>
 
     <item>
-      <title>Rare NFL penalty: Bears become first team in 16 years to get flagged for illegal forward handoff</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Rare NFL penalty: Bears become first team in 16 years to get flagged for illegal forward handoff</description>
-      <link>https://www.cbssports.com/nfl/news/what-is-illegal-forward-handing-bears-patriots-nfl-penalty/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2da3c2ac8234b7f424fe</guid>
-      <pubDate>Fri, 23 Oct 2026 02:16:44 GMT</pubDate>
+      <title>4 Winners and 3 Losers From Chicago Bears Impressive Week 7 Win Against Patriots</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 4 Winners and 3 Losers From Chicago Bears Impressive Week 7 Win Against Patriots</description>
+      <link>https://www.si.com/nfl/bears/onsi/4-winners-and-3-losers-from-chicago-bears-impressive-week-7-win-against-patriots</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-04fc8a0d22815f33d4e7</guid>
+      <pubDate>Fri, 23 Oct 2026 04:10:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears vs. Patriots prediction: Chicago aims to stop Drake Maye&apos;s hot streak on &apos;TNF&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears vs. Patriots prediction: Chicago aims to stop Drake Maye&apos;s hot streak on &apos;TNF&apos;</description>
-      <link>https://www.cbssports.com/nfl/news/bears-vs-patriots-how-to-watch-odds-preview-prediction/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4bf8c57494cb27b31827</guid>
-      <pubDate>Fri, 23 Oct 2026 00:12:06 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Drake Maye&apos;s best plays from 2-TD, 347-yard game vs. Bears | Week 7</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Drake Maye&apos;s best plays from 2-TD, 347-yard game vs. Bears | Week 7</description>
-      <link>https://www.nfl.com/videos/drake-maye-s-best-plays-from-2-td-347-yard-game-vs-bears-week-7</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3610052b8188558dd6ce</guid>
-      <pubDate>Thu, 22 Oct 2026 20:56:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>How the Bears beat the Patriots on a wild ‘Thursday Night Football’ in Chicago</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: How the Bears beat the Patriots on a wild ‘Thursday Night Football’ in Chicago</description>
-      <link>https://www.nytimes.com/athletic/live-blogs/patriots-vs-bears-live-score-updates-nfl-tnf-result/d1ANDhyScmVZ/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6caf2614826185cfb868</guid>
-      <pubDate>Thu, 22 Oct 2026 20:56:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
