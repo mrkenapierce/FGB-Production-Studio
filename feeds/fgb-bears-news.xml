@@ -5,28 +5,38 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 23 Oct 2026 04:42:21 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 23 Oct 2026 09:34:57 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Patriots try unconventional late-game tactic in loss to Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Patriots try unconventional late-game tactic in loss to Bears</description>
-      <link>https://sports.yahoo.com/articles/patriots-try-unconventional-game-tactic-043329485.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8c72ea6b1df929e051f9</guid>
-      <pubDate>Fri, 23 Oct 2026 04:33:29 GMT</pubDate>
+      <title>6 winners and losers from Patriots’ loss to the Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 6 winners and losers from Patriots’ loss to the Bears</description>
+      <link>https://sports.yahoo.com/articles/6-winners-losers-patriots-loss-090000643.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b10c68ccaa1d82581991</guid>
+      <pubDate>Fri, 23 Oct 2026 09:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>NFL Week 7: Instant analysis from Patriots’ loss to Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Week 7: Instant analysis from Patriots’ loss to Bears</description>
-      <link>https://sports.yahoo.com/articles/nfl-week-7-instant-analysis-041759464.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-65a4001bff316cfd6adb</guid>
-      <pubDate>Fri, 23 Oct 2026 04:17:59 GMT</pubDate>
+      <title>&apos;They&apos;re young superstars&apos;: Caleb Williams, Drake Maye deliver fireworks but Bears QB does just enough to top Patriots</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: &apos;They&apos;re young superstars&apos;: Caleb Williams, Drake Maye deliver fireworks but Bears QB does just enough to top Patriots</description>
+      <link>https://sports.yahoo.com/nfl/article/theyre-young-superstars-caleb-williams-drake-maye-deliver-fireworks-but-bears-qb-does-just-enough-to-top-patriots-064400148.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0b9eb7d9c1fbe0e6c1eb</guid>
+      <pubDate>Fri, 23 Oct 2026 06:44:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>&apos;I&apos;m always going to shake back&apos;: Rome Odunze makes clutch plays in 4th quarter of Bears&apos; primetime win</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: &apos;I&apos;m always going to shake back&apos;: Rome Odunze makes clutch plays in 4th quarter of Bears&apos; primetime win</description>
+      <link>https://www.chicagobears.com/news/i-m-always-going-to-shake-back-rome-odunze-makes-clutch-plays-in-4th-quarter-of-bears-primetime-win</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9143657b9daab30bf104</guid>
+      <pubDate>Fri, 23 Oct 2026 04:15:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
@@ -60,26 +70,6 @@
     </item>
 
     <item>
-      <title>Caleb Williams, Bears find just enough to hold off Pats</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Caleb Williams, Bears find just enough to hold off Pats</description>
-      <link>https://www.espn.com/nfl/story/_/id/50254157/bears-patriots-thursday-night-football-luther-burden</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ac373d7d28e270e6c45d</guid>
-      <pubDate>Thu, 22 Oct 2026 21:31:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>TE Cole Kmet exits Bears&apos; win vs. Patriots with knee injury</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: TE Cole Kmet exits Bears&apos; win vs. Patriots with knee injury</description>
-      <link>https://www.espn.com/nfl/story/_/id/50254858/bears-te-cole-kmet-exits-late-vs-patriots-knee-injury</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-88c6e4831c5a7fdc16ab</guid>
-      <pubDate>Thu, 22 Oct 2026 21:16:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
       <title>Drake Maye&apos;s best plays from 2-TD, 347-yard game vs. Bears | Week 7</title>
       <description>Football&apos;s Greatest Bears news brief from NFL.com: Drake Maye&apos;s best plays from 2-TD, 347-yard game vs. Bears | Week 7</description>
       <link>https://www.nfl.com/videos/drake-maye-s-best-plays-from-2-td-347-yard-game-vs-bears-week-7</link>
@@ -87,6 +77,16 @@
       <pubDate>Thu, 22 Oct 2026 20:56:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
+      <title>How the Bears beat the Patriots on a wild ‘Thursday Night Football’ in Chicago</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: How the Bears beat the Patriots on a wild ‘Thursday Night Football’ in Chicago</description>
+      <link>https://www.nytimes.com/athletic/live-blogs/patriots-vs-bears-live-score-updates-nfl-tnf-result/d1ANDhyScmVZ/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6caf2614826185cfb868</guid>
+      <pubDate>Thu, 22 Oct 2026 20:56:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
