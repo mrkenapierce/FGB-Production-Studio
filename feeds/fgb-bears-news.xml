@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 23 Oct 2026 21:39:43 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 23 Oct 2026 23:59:24 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>5 trade targets for Bears to pursue by the 2026 trade deadline</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 5 trade targets for Bears to pursue by the 2026 trade deadline</description>
+      <link>https://sports.yahoo.com/articles/5-trade-targets-bears-pursue-230000029.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f62bbcadf2180e9432a2</guid>
+      <pubDate>Fri, 23 Oct 2026 23:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>5 things that stood out to Bears coach Ben Johnson in Week 7 win</title>
@@ -50,13 +60,23 @@
     </item>
 
     <item>
-      <title>Bears DB Kyler Gordon Stays Hot in TNF Win over New England Patriots</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears DB Kyler Gordon Stays Hot in TNF Win over New England Patriots</description>
-      <link>https://sports.yahoo.com/articles/bears-db-kyler-gordon-stays-210228106.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cc793b610d7b86c71454</guid>
-      <pubDate>Fri, 23 Oct 2026 14:02:00 GMT</pubDate>
+      <title>Did Cole Kmet Play Final Game for Bears? Contract Decision Looms After Season-Ending Injury</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Did Cole Kmet Play Final Game for Bears? Contract Decision Looms After Season-Ending Injury</description>
+      <link>https://www.si.com/nfl/bears/onsi/did-cole-kmet-play-final-game-for-bears-contract-decision-looms-after-season-ending-injury</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d2402319907784d05f97</guid>
+      <pubDate>Fri, 23 Oct 2026 16:01:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Why Bears May Not Need a Trade with Cole Kmet Going on Season-Ending IR</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why Bears May Not Need a Trade with Cole Kmet Going on Season-Ending IR</description>
+      <link>https://www.si.com/nfl/bears/onsi/why-bears-may-not-need-a-trade-with-cole-kmet-going-on-season-ending-ir</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-08fb22715b340456b8f0</guid>
+      <pubDate>Fri, 23 Oct 2026 15:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -67,26 +87,6 @@
       <pubDate>Fri, 23 Oct 2026 13:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Kyler Gordon Sets Lofty Sack Goal For 2026 Season</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Kyler Gordon Sets Lofty Sack Goal For 2026 Season</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-kyler-gordon-sets-lofty-sack-goal-for-2026-season</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-41ec0c9582b4946c1efc</guid>
-      <pubDate>Fri, 23 Oct 2026 13:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears TE Cole Kmet’s season over because of ‘serious knee injury’</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears TE Cole Kmet’s season over because of ‘serious knee injury’</description>
-      <link>https://www.nytimes.com/athletic/7717473/2026/10/23/cole-kmet-injury-bears-tight-end/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9b4ff25da4f52ba42bab</guid>
-      <pubDate>Fri, 23 Oct 2026 12:07:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
