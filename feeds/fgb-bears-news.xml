@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 24 Oct 2026 12:49:03 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 24 Oct 2026 16:21:25 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears Discussion: Patriots recap, 2027 NFL Draft TE prospects, DFS, and more</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Discussion: Patriots recap, 2027 NFL Draft TE prospects, DFS, and more</description>
+      <link>https://sports.yahoo.com/articles/bears-discussion-patriots-recap-2027-140000814.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-28f967c5070dd6c40018</guid>
+      <pubDate>Sat, 24 Oct 2026 14:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Chicago Bears Week 7 Flashbacks: A GW Drive, NFL History, and More!</title>
@@ -17,26 +27,6 @@
       <pubDate>Sat, 24 Oct 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Rhamondre Stevenson says Bears&apos; defensive alignment helped with 48-yard TD</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Rhamondre Stevenson says Bears&apos; defensive alignment helped with 48-yard TD</description>
-      <link>https://sports.yahoo.com/articles/rhamondre-stevenson-says-bears-defensive-105304161.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0559664826ba2cdb48e2</guid>
-      <pubDate>Sat, 24 Oct 2026 10:53:04 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Rhamondre Stevenson says Bears’ defensive alignment helped with 48-yard TD</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Rhamondre Stevenson says Bears’ defensive alignment helped with 48-yard TD</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/rhamondre-stevenson-says-bears-defensive-alignment-helped-with-48-yard-td</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-aae65192e66be6128b1f</guid>
-      <pubDate>Fri, 23 Oct 2026 23:53:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
@@ -80,11 +70,21 @@
     </item>
 
     <item>
-      <title>Did Cole Kmet Play Final Game for Bears? Contract Decision Looms After Season-Ending Injury</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Did Cole Kmet Play Final Game for Bears? Contract Decision Looms After Season-Ending Injury</description>
-      <link>https://www.si.com/nfl/bears/onsi/did-cole-kmet-play-final-game-for-bears-contract-decision-looms-after-season-ending-injury</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d2402319907784d05f97</guid>
-      <pubDate>Fri, 23 Oct 2026 16:01:00 GMT</pubDate>
+      <title>Bears TE Cole Kmet out for season after knee injury vs. Patriots</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears TE Cole Kmet out for season after knee injury vs. Patriots</description>
+      <link>https://www.espn.com/nfl/story/_/id/50259989/bears-te-cole-kmet-season-knee-injury-vs-pats</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4ccda068bf68171afcdf</guid>
+      <pubDate>Fri, 23 Oct 2026 13:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Mike Vrabel Bluntly Explains How the Bears Beat His Patriots</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Mike Vrabel Bluntly Explains How the Bears Beat His Patriots</description>
+      <link>https://www.si.com/nfl/bears/onsi/mike-vrabel-bluntly-explains-how-the-bears-beat-his-patriots</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-417e49fd765225af5da0</guid>
+      <pubDate>Fri, 23 Oct 2026 12:31:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
