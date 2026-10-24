@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 23 Oct 2026 23:59:24 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 24 Oct 2026 03:42:23 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears vs. Patriots Game Balls: A Signature Victory</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Patriots Game Balls: A Signature Victory</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-patriots-game-balls-001612099.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7d594bd54cf16b9c180f</guid>
+      <pubDate>Sat, 24 Oct 2026 00:16:12 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>5 trade targets for Bears to pursue by the 2026 trade deadline</title>
@@ -30,16 +40,6 @@
     </item>
 
     <item>
-      <title>Caleb Williams and the Chicago Bears keep squashing narratives</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Caleb Williams and the Chicago Bears keep squashing narratives</description>
-      <link>https://sports.yahoo.com/articles/caleb-williams-chicago-bears-keep-203000749.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5ccd6f69fb5b8099e36b</guid>
-      <pubDate>Fri, 23 Oct 2026 20:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Roster Moves: Chicago Bears place Cole Kmet on IR</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Roster Moves: Chicago Bears place Cole Kmet on IR</description>
       <link>https://www.chicagobears.com/news/roster-moves-chicago-bears-place-cole-kmet-on-ir</link>
@@ -47,6 +47,16 @@
       <pubDate>Fri, 23 Oct 2026 20:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Roschon Johnson: Takes small role in victory</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Roschon Johnson: Takes small role in victory</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-roschon-johnson-takes-small-role-in-victory/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-79c13ecb0b9094dba870</guid>
+      <pubDate>Fri, 23 Oct 2026 19:31:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -60,16 +70,6 @@
     </item>
 
     <item>
-      <title>Did Cole Kmet Play Final Game for Bears? Contract Decision Looms After Season-Ending Injury</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Did Cole Kmet Play Final Game for Bears? Contract Decision Looms After Season-Ending Injury</description>
-      <link>https://www.si.com/nfl/bears/onsi/did-cole-kmet-play-final-game-for-bears-contract-decision-looms-after-season-ending-injury</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d2402319907784d05f97</guid>
-      <pubDate>Fri, 23 Oct 2026 16:01:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Why Bears May Not Need a Trade with Cole Kmet Going on Season-Ending IR</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why Bears May Not Need a Trade with Cole Kmet Going on Season-Ending IR</description>
       <link>https://www.si.com/nfl/bears/onsi/why-bears-may-not-need-a-trade-with-cole-kmet-going-on-season-ending-ir</link>
@@ -80,13 +80,13 @@
     </item>
 
     <item>
-      <title>Bears TE Cole Kmet out for season after knee injury vs. Patriots</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears TE Cole Kmet out for season after knee injury vs. Patriots</description>
-      <link>https://www.espn.com/nfl/story/_/id/50259989/bears-te-cole-kmet-season-knee-injury-vs-pats</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4ccda068bf68171afcdf</guid>
-      <pubDate>Fri, 23 Oct 2026 13:30:00 GMT</pubDate>
+      <title>Caleb Williams is Top 5, Shade for Josh Allen &amp; More National Reactions to Bears QB&apos;s Ascension</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Caleb Williams is Top 5, Shade for Josh Allen &amp; More National Reactions to Bears QB&apos;s Ascension</description>
+      <link>https://www.si.com/nfl/bears/onsi/caleb-williams-josh-allen-top-5-quarterbacks-nfl</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8a3e20d7f3a59710dae1</guid>
+      <pubDate>Fri, 23 Oct 2026 14:30:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
