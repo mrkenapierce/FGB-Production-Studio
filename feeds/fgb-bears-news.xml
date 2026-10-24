@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 24 Oct 2026 03:42:23 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 24 Oct 2026 08:24:14 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -27,6 +27,16 @@
       <pubDate>Fri, 23 Oct 2026 23:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Sam Roush: Likely set for increased opportunity</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Sam Roush: Likely set for increased opportunity</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-sam-roush-likely-set-for-increased-opportunity/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-493167206e1a248cc94c</guid>
+      <pubDate>Fri, 23 Oct 2026 21:13:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -60,21 +70,11 @@
     </item>
 
     <item>
-      <title>Bears fear season-ending injury for Cole Kmet after veteran tight end is carted off field</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears fear season-ending injury for Cole Kmet after veteran tight end is carted off field</description>
-      <link>https://www.cbssports.com/nfl/news/bears-cole-kmet-season-ending-knee-injury/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-42958773563d1738e421</guid>
-      <pubDate>Fri, 23 Oct 2026 18:15:51 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Why Bears May Not Need a Trade with Cole Kmet Going on Season-Ending IR</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why Bears May Not Need a Trade with Cole Kmet Going on Season-Ending IR</description>
-      <link>https://www.si.com/nfl/bears/onsi/why-bears-may-not-need-a-trade-with-cole-kmet-going-on-season-ending-ir</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-08fb22715b340456b8f0</guid>
-      <pubDate>Fri, 23 Oct 2026 15:30:00 GMT</pubDate>
+      <title>Did Cole Kmet Play Final Game for Bears? Contract Decision Looms After Season-Ending Injury</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Did Cole Kmet Play Final Game for Bears? Contract Decision Looms After Season-Ending Injury</description>
+      <link>https://www.si.com/nfl/bears/onsi/did-cole-kmet-play-final-game-for-bears-contract-decision-looms-after-season-ending-injury</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d2402319907784d05f97</guid>
+      <pubDate>Fri, 23 Oct 2026 16:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
