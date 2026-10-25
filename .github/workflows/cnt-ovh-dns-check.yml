@@ -1,0 +1,59 @@
+name: CNT OVH address and SSH endpoint resolution
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-ovh-dns-check.yml]
+permissions:
+  contents: read
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    env:
+      OVH_APPLICATION_KEY: ${{ secrets.OVH_APPLICATION_KEY }}
+      OVH_APPLICATION_SECRET: ${{ secrets.OVH_APPLICATION_SECRET }}
+      OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
+    steps:
+      - name: Resolve original OVH VPS identity and safe candidate endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'REPORT=READ_ONLY_CNT_OVH_ENDPOINT'
+          python3 - <<'PY'
+          import socket
+          hostnames=["vps-a13eee97.vps.ovh.us","vps-a13eee97","40.160.144.185"]
+          for host in hostnames:
+              try:
+                  ips=sorted(set(addr[4][0] for addr in socket.getaddrinfo(host,None,family=socket.AF_INET,type=socket.SOCK_STREAM)))
+                  print("RESOLVE_%s=%s"%(host,",".join(ips)))
+              except Exception as ex:
+                  print("RESOLVE_%s=%s"%(host,type(ex).__name__))
+          for host in hostnames:
+              try:
+                  ips=set(addr[4][0] for addr in socket.getaddrinfo(host,22,family=socket.AF_INET,type=socket.SOCK_STREAM))
+              except Exception:
+                  continue
+              for ip in sorted(ips):
+                  try:
+                      with socket.create_connection((ip,22),timeout=5) as s:
+                          s.settimeout(5)
+                          msg=s.recv(128)
+                      print("SSH_BANNER_%s=%s"%(ip,"VALID" if msg.startswith(b"SSH-") else "CLOSED" if not msg else "NOT_SSH"))
+                  except Exception as ex:
+                      print("SSH_BANNER_%s=%s"%(ip,type(ex).__name__))
+          PY
+          if [ -n "$OVH_APPLICATION_KEY" ] && [ -n "$OVH_APPLICATION_SECRET" ] && [ -n "$OVH_CONSUMER_KEY" ]; then
+            python3 -m pip install -q 'ovh>=1.2,<2'
+            python3 - <<'PY'
+          import ovh,os
+          try:
+              client=ovh.Client(endpoint="ovh-us",application_key=os.environ["OVH_APPLICATION_KEY"],application_secret=os.environ["OVH_APPLICATION_SECRET"],consumer_key=os.environ["OVH_CONSUMER_KEY"])
+              v=client.get("/vps/vps-a13eee97.vps.ovh.us")
+              print("OVH_API_VPS_NAME="+str(v.get("name","not_provided")))
+              print("OVH_API_DISPLAY_NAME="+str(v.get("displayName","not_provided")))
+              print("OVH_API_IP="+str(v.get("ip","not_provided")))
+              print("OVH_API_STATE="+str(v.get("state","not_provided")))
+          except Exception as ex:
+              print("OVH_API_LOOKUP="+type(ex).__name__)
+          PY
+          fi
