@@ -1,0 +1,48 @@
+name: CNT and FGB active frame audit
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-frame-audit.yml]
+permissions:
+  contents: read
+jobs:
+  frames:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Verify independent Chromium source and both live encoders, no writes
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key" || { echo OVH_KEY=MISSING; exit 0; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/key
+          chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null || true
+          test -s ~/.ssh/known_hosts || { echo SSH_HOSTKEY=MISSING; exit 0; }
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo CNT_BROWSER_SOURCE_BEGIN
+          sudo -n docker exec epic-cnt-capture sh -lc 'curl -fsS --max-time 4 http://127.0.0.1:9223/json/list' 2>/dev/null | python3 -c 'import json,sys
+          try:
+              data=json.load(sys.stdin)
+              for p in data:
+                  if p.get("type")=="page":
+                      print("CNT_BROWSER_PAGE="+p.get("url","unknown"))
+          except Exception:
+              print("CNT_BROWSER_PAGE=UNAVAILABLE")' || true
+          echo CNT_BROWSER_SOURCE_END
+          for spec in 'CNT|epic-cnt-capture|/tmp/cnt-ffmpeg.progress' 'FGB|fgb-transport-youtube-1|/tmp/fgb-ffmpeg.progress'; do
+            IFS='|' read -r label container progress <<< "$spec"
+            first=$(sudo -n docker exec "$container" sh -lc "awk -F= '/^frame=/{v=\$2} END{print v+0}' '$progress'" 2>/dev/null || echo -1)
+            sleep 6
+            second=$(sudo -n docker exec "$container" sh -lc "awk -F= '/^frame=/{v=\$2} END{print v+0}' '$progress'" 2>/dev/null || echo -1)
+            echo "${label}_FRAMES_FIRST=$first"
+            echo "${label}_FRAMES_SECOND=$second"
+            if [ "$first" -ge 0 ] && [ "$second" -gt "$first" ]; then echo "${label}_FRAMES_ADVANCING=YES"; else echo "${label}_FRAMES_ADVANCING=NO_OR_UNKNOWN"; fi
+          done
+          REMOTE
