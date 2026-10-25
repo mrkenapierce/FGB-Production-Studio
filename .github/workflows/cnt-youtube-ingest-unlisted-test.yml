@@ -1,0 +1,65 @@
+name: CNT YouTube unlisted ingest signal test
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-youtube-ingest-unlisted-test.yml]
+permissions:
+  contents: read
+concurrency:
+  group: cnt-unlisted-ingest-test
+  cancel-in-progress: false
+jobs:
+  send-test-pattern:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    env:
+      CNT_YOUTUBE_STREAM_KEY: ${{ secrets.CNT_YOUTUBE_STREAM_KEY }}
+    steps:
+      - name: Require CNT secret and FFmpeg (never print stream key)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$CNT_YOUTUBE_STREAM_KEY" ]; then
+            echo 'CNT_TEST=BLOCKED_MISSING_CNT_YOUTUBE_STREAM_KEY'
+            exit 2
+          fi
+          command -v ffmpeg >/dev/null || { echo 'CNT_TEST=BLOCKED_NO_FFMPEG'; exit 3; }
+          echo 'CNT_SECRET=PRESENT'
+          echo 'CNT_TEST=STARTING_120_SECOND_SIGNAL'
+      - name: Send 120-second private test video with silent audio to CNT only
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Live ingest only. No channel management APIs, no FGB secret or encoder.
+          # Never print the RTMPS URL, process command line, or raw FFmpeg log.
+          set +e
+          timeout 175s ffmpeg -hide_banner -nostats -loglevel error -nostdin \
+            -re -f lavfi -i 'testsrc2=size=1280x720:rate=30' \
+            -f lavfi -i 'anullsrc=channel_layout=stereo:sample_rate=48000' \
+            -t 120 \
+            -map 0:v -map 1:a \
+            -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p \
+            -b:v 2500k -minrate 2500k -maxrate 2500k -bufsize 5000k \
+            -g 60 -keyint_min 60 -sc_threshold 0 \
+            -c:a aac -b:a 128k -ar 48000 -ac 2 \
+            -f flv "rtmps://a.rtmps.youtube.com/live2/$CNT_YOUTUBE_STREAM_KEY" \
+            >/tmp/cnt-ingest-ffmpeg.log 2>&1
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            echo 'CNT_FFMPEG=COMPLETED_120_SECONDS'
+            echo 'CNT_INGEST=FFMPEG_SUCCESS__VERIFY_YOUTUBE_STUDIO_FOR_RECEIVING_DATA'
+          elif [ "$rc" -eq 124 ]; then
+            echo 'CNT_INGEST=TIMEOUT__NO_CONFIRMED_SIGNAL'
+            exit 4
+          else
+            echo "CNT_INGEST=FFMPEG_FAILED_EXIT_$rc"
+            if grep -Eqi '403|Unauthorized|auth' /tmp/cnt-ingest-ffmpeg.log; then
+              echo 'CNT_FAILURE_CATEGORY=ACCESS_OR_KEY_REJECTED'
+            elif grep -Eqi 'Connection refused|timed out|Failed to resolve|Network is unreachable|Input/output error' /tmp/cnt-ingest-ffmpeg.log; then
+              echo 'CNT_FAILURE_CATEGORY=NETWORK_OR_UPSTREAM'
+            else
+              echo 'CNT_FAILURE_CATEGORY=OTHER_CHECK_PRIVATE_LOG'
+            fi
+            exit "$rc"
+          fi
