@@ -1,0 +1,46 @@
+name: CNT and FGB container cross-check - read only
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-cross-check.yml]
+permissions:
+  contents: read
+jobs:
+  crosscheck:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    env:
+      OVH_HOST: 40.160.144.185
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Check live containers, CPU and established video uplink with no changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"
+          if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          if [ -z "$key" ]; then echo OVH_AUTH=MISSING; exit 0; fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/cnt_key
+          chmod 600 ~/.ssh/cnt_key
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/known_hosts 2>/dev/null || true
+          if [ ! -s ~/.ssh/known_hosts ]; then echo OVH_AUTH=NO_HOST_KEY; exit 0; fi
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/cnt_key "ubuntu@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo OVH_REMOTE=CONNECTED
+          echo ALL_RUNNING_CONTAINERS_BEGIN
+          sudo -n docker ps --format 'NAME={{.Names}} STATE={{.Status}}'
+          echo ALL_RUNNING_CONTAINERS_END
+          echo CONTAINER_USAGE_BEGIN
+          sudo -n docker stats --no-stream --format 'NAME={{.Name}} CPU={{.CPUPerc}} MEMORY={{.MemUsage}}' | head -25 || true
+          echo CONTAINER_USAGE_END
+          echo FGB_SYSTEMD=$(systemctl is-active fgb-transport.service || true)
+          echo FGB_TRANSPORT_COMPOSE_CONTAINERS_BEGIN
+          if [ -f /opt/fgb-transport/docker-compose.yml ]; then
+            cd /opt/fgb-transport
+            sudo -n docker compose -f docker-compose.yml ps --format '{{.Service}}|{{.Status}}' 2>/dev/null || true
+          fi
+          echo FGB_TRANSPORT_COMPOSE_CONTAINERS_END
+          echo CNT_HTTPS_UPLINK_COUNT=$(sudo -n docker exec epic-cnt-capture sh -lc "awk 'NR>1 {split(\$3,a,\":\"); if (\$4==\"01\" && toupper(a[2])==\"01BB\") n++} END{print n+0}' /proc/net/tcp /proc/net/tcp6" 2>/dev/null || echo unknown)
+          REMOTE
