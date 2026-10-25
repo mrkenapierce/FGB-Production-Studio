@@ -1,0 +1,109 @@
+name: CNT isolated OVH deploy - one channel only
+on:
+  workflow_dispatch:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths:
+      - ops/cnt-transport/START.txt
+permissions:
+  contents: read
+concurrency:
+  group: cnt-only-ovh-deployment
+  cancel-in-progress: false
+jobs:
+  cnt:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      OVH_HOST: 40.160.144.185
+      CNT_YOUTUBE_STREAM_KEY: ${{ secrets.CNT_YOUTUBE_STREAM_KEY }}
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate CNT-only prerequisites (never print secrets)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$CNT_YOUTUBE_STREAM_KEY" || { echo 'BLOCKED=CNT_SECRET_MISSING'; exit 2; }
+          test -s ops/cnt-transport/Dockerfile && test -s ops/cnt-transport/run-cnt.sh
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key" || { echo 'BLOCKED=OVH_SSH_KEY_MISSING'; exit 3; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/cnt_deploy_key
+          chmod 600 ~/.ssh/cnt_deploy_key
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/cnt_known_hosts 2>/dev/null || true
+          test -s ~/.ssh/cnt_known_hosts || { echo 'BLOCKED=OVH_SSH_BANNER_UNAVAILABLE'; exit 4; }
+          ssh -o BatchMode=yes -o UserKnownHostsFile=~/.ssh/cnt_known_hosts -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/cnt_deploy_key "ubuntu@$OVH_HOST" 'printf CNT_SSH_AUTH=OK'
+      - name: Verify spare OVH resources BEFORE adding any containers
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o UserKnownHostsFile=~/.ssh/cnt_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/cnt_deploy_key "ubuntu@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cores=$(nproc)
+          mem_mb=$(awk '/^MemAvailable:/{printf "%.0f",$2/1024}' /proc/meminfo)
+          load_1=$(cut -d' ' -f1 /proc/loadavg)
+          disk_mb=$(df -Pm / | awk 'NR==2{print $4}')
+          sudo -n docker info >/dev/null
+          sudo -n docker compose version >/dev/null
+          echo "CPU_CORES=$cores MEM_AVAILABLE_MB=$mem_mb LOAD_1=$load_1 DISK_AVAILABLE_MB=$disk_mb"
+          [ "$cores" -ge 4 ] && [ "$mem_mb" -ge 2048 ] && [ "$disk_mb" -ge 4000 ] || { echo BLOCKED=INSUFFICIENT_HOST_RESOURCES; exit 9; }
+          python3 - "$cores" "$load_1" <<'PY'
+          import sys
+          if float(sys.argv[2]) > float(sys.argv[1])-1.5:
+              raise SystemExit("BLOCKED=HOST_CPU_TOO_BUSY")
+          PY
+          echo CNT_HOST_RESOURCE_GATE=PASS
+          REMOTE
+      - name: Stage CNT code and host-only secret; never touch FGB directories
+        shell: bash
+        run: |
+          set -euo pipefail
+          sshopts='-o BatchMode=yes -o UserKnownHostsFile=~/.ssh/cnt_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/cnt_deploy_key'
+          scp $sshopts -r ops/cnt-transport "ubuntu@$OVH_HOST:/tmp/cnt-stream-release"
+          envfile=$(mktemp)
+          chmod 600 "$envfile"
+          {
+            echo 'BROADCAST_ORIGIN=https://epiccontentcreatorgrants.org'
+            echo 'CNT_YOUTUBE_INGEST_URL=rtmps://a.rtmps.youtube.com/live2'
+            printf 'CNT_YOUTUBE_STREAM_KEY=%s\n' "$CNT_YOUTUBE_STREAM_KEY"
+            echo 'CNT_VIDEO_BITRATE=3000k'
+            echo 'CNT_AUDIO_BITRATE=128k'
+          } > "$envfile"
+          scp $sshopts "$envfile" "ubuntu@$OVH_HOST:/tmp/cnt-secret.tmp"
+          rm -f "$envfile"
+          ssh $sshopts "ubuntu@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          sudo -n mkdir -p /opt/cnt-transport
+          sudo -n cp -a /tmp/cnt-stream-release/. /opt/cnt-transport/
+          sudo -n install -m 0600 /tmp/cnt-secret.tmp /opt/cnt-transport/.env.cnt
+          rm -f /tmp/cnt-secret.tmp
+          sudo -n chmod 0755 /opt/cnt-transport/run-cnt.sh
+          echo CNT_FILES_STAGED=YES
+          REMOTE
+      - name: Start only CNT and verify video encoder progress
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o UserKnownHostsFile=~/.ssh/cnt_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/cnt_deploy_key "ubuntu@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/cnt-transport
+          sudo -n docker compose -p epic-cnt-transport up -d --build --no-deps cnt >/dev/null
+          echo CNT_ONLY_COMPOSE=STARTED
+          ok=false
+          for n in $(seq 1 25); do
+            if sudo -n docker exec epic-cnt-capture sh -lc 'test -f /tmp/cnt-ffmpeg.progress && grep -q "^progress=continue" /tmp/cnt-ffmpeg.progress && test $(( $(date +%s) - $(stat -c %Y /tmp/cnt-ffmpeg.progress) )) -lt 30' >/dev/null 2>&1; then
+              ok=true
+              break
+            fi
+            sleep 6
+          done
+          if [ "$ok" != true ]; then
+            echo BLOCKED=CNT_FFMPEG_NOT_SENDING
+            exit 10
+          fi
+          echo CNT_ENCODER=RUNNING
+          echo CNT_24_7_RESTART_POLICY=unless-stopped
+          echo CNT_YOUTUBE_PREVIEW=VERIFY_IN_STUDIO
+          REMOTE
