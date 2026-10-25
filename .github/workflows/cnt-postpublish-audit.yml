@@ -1,0 +1,35 @@
+name: CNT published shared-trivia activation audit
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-postpublish-audit.yml]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe CNT/FGB shared state, no secrets or mutations
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import urllib.request,json
+          b='https://epiccontentcreatorgrants.org'
+          for label,path in [('CNT_PAGE','/channels/cruisenewstrivia/broadcast'),('CNT_AUDIO','/api/public/channels/cruisenewstrivia/audio'),('CNT_NEWS','/api/public/channels/cruisenewstrivia/news'),('FGB_GAME','/api/public/fgbears/game-screen'),('FGB_ROUTING','/api/public/fgbears/stream-routing')]:
+              try:
+                  req=urllib.request.Request(b+path,headers={'Cache-Control':'no-cache','User-Agent':'CNT-ReadOnly-Audit/1'})
+                  with urllib.request.urlopen(req,timeout=12) as resp:
+                      raw=resp.read(150000)
+                      print(label+'_HTTP='+str(resp.status))
+                      if label=='CNT_PAGE':print('CNT_PAGE_HTML_BYTES='+str(len(raw)))
+                      if label=='CNT_AUDIO':
+                          d=json.loads(raw);print('CNT_AUDIO_ENABLED='+str(d.get('enabled','not_declared')));print('CNT_AUDIO_RESPONSE_KEYS='+','.join(sorted(d.keys() - {'url','signedUrl','storagePath'})))
+                      if label=='CNT_NEWS':
+                          d=json.loads(raw);print('CNT_NEWS_HEADLINES='+str(len(d.get('headlines',[]))));print('CNT_NEWS_STALE='+str(d.get('stale')));print('CNT_NEWS_FAILURES='+','.join(str(x.get('id'))+':'+str(x.get('failure','n/a')) for x in d.get('sources',[])))
+                      if label=='FGB_GAME':
+                          d=json.loads(raw);print('FGB_GAME_PHASE='+str(d.get('phase')));print('FGB_GAME_PROMPT_PRESENT='+str(bool(d.get('prompt'))))
+                      if label=='FGB_ROUTING':
+                          d=json.loads(raw);c=d.get('presentation',{}).get('crawl') or {};print('FGB_SHARED_CRAWL_ACTIVE='+str(c.get('active')));print('FGB_SHARED_CRAWL_MESSAGES='+str(len(c.get('messages',[]))))
+              except Exception as ex: print(label+'_ERROR='+type(ex).__name__)
+          PY
