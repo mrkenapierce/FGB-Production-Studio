@@ -1,0 +1,32 @@
+name: CNT audio post-enable status check
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-audio-enabled-check.yml]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Verify only permitted public CNT audio metadata and news
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request
+          for kind,path in [('CNT_AUDIO','/api/public/channels/cruisenewstrivia/audio'),('CNT_NEWS','/api/public/channels/cruisenewstrivia/news'),('FGB_GAME','/api/public/fgbears/game-screen')]:
+              try:
+                  with urllib.request.urlopen(urllib.request.Request('https://epiccontentcreatorgrants.org'+path,headers={'Cache-Control':'no-cache'}),timeout=18) as res:
+                      d=json.load(res)
+                      print(kind+'_HTTP='+str(res.status))
+                      if kind=='CNT_AUDIO':
+                          print('CNT_AUDIO_ENABLED='+str(d.get('enabled')))
+                          print('CNT_AUDIO_TRACK_ID_PRESENT='+str(bool((d.get('track') or {}).get('id'))))
+                          print('CNT_AUDIO_SIGNED_URL_PRESENT='+str(bool(d.get('url'))))
+                          print('CNT_AUDIO_KEY_NAMES='+','.join(sorted(d.keys() - {'url','storagePath','signedUrl'})))
+                      if kind=='CNT_NEWS':
+                          print('CNT_NEWS_COUNT='+str(len(d.get('headlines',[]))))
+                          print('CNT_NEWS_ERRORS='+str([(s.get('id'),s.get('failure')) for s in d.get('sources',[])]))
+                      if kind=='FGB_GAME':print('FGB_GAME_AVAILABLE='+str(isinstance(d,dict)))
+              except Exception as ex:print(kind+'_ERROR='+type(ex).__name__)
+          PY
