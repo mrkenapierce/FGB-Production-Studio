@@ -1,0 +1,79 @@
+name: CNT OVH capacity and access preflight (read only)
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-ovh-current-access.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    env:
+      OVH_HOST: 40.160.144.185
+      OVH_APPLICATION_KEY: ${{ secrets.OVH_APPLICATION_KEY }}
+      OVH_APPLICATION_SECRET: ${{ secrets.OVH_APPLICATION_SECRET }}
+      OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
+    steps:
+      - name: Read service metadata from OVH API (no mutations)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$OVH_APPLICATION_KEY" ] || [ -z "$OVH_APPLICATION_SECRET" ] || [ -z "$OVH_CONSUMER_KEY" ]; then
+            echo 'OVH_API_AUTH=MISSING'
+          else
+            python3 -m pip install -q 'ovh>=1.2,<2'
+            python3 - <<'PY'
+          import os,ovh
+          try:
+              api=ovh.Client(endpoint="ovh-us",application_key=os.environ["OVH_APPLICATION_KEY"],application_secret=os.environ["OVH_APPLICATION_SECRET"],consumer_key=os.environ["OVH_CONSUMER_KEY"])
+              record=api.get("/vps/vps-a13eee97.vps.ovh.us")
+              print("OVH_API_AUTH=CONNECTED")
+              print("OVH_VPS_STATE="+str(record.get("state","unknown")))
+              print("OVH_VPS_IP_FIELD="+str(record.get("ip","not_available")))
+              print("OVH_VPS_BOOT="+str(record.get("netbootMode","unknown")))
+          except Exception as ex:
+              print("OVH_API_ERROR_TYPE="+type(ex).__name__)
+          PY
+          fi
+      - name: Read server capacity and CNT status without restarting anything
+        shell: bash
+        env:
+          OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+          ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          for port in 22 2222 2200 2022; do
+            if timeout 5 bash -c ":</dev/tcp/$OVH_HOST/$port" 2>/dev/null; then
+              echo "OVH_TCP_$port=OPEN"
+            else
+              echo "OVH_TCP_$port=UNREACHABLE"
+            fi
+          done
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          if [ -z "$key" ]; then echo 'OVH_SSH_CREDENTIALS=MISSING'; exit 0; fi
+          echo 'OVH_SSH_CREDENTIALS=PRESENT'
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/cnt_ovh_key
+          chmod 600 ~/.ssh/cnt_ovh_key
+          ssh-keyscan -T 7 -H "$OVH_HOST" > ~/.ssh/cnt_known_hosts 2>/dev/null || true
+          if [ ! -s ~/.ssh/cnt_known_hosts ]; then echo 'OVH_SSH_HOST_KEY=UNAVAILABLE'; exit 0; fi
+          echo 'OVH_SSH_HOST_KEY=OBTAINED'
+          for user in ubuntu admin debian root; do
+            if ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/cnt_known_hosts -o ConnectTimeout=7 -i ~/.ssh/cnt_ovh_key "$user@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -eu
+          echo CNT_OVH_SSH=CONNECTED
+          echo "CAPACITY_CPU_CORES=$(nproc)"
+          echo "CAPACITY_MEM_AVAILABLE_MB=$(awk '/^MemAvailable:/{printf "%.0f",$2/1024}' /proc/meminfo)"
+          echo "CAPACITY_LOAD_AVG=$(cut -d' ' -f1-3 /proc/loadavg)"
+          df -h / | awk 'NR==2 {print "CAPACITY_DISK_AVAIL="$4}'
+          if command -v docker >/dev/null; then
+            echo DOCKER=INSTALLED
+            sudo -n docker ps --format 'CONTAINER={{.Names}} STATUS={{.Status}}' 2>/dev/null | grep -E '^CONTAINER=|^$' || true
+          else
+            echo DOCKER=NOT_INSTALLED
+          fi
+          REMOTE
+            then echo "OVH_SSH_USER=$user"; exit 0; fi
+          done
+          echo OVH_SSH=AUTH_FAILED_OR_UNAVAILABLE
