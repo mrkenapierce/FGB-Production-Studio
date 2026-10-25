@@ -57,8 +57,8 @@ jobs:
           install -d -m 700 ~/.ssh
           printf '%s\n' "$key" > ~/.ssh/cnt_audit
           chmod 600 ~/.ssh/cnt_audit
-          ssh-keyscan -T 7 -H "$HOST" > ~/.ssh/cnt_known_hosts 2>/dev/null
-          if [ ! -s ~/.ssh/cnt_known_hosts ]; then echo 'CNT_OVH_STATUS=NO_HOST_KEY'; exit 0; fi
+          ssh-keyscan -T 7 -H "$HOST" > ~/.ssh/cnt_known_hosts 2>/dev/null || true
+          if [ ! -s ~/.ssh/cnt_known_hosts ]; then echo 'CNT_OVH_STATUS=SSH_PORT_UNREACHABLE_OR_NO_HOST_KEY'; exit 0; fi
           if ! ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/cnt_known_hosts -o ConnectTimeout=8 -i ~/.ssh/cnt_audit "ubuntu@$HOST" 'bash -s' <<'REMOTE'
           set -eu
           echo "CNT_OVH_STATUS=SSH_CONNECTED"
