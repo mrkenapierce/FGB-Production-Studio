@@ -1,0 +1,90 @@
+name: CNT independent live-health audit
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-live-health-audit.yml]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      OVH_HOST: 40.160.144.185
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Inspect published CNT and FGB endpoints (GET only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, urllib.request
+          checks=[
+            ("CNT_BROADCAST","https://epiccontentcreatorgrants.org/channels/cruisenewstrivia/broadcast"),
+            ("CNT_NEWS","https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/news"),
+            ("FGB_CRAWL","https://epiccontentcreatorgrants.org/api/public/fgbears/crawl"),
+            ("FGB_BROADCAST","https://epiccontentcreatorgrants.org/fgb-broadcast?target=youtube"),
+          ]
+          for name,url in checks:
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers={"User-Agent":"CNTHealthAudit/1.0","Cache-Control":"no-cache"}),timeout=15) as r:
+                      data=r.read(180000)
+                      print(name+"_HTTP="+str(r.status))
+                      if name=="CNT_NEWS":
+                          news=json.loads(data)
+                          print("CNT_NEWS_HEADLINES="+str(len(news.get("headlines",[]))))
+                          print("CNT_NEWS_STALE="+str(news.get("stale")))
+                          print("CNT_NEWS_DEGRADED="+str(news.get("degraded")))
+                          for src in news.get("sources",[]):
+                              print("CNT_NEWS_SOURCE_"+str(src.get("id","unknown"))+"_UNAVAILABLE="+str(src.get("unavailable")))
+                      if name=="FGB_CRAWL":
+                          print("FGB_CRAWL_RESPONDS=YES")
+              except Exception as ex:
+                  print(name+"_ERROR_TYPE="+type(ex).__name__)
+          PY
+      - name: Check OVH CNT capture and existing FGB containers without touching services
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"
+          if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          if [ -z "$key" ]; then echo OVH_AUTH=NO_KEY; exit 0; fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/cnt_health_key
+          chmod 600 ~/.ssh/cnt_health_key
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/cnt_known_hosts 2>/dev/null || true
+          if [ ! -s ~/.ssh/cnt_known_hosts ]; then echo OVH_AUTH=NO_SSH_BANNER; exit 0; fi
+          if ! ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/cnt_known_hosts -o ConnectTimeout=8 -i ~/.ssh/cnt_health_key "ubuntu@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo CNT_SSH=OK
+          echo "OVH_CPU_CORES=$(nproc)"
+          echo "OVH_MEM_AVAILABLE_MB=$(awk '/^MemAvailable:/{printf "%.0f",$2/1024}' /proc/meminfo)"
+          echo "OVH_LOAD_AVG=$(cut -d' ' -f1 /proc/loadavg)"
+          echo "FGB_SYSTEMD=$(systemctl is-active fgb-transport.service 2>/dev/null || true)"
+          echo FGB_CONTAINER_STATUS_BEGIN
+          sudo -n docker ps --format '{{.Names}}|{{.Status}}' | grep -E '^(youtube|rumble_bridge|archive_uploader|archive|epic-cnt-capture)\|' || true
+          echo FGB_CONTAINER_STATUS_END
+          if ! sudo -n docker inspect epic-cnt-capture >/dev/null 2>&1; then
+            echo CNT_CONTAINER=ABSENT; exit 0
+          fi
+          echo "CNT_CONTAINER_STATE=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)"
+          echo "CNT_CONTAINER_HEALTH=$(sudo -n docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}not_configured{{end}}' epic-cnt-capture)"
+          echo "CNT_CONTAINER_RESTARTS=$(sudo -n docker inspect -f '{{.RestartCount}}' epic-cnt-capture)"
+          snap() {
+            sudo -n docker exec epic-cnt-capture sh -lc 'if [ -f /tmp/cnt-ffmpeg.progress ]; then
+              sed -n -e "s/^frame=/FRAME=/p" -e "s/^out_time_us=/OUT_US=/p" /tmp/cnt-ffmpeg.progress | tail -2
+              echo "PROGRESS_AGE_SEC=$(( $(date +%s) - $(stat -c %Y /tmp/cnt-ffmpeg.progress) ))"
+              if pgrep -f "^ffmpeg " >/dev/null; then echo "FFMPEG_PROCESS=YES"; else echo "FFMPEG_PROCESS=NO"; fi
+            else echo PROGRESS_FILE=MISSING; fi' 2>/dev/null || echo CNT_EXEC=FAILED
+          }
+          echo CNT_SAMPLE_A_START
+          snap
+          sleep 9
+          echo CNT_SAMPLE_B_START
+          snap
+          REMOTE
+          then
+            echo OVH_AUTH=SSH_COMMAND_FAILED
+          fi
+          rm -f ~/.ssh/cnt_health_key
