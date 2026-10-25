@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 25 Oct 2026 06:24:42 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 25 Oct 2026 11:52:01 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Do Bears Play Today? Remaining Schedule, Predictions for Rest of Chicago&apos;s 2026 Season</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Do Bears Play Today? Remaining Schedule, Predictions for Rest of Chicago&apos;s 2026 Season</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-play-today-remaining-schedule-predictions-rest-chicago-season</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-90d5142205141859fa15</guid>
+      <pubDate>Sun, 25 Oct 2026 03:16:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
 
     <item>
       <title>Bears&apos; D&apos;Marco Jackson: Picks off Maye on Thursday Night Football</title>
@@ -17,16 +27,6 @@
       <pubDate>Sat, 24 Oct 2026 19:38:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears Trade Pitch Flips 2 Picks for $12 Million Pro Bowl CB</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Trade Pitch Flips 2 Picks for $12 Million Pro Bowl CB</description>
-      <link>https://sports.yahoo.com/articles/bears-trade-pitch-flips-2-042101239.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-28785dea42ef9bf01843</guid>
-      <pubDate>Sat, 24 Oct 2026 17:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -60,13 +60,13 @@
     </item>
 
     <item>
-      <title>Ben Johnson Likes His Ball Hog Bears But Points Are the Real Goal</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Likes His Ball Hog Bears But Points Are the Real Goal</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-likes-his-ball-hog-bears-but-points-are-the-real-goal</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-083b3589e6583aed38c5</guid>
-      <pubDate>Sat, 24 Oct 2026 13:00:00 GMT</pubDate>
+      <title>Bears’ Devin Bush Takes Big Step Back in Week 7 Win Over Patriots</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Devin Bush Takes Big Step Back in Week 7 Win Over Patriots</description>
+      <link>https://sports.yahoo.com/articles/bears-devin-bush-takes-big-190000162.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e2ed2eb5942e964924c5</guid>
+      <pubDate>Sat, 24 Oct 2026 12:01:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
