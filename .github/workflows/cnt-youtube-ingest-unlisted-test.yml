@@ -23,6 +23,11 @@ jobs:
             echo 'CNT_TEST=BLOCKED_MISSING_CNT_YOUTUBE_STREAM_KEY'
             exit 2
           fi
+          if ! command -v ffmpeg >/dev/null; then
+            echo 'CNT_TEST=INSTALLING_FFMPEG_ON_EPHEMERAL_RUNNER'
+            sudo apt-get update -qq >/dev/null
+            sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg >/dev/null
+          fi
           command -v ffmpeg >/dev/null || { echo 'CNT_TEST=BLOCKED_NO_FFMPEG'; exit 3; }
           echo 'CNT_SECRET=PRESENT'
           echo 'CNT_TEST=STARTING_120_SECOND_SIGNAL'
