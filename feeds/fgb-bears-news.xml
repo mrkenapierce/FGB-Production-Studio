@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 25 Oct 2026 21:06:13 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 25 Oct 2026 23:12:52 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears’ Week 7 Performance Reviews: Kyler Gordon Shines, Devin Bush Struggles</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Week 7 Performance Reviews: Kyler Gordon Shines, Devin Bush Struggles</description>
+      <link>https://sports.yahoo.com/articles/bears-week-7-performance-reviews-190000924.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-003d5546a4d8a56ac72d</guid>
+      <pubDate>Sun, 25 Oct 2026 12:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Give Ben Johnson Extra Time to Prepare and Here&apos;s What Bears Can Expect</title>
@@ -20,11 +30,11 @@
     </item>
 
     <item>
-      <title>2 Key Stats That Explain How the Bears Defeated the Patriots in Week 7</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 2 Key Stats That Explain How the Bears Defeated the Patriots in Week 7</description>
-      <link>https://sports.yahoo.com/articles/2-key-stats-explain-bears-170000920.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9755b1861623c553a4a9</guid>
-      <pubDate>Sun, 25 Oct 2026 10:00:00 GMT</pubDate>
+      <title>What Bears coach Ben Johnson said about Patriots QB Drake Maye</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: What Bears coach Ben Johnson said about Patriots QB Drake Maye</description>
+      <link>https://sports.yahoo.com/articles/bears-coach-ben-johnson-said-173507582.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b2ba459dc5cc73f60832</guid>
+      <pubDate>Sun, 25 Oct 2026 10:35:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -37,26 +47,6 @@
       <pubDate>Sun, 25 Oct 2026 09:25:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>NFL rumors: Bears’ Khalil Mack trade interest could run into stubborn Chargers problem</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL rumors: Bears’ Khalil Mack trade interest could run into stubborn Chargers problem</description>
-      <link>https://sports.yahoo.com/articles/nfl-rumors-bears-khalil-mack-160226096.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-bf2fb4869b007e6b4973</guid>
-      <pubDate>Sun, 25 Oct 2026 09:01:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; D&apos;Marco Jackson: Picks off Maye on Thursday Night Football</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; D&apos;Marco Jackson: Picks off Maye on Thursday Night Football</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-dmarco-jackson-picks-off-maye-on-thursday-night-football/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-350e4d36b2774d31e5c2</guid>
-      <pubDate>Sat, 24 Oct 2026 19:38:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
