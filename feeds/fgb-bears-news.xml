@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 24 Oct 2026 23:28:32 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 25 Oct 2026 01:25:09 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Caleb Williams Makes History as Bears Stop Streaking Patriots</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Caleb Williams Makes History as Bears Stop Streaking Patriots</description>
+      <link>https://sports.yahoo.com/articles/caleb-williams-makes-history-bears-005256284.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cbd7bb535ab434994264</guid>
+      <pubDate>Sat, 24 Oct 2026 17:52:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Who Should Bears Fans Root for in Week 7 After Beating the Patriots on Thursday Night?</title>
@@ -17,6 +27,26 @@
       <pubDate>Sat, 24 Oct 2026 16:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears’ One Play Summarized Why Their Offense Is So Lethal</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ One Play Summarized Why Their Offense Is So Lethal</description>
+      <link>https://sports.yahoo.com/articles/bears-one-play-summarized-why-210000807.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4843106333affda130c5</guid>
+      <pubDate>Sat, 24 Oct 2026 14:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears’ trick play fell flat due to clear rules violation</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears’ trick play fell flat due to clear rules violation</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-trick-play-fell-flat-due-to-clear-rules-violation</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1f6b9414a583c29a6b8a</guid>
+      <pubDate>Sat, 24 Oct 2026 13:19:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
@@ -30,26 +60,6 @@
     </item>
 
     <item>
-      <title>“I’m Gonna Go to Jail”: Former Bears Star Reveals Mike Ditka’s Brutal Reason for Cutting Him 4 Times</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: “I’m Gonna Go to Jail”: Former Bears Star Reveals Mike Ditka’s Brutal Reason for Cutting Him 4 Times</description>
-      <link>https://sports.yahoo.com/articles/m-gonna-jail-former-bears-194329968.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0a4913063dbbcbd2ca76</guid>
-      <pubDate>Sat, 24 Oct 2026 12:43:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears’ Devin Bush Takes Big Step Back in Week 7 Win Over Patriots</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Devin Bush Takes Big Step Back in Week 7 Win Over Patriots</description>
-      <link>https://sports.yahoo.com/articles/bears-devin-bush-takes-big-190000162.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e2ed2eb5942e964924c5</guid>
-      <pubDate>Sat, 24 Oct 2026 12:01:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Without tight end Cole Kmet, Bears may run more jumbo six-lineman formations</title>
       <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Without tight end Cole Kmet, Bears may run more jumbo six-lineman formations</description>
       <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/without-tight-end-cole-kmet-bears-may-run-more-jumbo-six-lineman-formations</link>
@@ -60,31 +70,21 @@
     </item>
 
     <item>
-      <title>Rhamondre Stevenson says Bears’ defensive alignment helped with 48-yard TD</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Rhamondre Stevenson says Bears’ defensive alignment helped with 48-yard TD</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/rhamondre-stevenson-says-bears-defensive-alignment-helped-with-48-yard-td</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-aae65192e66be6128b1f</guid>
-      <pubDate>Fri, 23 Oct 2026 23:53:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Sam Roush: Likely set for increased opportunity</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Sam Roush: Likely set for increased opportunity</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-sam-roush-likely-set-for-increased-opportunity/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-493167206e1a248cc94c</guid>
-      <pubDate>Fri, 23 Oct 2026 22:13:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
       <title>5 things that stood out to Bears coach Ben Johnson in Week 7 win</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 5 things that stood out to Bears coach Ben Johnson in Week 7 win</description>
       <link>https://www.chicagobears.com/news/5-things-that-stood-out-to-bears-coach-ben-johnson-in-week-7-win-patriots</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-767a383e6f1efa01e97e</guid>
       <pubDate>Fri, 23 Oct 2026 20:31:59 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Roster Moves: Chicago Bears place Cole Kmet on IR</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Roster Moves: Chicago Bears place Cole Kmet on IR</description>
+      <link>https://www.chicagobears.com/news/roster-moves-chicago-bears-place-cole-kmet-on-ir</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-083a7146a51e0f433a60</guid>
+      <pubDate>Fri, 23 Oct 2026 20:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
