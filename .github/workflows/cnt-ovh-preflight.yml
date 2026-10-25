@@ -1,0 +1,83 @@
+name: CNT OVH ingest preflight - read only
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths:
+      - .github/workflows/cnt-ovh-preflight.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      HOST: 40.160.144.185
+    steps:
+      - name: Test public CNT broadcast assets without modifying them
+        shell: bash
+        run: |
+          set -euo pipefail
+          for item in "CNT_BROADCAST /channels/cruisenewstrivia/broadcast" "CNT_NEWS /api/public/channels/cruisenewstrivia/news"; do
+            read -r label path <<< "$item"
+            code=$(curl -LsS --max-time 15 -o /tmp/cnt-endpoint.txt -w '%{http_code}' "https://epiccontentcreatorgrants.org$path" || echo error)
+            echo "$label HTTP_STATUS=$code"
+            if [ "$label" = CNT_NEWS ] && [ "$code" = 200 ]; then
+              python3 - <<'PY'
+          import json
+          try:
+              data=json.load(open('/tmp/cnt-endpoint.txt'))
+              print('CNT_NEWS_SCHEMA='+str(data.get('schema','unknown')))
+              print('CNT_NEWS_HEADLINE_COUNT='+str(len(data.get('items',[]))))
+              print('CNT_NEWS_STALE='+str(data.get('stale','unknown')))
+          except Exception:
+              print('CNT_NEWS_JSON=NOT_VALID')
+          PY
+            fi
+          done
+      - name: Check secret availability without disclosing values
+        env:
+          CNT_YOUTUBE_STREAM_KEY: ${{ secrets.CNT_YOUTUBE_STREAM_KEY }}
+          OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+          LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        shell: bash
+        run: |
+          if [ -n "$CNT_YOUTUBE_STREAM_KEY" ]; then echo "CNT_GITHUB_INGEST_KEY=PRESENT"; else echo "CNT_GITHUB_INGEST_KEY=MISSING"; fi
+          if [ -n "$OVH_SSH_KEY" ] || [ -n "$LEGACY_KEY" ]; then echo "OVH_DEPLOY_KEY=PRESENT"; else echo "OVH_DEPLOY_KEY=MISSING"; fi
+      - name: Read OVH capacity and CNT container status
+        env:
+          OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+          LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"
+          if [ -z "$key" ]; then key="$LEGACY_KEY"; fi
+          if [ -z "$key" ]; then echo 'CNT_OVH_STATUS=BLOCKED_NO_SSH_KEY'; exit 0; fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/cnt_audit
+          chmod 600 ~/.ssh/cnt_audit
+          ssh-keyscan -T 7 -H "$HOST" > ~/.ssh/cnt_known_hosts 2>/dev/null
+          if [ ! -s ~/.ssh/cnt_known_hosts ]; then echo 'CNT_OVH_STATUS=NO_HOST_KEY'; exit 0; fi
+          if ! ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=~/.ssh/cnt_known_hosts -o ConnectTimeout=8 -i ~/.ssh/cnt_audit "ubuntu@$HOST" 'bash -s' <<'REMOTE'
+          set -eu
+          echo "CNT_OVH_STATUS=SSH_CONNECTED"
+          echo "CPU_CORES=$(nproc)"
+          echo "MEM_AVAILABLE_MB=$(awk '/^MemAvailable:/{printf "%.0f",$2/1024}' /proc/meminfo)"
+          echo "LOAD_AVG=$(cut -d' ' -f1-3 /proc/loadavg)"
+          if [ -f /opt/fgb-transport/docker-compose.yml ]; then
+            echo "EXISTING_FGB_TRANSPORT_DIR=PRESENT"
+          else
+            echo "EXISTING_FGB_TRANSPORT_DIR=ABSENT"
+          fi
+          if sudo -n docker ps --format '{{.Names}}' 2>/dev/null | grep -qFx epic-cnt-capture; then
+            echo "CNT_CONTAINER=RUNNING"
+            sudo -n docker exec epic-cnt-capture sh -lc 'if test -e /tmp/cnt-ffmpeg.progress; then grep -E "^progress=|^frame=" /tmp/cnt-ffmpeg.progress | tail -3; else echo CNT_PROGRESS_FILE=MISSING; fi' || true
+          else
+            echo "CNT_CONTAINER=NOT_RUNNING"
+          fi
+          REMOTE
+          then
+            echo "CNT_OVH_STATUS=SSH_UNAVAILABLE_OR_CHECK_FAILED"
+          fi
+          rm -f ~/.ssh/cnt_audit
