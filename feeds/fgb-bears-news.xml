@@ -5,19 +5,9 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 25 Oct 2026 18:29:47 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 25 Oct 2026 21:06:13 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
-
-    <item>
-      <title>Report: Chicago Bears have talked with the Los Angeles Chargers about Khalil Mack</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Report: Chicago Bears have talked with the Los Angeles Chargers about Khalil Mack</description>
-      <link>https://sports.yahoo.com/articles/report-chicago-bears-talked-los-170144033.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-71bbb87fe4a00ad559b1</guid>
-      <pubDate>Sun, 25 Oct 2026 17:01:44 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
 
     <item>
       <title>Give Ben Johnson Extra Time to Prepare and Here&apos;s What Bears Can Expect</title>
@@ -27,6 +17,16 @@
       <pubDate>Sun, 25 Oct 2026 11:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>2 Key Stats That Explain How the Bears Defeated the Patriots in Week 7</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 2 Key Stats That Explain How the Bears Defeated the Patriots in Week 7</description>
+      <link>https://sports.yahoo.com/articles/2-key-stats-explain-bears-170000920.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9755b1861623c553a4a9</guid>
+      <pubDate>Sun, 25 Oct 2026 10:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -57,16 +57,6 @@
       <pubDate>Sat, 24 Oct 2026 19:38:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears’ trick play fell flat due to clear rules violation</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears’ trick play fell flat due to clear rules violation</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-trick-play-fell-flat-due-to-clear-rules-violation</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1f6b9414a583c29a6b8a</guid>
-      <pubDate>Sat, 24 Oct 2026 13:19:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
