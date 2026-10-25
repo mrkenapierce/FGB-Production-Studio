@@ -1,0 +1,38 @@
+name: CNT SSH banner diagnosis (read only)
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-ssh-banner-diag.yml]
+permissions:
+  contents: read
+jobs:
+  ssh-banner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Check SSH protocol greeting without authenticating
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import socket
+          host="40.160.144.185"
+          for timeout in [4,12]:
+              try:
+                  with socket.create_connection((host,22),timeout=timeout) as s:
+                      s.settimeout(timeout)
+                      print(f"TCP_CONNECT_{timeout}=SUCCESS")
+                      try:
+                          data=s.recv(256)
+                          if not data:
+                              print(f"SSH_GREETING_{timeout}=CLOSED_WITHOUT_BANNER")
+                          elif data.startswith(b"SSH-"):
+                              print(f"SSH_GREETING_{timeout}=VALID_SSH_PROTOCOL")
+                              print("SSH_VERSION_PREFIX="+str(data.split(b" ",1)[0].decode("ascii","replace")[:28]))
+                          else:
+                              print(f"SSH_GREETING_{timeout}=NON_SSH_DATA_BYTES_{len(data)}")
+                      except socket.timeout:
+                          print(f"SSH_GREETING_{timeout}=NO_BANNER_TIMEOUT")
+              except Exception as ex:
+                  print(f"TCP_CONNECT_{timeout}={type(ex).__name__}")
+          PY
+          echo 'CNT_SSH_CHECK_COMPLETE=NO_REMOTE_CHANGES'
