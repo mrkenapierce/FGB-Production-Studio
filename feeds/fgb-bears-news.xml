@@ -5,16 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 25 Oct 2026 01:25:09 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 25 Oct 2026 06:24:42 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Caleb Williams Makes History as Bears Stop Streaking Patriots</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Caleb Williams Makes History as Bears Stop Streaking Patriots</description>
-      <link>https://sports.yahoo.com/articles/caleb-williams-makes-history-bears-005256284.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cbd7bb535ab434994264</guid>
-      <pubDate>Sat, 24 Oct 2026 17:52:00 GMT</pubDate>
+      <title>Bears&apos; D&apos;Marco Jackson: Picks off Maye on Thursday Night Football</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; D&apos;Marco Jackson: Picks off Maye on Thursday Night Football</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-dmarco-jackson-picks-off-maye-on-thursday-night-football/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-350e4d36b2774d31e5c2</guid>
+      <pubDate>Sat, 24 Oct 2026 19:38:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears Trade Pitch Flips 2 Picks for $12 Million Pro Bowl CB</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Trade Pitch Flips 2 Picks for $12 Million Pro Bowl CB</description>
+      <link>https://sports.yahoo.com/articles/bears-trade-pitch-flips-2-042101239.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-28785dea42ef9bf01843</guid>
+      <pubDate>Sat, 24 Oct 2026 17:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -75,16 +85,6 @@
       <link>https://www.chicagobears.com/news/5-things-that-stood-out-to-bears-coach-ben-johnson-in-week-7-win-patriots</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-767a383e6f1efa01e97e</guid>
       <pubDate>Fri, 23 Oct 2026 20:31:59 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Roster Moves: Chicago Bears place Cole Kmet on IR</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Roster Moves: Chicago Bears place Cole Kmet on IR</description>
-      <link>https://www.chicagobears.com/news/roster-moves-chicago-bears-place-cole-kmet-on-ir</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-083a7146a51e0f433a60</guid>
-      <pubDate>Fri, 23 Oct 2026 20:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
