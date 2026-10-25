@@ -21,3 +21,22 @@ The deployment workflow does not automatically run when committed. On this branc
 
 ## Why this isn't live yet
 GitHub's earlier short FFmpeg test succeeded but has ended. A **permanent** 24/7 source must run on an always-on host with capacity, valid credentials and a working SSH deployment path. The current OVH connection fails at protocol negotiation, before authentication.
+
+
+## Non-disruptive SSH recovery from OVH KVM (not executed)
+OVH's VPS hostname resolves to `40.160.144.185` (verified 2026-10-25). The VPS is running but closes remote TCP/22 before its SSH protocol banner. No standard SSH client or GitHub Actions can log in until the VPS OS/network issue is repaired.
+
+Use the OVHcloud Manager > Bare Metal Cloud > Virtual private servers > `vps-a13eee97.vps.ovh.us` > `...` beside VPS Name > **KVM**. This is out-of-band console access and does not itself reboot the VPS. Log in with an OS account in the console (never disclose passwords or keys in a public issue/chat).
+
+Read-only diagnostic commands after OS login:
+```bash
+printf 'SERVER: '; hostname
+sudo systemctl --no-pager --full status ssh || true
+sudo /usr/sbin/sshd -t && echo SSH_CONFIG=VALID || echo SSH_CONFIG=INVALID
+sudo ss -ltnp | grep ':22 ' || echo SSH_LISTENER=MISSING
+sudo journalctl -u ssh --no-pager -n 65
+sudo docker ps --format 'FGB_CHECK={{.Names}} {{.Status}}'
+```
+If SSH is inactive AND `sshd -t` succeeds, consider `sudo systemctl start ssh` (SSH service only). Do not reboot/reinstall the VPS or restart any FGB Docker service. If SSH is running but external connections close immediately, inspect SSH `MaxStartups`, `fail2ban` and OS firewalls, and confirm a valid listening interface and network access; use targeted repair rather than disabling security globally.
+
+After SSH remote connections authenticate and host capacity passes, the already prepared GitHub workflow `.github/workflows/cnt-ovh-deploy-only.yml` can deploy `epic-cnt-capture` independently. Do not create `START.txt` before these gates pass.
