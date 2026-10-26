@@ -82,7 +82,7 @@ jobs:
               return x
           before=snapshot('BEFORE')
           if before is None:raise RuntimeError('NO_BEFORE_DOM')
-          if not before['oldPage'] and before['sharedScene']:
+          if False: # Explicit incident recovery: shared-scene existence does not prove current trivia state
               say('RELOAD','SKIPPED_ALREADY_CURRENT')
           else:
               say('RELOAD','STARTING_PAGE_ONLY')
