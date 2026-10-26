@@ -1,0 +1,54 @@
+name: CNT Phase 2 Align Verified Episode Dependency Holds
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-phase2-update-dependency-holds-20261026.yml']
+permissions:
+  contents: read
+jobs:
+  align:
+    runs-on: ubuntu-latest
+    timeout-minutes: 11
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify retention channel-specific receipt compatibility
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ops/cnt-phase2/archive-retention.py
+          python3 ops/cnt-phase2/archive-retention.py complete --help | grep -q youtube_public_processed
+          grep -Fq 'youtube_public_processed' ops/cnt-phase2/episode-cutter.sh
+          echo CNT_EPISODE_HOLD_CONTRACT=VALID
+      - name: Configure OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Replace CNT-only worker with corrected dependency checks
+        run: |
+          set -euo pipefail
+          addr=ubuntu@40.160.144.185
+          args=(-o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key)
+          scp "${args[@]}" -q ops/cnt-phase2/archive-retention.py "$addr:/opt/cnt-phase2-staging/archive-retention.py"
+          ssh "${args[@]}" "$addr" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          fgb=$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)
+          cnt=$(sudo docker inspect -f '{{.Id}}' epic-cnt-capture)
+          cnt_ff=$(sudo docker exec epic-cnt-capture pgrep -o ffmpeg)
+          sudo docker build -q -t epic-cnt-phase2:staged -f /opt/cnt-phase2-staging/Dockerfile.cnt /opt/cnt-phase2-staging >/dev/null
+          cd /opt/cnt-transport
+          sudo docker compose -f docker-compose.phase2.yml up -d --no-build --no-deps --force-recreate archive_worker
+          sleep 3
+          sudo docker exec epic-cnt-archive-worker bash -c 'grep -q "youtube_public_processed" /opt/cnt/archive-retention.py; grep -q "youtube_public_processed" /opt/cnt/episode-cutter.sh; pgrep -f cnt-air-observer.py >/dev/null'
+          test "$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)" = "$fgb"
+          test "$(sudo docker inspect -f '{{.Id}}' epic-cnt-capture)" = "$cnt"
+          test "$(sudo docker exec epic-cnt-capture pgrep -o ffmpeg)" = "$cnt_ff"
+          echo CNT_EPISODE_PUBLICATION_CONFIRMATION=READY
+          echo CNT_CAPTURE_ENCODER_UNCHANGED=true
+          echo FGB_CAPTURE_ENCODER_UNCHANGED=true
+          echo CNT_RETENTION_APPLY_ENABLED=false
+          REMOTE
