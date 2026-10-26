@@ -1,0 +1,74 @@
+name: Audit Public Trivia Phase Alignment
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-public-trivia-phase-alignment.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: audit-public-trivia-phase-alignment
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Compare simultaneous authoritative and website game phases over multiple questions
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import concurrent.futures, json, time, statistics, urllib.request
+          from pathlib import Path
+          from datetime import datetime, timezone
+          BASE='https://epiccontentcreatorgrants.org'
+          URLS={'broadcast':BASE+'/api/public/fgbears/game-screen','website':BASE+'/api/public/fgbears/website-game-screen'}
+          def fetch(pair):
+              name,url=pair
+              started=time.time()
+              try:
+                  req=urllib.request.Request(url+'?_phase_audit='+str(time.time_ns()),headers={'Cache-Control':'no-cache','Pragma':'no-cache','User-Agent':'EPIC-trivia-phase-comparison/1.0'})
+                  with urllib.request.urlopen(req, timeout=9) as f: data=json.load(f)
+                  fields=('active','gameId','phase','questionNumber','questionCount','phaseStartsAt','phaseEndsAt','delaySeconds','updatedAt','waiting')
+                  return (name,{'readStartedAt':round(started,3),'readFinishedAt':round(time.time(),3),**{k:data.get(k) for k in fields}})
+              except Exception as exc:
+                  return(name,{'errorType':type(exc).__name__,'readStartedAt':round(started,3),'readFinishedAt':round(time.time(),3)})
+          rows=[]
+          with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+              for i in range(90):
+                  began=time.time()
+                  pair=dict(pool.map(fetch,URLS.items()))
+                  broadcast,website=pair['broadcast'],pair['website']
+                  same=bool(broadcast.get('gameId') and broadcast.get('gameId')==website.get('gameId'))
+                  n1,n2=broadcast.get('questionNumber'),website.get('questionNumber')
+                  qdiff=(n2-n1 if same and isinstance(n1,int) and isinstance(n2,int) else None)
+                  rows.append(dict(observedAt=datetime.now(timezone.utc).isoformat(),broadcast=broadcast,website=website,sameGame=same,websiteMinusBroadcastQuestionNumber=qdiff))
+                  if i%15==0:
+                      print(f'capture={i} sameGame={same} broadcastQuestion={n1} websiteQuestion={n2} delta={qdiff}',flush=True)
+                  time.sleep(max(0,1.4-(time.time()-began)))
+          eligible=[r for r in rows if r['websiteMinusBroadcastQuestionNumber'] is not None]
+          qdiffs=[r['websiteMinusBroadcastQuestionNumber'] for r in eligible]
+          positive=[r for r in eligible if r['websiteMinusBroadcastQuestionNumber']>0]
+          offsets=[r['website'].get('delaySeconds') for r in rows if isinstance(r['website'].get('delaySeconds'),(float,int))]
+          report=dict(checkedAt=datetime.now(timezone.utc).isoformat(),readOnly=True,sampleCount=len(rows),sameGameQuestionSampleCount=len(eligible),websiteAheadOfBroadcastSamples=len(positive),questionNumberDeltaDistribution={str(n):qdiffs.count(n) for n in sorted(set(qdiffs))},medianWebsiteConfiguredDelaySeconds=statistics.median(offsets) if offsets else None,classification=('WEBSITE_AHEAD_DESPITE_CONFIGURED_DELAY' if len(positive)>=3 else 'INSUFFICIENT_COMPARABLE_QUESTION_PHASES' if len(eligible)<5 else 'NO_REPEATED_WEBSITE_AHEAD_ANOMALY'),samples=rows)
+          Path('.github/deployment-status/trivia-phase-alignment.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          print('SUMMARY='+json.dumps({k:v for k,v in report.items() if k!='samples'},sort_keys=True))
+          PY
+      - name: Persist sanitized phase comparison
+        if: success()
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/trivia-phase-alignment.json
+          git commit -m 'Record simultaneous website and broadcast phase comparison' || exit 0
+          git pull --rebase
+          git push
