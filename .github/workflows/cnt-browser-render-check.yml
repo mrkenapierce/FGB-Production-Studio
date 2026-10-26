@@ -94,7 +94,9 @@ jobs:
                           out('AUDIO_PRESENT',a.get('present'))
                           out('AUDIO_PAUSED',a.get('paused'))
                           out('AUDIO_ERROR_CODE',a.get('error'))
-                          out('AUDIO_READY_STATE',a.get('readyState'))\n                          out('AUDIO_PLAYBACK_SECONDS',a.get('playbackSeconds'))\n                          out('BROWSER_SCRIPT_PATHS',','.join(data.get('scripts',[])))
+                          out('AUDIO_READY_STATE',a.get('readyState'))
+                          out('AUDIO_PLAYBACK_SECONDS',a.get('playbackSeconds'))
+                          out('BROWSER_SCRIPT_PATHS',','.join(data.get('scripts',[])))
                           for row in data.get('feeds',[]):
                               label=row['path'].rsplit('/',1)[-1].upper().replace('-','_')
                               out('FEED_'+label,json.dumps(row,separators=(',',':')))
