@@ -54,7 +54,7 @@ jobs:
           echo CNT_STAGING_DIR_READY=true
           echo FGB_AND_CNT_LIVE_CONTAINERS_UNCHANGED=true
           REMOTE
-          scp "${args[@]}" -q ops/cnt-phase2/* "$addr:/opt/cnt-phase2-staging/"
+          scp "${args[@]}" -q ops/cnt-phase2/*.sh ops/cnt-phase2/*.py ops/cnt-phase2/Dockerfile.cnt "$addr:/opt/cnt-phase2-staging/"
           ssh "${args[@]}" "$addr" 'bash -s' <<'REMOTE'
           set -euo pipefail
           for f in /opt/cnt-phase2-staging/*.sh; do bash -n "$f"; done
