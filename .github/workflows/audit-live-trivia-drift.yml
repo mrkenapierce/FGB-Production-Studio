@@ -37,7 +37,7 @@ jobs:
       - name: Observe media clock versus wall clock and locate CNT (never restart or modify containers)
         run: |
           set -euo pipefail
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -i ~/.ssh/fgb-audit ubuntu@40.160.144.185 'bash -s' > /tmp/trivia-pacing-raw.txt <<'REMOTE'
+          cat > /tmp/epic-trivia-pacing-remote.sh <<'REMOTE'
           set -euo pipefail
           echo "AUDIT_VERSION=2026-10-26-v1"
           echo "UTC_START=$(date -u +%FT%TZ)"
@@ -65,6 +65,10 @@ jobs:
           done
           echo "UTC_END=$(date -u +%FT%TZ)"
           REMOTE
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -i ~/.ssh/fgb-audit /tmp/epic-trivia-pacing-remote.sh ubuntu@40.160.144.185:/tmp/epic-trivia-pacing-remote.sh
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -i ~/.ssh/fgb-audit ubuntu@40.160.144.185 'bash /tmp/epic-trivia-pacing-remote.sh' > /tmp/trivia-pacing-raw.txt
+          grep -q '^UTC_END=' /tmp/trivia-pacing-raw.txt
+          test "$(grep -c '^SAMPLE|' /tmp/trivia-pacing-raw.txt)" -eq 5
           cat /tmp/trivia-pacing-raw.txt
 
       - name: Read authoritative game clock and write safe diagnostic summary
