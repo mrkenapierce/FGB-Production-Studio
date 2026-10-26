@@ -7,8 +7,18 @@ STATE=pathlib.Path("/var/lib/cnt-watchdog/state.json")
 def execute(args,timeout=16):
     return subprocess.run(args,capture_output=True,text=True,check=True,timeout=timeout).stdout.strip()
 def network_api():
-    raw=execute(["docker","exec","epic-cnt-capture","curl","-4","-fsS","--connect-timeout","3","--max-time","8",API],12)
-    return json.loads(raw)
+    # Origin requests sometimes stall, while an immediate subsequent request
+    # succeeds. Retry one bounded GET; never synthesize/carry forward a question.
+    last_error=None
+    for attempt in range(2):
+        try:
+            raw=execute(["docker","exec","epic-cnt-capture","curl","-4","-fsS",
+                         "--connect-timeout","2","--max-time","5",API],9)
+            return json.loads(raw)
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, ValueError) as exc:
+            last_error=exc
+            if attempt==0:time.sleep(1)
+    raise RuntimeError("GAME_SOURCE_UNAVAILABLE") from last_error
 def websocket(mode):
     tabs=json.load(urllib.request.urlopen("http://127.0.0.1:9223/json/list",timeout=4))
     pages=[x for x in tabs if x.get("type")=="page"]
@@ -60,10 +70,12 @@ def main(repair):
     result={"utc":now,"mode":"repair" if repair else "read-only"}
     try:
         feed=network_api()
-        active=feed.get("phase")=="question" and feed.get("presentationType")=="question" and bool(feed.get("prompt"))
+        active=feed.get("phase") in ("question","revealed") and feed.get("presentationType")=="question" and bool(feed.get("prompt"))
     except Exception as exc:
         result["state"]="SOURCE_UNAVAILABLE_NO_RELOAD";result["error"]=type(exc).__name__
-        st["failures"]=0;active=False
+        # A timeout cannot prove that the browser is out of sync. Preserve
+        # prior mismatch evidence, but never initiate recovery on this read.
+        active=False
     if "state" not in result and not active:
         result["state"]="NOT_ACTIVE_QUESTION";st["failures"]=0
     if active:
