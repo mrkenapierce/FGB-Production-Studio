@@ -527,7 +527,7 @@ def process_segment(source: Path, root: Path, minimum_duration: float) -> bool:
 
     duration, video, audio = probe(source)
     if duration < minimum_duration:
-        ignore_short_file(source, state_dir, duration, int(env("FGB_ARCHIVE_RETENTION_HOURS", "24")))
+        ignore_short_file(source, state_dir, duration, int(env("FGB_ARCHIVE_RETENTION_HOURS", "6")))
         return True
     if not video or not audio:
         raise ArchiveError(f"{source.name} does not contain both video and audio")
@@ -699,7 +699,7 @@ def main() -> int:
     stable_age = max(30, int(env("FGB_ARCHIVE_STABLE_AGE_SECONDS", "90")))
     poll_seconds = max(15, int(env("FGB_ARCHIVE_POLL_SECONDS", "30")))
     min_duration = max(60.0, float(env("FGB_ARCHIVE_MIN_FULL_HOUR_SECONDS", "3000")))
-    retention_hours = max(1, int(env("FGB_ARCHIVE_RETENTION_HOURS", "24")))
+    retention_hours = max(1, int(env("FGB_ARCHIVE_RETENTION_HOURS", "6")))
     min_free_gb = max(2.0, float(env("FGB_ARCHIVE_MIN_FREE_GB", "8")))
 
     log("ARCHIVE_HOURLY_UPLOADER_STARTED=true")
