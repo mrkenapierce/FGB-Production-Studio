@@ -2,6 +2,8 @@ name: Audit Public Trivia Phase Alignment
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '23 * * * *'
   push:
     branches: [main]
     paths:
@@ -26,7 +28,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import concurrent.futures, json, time, statistics, urllib.request
+          import concurrent.futures, json, time, statistics, urllib.request, os
           from pathlib import Path
           from datetime import datetime, timezone
           BASE='https://epiccontentcreatorgrants.org'
@@ -43,7 +45,8 @@ jobs:
                   return(name,{'errorType':type(exc).__name__,'readStartedAt':round(started,3),'readFinishedAt':round(time.time(),3)})
           rows=[]
           with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
-              for i in range(90):
+              count=40 if os.getenv('GITHUB_EVENT_NAME')=='schedule' else 90
+              for i in range(count):
                   began=time.time()
                   pair=dict(pool.map(fetch,URLS.items()))
                   broadcast,website=pair['broadcast'],pair['website']
@@ -62,8 +65,23 @@ jobs:
           Path('.github/deployment-status/trivia-phase-alignment.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
           print('SUMMARY='+json.dumps({k:v for k,v in report.items() if k!='samples'},sort_keys=True))
           PY
+      - name: Flag sustained website-ahead anomaly without modifying live phases
+        if: github.event_name == 'schedule'
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('.github/deployment-status/trivia-phase-alignment.json')
+          d=json.loads(p.read_text())
+          samples=d.get('sameGameQuestionSampleCount',0)
+          ahead=d.get('websiteAheadOfBroadcastSamples',0)
+          print(f'Same game, comparable questions: {samples}; website ahead of broadcast: {ahead}')
+          if samples>=5 and ahead>=5:
+              raise SystemExit('Website advanced before broadcast despite configured website delay.')
+          PY
+
       - name: Persist sanitized phase comparison
-        if: success()
+        if: github.event_name != 'schedule' && success()
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
