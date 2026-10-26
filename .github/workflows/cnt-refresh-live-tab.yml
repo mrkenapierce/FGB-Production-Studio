@@ -71,7 +71,7 @@ jobs:
                   x=rec()
                   if x.get('id')==k:return x
               raise RuntimeError('CDP_TIMEOUT')
-          expr="JSON.stringify({body:document.body?.innerText?.slice(0,650),sharedScene:!!document.querySelector('[aria-label=\"Trivia question\"]')||!!document.querySelector('[aria-label=\"Standings\"]')||!!document.querySelector('[aria-label=\"Idle\"]'),audio:!!document.querySelector('audio'),oldPage:(document.body?.innerText||'').includes('Programming off')})"
+          expr="JSON.stringify({body:document.body?.innerText?.slice(0,650),sharedScene:(!!document.querySelector('audio')&&(document.body?.innerText||'').includes('ON AIR')),audio:!!document.querySelector('audio'),oldPage:(document.body?.innerText||'').includes('Programming off')})"
           def snapshot(name):
               d=cmd('Runtime.evaluate',{'expression':expr,'returnByValue':True})
               v=d.get('result',{}).get('result',{}).get('value')
