@@ -95,6 +95,26 @@ jobs:
           test "$before_restart" = "$after_restart"
           test "$before_encoder" = "$after_encoder"
           test "$before_cnt" = "$after_cnt"
+          # Canonicalize one renderer recovery timer. The older Python timer
+          # was independently installed and must not compete for the same tab.
+          if sudo systemctl is-active --quiet fgb-browser-watchdog.timer; then
+            sudo systemctl disable --now fgb-browser-watchdog.timer
+            echo 'DUPLICATE_FGB_BROWSER_WATCHDOG_TIMER=disabled'
+          fi
+          sudo systemctl is-active --quiet fgb-browser-guard.timer
+          echo 'CANONICAL_FGB_BROWSER_GUARD_TIMER=active'
+          echo 'OVH_STORAGE_AUDIT_BEGIN'
+          df -hT / /var/lib/docker /srv/fgb-archive 2>/dev/null || true
+          sudo docker system df || true
+          sudo journalctl --disk-usage || true
+          for d in /var/lib/docker /srv/fgb-archive /var/log /tmp /opt/fgb-transport; do
+            if sudo test -d "$d"; then
+              echo "DIRECTORY_USAGE=$d"
+              timeout 40 sudo du -xsh "$d" 2>/dev/null || true
+            fi
+          done
+          sudo docker exec "$FGB" sh -lc 'du -sh /tmp/fgb-chrome /tmp 2>/dev/null || true; df -h /tmp /dev/shm' || true
+          echo 'OVH_STORAGE_AUDIT_END'
           echo 'FGB_BROWSER_GUARD_TIMER=active'
           echo 'FGB_ENCODER_RESTARTED=false'
           echo 'CNT_CONTAINER_UNCHANGED=true'
