@@ -136,7 +136,7 @@ jobs:
             echo 'AUDIO_BITRATE=128k'
             echo 'STALL_SECONDS=20'
             echo 'RELOAD_EVERY_SECONDS=21600'
-            echo 'FGB_ARCHIVE_RETENTION_HOURS=6'
+            echo 'FGB_ARCHIVE_RETENTION_HOURS=24'
           } > "$tmp"
           scp -q -o UserKnownHostsFile=~/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key "$tmp" "$u@$OVH_HOST:/tmp/fgb-production.env"
           rm -f "$tmp"
