@@ -1,0 +1,53 @@
+name: CNT public YouTube decoded frame verification (no account writes)
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-public-player-frame-check.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Try alternate public YouTube playback clients and capture live frame
+        run: |
+          set -uo pipefail
+          python3 -m pip -q install yt-dlp
+          mkdir -p evidence
+          VIDEO='https://www.youtube.com/watch?v=q_2BHP87zQo'
+          for client in web_embedded android_vr; do
+            echo "PUBLIC_PLAYER_CLIENT=$client"
+            timeout 45 yt-dlp --no-warnings --no-playlist --skip-download --dump-json --socket-timeout 12 --extractor-args "youtube:player_client=$client" "$VIDEO" >/tmp/cnt-info.json 2>/tmp/cnt-public-error || true
+            if [ -s /tmp/cnt-info.json ];then
+              python3 - <<'PY'
+          import json
+          d=json.load(open('/tmp/cnt-info.json'))
+          print('PUBLIC_CNT_VIDEO_ID='+str(d.get('id')))
+          print('PUBLIC_CNT_CHANNEL='+str(d.get('channel')))
+          print('PUBLIC_CNT_LIVE_STATUS='+str(d.get('live_status')))
+          print('PUBLIC_CNT_IS_LIVE='+str(d.get('is_live')))
+          print('PUBLIC_CNT_FORMATS='+str(len(d.get('formats') or [])))
+          PY
+              url=$(timeout 25 yt-dlp --no-warnings --no-playlist --socket-timeout 10 -f 'best[height<=480]/best' --extractor-args "youtube:player_client=$client" -g "$VIDEO" 2>/dev/null | head -n1) || true
+              if [ -n "$url" ];then
+                timeout 35 ffmpeg -hide_banner -loglevel error -nostdin -y -i "$url" -frames:v 1 -vf "scale=854:480" evidence/cnt-public-frame.jpg >/dev/null 2>&1 || true
+                if [ -s evidence/cnt-public-frame.jpg ];then echo PUBLIC_CNT_VIDEO_PIXELS=CAPTURED;break;fi
+              fi
+            else
+              echo PUBLIC_CNT_PLAYBACK_BLOCK=$(head -c 220 /tmp/cnt-public-error | tr '\n' ' ')
+            fi
+          done
+          if [ -s evidence/cnt-public-frame.jpg ];then
+            echo PUBLIC_YOUTUBE_FRAME_PROOF=YES
+          else
+            echo PUBLIC_YOUTUBE_FRAME_PROOF=UNAVAILABLE_NO_CLAIM
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cnt-actual-youtube-public-frame
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 2
