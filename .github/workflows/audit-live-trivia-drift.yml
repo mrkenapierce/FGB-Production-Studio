@@ -2,6 +2,8 @@ name: Audit FGB and CNT Trivia Clock Drift
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: '17 * * * *'
   push:
     branches: [main]
     paths:
@@ -61,6 +63,12 @@ jobs:
             dropped="$(printf '%s\n' "$metrics" | awk -F= '$1=="drop_frames"{x=$2}END{print x+0}')"
             duplicated="$(printf '%s\n' "$metrics" | awk -F= '$1=="dup_frames"{x=$2}END{print x+0}')"
             printf 'SAMPLE|%s|%s|%s|%s|%s|%s\n' "$now" "$frame" "$media" "${speed:-unknown}" "$dropped" "$duplicated"
+            cnt_metrics="$(sudo docker exec epic-cnt-capture cat /tmp/cnt-ffmpeg.progress 2>/dev/null || true)"
+            cnt_frame="$(printf '%s\n' "$cnt_metrics" | awk -F= '$1=="frame"{x=$2}END{print x+0}')"
+            cnt_media="$(printf '%s\n' "$cnt_metrics" | awk -F= '$1=="out_time_us"{x=$2}END{print x+0}')"
+            cnt_dropped="$(printf '%s\n' "$cnt_metrics" | awk -F= '$1=="drop_frames"{x=$2}END{print x+0}')"
+            cnt_duplicated="$(printf '%s\n' "$cnt_metrics" | awk -F= '$1=="dup_frames"{x=$2}END{print x+0}')"
+            printf 'CNT_SAMPLE|%s|%s|%s|%s|%s\n' "$(date +%s%N)" "$cnt_frame" "$cnt_media" "$cnt_dropped" "$cnt_duplicated"
             if [ "$i" -lt 4 ]; then sleep 15; fi
           done
           echo "UTC_END=$(date -u +%FT%TZ)"
@@ -96,6 +104,23 @@ jobs:
               if wall>0 and media>=0 and frames>=0:
                   windows.append(dict(wallSeconds=round(wall,3),mediaSeconds=round(media,3),mediaToWallRatio=round(media/wall,4),frames=frames,measuredFps=round(frames/wall,2),droppedDelta=b['dropped']-a['dropped'],duplicatedDelta=b['duplicated']-a['duplicated']))
           valid=[x for x in windows if x['wallSeconds']>5]
+          cnt_rows=[]
+          for line in raw.splitlines():
+              if not line.startswith('CNT_SAMPLE|'):continue
+              try:
+                  p=line.split('|')
+                  cnt_rows.append(dict(wallNs=int(p[1]),frame=int(p[2]),mediaUs=int(p[3]),dropped=int(p[4]),duplicated=int(p[5])))
+              except (ValueError,IndexError):pass
+          cnt_windows=[]
+          for a,b in zip(cnt_rows,cnt_rows[1:]):
+              wall=(b['wallNs']-a['wallNs'])/1e9
+              media=(b['mediaUs']-a['mediaUs'])/1e6
+              frames=b['frame']-a['frame']
+              if wall>0 and media>=0 and frames>=0:
+                  cnt_windows.append(dict(wallSeconds=round(wall,3),mediaSeconds=round(media,3),mediaToWallRatio=round(media/wall,4),measuredFps=round(frames/wall,2),droppedDelta=b['dropped']-a['dropped'],duplicatedDelta=b['duplicated']-a['duplicated']))
+          cnt_total_wall=sum(x['wallSeconds'] for x in cnt_windows)
+          cnt_total_media=sum(x['mediaSeconds'] for x in cnt_windows)
+          cnt_status='INSUFFICIENT_SAMPLES' if len(cnt_windows)<2 else 'ENCODER_FALLING_BEHIND' if cnt_total_media/cnt_total_wall<.975 else 'ENCODER_PACING_NORMAL'
           samples={}
           for name,path in [('source','/api/public/fgbears/game-screen'),('website','/api/public/fgbears/website-game-screen')]:
               try:
@@ -117,13 +142,27 @@ jobs:
           total_media=sum(x['mediaSeconds'] for x in valid)
           drift=round(total_wall-total_media,3) if total_wall and ratios else None
           status='INSUFFICIENT_SAMPLES' if len(valid)<2 else 'ENCODER_FALLING_BEHIND' if total_media/total_wall < .975 else 'ENCODER_PACING_NORMAL'
-          report=dict(checkedAt=datetime.now(timezone.utc).isoformat(),readOnly=True,host='OVH',fgbCaptureUrl=(raw.split('FGB_CAPTURE_TABS_BEGIN\n')[-1].split('\nFGB_CAPTURE_TABS_END')[0].strip().splitlines()[:5] if 'FGB_CAPTURE_TABS_BEGIN' in raw and 'FGB_CAPTURE_TABS_END' in raw else []),containerRestartCount=(re.search(r'FGB_CONTAINER_RESTARTS=(\d+)',raw).group(1) if re.search(r'FGB_CONTAINER_RESTARTS=(\d+)',raw) else None),observationDurationSeconds=round(total_wall,2),mediaDurationSeconds=round(total_media,2),cumulativeEncoderLagGrowthSeconds=drift,mediaTimeVsWallTimeStatus=status,perWindow=valid,sourceClock=samples,containers=containers,cntContainersDiscovered=cnt,limits=['No YouTube viewer-player latency measured; encoder pacing and YouTube playback latency are distinct.','A channel not found on this Docker host may run elsewhere.'])
+          report=dict(checkedAt=datetime.now(timezone.utc).isoformat(),readOnly=True,host='OVH',fgbCaptureUrl=(raw.split('FGB_CAPTURE_TABS_BEGIN\n')[-1].split('\nFGB_CAPTURE_TABS_END')[0].strip().splitlines()[:5] if 'FGB_CAPTURE_TABS_BEGIN' in raw and 'FGB_CAPTURE_TABS_END' in raw else []),containerRestartCount=(re.search(r'FGB_CONTAINER_RESTARTS=(\d+)',raw).group(1) if re.search(r'FGB_CONTAINER_RESTARTS=(\d+)',raw) else None),observationDurationSeconds=round(total_wall,2),mediaDurationSeconds=round(total_media,2),cumulativeEncoderLagGrowthSeconds=drift,mediaTimeVsWallTimeStatus=status,perWindow=valid,sourceClock=samples,containers=containers,cntContainersDiscovered=cnt,cntPacing=dict(status=cnt_status,observationDurationSeconds=round(cnt_total_wall,3),mediaDurationSeconds=round(cnt_total_media,3),cumulativeLagGrowthSeconds=round(cnt_total_wall-cnt_total_media,3) if cnt_windows else None,perWindow=cnt_windows),limits=['No YouTube viewer-player latency measured; encoder pacing and YouTube playback latency are distinct.','A channel not found on this Docker host may run elsewhere.'])
           Path('.github/deployment-status/trivia-clock-drift-audit.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
           print(json.dumps(report,indent=2,sort_keys=True))
           PY
 
+      - name: Flag sustained media-clock drift on hourly checks
+        if: github.event_name == 'schedule'
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path('.github/deployment-status/trivia-clock-drift-audit.json').read_text())
+          fgb=d.get('mediaTimeVsWallTimeStatus')
+          cnt=(d.get('cntPacing') or {}).get('status')
+          print('FGB media clock:',fgb,'; CNT media clock:',cnt)
+          if 'ENCODER_FALLING_BEHIND' in [fgb,cnt]:
+              raise SystemExit('One encoder is losing real-time pacing; inspect production transport without an automatic restart.')
+          PY
+
       - name: Commit read-only diagnostic
-        if: always()
+        if: github.event_name != 'schedule'
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
