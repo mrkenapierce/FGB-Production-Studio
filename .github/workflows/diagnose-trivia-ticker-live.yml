@@ -2,7 +2,7 @@ name: Diagnose Trivia Ticker Live
 
 on:
   push:
-    branches: [main]
+    branches: [main, cnt-ingest-preflight-20261025]
     paths:
       - '.github/workflows/diagnose-trivia-ticker-live.yml'
   workflow_dispatch:
