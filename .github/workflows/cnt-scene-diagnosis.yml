@@ -84,4 +84,11 @@ jobs:
           PY
           date -u
           timedatectl show -p NTPSynchronized -p TimeUSec
+          echo HOST_NETWORK_PROBE
+          curl -4 --connect-timeout 4 --max-time 12 -sS -o /tmp/cnt-host-source.json -w 'HOST_HTTP=%{http_code} CONNECT=%{time_connect} TOTAL=%{time_total}\n' "https://epiccontentcreatorgrants.org/api/public/fgbears/game-screen?t=$(date +%s)" || true
+          echo CNT_NETWORK_PROBE
+          sudo -n docker exec epic-cnt-capture sh -c 'curl -4 --connect-timeout 4 --max-time 12 -sS -o /tmp/cnt-net-source.json -w "CNT_HTTP=%{http_code} CONNECT=%{time_connect} TOTAL=%{time_total}\\n" "https://epiccontentcreatorgrants.org/api/public/fgbears/game-screen?t=$(date +%s)"' || true
+          sudo -n docker exec epic-cnt-capture cat /tmp/cnt-net-source.json | python3 -c 'import sys,json; x=json.load(sys.stdin); print({k:x.get(k) for k in ("presentationType","questionNumber","prompt","updatedAt")})' || true
+          echo CNT_CONNECTIONS
+          sudo -n nsenter -t "$pid" -n ss -s
           REMOTE
