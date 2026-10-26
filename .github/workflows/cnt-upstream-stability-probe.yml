@@ -34,15 +34,15 @@ jobs:
             echo "SAMPLE=$n $metrics"
             if printf '%s' "$metrics" | grep -q 'status=200'; then
               sudo -n docker exec epic-cnt-capture cat /tmp/cnt-upstream-sample.json | python3 -c '
-import json,sys
-try:
- x=json.load(sys.stdin)
- print("SCHEMA phase=%s type=%s number=%s prompt=%s updated=%s topKeys=%s dataKeys=%s" % (
-  str(x.get("phase"))[:30],str(x.get("presentationType"))[:30], str(x.get("questionNumber"))[:18],
-  "YES" if isinstance(x.get("prompt"),str) and x["prompt"].strip() else "NO",str(x.get("updatedAt"))[:40],
-  ",".join(x.keys())[:330], ",".join(x.get("data",{}).keys())[:140] if isinstance(x.get("data"),dict) else "none"))
-except Exception as e:print("PARSE_FAILURE="+str(e)[:120])
-'
+          import json,sys
+          try:
+           x=json.load(sys.stdin)
+           print("SCHEMA phase=%s type=%s number=%s prompt=%s updated=%s topKeys=%s dataKeys=%s" % (
+            str(x.get("phase"))[:30],str(x.get("presentationType"))[:30], str(x.get("questionNumber"))[:18],
+            "YES" if isinstance(x.get("prompt"),str) and x["prompt"].strip() else "NO",str(x.get("updatedAt"))[:40],
+            ",".join(x.keys())[:330], ",".join(x.get("data",{}).keys())[:140] if isinstance(x.get("data"),dict) else "none"))
+          except Exception as e:print("PARSE_FAILURE="+str(e)[:120])
+          '
             fi
             sleep 3
           done
