@@ -1,0 +1,39 @@
+name: CNT Phase 2 live-script compatibility audit
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-phase2-live-script-diff-audit.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Set up direct SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          mkdir -m 700 -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Inspect non-secret live CNT scripts and compose versus staged
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo 'CNT_LIVE_COMPOSE'
+          cat /opt/cnt-transport/docker-compose.yml
+          echo 'CNT_LIVE_RUN_SCRIPT'
+          sed -n '1,170p' /opt/cnt-transport/run-cnt.sh
+          echo 'CNT_STAGE_DIFF'
+          diff -u /opt/cnt-transport/run-cnt.sh /opt/cnt-phase2-staging/run-cnt.sh | head -190 || true
+          echo 'CNT_DOCKERFILE_CURRENT'
+          cat /opt/cnt-transport/Dockerfile
+          echo 'CNT_POST_UPDATE_SAFETY'
+          sudo docker ps --format '{{.Names}}={{.Status}}'
+          echo 'DONE'
+          REMOTE
