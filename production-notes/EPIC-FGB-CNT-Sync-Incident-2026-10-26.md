@@ -27,3 +27,14 @@ The public website and YouTube initially show matching trivia phases, then grow 
 
 ## Scope and safety
 No gameplay, balances, scoring, beneficiary selections, or live broadcast settings were modified. The read-only monitors do not restart services or change encoder configuration. The permanent end-to-end sync fix is not yet verified or deployed to the website or YouTube player; the production website source is not writable through the connected GitHub repository, and there is no usable YouTube API authorization for active broadcast settings.
+
+## October 26 follow-up — additional work
+- Created `.github/workflows/audit-public-trivia-phase-alignment.yml` to compare the public broadcast and website game-screen endpoints via simultaneous reads. In an initial 90-sample run, four comparisons had directly comparable questions from the same game. In all four, the website showed one question earlier than the broadcast, consistent with the configured 21.25-second delay. The rest covered pool votes/intermission/scoreboard; the test does not prove or exclude progressive intra-game site clock drift.
+- Added hourly read-only website/broadcast phase checks at minute 23, complementing hourly FGB and CNT encoder media-clock checks at minute 17. Neither check changes live playback or records.
+- Created a channel-agnostic relative-live-buffer guard in existing `mrkenapierce/ChatGPT`, file `epic-website-sync/source/yt-live-relative-drift-guard.mjs`. Once website-integrated, it measures extra YouTube player buffer relative to a viewer-confirmed synchronized starting point and can restore the original offset using YouTube's supported IFrame player `seekTo` method, gated by explicit arming, sustained samples and cooldown.
+- Added a Node regression test and GitHub verification workflow. Both immutable timeline and new live player guard tests passed in GitHub run `40340405436`.
+- The player guard is STAGED ONLY; it is not wired into the actual published website. GitHub/OVH controls capture containers, but this connected GitHub repository does not contain a verified deployment route into the site's production application. The next necessary step is production website integration and validation.
+- Current YouTube broadcast latency preference could not be authenticated; it remains unknown. No YouTube latency setting was changed.
+
+### Full acceptance test after website integration
+For both FGB and CNT, observe the stream over at least two consecutive complete trivia games. Correlate server phase timestamps, website phase, YouTube IFrame currentTime/duration/state, and actual visual question/reveal times. Verify that buffering does not cause progressively worsening alignment and that corrections do not alter player answer deadlines, scoring, ledgers, beneficiary decisions or independent stream branding and destinations.
