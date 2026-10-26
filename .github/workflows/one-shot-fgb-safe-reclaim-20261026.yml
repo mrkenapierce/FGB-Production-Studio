@@ -1,0 +1,56 @@
+name: One-shot FGB safe archive reclaim (2026-10-26)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/one-shot-fgb-safe-reclaim-20261026.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: fgb-confirmed-mp4-reclaim
+  cancel-in-progress: false
+jobs:
+  reclaim:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Configure direct OVH SSH access
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY" || { echo "OVH SSH key unavailable"; exit 2; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Audit and safely remove only confirmed redundant MP4 copies
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo "FGB_SAFE_RECLAIM_BEGIN"
+          echo "Disk before:"
+          df -h / /srv/fgb-archive
+          echo "Archive directory sizes:"
+          sudo du -sh /srv/fgb-archive/hourly /srv/fgb-archive/final /srv/fgb-archive/state 2>/dev/null || true
+          echo "Read-only uploader service:"
+          sudo docker ps --filter name=archive_uploader --format '{{.Names}} {{.Status}}' || true
+          echo "Non-secret hold file status:"
+          if sudo test -e /srv/fgb-archive/state/episode_hold; then
+            sudo stat -c 'episode_hold age_reference=%Y size=%s' /srv/fgb-archive/state/episode_hold
+          else echo 'episode_hold=not_installed'; fi
+          cleaner=/usr/local/libexec/fgb-confirmed-mp4-cleanup.py
+          sudo test -s "$cleaner" || { echo "SAFE_MP4_CLEANER_MISSING=true"; exit 2; }
+          echo "CONFIRMED_MP4_DRY_RUN:"
+          sudo python3 "$cleaner" --root /srv/fgb-archive --max-files 500
+          echo "CONFIRMED_MP4_APPLY:"
+          sudo python3 "$cleaner" --root /srv/fgb-archive --max-files 500 --apply
+          echo "Disk after:"
+          df -h / /srv/fgb-archive
+          echo "FGB_TRANSPORT_TS_DELETED=false"
+          echo "FGB_LIVE_ENCODER_RESTARTED=false"
+          echo "CNT_LIVE_ENCODER_RESTARTED=false"
+          echo "FGB_SAFE_RECLAIM_END"
+          REMOTE
