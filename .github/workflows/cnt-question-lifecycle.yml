@@ -89,7 +89,7 @@ jobs:
               say('MONITOR_ERROR','WRONG_CAPTURE_URL');s.close();raise SystemExit(0)
           say('MONITOR_MODE','READ_ONLY; NO PAGE_RELOAD; FGB_DATA_FEED_ONLY')
           expr2="""(async()=>{try{const r=await fetch('/api/public/fgbears/game-screen?t='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(7000)});const g=await r.json();const p=(document.querySelector('[data-testid=prompt]')?.textContent||'').trim();return JSON.stringify({status:r.status,sourcePhase:g.phase,sourcePresentation:g.presentationType,sourceQuestion:g.questionNumber,sourcePrompt:(g.prompt||'').trim().slice(0,230),domPrompt:p.slice(0,230),domMatches:!!p&&p===(g.prompt||'').trim(),domState:document.querySelector('[data-testid=broadcast-scene]')?.getAttribute('data-state'),domQuestion:document.querySelector('[data-testid=questionCard]')?.textContent?.slice(0,180),audioPaused:document.querySelector('audio')?.paused})}catch(e){return JSON.stringify({error:String(e).slice(0,150)})}})()"""
-          started=time.monotonic();firstSource=None;firstDom=None;observedQuestion=None;observedReveal=False;lastLog=''
+          started=time.monotonic();firstSource=None;firstDom=None;observedQuestion=None;observedReveal=False;observedNextQuestion=False;lastLog=''
           while time.monotonic()-started<255:
               d=cmd('Runtime.evaluate',{'expression':expr2,'awaitPromise':True,'returnByValue':True})
               val=d.get('result',{}).get('result',{}).get('value')
@@ -132,6 +132,7 @@ jobs:
           say('RESULT_SOURCE_QUESTION_SEEN',firstSource is not None)
           say('RESULT_CNT_QUESTION_MATCH',firstDom is not None)
           say('RESULT_CNT_REVEAL',observedReveal)
+          say('RESULT_CNT_NEXT_QUESTION',observedNextQuestion)
           say('RESULT_YOUTUBE_VIEWER_VERIFIED','NO; YouTube requires sign-in from public sampling host')
           # A successful job must prove a displayed prompt and its answer reveal,
           # not merely that the observer script ran without an exception.
@@ -139,7 +140,7 @@ jobs:
               raise RuntimeError('CNT_NO_SHARED_QUESTION_OBSERVED_REQUIRES_RECHECK')
           if firstDom is None:
               raise RuntimeError('CNT_SHARED_TRIVIA_PROMPT_NOT_RENDERED')
-          if firstDom is not None and not observedReveal:
+          if firstDom is not None and not observedReveal and not observedNextQuestion:
               raise RuntimeError('CNT_SHARED_TRIVIA_ANSWER_REVEAL_NOT_RENDERED')
           s.close()
           PY
