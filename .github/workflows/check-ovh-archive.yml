@@ -35,10 +35,10 @@ jobs:
           live=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || echo missing')
           restarts=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-restarts 2>/dev/null || echo 999')
           archive_uploader=stopped
-          test -n "$(sudo docker compose --env-file .env ps --status running -q archive_uploader)" && archive_uploader=running
+          if test -n "$(sudo docker compose --env-file .env ps --status running -q archive_uploader)"; then archive_uploader=running; fi
           archive_capture=inactive
           chunk=$(find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' -size +1M -print -quit 2>/dev/null || true)
-          test -n "$chunk" && archive_capture=active
+          if test -n "$chunk"; then archive_capture=active; fi
           free=$(df -BG --output=avail /srv/fgb-archive | tail -1 | tr -dc '0-9')
           archive_auth=not_ready
           if sudo docker compose --env-file .env exec -T archive_uploader python3 ./archive-uploader.py --check-auth >/tmp/archive-auth-check.txt 2>/dev/null; then
