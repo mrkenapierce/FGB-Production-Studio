@@ -29,13 +29,15 @@ def log(message: str) -> None:
     print(time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "CNT_FEED_RELAY", message, flush=True)
 
 def get_actual_upstream() -> bytes:
-    # Explicit IPv4 and a short deadline avoid the stalled browser connection
-    # path. Return exactly the public origin JSON with no stale-state fallback.
+    # Use CNT's own DNS/resolver, NOT the host resolv.conf carried into nsenter.
+    # This route was confirmed HTTP 200 in 3/3 live origin probes on OVH.
+    # Return exactly the public origin JSON with no stale-state fallback.
     last = "upstream timeout"
     for attempt in range(2):
         try:
             cp = subprocess.run(
-                ["curl", "-4", "--fail", "--silent", "--show-error",
+                ["docker", "exec", "epic-cnt-capture", "curl", "-4",
+                 "--fail", "--silent", "--show-error",
                  "--connect-timeout", "2", "--max-time", "5",
                  "-H", "Cache-Control: no-cache", API],
                 capture_output=True, timeout=7, check=False)
