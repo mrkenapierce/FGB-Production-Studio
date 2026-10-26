@@ -1,0 +1,64 @@
+name: CNT Phase 2 Live Recording and Observer Verification
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-phase2-live-verify-20261026.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Direct SSH to OVH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Verify CNT stream and recorder without changing them
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          date -u +%FT%TZ
+          echo 'STREAM_CONTAINERS'
+          sudo docker ps --filter name=epic-cnt --format '{{.Names}} {{.Status}}'
+          echo 'FGB_CONTAINER'
+          sudo docker ps --filter name=fgb-transport-youtube --format '{{.Names}} {{.Status}}'
+          echo 'CNT_CAPTURE_ENCODER'
+          sudo docker exec epic-cnt-capture sh -lc 'ps -eo comm,args | grep -E "ffmpeg.*x11grab" | head -1 | cut -c1-120; stat -c "%y %s bytes" /tmp/cnt-ffmpeg.progress | cut -c1-100'
+          echo 'CNT_EPISODE_WORKER_PROCESSES'
+          sudo docker exec epic-cnt-archive-worker sh -lc 'ps -eo pid,comm,args | grep -E "(cnt-rolling|ffmpeg|cnt-air-observer|episode-cutter|cnt-daily)" | head -14 | cut -c1-160' || :
+          echo 'CNT_ARCHIVE_RECORDER_LOG_TAIL'
+          sudo docker logs --tail 32 epic-cnt-archive-worker 2>&1 | grep -E 'cnt-rolling|episode:cnt|cnt-daily|FFmpeg|ffmpeg|ERROR|error|failed|DRY|worker|CNT_EPISODE' | tail -26 || :
+          echo 'ROLLING_FILE_COUNT_AND_SIZES'
+          find /srv/cnt-archive/rolling -maxdepth 1 -type f -name 'live-*.ts' -printf '%f %s bytes\n' | sort | tail -8
+          echo 'CHROME_LOG_STATE'
+          stat -c 'chrome_log_bytes=%s mtime=%y' /srv/cnt-archive/state/chrome.log
+          echo 'CHROME_MARKER_COUNTS'
+          for pat in EPIC_AIR_BOUNDARY EPIC_CHROME_RESTART; do
+            echo "$pat=$(grep -c "$pat" /srv/cnt-archive/state/chrome.log || true)"
+          done
+          echo 'OBSERVER_STATE'
+          if [ -f /srv/cnt-archive/state/air-observer.json ]; then
+            python3 - <<'PY'
+          import json
+          d=json.load(open('/srv/cnt-archive/state/air-observer.json'))
+          print('observer_sent_count='+str(len(d.get('sent',[]))))
+          print('observer_pending_count='+str(len(d.get('pending',[]))))
+          print('observer_open='+str(bool(d.get('open'))))
+          PY
+          else echo 'observer_state_missing'; fi
+          echo 'HOLD_FILES'
+          for name in daily_hold episode_hold; do
+            if [ -f "/srv/cnt-archive/state/$name" ]; then stat -c "$name bytes=%s mtime=%y" "/srv/cnt-archive/state/$name"; else echo "$name=MISSING"; fi
+          done
+          echo 'DISK'
+          df -h /srv/cnt-archive
+          echo 'NO_MUTATION_DONE=true'
+          REMOTE
