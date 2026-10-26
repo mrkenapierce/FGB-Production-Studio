@@ -1,0 +1,77 @@
+name: Verify FGB Public YouTube Video and Ingest
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-fgb-public-youtube-ingest.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Inspect public YouTube watch, embed, oEmbed and permanent channel live page
+        run: |
+          python3 - <<'PY'
+          import urllib.request, urllib.error, json, re
+          pages=[
+          ('saved_watch','https://www.youtube.com/watch?v=cBzqZwkfQ4o'),
+          ('saved_embed','https://www.youtube.com/embed/cBzqZwkfQ4o'),
+          ('saved_oembed','https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3DcBzqZwkfQ4o&format=json'),
+          ('channel_live','https://www.youtube.com/@FootballsGreatestBears/live'),
+          ('channel_oembed','https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2F%40FootballsGreatestBears%2Flive&format=json'),
+          ]
+          for name,url in pages:
+              try:
+                  req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36','Accept-Language':'en-US,en;q=0.8'})
+                  with urllib.request.urlopen(req,timeout=12) as resp:
+                      raw=resp.read(1200000).decode('utf8','replace')
+                      out={'name':name,'http':resp.status,'finalPath':urllib.parse.urlsplit(resp.url).path,'htmlLength':len(raw)}
+                      if 'oembed' in name:
+                          try:
+                              obj=json.loads(raw)
+                              out.update({k:obj.get(k) for k in ('title','author_name','type','provider_name')})
+                          except Exception:pass
+                      else:
+                          m=re.search(r'ytInitialPlayerResponse\s*=\s*({.*?});(?:var |<\/script>)',raw,re.S)
+                          if m:
+                              try:
+                                  obj=json.loads(m.group(1))
+                                  p=obj.get('playabilityStatus',{})
+                                  v=obj.get('videoDetails',{})
+                                  out['playability']={'status':p.get('status'),'reason':str(p.get('reason',''))[:180]}
+                                  out['video']={'videoId':v.get('videoId'),'title':str(v.get('title',''))[:100],'isLive':v.get('isLive'),'isLiveContent':v.get('isLiveContent')}
+                              except Exception as exc:out['playerParseError']=type(exc).__name__
+                          for marker in ['This video is unavailable','Video unavailable','Live stream offline','Private video','Video player configuration error']:
+                              if marker.lower() in raw.lower():out['contains_'+marker.replace(' ','_')]=True
+                      print(json.dumps(out))
+              except urllib.error.HTTPError as e:
+                  print(json.dumps({'name':name,'http':e.code,'error':'HTTPError'}))
+              except Exception as exc:
+                  print(json.dumps({'name':name,'error':type(exc).__name__}))
+          PY
+      - name: Inspect FGB container's actual TCP sockets (no credentials; no restart)
+        env:
+          SSH_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          test -n "$SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/fgb_key
+          chmod 600 ~/.ssh/fgb_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/fgb_key -o StrictHostKeyChecking=yes -o ConnectTimeout=9 ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          C=fgb-transport-youtube-1
+          echo 'NETWORK_NAMESPACE'
+          sudo docker inspect "$C" --format 'Network={{.HostConfig.NetworkMode}} RestartCount={{.RestartCount}}'
+          echo 'CONTAINER_ESTABLISHED_SOCKET_PORTS'
+          sudo docker exec "$C" sh -lc 'cat /proc/net/tcp /proc/net/tcp6 2>/dev/null' | python3 -c 'import sys,collections; rows=[]; [rows.append(line.split()) for line in sys.stdin if len(line.split())>3 and ":" in line.split()[2]]; active=[r for r in rows if r[3]=="01"]; ports=collections.Counter(int(r[2].rsplit(":",1)[-1],16) for r in active);print("established_total",len(active));print("established_remote_tcp_ports",dict(ports))'
+          echo 'PROCESS_NAMES_ONLY'
+          sudo docker exec "$C" sh -lc 'ps -eo comm | sort | uniq -c | sort -nr | head -n 12'
+          echo 'NO_MUTATIONS'
+          REMOTE
