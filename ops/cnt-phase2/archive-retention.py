@@ -143,7 +143,7 @@ def main():
     parser.add_argument("--start", type=int)
     parser.add_argument("--end", type=int)
     parser.add_argument("--video")
-    parser.add_argument("--evidence", choices=["cnt_cleanup_confirmed", "episode_processing_confirmed"])
+    parser.add_argument("--evidence", choices=["cnt_cleanup_confirmed", "episode_processing_confirmed", "youtube_public_processed"])
     parser.add_argument("--apply", action="store_true")
     args = parser.parse_args()
     root = root_path(args.root, args.channel)
@@ -186,8 +186,11 @@ def main():
                 parser.error("existing dependency and verified video/evidence required")
             if args.kind == "daily" and (args.channel != "cnt" or args.evidence != "cnt_cleanup_confirmed"):
                 parser.error("daily confirmation must be CNT cleanup membership")
-            if args.kind == "episode" and args.evidence != "episode_processing_confirmed":
-                parser.error("episode processing confirmation required")
+            if args.kind == "episode" and (
+                (args.channel == "cnt" and args.evidence != "youtube_public_processed") or
+                (args.channel == "fgb" and args.evidence != "episode_processing_confirmed")
+            ):
+                parser.error("channel-specific verified episode processing required")
             if row.get("videoId") and row["videoId"] != args.video:
                 parser.error("immutable video mismatch")
             atomic_json(path, {**row, "status": "confirmed", "videoId": args.video, "evidence": args.evidence, "confirmedAt": int(time.time())})
