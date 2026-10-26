@@ -1,0 +1,70 @@
+{
+  "browserTabs": [
+    "https://epiccontentcreatorgrants.org/channels/cruisenewstrivia/broadcast"
+  ],
+  "checkedAt": "2026-10-26T14:13:16.469740+00:00",
+  "complete": true,
+  "processNames": [
+    "      1 Xvfb",
+    "      1 bash",
+    "      2 chrome_crashpad",
+    "     11 chromium",
+    "      1 ffmpeg",
+    "      1 ps",
+    "      1 pulseaudio",
+    "      1 runc:[2:INIT]",
+    "      1 sh",
+    "      1 sleep",
+    "      1 sort",
+    "      1 tail",
+    "      1 tini",
+    "      1 uniq"
+  ],
+  "progressCandidates": [
+    "/tmp/cnt-ffmpeg.progress"
+  ],
+  "readOnly": true,
+  "restarts": "0",
+  "samples": [
+    {
+      "progress": {
+        "drop_frames": "82",
+        "dup_frames": "0",
+        "frame": "1756437",
+        "out_time_ms": "58550085000",
+        "out_time_us": "58550085000",
+        "progress": "continue",
+        "speed": "   1x"
+      },
+      "progressFile": "/tmp/cnt-ffmpeg.progress",
+      "wallNs": "1793023964907177059"
+    },
+    {
+      "progress": {
+        "drop_frames": "82",
+        "dup_frames": "0",
+        "frame": "1756891",
+        "out_time_ms": "58565209000",
+        "out_time_us": "58565209000",
+        "progress": "continue",
+        "speed": "   1x"
+      },
+      "progressFile": "/tmp/cnt-ffmpeg.progress",
+      "wallNs": "1793023980404137273"
+    },
+    {
+      "progress": {
+        "drop_frames": "82",
+        "dup_frames": "0",
+        "frame": "1757361",
+        "out_time_ms": "58580868000",
+        "out_time_us": "58580868000",
+        "progress": "continue",
+        "speed": "   1x"
+      },
+      "progressFile": "/tmp/cnt-ffmpeg.progress",
+      "wallNs": "1793023995864345763"
+    }
+  ],
+  "status": "running"
+}
