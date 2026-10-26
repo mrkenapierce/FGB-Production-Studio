@@ -1,0 +1,108 @@
+name: Install FGB Archive Disk Guard
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ops/transport-ovh/confirmed-mp4-cleanup.py'
+      - 'ops/transport-ovh/fgb-storage-health.py'
+      - '.github/workflows/install-fgb-storage-guard.yml'
+permissions:
+  contents: read
+concurrency:
+  group: fgb-storage-guard-install
+  cancel-in-progress: false
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate code and its deletion boundaries
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ops/transport-ovh/confirmed-mp4-cleanup.py ops/transport-ovh/fgb-storage-health.py
+          grep -Fq 'record.get("confirmed") is not True' ops/transport-ovh/confirmed-mp4-cleanup.py
+          grep -Fq 'source.parent != Path("/archive/final")' ops/transport-ovh/confirmed-mp4-cleanup.py
+          grep -Fq 'thresholdWarningGb": 15' ops/transport-ovh/fgb-storage-health.py
+          grep -Fq 'thresholdCriticalGb": 8' ops/transport-ovh/fgb-storage-health.py
+          echo FGB_STORAGE_GUARD_STATIC_CHECK=PASS
+      - name: Configure OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Copy validated sources to OVH
+        run: |
+          set -euo pipefail
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key \
+            ops/transport-ovh/confirmed-mp4-cleanup.py ubuntu@40.160.144.185:/tmp/fgb-confirmed-mp4-cleanup.py
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key \
+            ops/transport-ovh/fgb-storage-health.py ubuntu@40.160.144.185:/tmp/fgb-storage-health.py
+      - name: Install FGB-only timed cleanup and audit its result
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key \
+            ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          FGB=fgb-transport-youtube-1
+          CNT=epic-cnt-capture
+          before_fgb=$(sudo docker inspect -f '{{.Id}}' "$FGB")
+          before_cnt=$(sudo docker inspect -f '{{.Id}}' "$CNT")
+          before_encoder=$(sudo docker exec "$FGB" pgrep -o ffmpeg)
+          test -n "$before_encoder"
+          sudo python3 -m py_compile /tmp/fgb-confirmed-mp4-cleanup.py /tmp/fgb-storage-health.py
+          echo FGB_MP4_DRY_RUN_BEGIN
+          sudo python3 /tmp/fgb-confirmed-mp4-cleanup.py --root /srv/fgb-archive --max-files 128
+          echo FGB_MP4_DRY_RUN_END
+          sudo install -d -m 0755 /usr/local/libexec
+          sudo install -o root -g root -m 0755 /tmp/fgb-confirmed-mp4-cleanup.py /usr/local/libexec/fgb-confirmed-mp4-cleanup.py
+          sudo install -o root -g root -m 0755 /tmp/fgb-storage-health.py /usr/local/libexec/fgb-storage-health.py
+          sudo tee /etc/systemd/system/fgb-storage-health.service >/dev/null <<'SERVICE'
+          [Unit]
+          Description=FGB storage guard and confirmed MP4 duplicate cleanup
+          After=local-fs.target
+          ConditionPathIsDirectory=/srv/fgb-archive/state
+
+          [Service]
+          Type=oneshot
+          User=root
+          ExecStart=/usr/bin/python3 /usr/local/libexec/fgb-storage-health.py
+          TimeoutStartSec=220
+          NoNewPrivileges=true
+          SERVICE
+          sudo tee /etc/systemd/system/fgb-storage-health.timer >/dev/null <<'TIMER'
+          [Unit]
+          Description=Check and reclaim safe FGB confirmed MP4 duplicates every five minutes
+
+          [Timer]
+          OnBootSec=60s
+          OnUnitInactiveSec=5min
+          AccuracySec=15s
+          Unit=fgb-storage-health.service
+          Persistent=false
+
+          [Install]
+          WantedBy=timers.target
+          TIMER
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now fgb-storage-health.timer
+          sudo systemctl start fgb-storage-health.service || true
+          sudo systemctl is-active --quiet fgb-storage-health.timer
+          sudo test -s /var/lib/fgb-storage-health/status.json
+          echo FGB_STORAGE_GUARD_STATUS_BEGIN
+          sudo cat /var/lib/fgb-storage-health/status.json
+          echo FGB_STORAGE_GUARD_STATUS_END
+          df -h /
+          test "$(sudo docker inspect -f '{{.Id}}' "$FGB")" = "$before_fgb"
+          test "$(sudo docker inspect -f '{{.Id}}' "$CNT")" = "$before_cnt"
+          test "$(sudo docker exec "$FGB" pgrep -o ffmpeg)" = "$before_encoder"
+          echo FGB_STORAGE_TIMER_ENABLED=true
+          echo FGB_ENCODER_UNCHANGED=true
+          echo CNT_CAPTURE_UNCHANGED=true
+          REMOTE
