@@ -1,4 +1,17 @@
 {
-  "checkedAt": "2026-10-26T16:03:57.816017+00:00",
-  "diagnostic": {}
+  "checkedAt": "2026-10-26T16:05:01.080561+00:00",
+  "diagnostic": {
+    "ARCHIVE_AUTH": "ready",
+    "ARCHIVE_CAPTURE": "active",
+    "ARCHIVE_FREE_GB": "2",
+    "ARCHIVE_UPLOADER": "running",
+    "CF_ERROR_TYPE": "none",
+    "CHROMIUM_TITLE": "FGB Broadcast Program",
+    "CHROMIUM_URL": "https://epiccontentcreatorgrants.org/fgb-broadcast?target=youtube",
+    "LIVE_RESTARTS": "45",
+    "LIVE_STATE": "live",
+    "ORIGIN_BODY_BYTES": "12291",
+    "ORIGIN_BODY_MARKER": "none",
+    "ORIGIN_HTTP": "200"
+  }
 }
