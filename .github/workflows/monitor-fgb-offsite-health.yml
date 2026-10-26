@@ -1,0 +1,74 @@
+name: Monitor FGB Offsite Archive Backup
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */4 * * *'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/monitor-fgb-offsite-health.yml'
+permissions:
+  contents: read
+  issues: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Connect to OVH read-only
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Check offsite credentials, timer, and verified receipts
+        id: state
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' > /tmp/backup-state.txt <<'REMOTE'
+          set -euo pipefail
+          if ! sudo test -s /etc/fgb-archive-offsite.env; then
+            echo status=pending_configuration
+          elif ! systemctl is-active --quiet fgb-offsite-backup.timer; then
+            echo status=timer_inactive
+          else
+            count=$(sudo find /srv/fgb-archive/offsite -maxdepth 1 -type f -name 'live-*.ts.sha256' -mmin -360 2>/dev/null | wc -l)
+            if [ "$count" -ge 1 ]; then echo status=healthy; else echo status=no_recent_verified_backups; fi
+            echo recent_receipts="$count"
+          fi
+          REMOTE
+          cat /tmp/backup-state.txt
+          cat /tmp/backup-state.txt >> "$GITHUB_OUTPUT"
+      - name: Keep a single actionable offsite incident
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BACKUP_STATUS: ${{ steps.state.outputs.status }}
+        run: |
+          set -euo pipefail
+          echo "FGB offsite backup status: $BACKUP_STATUS" >> "$GITHUB_STEP_SUMMARY"
+          gh label create fgb-offsite-health --color D93F0B --description 'Hourly offsite FGB archive sync requires attention' --force
+          issue=$(gh issue list --state open --label fgb-offsite-health --json number --jq '.[0].number // empty')
+          case "$BACKUP_STATUS" in
+            healthy)
+              if [ -n "$issue" ]; then
+                gh issue close "$issue" --comment "Verified hourly offsite receipts have resumed. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+              fi
+              ;;
+            pending_configuration)
+              echo 'No remote S3 destination configured. Existing tracking issue #104 remains open.'
+              ;;
+            *)
+              if [ -z "$issue" ]; then
+                gh issue create --title "[FGB Offsite] hourly verified backups are stale" \
+                  --label fgb-offsite-health \
+                  --body "Backup status: $BACKUP_STATUS. FGB independent archive replication has no recently verified hourly receipts. Check fgb-offsite-backup.service and the private S3 destination, without changing the live FGB/CNT encoders. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+              fi
+              exit 1
+              ;;
+          esac
