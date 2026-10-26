@@ -63,6 +63,10 @@ jobs:
           if ! sudo -n journalctl -u cnt-feed-relay.service --since '-90 seconds' --no-pager -o cat | grep -q 'CNT_FEED_RELAY HEALTH';then
             rollback;echo CNT_RELAY_UNVERIFIED=NO_INTERCEPT_HEALTH;exit 8
           fi
+          echo CNT_RELAY_FULFILLMENT_CHECK
+          if ! sudo -n journalctl -u cnt-feed-relay.service --since '-90 seconds' --no-pager -o cat | grep 'CNT_FEED_RELAY HEALTH' | tail -n 1 | sed 's/^.* HEALTH //' | python3 -c 'import json,sys; d=json.load(sys.stdin); print("CNT_RELAY_COUNTS="+str(d)); assert d["intercepted"] >= 1 and d["fulfilled"] >= 1';then
+            rollback;echo CNT_RELAY_UNVERIFIED=ZERO_SUCCESSFUL_FULFILLMENTS;exit 10
+          fi
           echo CNT_SECOND_CDP_CLIENT_TEST
           pid=$(sudo -n docker inspect -f '{{.State.Pid}}' epic-cnt-capture)
           if ! sudo -n nsenter -t "$pid" -n python3 /opt/cnt-transport/cnt-watchdog.py --cdp inspect;then
