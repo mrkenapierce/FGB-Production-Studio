@@ -5,38 +5,58 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 26 Oct 2026 18:56:10 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 26 Oct 2026 22:58:26 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>3 Reasons Why the Chicago Bears Won vs. the Patriots</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 3 Reasons Why the Chicago Bears Won vs. the Patriots</description>
-      <link>https://sports.yahoo.com/articles/3-reasons-why-chicago-bears-181143046.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fdd9b754fa330e1efd1c</guid>
-      <pubDate>Mon, 26 Oct 2026 18:11:43 GMT</pubDate>
+      <title>NFL Trade Rumors: Bears ‘connected to several defensive players’</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Trade Rumors: Bears ‘connected to several defensive players’</description>
+      <link>https://sports.yahoo.com/articles/nfl-trade-rumors-bears-connected-220000457.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7ca047a47b039432a778</guid>
+      <pubDate>Mon, 26 Oct 2026 22:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Seahawks vs. Bears odds: Seattle opens as home favorite against Chicago</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Seahawks vs. Bears odds: Seattle opens as home favorite against Chicago</description>
-      <link>https://sports.yahoo.com/articles/seahawks-vs-bears-odds-seattle-153554317.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2252b97e46f3a392ae0a</guid>
-      <pubDate>Mon, 26 Oct 2026 15:35:54 GMT</pubDate>
+      <title>Patriots-Bears racks up 19.86 million on Thursday night</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Patriots-Bears racks up 19.86 million on Thursday night</description>
+      <link>https://sports.yahoo.com/articles/patriots-bears-racks-19-86-202752969.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e3277b82c7e16e1de30b</guid>
+      <pubDate>Mon, 26 Oct 2026 20:27:52 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>What the Bears Need to Consider in Any Trade Pitch for Khalil Mack</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: What the Bears Need to Consider in Any Trade Pitch for Khalil Mack</description>
-      <link>https://www.si.com/nfl/bears/onsi/what-the-bears-need-to-consider-in-any-trade-pitch-for-khalil-mack</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-03e6a392e0d3f5be2dfd</guid>
-      <pubDate>Mon, 26 Oct 2026 11:00:00 GMT</pubDate>
+      <title>Bears Catch a Huge Break on Seahawks Week 8 Injury Report</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Catch a Huge Break on Seahawks Week 8 Injury Report</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-catch-a-huge-break-on-seahawks-week-8-injury-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-53057ef890fafa4f4428</guid>
+      <pubDate>Mon, 26 Oct 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Ranking the Top Trade Candidates for the Bears as Deadline Looms</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ranking the Top Trade Candidates for the Bears as Deadline Looms</description>
+      <link>https://www.si.com/nfl/bears/onsi/ranking-the-top-trade-candidates-for-the-bears-as-deadline-looms</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0e405caea2ce81873b46</guid>
+      <pubDate>Mon, 26 Oct 2026 14:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Patriots-Bears racks up 19.86 million on Thursday night</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Patriots-Bears racks up 19.86 million on Thursday night</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/patriots-bears-racks-up-19-86-million-on-thursday-night</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c573f020681701ba94f0</guid>
+      <pubDate>Mon, 26 Oct 2026 09:28:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
@@ -47,16 +67,6 @@
       <pubDate>Mon, 26 Oct 2026 08:51:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears Trade Deadline Tracker: Every Rumor For Chicago With 2 Weeks to Go</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Trade Deadline Tracker: Every Rumor For Chicago With 2 Weeks to Go</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-trade-deadline-tracker-every-rumor-for-chicago-with-2-weeks-to-go</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cfd114d17485b977edcf</guid>
-      <pubDate>Mon, 26 Oct 2026 07:57:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -77,16 +87,6 @@
       <pubDate>Mon, 26 Oct 2026 01:38:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>5 things that stood out to Bears coach Ben Johnson in Week 7 win</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 5 things that stood out to Bears coach Ben Johnson in Week 7 win</description>
-      <link>https://www.chicagobears.com/news/5-things-that-stood-out-to-bears-coach-ben-johnson-in-week-7-win-patriots</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-767a383e6f1efa01e97e</guid>
-      <pubDate>Fri, 23 Oct 2026 20:31:59 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
