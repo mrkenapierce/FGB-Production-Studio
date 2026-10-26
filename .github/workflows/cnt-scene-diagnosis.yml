@@ -77,22 +77,9 @@ jobs:
                   if x.get('id')==k:return x
               raise RuntimeError('CDP_TIMEOUT')
 
-          cmd('Network.enable',{})
-          cmd('Runtime.enable',{})
-          cmd('Runtime.evaluate',{'expression':"fetch('/api/public/fgbears/game-screen?t='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(12000)}).catch(()=>{})"})
-          until=time.monotonic()+18
-          ids=set()
-          while time.monotonic()<until:
-              try:x=rec()
-              except socket.timeout:break
-              method=x.get('method','');p=x.get('params',{})
-              if method=='Network.requestWillBeSent' and '/api/public/fgbears/' in p.get('request',{}).get('url',''):
-                  ids.add(p['requestId']);print('REQ',p['requestId'],p['request']['url'].split('?')[0],flush=True)
-              if p.get('requestId') in ids and method in ('Network.loadingFailed','Network.responseReceived'):
-                  print('NET',method, str(p)[:1800],flush=True)
-              if method=='Runtime.consoleAPICalled':
-                  args=[v.get('value','') for v in p.get('args',[])]
-                  if any('poll ' in str(v) for v in args):print('CONSOLE',str(args)[:500],flush=True)
+          expr="""(async()=>{let out=[];for(const mode of ['default','no-store']){let begin=Date.now();try{let r=await fetch('/api/public/fgbears/game-screen?t='+Date.now(),{cache:mode,signal:AbortSignal.timeout(9000)});let g=await r.json();out.push({mode,ms:Date.now()-begin,status:r.status,type:g.presentationType,q:g.questionNumber,prompt:g.prompt})}catch(e){out.push({mode,ms:Date.now()-begin,error:String(e)})}}return JSON.stringify(out)})()"""
+          d=cmd('Runtime.evaluate',{'expression':expr,'awaitPromise':True,'returnByValue':True})
+          print('CACHE_PROBE',d,flush=True)
           s.close()
           PY
           date -u
