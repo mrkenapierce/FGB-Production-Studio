@@ -1,0 +1,81 @@
+name: Monitor FGB Disk and Backup Capacity
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/15 * * * *'
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: fgb-disk-alerts
+  cancel-in-progress: true
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Configure OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Read on-host five-minute guard results
+        id: audit
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key \
+            ubuntu@40.160.144.185 'bash -s' > /tmp/fgb-storage-audit.json <<'REMOTE'
+          set -euo pipefail
+          sudo python3 - <<'PY'
+          import json,time,shutil,subprocess
+          from pathlib import Path
+          p=Path('/var/lib/fgb-storage-health/status.json')
+          d=json.loads(p.read_text()) if p.exists() else {}
+          free=shutil.disk_usage('/').free/1e9
+          age=int(time.time()-d.get('checkedAt',0))
+          timer=subprocess.run(['systemctl','is-active','fgb-storage-health.timer'],capture_output=True,text=True)
+          severity=('CRITICAL' if free<8 or timer.stdout.strip()!='active' or age>1200 else
+                    'WARNING' if free<15 or d.get('cleanerExitCode',1)!=0 else 'OK')
+          print(json.dumps({'severity':severity,'freeGb':round(free,2),'lastCheckAgeSeconds':age,
+                            'fiveMinuteTimerActive':timer.stdout.strip()=='active',
+                            'lastCleanupExitCode':d.get('cleanerExitCode'),
+                            'lastCleanupFiles':(d.get('cleanup') or {}).get('deletedFiles',0)}))
+          PY
+          REMOTE
+          cat /tmp/fgb-storage-audit.json
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          d=json.load(open('/tmp/fgb-storage-audit.json'))
+          print('severity='+d['severity'])
+          print('free='+str(d['freeGb']))
+          print('age='+str(d['lastCheckAgeSeconds']))
+          PY
+      - name: Open or resolve actionable disk alert
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SEVERITY: ${{ steps.audit.outputs.severity }}
+          FREE_GB: ${{ steps.audit.outputs.free }}
+          AGE_SECONDS: ${{ steps.audit.outputs.age }}
+        run: |
+          set -euo pipefail
+          gh label create fgb-disk-capacity --color D93F0B --description 'FGB OVH disk threshold or archive cleanup outage' --force
+          issue=$(gh issue list --state open --label fgb-disk-capacity --json number --jq '.[0].number // empty')
+          if [ "$SEVERITY" = OK ]; then
+            if [ -n "$issue" ]; then
+              gh issue close "$issue" --comment "OVH disk recovered above 15 GB. Five-minute storage guard healthy. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            fi
+          else
+            if [ -z "$issue" ]; then
+              gh issue create --title "[FGB Storage] $SEVERITY — action required" \
+                --label fgb-disk-capacity \
+                --body "FGB OVH disk severity: $SEVERITY. Available space: $FREE_GB GB. Last on-host guard age: $AGE_SECONDS seconds. Thresholds: warning under 15 GB, critical under 8 GB. Review separate storage before deleting raw recordings. Do not touch FGB or CNT encoders. Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            fi
+            exit 1
+          fi
