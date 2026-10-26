@@ -77,7 +77,7 @@ jobs:
                   if x.get('id')==k:return x
               raise RuntimeError('CDP_TIMEOUT')
 
-          expr="""(async()=>{let r=await fetch('/api/public/fgbears/game-screen?t='+Date.now(),{cache:'no-store'});return JSON.stringify({utc:new Date().toISOString(),source:await r.json(),scene:document.querySelector('[data-testid=broadcast-scene]')?.outerHTML?.slice(0,2500),scripts:[...document.scripts].map(s=>s.src).filter(Boolean)})})()"""
+          expr="""(async()=>{let source;try{let r=await fetch('/api/public/fgbears/game-screen?t='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(6000)});source={status:r.status,data:await r.json()}}catch(e){source={error:String(e)}}return JSON.stringify({utc:new Date().toISOString(),source,scene:document.querySelector('[data-testid=broadcast-scene]')?.outerHTML?.slice(0,2500),scripts:[...document.scripts].map(s=>s.src).filter(Boolean)})})()"""
           d=cmd('Runtime.evaluate',{'expression':expr,'awaitPromise':True,'returnByValue':True})
           print('CNT_DIAGNOSTIC='+str(d),flush=True)
           s.close()
