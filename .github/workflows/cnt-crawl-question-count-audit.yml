@@ -1,0 +1,55 @@
+name: FGB and CNT trivia crawl question-number source audit
+on:
+  workflow_dispatch:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-crawl-question-count-audit.yml]
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Sample crawl source and canonical game screen from CNT network without mutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/key; chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo AUDIT=READ_ONLY_SHARED_SOURCE
+          python3 - <<'PY'
+          import json,subprocess,datetime,time,re
+          base='https://epiccontentcreatorgrants.org/api/public/fgbears/'
+          def get(path):
+              url=base+path
+              try:
+                  r=subprocess.run(['sudo','-n','docker','exec','epic-cnt-capture','curl','-4','-fsS','--connect-timeout','3','--max-time','7',url],capture_output=True,text=True,timeout=10)
+                  if r.returncode:return {'error':r.stderr[-140:].strip()}
+                  return json.loads(r.stdout)
+              except Exception as e:return {'error':type(e).__name__+':'+str(e)[:100]}
+          for i in range(15):
+              gs=get('game-screen')
+              cw=get('crawl')
+              rt=get('stream-routing') if i in (0,7,14) else {}
+              messages=cw.get('messages')
+              if isinstance(messages,list):
+                  msglist=[str(x if isinstance(x,str) else x.get('text',x.get('message','')))[:240] for x in messages[:15] if isinstance(x,(str,dict))]
+              else:msglist=[]
+              crawltext=' | '.join(msglist) or str(cw.get('message') or '')
+              derived=re.findall(r'(?i)(?:question|q)\s*[#:]?\s*(\d+)\s*(?:of|/)\s*(\d+)',crawltext)
+              summary={'n':i+1,'utc':datetime.datetime.now(datetime.timezone.utc).isoformat(timespec='seconds'),'game':{'phase':gs.get('phase'),'presentation':gs.get('presentationType'),'gameId':str(gs.get('gameId'))[:40],'roundId':str(gs.get('roundId'))[:40],'questionId':str(gs.get('questionId'))[:40],'questionNumber':gs.get('questionNumber'),'questionCount':gs.get('questionCount'),'questionTotal':gs.get('totalQuestions'),'prompt':str(gs.get('prompt') or '')[:140],'error':gs.get('error')},'crawl':{'label':cw.get('label'),'active':cw.get('active'),'mode':cw.get('mode'),'questionNumber':cw.get('questionNumber'),'questionCount':cw.get('questionCount'),'messageCount':len(msglist),'messages':msglist[:8],'questionLabels':derived,'error':cw.get('error')},'routing':{'presentation':str(rt.get('presentation'))[:250],'error':rt.get('error')} if rt else None}
+              print('COUNT_AUDIT='+json.dumps(summary,ensure_ascii=False),flush=True)
+              time.sleep(4)
+          PY
+          echo CNT_STATE=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)
+          echo FGB_STATE=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)
+          REMOTE
