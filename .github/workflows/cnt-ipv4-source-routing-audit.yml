@@ -30,6 +30,7 @@ jobs:
             echo TEST_SAMPLE=$i
             sudo -n timeout 9 nsenter -t "$pid" -n curl -4 -sS --connect-timeout 2 --max-time 6 -o /dev/null -w 'HOST_NETNS_HTTP=%{http_code} TOTAL=%{time_total}\n' "$url" 2>&1 || echo HOST_NETNS_REQUEST_FAILED
             sudo -n timeout 9 docker exec epic-cnt-capture curl -4 -sS --connect-timeout 2 --max-time 6 -o /dev/null -w 'DOCKER_EXEC_HTTP=%{http_code} TOTAL=%{time_total}\n' "$url" 2>&1 || echo DOCKER_EXEC_REQUEST_FAILED
+            sudo -n timeout 9 nsenter -t "$pid" -n docker exec epic-cnt-capture curl -4 -sS --connect-timeout 2 --max-time 6 -o /dev/null -w 'NSENTER_DOCKER_EXEC_HTTP=%{http_code} TOTAL=%{time_total}\n' "$url" 2>&1 || echo NSENTER_DOCKER_EXEC_FAILED
           done
           echo CNT_RELAY_STATE=$(systemctl is-active cnt-feed-relay.service || true)
           echo CNT_STATE=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)
