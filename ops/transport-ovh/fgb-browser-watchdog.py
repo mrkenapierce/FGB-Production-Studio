@@ -162,9 +162,14 @@ def check_browser() -> dict:
         tabs = broadcast_tabs()
         if not tabs:
             return {"ok": False, "reason": "fgb_tab_missing"}
-        # Prefer the newest target when legacy tabs have accumulated.
-        tab = tabs[-1]
-        return {"target_id": tab.get("id"), "targets": len(tabs), **health(tab)}
+        # Any responding FGB tab is healthy; avoid treating stale or duplicate
+        # historical tabs as an outage while a good replacement is active.
+        probes = [(tab, health(tab)) for tab in tabs]
+        for tab, result in probes:
+            if result["ok"]:
+                return {"target_id": tab.get("id"), "targets": len(tabs), **result}
+        tab, result = probes[0]
+        return {"target_id": tab.get("id"), "targets": len(tabs), **result}
     except Exception as error:
         return {"ok": False, "reason": "debug_endpoint_unavailable",
                 "detail": str(error)[:130]}
@@ -172,9 +177,9 @@ def check_browser() -> dict:
 
 def replace_tab() -> dict:
     # Never restart the browser process: the existing container owns Chromium.
+    # A crashed renderer may replace its address with chrome-error://;
+    # an empty FGB tab inventory must not block creation of a fresh FGB tab.
     old = broadcast_tabs()
-    if not old:
-        return {"ok": False, "reason": "no_existing_fgb_tab"}
     request_url = DEVTOOLS + "/json/new?" + quote(URL, safe="")
     try:
         fresh = get_json(request_url, method="PUT")
@@ -188,7 +193,9 @@ def replace_tab() -> dict:
                 break
         else:
             return {"ok": False, "reason": "replacement_failed_health_check", "target_id": new_id}
-        get_json(DEVTOOLS + "/json/activate/" + quote(new_id, safe=""))
+        # Chrome's /json/activate and /json/close return plain text, not JSON.
+        with urlopen(DEVTOOLS + "/json/activate/" + quote(new_id, safe=""), timeout=5) as resp:
+            resp.read()
         time.sleep(3)
         again = health(fresh)
         if not again["ok"]:
@@ -198,7 +205,8 @@ def replace_tab() -> dict:
             prior_id = str(previous.get("id", ""))
             if prior_id and prior_id != new_id:
                 try:
-                    get_json(DEVTOOLS + "/json/close/" + quote(prior_id, safe=""))
+                    with urlopen(DEVTOOLS + "/json/close/" + quote(prior_id, safe=""), timeout=5) as resp:
+                        resp.read()
                     closed += 1
                 except Exception:
                     pass
