@@ -1,0 +1,84 @@
+name: Read FGB Live Latency From Production OAuth
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/read-fgb-latency-from-ovh.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Prepare OVH SSH for read-only latency inspection
+        env:
+          SSH_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/yt-latency-audit
+          chmod 600 ~/.ssh/yt-latency-audit
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Inspect FGB broadcast configuration without displaying credentials or changing YouTube
+        run: |
+          set -euo pipefail
+          cat > /tmp/epic-fgb-yt-latency.py <<'PY'
+          import json, os, urllib.parse, urllib.request, urllib.error
+          from datetime import datetime, timezone
+          from pathlib import Path
+          result={'checkedAt':datetime.now(timezone.utc).isoformat(),'readOnly':True,'activeBroadcasts':[]}
+          try:
+              lines=Path('/opt/fgb-transport/.env').read_text().splitlines()
+              pairs={}
+              for line in lines:
+                  if not line.strip() or line.lstrip().startswith('#') or '=' not in line:continue
+                  key,val=line.split('=',1)
+                  pairs[key.strip()]=val.strip().strip('"').strip("'")
+              creds=[pairs.get(k) for k in ['FGB_YOUTUBE_CLIENT_ID','FGB_YOUTUBE_CLIENT_SECRET','FGB_YOUTUBE_REFRESH_TOKEN']]
+              if not all(creds):
+                  result['status']='PRODUCTION_ARCHIVE_OAUTH_UNAVAILABLE'
+              else:
+                  req=urllib.request.Request('https://oauth2.googleapis.com/token',data=urllib.parse.urlencode(dict(client_id=creds[0],client_secret=creds[1],refresh_token=creds[2],grant_type='refresh_token')).encode(),method='POST')
+                  with urllib.request.urlopen(req,timeout=15) as r: token=json.load(r)['access_token']
+                  url='https://www.googleapis.com/youtube/v3/liveBroadcasts?'+urllib.parse.urlencode(dict(part='id,status,contentDetails,snippet',mine='true',broadcastStatus='active',maxResults='20'))
+                  req=urllib.request.Request(url,headers={'Authorization':'Bearer '+token})
+                  with urllib.request.urlopen(req,timeout=15) as r: data=json.load(r)
+                  for x in data.get('items',[]):
+                      s=x.get('snippet') or {}
+                      if s.get('channelId') != 'UC3qyMq_KCg7aF08x7LZyVtg':continue
+                      c=x.get('contentDetails') or {}
+                      result['activeBroadcasts'].append(dict(videoId=x.get('id'),channelId=s.get('channelId'),latencyPreference=c.get('latencyPreference'),enableLowLatency=c.get('enableLowLatency'),broadcastDelayMs=(c.get('monitorStream') or {}).get('broadcastStreamDelayMs'),status=(x.get('status') or {}).get('lifeCycleStatus')))
+                  result['status']='SUCCESS' if result['activeBroadcasts'] else 'NO_ACTIVE_FGB_BROADCAST'
+          except Exception as e:
+              result['status']='PROBE_FAILED'
+              result['errorType']=type(e).__name__
+              if isinstance(e,urllib.error.HTTPError): result['httpStatus']=e.code
+          print(json.dumps(result,sort_keys=True))
+          PY
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/yt-latency-audit /tmp/epic-fgb-yt-latency.py ubuntu@40.160.144.185:/tmp/epic-fgb-yt-latency.py
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/yt-latency-audit ubuntu@40.160.144.185 'sudo python3 /tmp/epic-fgb-yt-latency.py' | tee /tmp/yt-latency-response.json
+
+      - name: Persist sanitized result
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          data=json.loads(Path('/tmp/yt-latency-response.json').read_text().strip())
+          Path('.github/deployment-status/fgb-live-latency-from-ovh.json').write_text(json.dumps(data,indent=2,sort_keys=True)+'\n')
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/fgb-live-latency-from-ovh.json
+          git commit -m 'Record current FGB YouTube latency mode from authorized production OAuth' || exit 0
+          git pull --rebase
+          git push
