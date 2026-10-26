@@ -5,6 +5,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import re
 import threading
 import time
 import unicodedata
@@ -348,10 +349,25 @@ class CrawlSequence:
                 self.current = incoming[0]
                 self.started = now
             else:
-                # Refresh future entries without changing the text or measured
-                # width of the segment that is currently crossing the screen.
+                # Keep ordinary news/status items uninterrupted as they scroll.
+                # The question number is different: it must reflect the latest
+                # canonical feed, even during an already-moving crawl segment.
                 self.messages = incoming
                 self.index %= len(incoming)
+                if re.match(r"^\s*QUESTION\s+\d+\s+OF\s+\d+\b", self.current, re.I):
+                    latest_question = next(
+                        (item for item in incoming
+                         if re.match(r"^\s*QUESTION\s+\d+\s+OF\s+\d+\b", item, re.I)),
+                        None,
+                    )
+                    if latest_question is not None:
+                        self.current = latest_question
+                        self.index = incoming.index(latest_question)
+                    else:
+                        # A finished round must not leave the old question
+                        # counter crossing the lower third.
+                        self.current = incoming[self.index]
+                        self.started = now
             return self.current, self.started
 
     def advance_if_complete(self, x: float, text_width_px: int, now: float) -> bool:
