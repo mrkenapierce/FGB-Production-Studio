@@ -1,0 +1,64 @@
+name: CNT and FGB public YouTube live output audit
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-youtube-output-audit.yml]
+permissions:
+  contents: read
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Resolve actual public YouTube live video IDs
+        shell: bash
+        run: |
+          python3 -m pip -q install yt-dlp --disable-pip-version-check
+          python3 - <<'PY'
+          import subprocess,json
+          targets={'CNT':'https://www.youtube.com/channel/UC2nq0qnQarvLC-8QR7lRwCA/live','FGB':'https://www.youtube.com/channel/UC3qyMq_KCg7aF08x7LZyVtg/live'}
+          for name,url in targets.items():
+              try:
+                  p=subprocess.run(['yt-dlp','--no-warnings','--skip-download','-J','--socket-timeout','15',url],capture_output=True,text=True,timeout=75)
+                  if p.returncode:raise RuntimeError((p.stderr or 'resolution_error')[:200])
+                  data=json.loads(p.stdout)
+                  print(name+'_YOUTUBE_ID='+str(data.get('id')),flush=True)
+                  print(name+'_IS_LIVE='+str(data.get('is_live')),flush=True)
+                  print(name+'_LIVE_STATUS='+str(data.get('live_status')),flush=True)
+                  print(name+'_AVAILABILITY='+str(data.get('availability')),flush=True)
+                  print(name+'_PUBLIC_WATCH_URL='+str(data.get('webpage_url')),flush=True)
+                  print(name+'_FORMAT_COUNT='+str(len(data.get('formats') or [])),flush=True)
+                  open('/tmp/'+name.lower()+'-yt-url','w').write(str(data.get('webpage_url','')))
+              except Exception as e:print(name+'_YOUTUBE_CHECK_ERROR='+type(e).__name__+':'+str(e)[:220],flush=True)
+          PY
+      - name: Capture public CNT and FGB stream frames for visual cross-check
+        shell: bash
+        run: |
+          mkdir -p evidence/cnt evidence/fgb
+          capture () {
+            local name="$1" capdir="$2"
+            local urlfile="/tmp/${name}-yt-url"
+            if [ ! -s "$urlfile" ]; then echo "YOUTUBE_CAPTURE_${name}=NO_PUBLIC_LIVE_URL"; return 0; fi
+            local page
+            page="$(cat "$urlfile")"
+            local hls
+            hls="$(timeout 45 yt-dlp --no-warnings -f 'best[height<=480]/bestvideo[height<=480]/best' -g "$page" 2>/dev/null | head -n 1)" || true
+            if [ -z "$hls" ]; then echo "YOUTUBE_CAPTURE_${name}=NO_PLAYABLE_SOURCE"; return 0; fi
+            date -u "+YOUTUBE_CAPTURE_${name}_UTC_START=%Y-%m-%dT%H:%M:%SZ"
+            timeout 135 ffmpeg -hide_banner -loglevel error -nostdin -y -i "$hls" -t 100 -vf "fps=1/10,scale=854:480" -q:v 3 "evidence/$capdir/shot-%03d.jpg" || true
+            echo "YOUTUBE_CAPTURE_${name}_IMAGES=$(find "evidence/$capdir" -name '*.jpg' | wc -l)"
+          }
+          capture cnt cnt &
+          a=$!
+          capture fgb fgb &
+          b=$!
+          wait "$a" || true
+          wait "$b" || true
+      - name: Save stream screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: youtube-live-frame-samples
+          path: evidence/
+          if-no-files-found: warn
+          retention-days: 7
