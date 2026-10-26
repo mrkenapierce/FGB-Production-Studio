@@ -38,3 +38,8 @@ No gameplay, balances, scoring, beneficiary selections, or live broadcast settin
 
 ### Full acceptance test after website integration
 For both FGB and CNT, observe the stream over at least two consecutive complete trivia games. Correlate server phase timestamps, website phase, YouTube IFrame currentTime/duration/state, and actual visual question/reveal times. Verify that buffering does not cause progressively worsening alignment and that corrections do not alter player answer deadlines, scoring, ledgers, beneficiary decisions or independent stream branding and destinations.
+
+### Tested integration package refinement
+- Added an explicit production integration contract in `mrkenapierce/ChatGPT/epic-website-sync/PLAYER_DRIFT_INTEGRATION.md`, including YouTube IFrame API requirements, channel isolation, viewer opt-in, release criteria, and the verified missing website-deployment link.
+- Player-side guard now detects unexpected/manual position jumps and disarms rather than overriding viewers who intentionally rewound their livestream.
+- Updated tests covering manual rewind plus earlier baseline, correction, pause, buffering, cooldown and stream-reset cases passed in GitHub workflow run `40341325197`.
