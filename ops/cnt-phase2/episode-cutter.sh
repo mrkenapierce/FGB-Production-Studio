@@ -63,14 +63,46 @@ process_job() {
     log "uploaded $id -> $vid"
   fi
   resp=$(ep_api "$(jq -cn --arg i "$id" --arg v "$vid" '{action:"episode_uploaded",episodeId:$i,videoId:$v}')")
-  # Current endpoint's {ok,posted} is NOT a processing receipt. Do not release
-  # sources/cut on that weak signal. Future host protocol must echo identifiers
-  # and affirm all processing; source-only preparation, no endpoint changed here.
-  if jq -e --arg i "$id" --arg v "$vid" '.ok == true and .receipt.episodeId == $i and .receipt.videoId == $v and .receipt.processingComplete == true' <<<"$resp" >/dev/null; then
-    ep_dependency complete --kind episode --id "$id" --video "$vid" --evidence episode_processing_confirmed || return 1
-    jq '. + {confirmed:true}' "$sf" > "$sf.t" && mv "$sf.t" "$sf" || return 1
-    rm -f "$WORK/$id.ts"; log "posted $id"
-  else log "$id awaiting complete processing receipt; sources retained"; fi
+  # The app's new receipt proves the channel-specific database row is posted
+  # with this video id. It does NOT prove YouTube has finished processing yet.
+  # Hold media until a separate authenticated YouTube query confirms public
+  # visibility and successful processing. Persist receipt for later polling
+  # because a posted episode disappears from the queued-jobs API.
+  if jq -e --arg c "$(ep_channel)" --arg i "$id" --arg v "$vid" \
+      '.ok == true and .receipt.v == 1 and .receipt.channel == $c and .receipt.episodeId == $i and .receipt.videoId == $v and .receipt.state == "confirmed" and (.receipt.confirmedAt | type == "string")' \
+      <<<"$resp" >/dev/null; then
+    jq --argjson receipt "$(jq -c '.receipt' <<<"$resp")" '. + {postedReceipt:$receipt}' "$sf" > "$sf.t" && mv "$sf.t" "$sf" || return 1
+    log "posted $id; holding source pending verified public video processing"
+  else log "$id awaiting identifier-bound posted receipt; sources retained"; fi
+}
+
+reconcile_posted() {
+  local f id vid token meta ok
+  for f in "$WORK"/*.json; do
+    [ -f "$f" ] || continue
+    id="${f##*/}"; id="${id%.json}"
+    [[ "$id" =~ ^[0-9a-f-]{36}$ ]] || continue
+    jq -e --arg c "$(ep_channel)" --arg i "$id" \
+      '.confirmed != true and (.videoId | type=="string") and .postedReceipt.v == 1 and .postedReceipt.channel == $c and .postedReceipt.episodeId == $i and .postedReceipt.videoId == .videoId and .postedReceipt.state == "confirmed" and (.postedReceipt.confirmedAt | type=="string")' \
+      "$f" >/dev/null || continue
+    vid=$(jq -r '.videoId' "$f")
+    token=$(ep_api '{"action":"token"}' | jq -r '.accessToken // empty') || continue
+    [ -n "$token" ] || continue
+    # A successful upload response may precede public video processing. Fail
+    # closed on absent, private, failed, or still-processing videos.
+    meta=$(curl -fsS -m 30 "https://www.googleapis.com/youtube/v3/videos?part=status,processingDetails&id=$vid" \
+      -H "authorization: Bearer $token") || continue
+    if jq -e --arg v "$vid" \
+       '.items | length == 1 and .[0].id == $v and .[0].status.privacyStatus == "public" and .[0].status.uploadStatus == "processed" and .[0].processingDetails.processingStatus == "succeeded"' \
+       <<<"$meta" >/dev/null; then
+      ep_dependency complete --kind episode --id "$id" --video "$vid" --evidence youtube_public_processed || continue
+      jq '. + {confirmed:true}' "$f" > "$f.t" && mv "$f.t" "$f" || continue
+      rm -f "$WORK/$id.ts"
+      log "public processed; episode $id source hold released"
+    else
+      log "episode $id retained while YouTube processing or visibility is unverified"
+    fi
+  done
 }
 
 pass() {
@@ -96,6 +128,7 @@ pass() {
   done < <(for f in "$STATE"/dependencies/episode-*.json; do [ -f "$f" ] && jq -e '.status != "confirmed"' "$f" >/dev/null && echo "$f"; done)
   ep_write_hold "$STATE/episode_hold" "${holds[@]}" || return 1
   while IFS= read -r job; do [ -n "$job" ] && { process_job "$job" || true; }; done <<<"$jobs"
+  reconcile_posted
 }
 
 # Lock the worker, NOT retention.lock during a potentially hours-long upload.
