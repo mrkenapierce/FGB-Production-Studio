@@ -1,0 +1,44 @@
+name: CNT Phase 2 Host Config Read-only Audit
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-phase2-host-config-audit-20261026.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          mkdir -p -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Read sanitized CNT configuration and scripts
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/cnt-transport
+          echo 'CNT_SOURCE_FILES'
+          find . -maxdepth 2 -type f ! -name '*.env*' -printf '%p %s bytes\n' | sort | head -35
+          echo 'CNT_COMPOSE_SAFE_KEYS'
+          grep -nE '^[[:space:]]*(services:|[[:space:]]+(image:|build:|container_name:|restart:|env_file:|volumes:|network_mode:|command:|entrypoint:|shm_size:|ports:|-[[:space:]]+/srv/))' docker-compose.yml | head -45 || true
+          echo 'CNT_ENV_KEY_NAMES_NO_VALUES'
+          sudo grep -E '^[A-Za-z_][A-Za-z0-9_]*=' .env.cnt | cut -d= -f1 | sort
+          echo 'CNT_SCRIPT_FINGERPRINT'
+          sha256sum run-cnt.sh
+          grep -n -E 'CNT_ARCHIVE_TAP|CNT_AIR_LOG|run-cnt|capture|OUTPUT|f tee|f flv|PROGRESS|docker' run-cnt.sh | cut -c1-180 | head -40
+          echo 'CNT_HOST_SECRET_PRESENCE_ONLY'
+          for key in CNT_ARCHIVE_HMAC_SECRET CNT_YOUTUBE_STREAM_KEY CNT_YOUTUBE_INGEST_URL; do
+            if sudo grep -q "^$key=." .env.cnt; then echo "$key=present"; else echo "$key=missing"; fi
+          done
+          echo 'CNT_CDP_INSPECTION'
+          sudo docker exec epic-cnt-capture sh -lc 'curl -sS -m 3 http://127.0.0.1:9223/json/list | python3 -c "import sys,json; print([(x.get(\"type\"),x.get(\"title\"),x.get(\"url\")) for x in json.load(sys.stdin)])" 2>/dev/null || echo python3_missing'
+          REMOTE
