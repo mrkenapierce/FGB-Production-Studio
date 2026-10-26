@@ -1,0 +1,74 @@
+name: CNT-only isolated game-screen IPv4 relay deployment
+on:
+  workflow_dispatch:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-feed-relay-deploy.yml]
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile CNT-only relay code
+        run: python3 -m py_compile ops/cnt-transport/cnt-feed-relay.py
+      - name: Install/reversibly start CNT-only browser public-game data relay on OVH
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/key; chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          scp -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/key ops/cnt-transport/cnt-feed-relay.py ubuntu@40.160.144.185:/tmp/cnt-feed-relay.new
+          ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          rollback() {
+            echo CNT_FEED_RELAY=ROLLBACK
+            sudo -n systemctl disable --now cnt-feed-relay.service >/dev/null 2>&1 || true
+          }
+          echo CNT_ONLY_RELAY_INSTALL=BEGIN
+          test "$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)" = running
+          test "$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)" = running
+          sudo -n install -m 0755 /tmp/cnt-feed-relay.new /opt/cnt-transport/cnt-feed-relay.py
+          sudo -n python3 -m py_compile /opt/cnt-transport/cnt-feed-relay.py
+          echo CNT_IPV4_SOURCE_PREFLIGHT
+          sudo -n docker exec epic-cnt-capture curl -4 -fsS --connect-timeout 3 --max-time 9 -o /dev/null -w 'UPSTREAM_HTTP=%{http_code} TIME=%{time_total}\n' https://epiccontentcreatorgrants.org/api/public/fgbears/game-screen || true
+          sudo -n tee /etc/systemd/system/cnt-feed-relay.service >/dev/null <<'SERVICE'
+          [Unit]
+          Description=CNT-only browser game-screen IPv4 fetch relay; no FGB or encoder changes
+          After=docker.service
+          [Service]
+          Type=simple
+          ExecStart=/bin/bash -c 'pid=$(/usr/bin/docker inspect -f "{{.State.Pid}}" epic-cnt-capture); exec /usr/bin/nsenter -t "$pid" -n /usr/bin/python3 /opt/cnt-transport/cnt-feed-relay.py'
+          Restart=on-failure
+          RestartSec=6s
+          TimeoutStartSec=20
+          [Install]
+          WantedBy=multi-user.target
+          SERVICE
+          sudo -n systemctl daemon-reload
+          sudo -n systemctl enable --now cnt-feed-relay.service
+          sleep 38
+          echo CNT_RELAY_JOURNAL
+          sudo -n journalctl -u cnt-feed-relay.service --no-pager -n 25 -o cat
+          if [ "$(systemctl is-active cnt-feed-relay.service)" != active ]; then rollback;exit 7;fi
+          echo CNT_RELAY_ACTIVITY_CHECK
+          if ! sudo -n journalctl -u cnt-feed-relay.service --since '-90 seconds' --no-pager -o cat | grep -q 'CNT_FEED_RELAY HEALTH';then
+            rollback;echo CNT_RELAY_UNVERIFIED=NO_INTERCEPT_HEALTH;exit 8
+          fi
+          echo CNT_SECOND_CDP_CLIENT_TEST
+          pid=$(sudo -n docker inspect -f '{{.State.Pid}}' epic-cnt-capture)
+          if ! sudo -n nsenter -t "$pid" -n python3 /opt/cnt-transport/cnt-watchdog.py --cdp inspect;then
+            rollback;echo CNT_RELAY_BLOCKED=CDP_BROWSER_DIAGNOSTIC;exit 9
+          fi
+          echo CNT_FEED_RELAY=INSTALLED_ACTIVE
+          echo CNT_ENCODER=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)
+          echo FGB_ENCODER=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)
+          REMOTE
