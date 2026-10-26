@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'ops/transport-ovh/fgb-offsite-backup.sh'
+      - 'ops/transport-ovh/archive-uploader.py'
+      - 'test/test_archive_offsite_retention.py'
       - '.github/workflows/configure-fgb-offsite-backup.yml'
 permissions:
   contents: read
@@ -27,6 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           bash -n ops/transport-ovh/fgb-offsite-backup.sh
+          python3 -m unittest discover -s test -p 'test_archive_offsite_retention.py' -v
           ! grep -Eq '(^|[ ;])rm +|rclone +delete|docker +(stop|restart)|systemctl +(stop|restart)' ops/transport-ovh/fgb-offsite-backup.sh
       - name: Configure SSH access
         env:
