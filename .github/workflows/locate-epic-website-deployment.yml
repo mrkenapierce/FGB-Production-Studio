@@ -1,0 +1,91 @@
+name: Locate EPIC Website Production Deployment (Read Only)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/locate-epic-website-deployment.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  locate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Inspect website host, assets and configured deployment access (read only)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_PAGES_PROJECT_NAME: ${{ secrets.CF_PAGES_PROJECT_NAME }}
+          OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p .github/deployment-status
+          python3 - <<'PY'
+          import json, os, re, socket, urllib.request, urllib.error, ssl
+          from datetime import datetime, timezone
+          from pathlib import Path
+          host='epiccontentcreatorgrants.org'
+          out={'checkedAt':datetime.now(timezone.utc).isoformat(),'readOnly':True,'hostname':host,'deploymentCredentialsPresent':{},'routes':{}}
+          for key in ['VERCEL_TOKEN','VERCEL_PROJECT_ID','NETLIFY_AUTH_TOKEN','NETLIFY_SITE_ID','CLOUDFLARE_API_TOKEN','CF_PAGES_PROJECT_NAME','OVH_SSH_KEY']:
+              out['deploymentCredentialsPresent'][key]=bool(os.getenv(key))
+          try:
+              out['dnsIPv4']=sorted(set(info[4][0] for info in socket.getaddrinfo(host,443,proto=socket.IPPROTO_TCP,family=socket.AF_INET)))
+          except Exception as e:out['dnsError']=type(e).__name__
+          for path in ['/my-002-trivia','/channels/cruisenewstrivia/broadcast','/fgb-broadcast?target=youtube']:
+              entry={}
+              try:
+                  req=urllib.request.Request('https://'+host+path,headers={'User-Agent':'EPIC-deployment-asset-audit/1.0'})
+                  with urllib.request.urlopen(req,timeout=15) as resp:
+                      entry['status']=resp.status
+                      entry['finalPath']=urllib.parse.urlsplit(resp.url).path
+                      entry['serverHeaders']={k.lower():v for k,v in resp.headers.items() if k.lower() in ('server','x-powered-by','cf-ray','x-vercel-id','x-nf-request-id','x-lovable-builder','content-type','cache-control')}
+                      page=resp.read(1000000).decode('utf-8','replace')
+                      entry['headDescription']=re.search(r'<meta[^>]*name=["\\\']description["\\\'][^>]*content=["\\\']([^"\\\']{0,240})',page,re.I).group(1) if re.search(r'<meta[^>]*name=["\\\']description["\\\'][^>]*content=["\\\']([^"\\\']{0,240})',page,re.I) else None
+                      entry['staticScriptSrcs']=list(dict.fromkeys(re.findall(r'<script[^>]+src=["\\\']([^"\\\']+)',page,re.I)))[:16]
+                      entry['stylesheetHrefs']=list(dict.fromkeys(re.findall(r'<link[^>]+href=["\\\']([^"\\\']+\\.css[^"\\\']*)',page,re.I)))[:10]
+                      entry['buildMarkers']=[word for word in ('vite','next','__NEXT_DATA__','lovable','vercel','netlify','react','cloudflare') if word.lower() in page.lower()]
+              except urllib.error.HTTPError as e:
+                  entry['status']=e.code
+              except Exception as e:
+                  entry['error']=type(e).__name__
+              out['routes'][path]=entry
+          Path('.github/deployment-status/epic-website-deployment-discovery.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(out,indent=2,sort_keys=True))
+          PY
+      - name: Inspect OVH read-only local web-server ownership
+        if: success()
+        env:
+          SSH_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          if [[ -z "$SSH_KEY" ]]; then echo 'OVH_SSH_UNAVAILABLE=true'; exit 0; fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/web-discovery
+          chmod 600 ~/.ssh/web-discovery
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -i ~/.ssh/web-discovery ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -e
+          echo "OVH_PUBLIC_IPV4=$(curl -4fsS -m 5 https://api.ipify.org || true)"
+          echo "OVH_CANDIDATE_SITE_DIRECTORIES"
+          find /opt /srv /var/www -maxdepth 3 -type d \( -iname '*epic*' -o -iname '*web*' -o -iname '*website*' -o -iname '*lovable*' \) 2>/dev/null | head -35 || true
+          echo "OVH_HTTP_CONTAINERS"
+          sudo docker ps --format '{{.Names}}:{{.Ports}}' | head -25
+          REMOTE
+      - name: Persist discovery report
+        if: success()
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/epic-website-deployment-discovery.json
+          git commit -m 'Record read-only EPIC website deployment discovery' || exit 0
+          git pull --rebase
+          git push
