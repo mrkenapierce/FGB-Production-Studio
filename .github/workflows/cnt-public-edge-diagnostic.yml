@@ -1,0 +1,50 @@
+name: CNT public live-edge versus actual encoder diagnostic
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-public-edge-diagnostic.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Compare CNT capture/encoder health with publicly resolved CNT YouTube event
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key" || { echo BLOCKED=SSH_KEY_MISSING; exit 5; }
+          install -d -m 700 ~/.ssh; printf '%s\n' "$key" > ~/.ssh/key; chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+          ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo DIAGNOSTIC=READ_ONLY_NO_RESTARTS
+          echo CNT_RUNNING=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)
+          echo FGB_RUNNING=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)
+          echo CNT_CAPTURE_URL
+          sudo -n docker exec epic-cnt-capture curl -fsS -m 3 http://127.0.0.1:9223/json/list | python3 -c 'import json,sys;d=json.load(sys.stdin);print("TABS="+str([(x.get("type"),x.get("url")) for x in d if x.get("type")=="page"]))' || true
+          echo CNT_WATCHDOG_LAST_10
+          journalctl -u cnt-trivia-watchdog.service -n 12 --no-pager -o cat | grep -E 'state|SOURCE_|ERROR' | tail -10 || true
+          echo CNT_ENCODER_START
+          sudo -n docker exec epic-cnt-capture sh -lc 'grep -E "^(frame|total_size|fps|speed|bitrate|out_time)=" /tmp/cnt-ffmpeg.progress | tail -n 6' || true
+          echo YOUTUBE_PUBLIC_CHANNEL_REDIRECT
+          for url in 'https://www.youtube.com/channel/UC2nq0qnQarvLC-8QR7lRwCA/live' 'https://www.youtube.com/watch?v=q_2BHP87zQo';do
+            curl --location --max-redirs 4 --connect-timeout 5 --max-time 15 --silent --show-error -o /tmp/cnt-yt-page.html -w 'YT_PUBLIC_HTTP=%{http_code} REDIRECTED=%{url_effective} BODY_BYTES=%{size_download} TOTAL=%{time_total}\n' -A 'Mozilla/5.0' "$url" || true
+            grep -oE '.{0,90}playabilityStatus.{0,130}' /tmp/cnt-yt-page.html | head -c 350 || true
+            printf '\n'
+          done
+          echo YOUTUBE_PUBLIC_OEMBED
+          curl -sS --connect-timeout 5 --max-time 12 'https://www.youtube.com/oembed?url=https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3Dq_2BHP87zQo%26format%3Djson' | head -c 650 || true
+          printf '\n'
+          sleep 8
+          echo CNT_ENCODER_END
+          sudo -n docker exec epic-cnt-capture sh -lc 'grep -E "^(frame|total_size|fps|speed|bitrate|out_time)=" /tmp/cnt-ffmpeg.progress | tail -n 6' || true
+          echo FGB_RUNNING_END=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)
+          REMOTE
