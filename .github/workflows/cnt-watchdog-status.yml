@@ -1,0 +1,35 @@
+name: CNT watchdog timer independent health verification
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-watchdog-status.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Inspect CNT watchdog service and FGB isolation without changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key"
+          install -d -m 700 ~/.ssh; printf '%s\n' "$key" > ~/.ssh/key; chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo CNT_WATCHDOG_TIMER=$(systemctl is-active cnt-trivia-watchdog.timer)
+          echo CNT_WATCHDOG_NEXT=$(systemctl list-timers --all cnt-trivia-watchdog.timer --no-pager --no-legend)
+          echo CNT_WATCHDOG_LOG_BEGIN
+          sudo -n journalctl -u cnt-trivia-watchdog.service --no-pager -n 18 --output=cat
+          echo CNT_WATCHDOG_LOG_END
+          echo CNT_WATCHDOG_STATE=$(sudo -n cat /var/lib/cnt-watchdog/state.json)
+          echo CNT_ENCODER=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)
+          echo FGB_ENCODER=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)
+          REMOTE
