@@ -30,7 +30,8 @@ jobs:
       - name: Inspect encoder and YouTube egress without changing production
         run: |
           set -euo pipefail
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          # Upload remote script first; Docker Compose must not consume the script input.
+          cat > /tmp/fgb-ingest-remote.sh <<'REMOTE'
           set -euo pipefail
           echo 'FGB_REMOTE_DIAGNOSTIC_STARTED=true'
           date -u '+REMOTE_TIME=%FT%TZ'
@@ -89,6 +90,8 @@ jobs:
           echo 'FGB_REMOTE_DIAGNOSTIC_COMPLETED=true'
           cat /tmp/ovh-youtube-ingest.txt
           REMOTE
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key /tmp/fgb-ingest-remote.sh ubuntu@40.160.144.185:/tmp/fgb-ingest-remote.sh
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash /tmp/fgb-ingest-remote.sh'
           echo 'Attempting to retrieve remote diagnostic file'
           scp -q -i ~/.ssh/ovh_key ubuntu@40.160.144.185:/tmp/ovh-youtube-ingest.txt /tmp/ovh-youtube-ingest.txt
           cat /tmp/ovh-youtube-ingest.txt
