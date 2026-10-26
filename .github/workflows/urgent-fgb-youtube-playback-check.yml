@@ -1,0 +1,50 @@
+name: Urgent FGB YouTube Playback Check (No Restart)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/urgent-fgb-youtube-playback-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read FGB YouTube encoder and stream health without changing FGB or CNT
+        env:
+          SSH_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -Eeuo pipefail
+          test -n "$SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/ovh-live
+          chmod 600 ~/.ssh/ovh-live
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          ssh -i ~/.ssh/ovh-live -o StrictHostKeyChecking=yes -o ConnectTimeout=10 ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          FGB=fgb-transport-youtube-1
+          echo "REPORT_AT=$(date -u +%FT%TZ)"
+          echo "FGB_DOCKER_INSPECT"
+          sudo docker inspect "$FGB" --format 'name={{.Name}} state={{.State.Status}} running={{.State.Running}} restartCount={{.RestartCount}} started={{.State.StartedAt}} oom={{.State.OOMKilled}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}'
+          echo "CNT_DOCKER_INSPECT_READ_ONLY"
+          sudo docker inspect epic-cnt-capture --format 'name={{.Name}} state={{.State.Status}} running={{.State.Running}} restartCount={{.RestartCount}} started={{.State.StartedAt}}' || true
+          echo "FGB_PROGRESS_INITIAL"
+          sudo docker exec "$FGB" sh -lc "grep -E '^(frame|fps|out_time_ms|out_time|dup_frames|drop_frames|speed|progress)=' /tmp/fgb-ffmpeg.progress || true"
+          echo "FGB_ENCODER_TIME_SAMPLES"
+          sudo docker exec "$FGB" sh -lc 'date -u +%FT%TZ; stat -c "progress_mtime=%y progress_bytes=%s" /tmp/fgb-ffmpeg.progress 2>/dev/null || true; grep -E "^(frame|out_time|drop_frames|dup_frames|speed|progress)=" /tmp/fgb-ffmpeg.progress || true'
+          sleep 13
+          echo "FGB_PROGRESS_AFTER_13S"
+          sudo docker exec "$FGB" sh -lc 'date -u +%FT%TZ; stat -c "progress_mtime=%y progress_bytes=%s" /tmp/fgb-ffmpeg.progress 2>/dev/null || true; grep -E "^(frame|out_time|drop_frames|dup_frames|speed|progress)=" /tmp/fgb-ffmpeg.progress || true'
+          echo "FGB_RECENT_ERROR_COUNTS"
+          sudo docker logs --since 25m "$FGB" 2>&1 | python3 -c 'import sys,re,collections; lines=sys.stdin.readlines(); pats=[("rtmps_reconnect",r"broken pipe|connection reset|timed out|failed to connect|server error|connection refused|error writing|av_interleaved_write_frame|end of file"),("auth_rejected",r"invalid stream|incorrect stream|403 Forbidden|403 |401 |bad name|unauthorized|permission denied"),("codec_muxer",r"non-monoton|invalid argument|conversion failed|error initializing|codec|muxer|flv header"),("capture",r"chromium|page crash|disconnected|xvfb|browser")];print("log_lines",len(lines));[print(name, sum(bool(re.search(pattern,line,re.I)) for line in lines)) for name,pattern in pats]; recent=[re.sub(r"(?i)(rtmps?://[^\s?]+|stream[_-]?key[^\s]*|token[^\s]*)","[REDACTED]",line.strip())[:190] for line in lines if re.search(r"error|fatal|failed|broken pipe|connection refused|reset|reconnect|closed",line,re.I)]; print("recent_error_messages_sanitized");[print(x) for x in recent[-12:]]'
+          echo "FGB_SOURCE_URL"
+          sudo docker exec "$FGB" sh -lc 'curl -fsS -m 3 http://127.0.0.1:9222/json/list | python3 -c "import json,sys; d=json.load(sys.stdin); print([x.get(\"url\",\"\").split(\"?\")[0] for x in d][:3])"' || true
+          echo "RTMPS_CONNECTION_COUNTS"
+          sudo ss -ntpH state established 2>/dev/null | python3 -c 'import sys; rows=sys.stdin.readlines(); print("established_443",sum(":443" in x for x in rows)); print("established_1935",sum(":1935" in x for x in rows))'
+          echo "SAFE_READ_ONLY_COMPLETE"
+          REMOTE
