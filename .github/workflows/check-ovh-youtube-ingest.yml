@@ -32,6 +32,8 @@ jobs:
           set -euo pipefail
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
           set -euo pipefail
+          echo 'FGB_REMOTE_DIAGNOSTIC_STARTED=true'
+          date -u '+REMOTE_TIME=%FT%TZ'
           cd /opt/fgb-transport
 
           cid=$(sudo docker compose --env-file .env ps -q youtube)
@@ -84,7 +86,10 @@ jobs:
           test "$f2" -gt "$f1"
           test "$t2" -gt "$t1"
           test "$s2" -ge "$s1"
+          echo 'FGB_REMOTE_DIAGNOSTIC_COMPLETED=true'
+          cat /tmp/ovh-youtube-ingest.txt
           REMOTE
+          echo 'Attempting to retrieve remote diagnostic file'
           scp -q -i ~/.ssh/ovh_key ubuntu@40.160.144.185:/tmp/ovh-youtube-ingest.txt /tmp/ovh-youtube-ingest.txt
           cat /tmp/ovh-youtube-ingest.txt
 
