@@ -1,6 +1,13 @@
 name: Deploy FGB Renderer Guard (No Encoder Restart)
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/deploy-fgb-renderer-guard.yml'
+      - 'ops/transport-ovh/fgb-renderer-probe.py'
+      - 'ops/transport-ovh/fgb-browser-guard.sh'
+      - 'ops/transport-ovh/fgb-browser-guard.service'
+      - 'ops/transport-ovh/fgb-browser-guard.timer'
   push:
     branches: [main]
     paths:
@@ -33,6 +40,7 @@ jobs:
           echo 'FGB_RENDERER_GUARD_STATIC_CHECK=PASS'
 
   deploy:
+    if: github.event_name != 'pull_request'
     needs: validate
     runs-on: ubuntu-latest
     timeout-minutes: 8
