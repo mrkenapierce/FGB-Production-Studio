@@ -1,0 +1,83 @@
+name: Discover Independent Archive Storage
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/discover-fgb-independent-storage.yml'
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      OVH_APPLICATION_KEY: ${{ secrets.OVH_APPLICATION_KEY }}
+      OVH_APPLICATION_SECRET: ${{ secrets.OVH_APPLICATION_SECRET }}
+      OVH_CONSUMER_KEY: ${{ secrets.OVH_CONSUMER_KEY }}
+      OVH_ENDPOINT: ovh-us
+      S3_ENDPOINT: ${{ secrets.FGB_ARCHIVE_S3_ENDPOINT }}
+      S3_BUCKET: ${{ secrets.FGB_ARCHIVE_S3_BUCKET }}
+      S3_ACCESS_KEY_ID: ${{ secrets.FGB_ARCHIVE_S3_ACCESS_KEY_ID }}
+      S3_SECRET_ACCESS_KEY: ${{ secrets.FGB_ARCHIVE_S3_SECRET_ACCESS_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    steps:
+      - name: Check configured backup destination and OVH storage authorization
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, json, urllib.request
+          names=("S3_ENDPOINT","S3_BUCKET","S3_ACCESS_KEY_ID","S3_SECRET_ACCESS_KEY","AWS_ACCESS_KEY_ID","AWS_SECRET_ACCESS_KEY")
+          print("EXTERNAL_STORAGE_CONFIGURATION_PRESENT="+json.dumps({n:bool(os.getenv(n)) for n in names},sort_keys=True))
+          if not all(os.getenv(n) for n in ("OVH_APPLICATION_KEY","OVH_APPLICATION_SECRET","OVH_CONSUMER_KEY")):
+              print("OVH_API_CREDENTIALS_PRESENT=false")
+          else:
+              print("OVH_API_CREDENTIALS_PRESENT=true")
+              try:
+                  import subprocess,sys
+                  subprocess.run([sys.executable,"-m","pip","-q","install","ovh>=1.2,<2"],check=True,timeout=90,capture_output=True)
+                  import ovh
+                  api=ovh.Client(endpoint="ovh-us",
+                                 application_key=os.environ["OVH_APPLICATION_KEY"],
+                                 application_secret=os.environ["OVH_APPLICATION_SECRET"],
+                                 consumer_key=os.environ["OVH_CONSUMER_KEY"])
+                  projects=api.get("/cloud/project")
+                  print("OVH_PUBLIC_CLOUD_PROJECT_COUNT="+str(len(projects) if isinstance(projects,list) else 0))
+                  if isinstance(projects,list):
+                      for i,project_id in enumerate(projects[:10]):
+                          for kind,route in [("objects",f"/cloud/project/{project_id}/storage"),
+                                             ("volumes",f"/cloud/project/{project_id}/volume")]:
+                              try:
+                                  result=api.get(route)
+                                  print(f"PROJECT_{i}_{kind.upper()}_COUNT="+str(len(result) if isinstance(result,list) else 0))
+                              except Exception as exc:
+                                  print(f"PROJECT_{i}_{kind.upper()}_LOOKUP="+type(exc).__name__)
+              except Exception as exc:
+                  print("OVH_STORAGE_DISCOVERY_ERROR="+type(exc).__name__)
+          PY
+      - name: Check OVH host separate mounts and installed sync tools
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo HOST_BLOCK_DEVICES
+          lsblk -o NAME,TYPE,SIZE,MOUNTPOINTS -n
+          echo HOST_ARCHIVE_MOUNT
+          findmnt --target /srv/fgb-archive -o SOURCE,TARGET,FSTYPE,SIZE,AVAIL -n
+          echo HOST_INSTALLED_STORAGE_TOOLS
+          for tool in rclone aws s3cmd restic; do
+            if command -v "$tool" >/dev/null 2>&1; then echo "$tool=installed"; else echo "$tool=not_installed"; fi
+          done
+          echo HOST_STORAGE_CONFIG_KEYS_PRESENT
+          for key in FGB_ARCHIVE_REMOTE_BUCKET FGB_ARCHIVE_REMOTE_ENDPOINT FGB_BACKUP_S3_BUCKET FGB_BACKUP_S3_ENDPOINT AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            if sudo grep -q "^$key=." /opt/fgb-transport/.env 2>/dev/null; then echo "$key=configured"; else echo "$key=absent"; fi
+          done
+          REMOTE
