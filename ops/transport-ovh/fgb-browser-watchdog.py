@@ -149,7 +149,7 @@ def health(tab: dict) -> dict:
         data = eval_tab(tab)
         good = (data.get("root") is True
                 and data.get("ready") in ("interactive", "complete")
-                and "/fgb-broadcast" in data.get("url", "")
+                and data.get("url", "").startswith("https://epiccontentcreatorgrants.org/fgb-broadcast")
                 and "target=youtube" in data.get("url", ""))
         return {"ok": good, "reason": "ok" if good else "broadcast_root_missing",
                 "title": str(data.get("title", ""))[:100], "layer": str(data.get("layer", ""))[:50]}
