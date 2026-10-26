@@ -1,0 +1,130 @@
+name: Audit FGB and CNT Trivia Clock Drift
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-live-trivia-drift.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: audit-live-trivia-drift
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure read-only SSH
+        env:
+          SSH_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/fgb-audit
+          chmod 600 ~/.ssh/fgb-audit
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Observe media clock versus wall clock and locate CNT (never restart or modify containers)
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -i ~/.ssh/fgb-audit ubuntu@40.160.144.185 'bash -s' > /tmp/trivia-pacing-raw.txt <<'REMOTE'
+          set -euo pipefail
+          echo "AUDIT_VERSION=2026-10-26-v1"
+          echo "UTC_START=$(date -u +%FT%TZ)"
+          echo "CONTAINERS_BEGIN"
+          sudo docker ps --format '{{.Names}}|{{.Image}}|{{.Status}}' | sed -E 's/[[:cntrl:]]//g'
+          echo "CONTAINERS_END"
+          cd /opt/fgb-transport
+          cid="$(sudo docker compose --env-file .env ps -q youtube)"
+          test -n "$cid"
+          echo "FGB_CONTAINER_FOUND=true"
+          echo "FGB_CONTAINER_RESTARTS=$(sudo docker inspect --format '{{.RestartCount}}' "$cid")"
+          echo "FGB_CAPTURE_TABS_BEGIN"
+          sudo docker compose --env-file .env exec -T youtube curl -fsS -m 5 http://127.0.0.1:9222/json/list | python3 -c 'import json,sys; [print(str(x.get("url",""))[:240]) for x in json.load(sys.stdin) if x.get("type")=="page"]' || true
+          echo "FGB_CAPTURE_TABS_END"
+          for i in 0 1 2 3 4; do
+            now="$(date +%s%N)"
+            metrics="$(sudo docker compose --env-file .env exec -T youtube cat /tmp/fgb-ffmpeg.progress 2>/dev/null || true)"
+            frame="$(printf '%s\n' "$metrics" | awk -F= '$1=="frame"{x=$2}END{print x+0}')"
+            media="$(printf '%s\n' "$metrics" | awk -F= '$1=="out_time_us"{x=$2}END{print x+0}')"
+            speed="$(printf '%s\n' "$metrics" | awk -F= '$1=="speed"{x=$2}END{print x}')"
+            dropped="$(printf '%s\n' "$metrics" | awk -F= '$1=="drop_frames"{x=$2}END{print x+0}')"
+            duplicated="$(printf '%s\n' "$metrics" | awk -F= '$1=="dup_frames"{x=$2}END{print x+0}')"
+            printf 'SAMPLE|%s|%s|%s|%s|%s|%s\n' "$now" "$frame" "$media" "${speed:-unknown}" "$dropped" "$duplicated"
+            if [ "$i" -lt 4 ]; then sleep 15; fi
+          done
+          echo "UTC_END=$(date -u +%FT%TZ)"
+          REMOTE
+          cat /tmp/trivia-pacing-raw.txt
+
+      - name: Read authoritative game clock and write safe diagnostic summary
+        if: always()
+        run: |
+          set -euo pipefail
+          mkdir -p .github/deployment-status
+          python3 - <<'PY'
+          import json, re, time, urllib.request, statistics
+          from pathlib import Path
+          from datetime import datetime, timezone
+          raw=Path('/tmp/trivia-pacing-raw.txt').read_text() if Path('/tmp/trivia-pacing-raw.txt').exists() else ''
+          rows=[]
+          for line in raw.splitlines():
+              if not line.startswith('SAMPLE|'):continue
+              try:
+                  p=line.split('|')
+                  rows.append(dict(wallNs=int(p[1]), frame=int(p[2]), mediaUs=int(p[3]), speed=p[4], dropped=int(p[5]), duplicated=int(p[6])))
+              except (ValueError,IndexError):pass
+          windows=[]
+          for a,b in zip(rows,rows[1:]):
+              wall=(b['wallNs']-a['wallNs'])/1e9
+              media=(b['mediaUs']-a['mediaUs'])/1e6
+              frames=b['frame']-a['frame']
+              if wall>0 and media>=0 and frames>=0:
+                  windows.append(dict(wallSeconds=round(wall,3),mediaSeconds=round(media,3),mediaToWallRatio=round(media/wall,4),frames=frames,measuredFps=round(frames/wall,2),droppedDelta=b['dropped']-a['dropped'],duplicatedDelta=b['duplicated']-a['duplicated']))
+          valid=[x for x in windows if x['wallSeconds']>5]
+          samples={}
+          for name,path in [('source','/api/public/fgbears/game-screen'),('website','/api/public/fgbears/website-game-screen')]:
+              try:
+                  url='https://epiccontentcreatorgrants.org'+path+'?_clockaudit='+str(time.time_ns())
+                  req=urllib.request.Request(url,headers={'Cache-Control':'no-cache','User-Agent':'EPIC-trivia-clock-audit/1.0'})
+                  with urllib.request.urlopen(req,timeout=15) as response: d=json.load(response)
+                  samples[name]={k:d.get(k) for k in ('gameId','phase','questionNumber','phaseEndsAt','updatedAt','delaySeconds','active')}
+              except Exception as e:
+                  samples[name]={'error':type(e).__name__}
+          identities=raw.split('CONTAINERS_BEGIN\n')[-1].split('\nCONTAINERS_END')[0] if 'CONTAINERS_BEGIN' in raw and 'CONTAINERS_END' in raw else ''
+          containers=[]
+          for s in identities.splitlines():
+              p=s.split('|')
+              if len(p)==3:containers.append(dict(name=p[0],image=p[1],status=p[2]))
+          names=[x['name'].lower() for x in containers]
+          cnt=[x for x in containers if re.search(r'cnt|cruise|news.?trivia',x['name']+' '+x['image'],re.I)]
+          ratios=[x['mediaToWallRatio'] for x in valid]
+          total_wall=sum(x['wallSeconds'] for x in valid)
+          total_media=sum(x['mediaSeconds'] for x in valid)
+          drift=round(total_wall-total_media,3) if total_wall and ratios else None
+          status='INSUFFICIENT_SAMPLES' if len(valid)<2 else 'ENCODER_FALLING_BEHIND' if total_media/total_wall < .975 else 'ENCODER_PACING_NORMAL'
+          report=dict(checkedAt=datetime.now(timezone.utc).isoformat(),readOnly=True,host='OVH',fgbCaptureUrl=(raw.split('FGB_CAPTURE_TABS_BEGIN\n')[-1].split('\nFGB_CAPTURE_TABS_END')[0].strip().splitlines()[:5] if 'FGB_CAPTURE_TABS_BEGIN' in raw and 'FGB_CAPTURE_TABS_END' in raw else []),containerRestartCount=(re.search(r'FGB_CONTAINER_RESTARTS=(\d+)',raw).group(1) if re.search(r'FGB_CONTAINER_RESTARTS=(\d+)',raw) else None),observationDurationSeconds=round(total_wall,2),mediaDurationSeconds=round(total_media,2),cumulativeEncoderLagGrowthSeconds=drift,mediaTimeVsWallTimeStatus=status,perWindow=valid,sourceClock=samples,containers=containers,cntContainersDiscovered=cnt,limits=['No YouTube viewer-player latency measured; encoder pacing and YouTube playback latency are distinct.','A channel not found on this Docker host may run elsewhere.'])
+          Path('.github/deployment-status/trivia-clock-drift-audit.json').write_text(json.dumps(report,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(report,indent=2,sort_keys=True))
+          PY
+
+      - name: Commit read-only diagnostic
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/trivia-clock-drift-audit.json
+          git commit -m 'Capture independent FGB media clock pacing and CNT topology' || exit 0
+          git pull --rebase
+          git push
