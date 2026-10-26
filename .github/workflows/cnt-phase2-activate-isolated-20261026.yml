@@ -1,0 +1,133 @@
+name: CNT Phase 2 Activate Isolated Recorder and Episodes
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-phase2-activate-isolated-20261026.yml']
+permissions:
+  contents: read
+concurrency:
+  group: cnt-phase2-stream-activation
+  cancel-in-progress: false
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - name: Configure OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Install CNT-only compose overlay, validate then cut over with rollback
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/cnt-transport
+          before_fgb=$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)
+          before_ffmpeg=$(sudo docker exec fgb-transport-youtube-1 pgrep -o ffmpeg)
+          test -n "$before_ffmpeg"
+          before_cnt=$(sudo docker inspect -f '{{.Id}}' epic-cnt-capture)
+          test "$(sudo docker inspect -f '{{.State.Health.Status}}' epic-cnt-capture)" = healthy
+          test "$(df -Pk /srv | awk 'NR==2 {print $4}')" -gt 20971520
+          sudo test -s /etc/epic-cnt/archive-key
+          sudo docker image inspect epic-cnt-phase2:staged >/dev/null
+          sudo test -s /opt/cnt-phase2-staging/cnt-api-client.py
+          echo '{"action":"token"}' | sudo python3 /opt/cnt-phase2-staging/cnt-api-client.py https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/archive /etc/epic-cnt/archive-key |
+            python3 -c 'import json,sys;d=json.load(sys.stdin);print("CNT_GOOGLE_ACCESS_TOKEN_CONFIRMED="+str(d.get("ok") is True and len(d.get("accessToken") or "")>30));assert d.get("ok") is True and len(d.get("accessToken") or "")>30'
+          stamp=$(date -u +%Y%m%dT%H%M%SZ)
+          cp -p docker-compose.yml "docker-compose.before-phase2.$stamp.yml"
+          cat >docker-compose.phase2.yml <<'COMPOSE'
+          name: epic-cnt-transport
+          services:
+            cnt:
+              image: epic-cnt-phase2:staged
+              container_name: epic-cnt-capture
+              restart: unless-stopped
+              shm_size: "1gb"
+              env_file: .env.cnt
+              environment:
+                CNT_AIR_LOG: /cnt-archive/state/chrome.log
+                CNT_ARCHIVE_TAP: "udp://127.0.0.1:24010?pkt_size=1316"
+              volumes:
+                - /srv/cnt-archive:/cnt-archive
+              security_opt: ["no-new-privileges:true"]
+              networks: [cnt-only]
+            archive_worker:
+              image: epic-cnt-phase2:staged
+              container_name: epic-cnt-archive-worker
+              restart: unless-stopped
+              network_mode: "service:cnt"
+              depends_on: [cnt]
+              volumes:
+                - /srv/cnt-archive:/cnt-archive
+                - /etc/epic-cnt/archive-key:/run/secrets/cnt_archive_key:ro
+              environment:
+                CNT_ARCHIVE_DIR: /cnt-archive
+                CNT_ARCHIVE_URL: https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/archive
+                CNT_ARCHIVE_KEY_FILE: /run/secrets/cnt_archive_key
+                CNT_AIR_LOG: /cnt-archive/state/chrome.log
+                EPISODE_CHANNEL: cnt
+                CNT_MIN_FREE_GB: "8"
+              entrypoint: ["/usr/bin/tini", "--"]
+              command:
+                - "/bin/bash"
+                - "-c"
+                - |
+                  set -uo pipefail
+                  ./cnt-rolling-recorder.sh & r=$$!
+                  python3 ./cnt-air-observer.py & o=$$!
+                  ./episode-cutter.sh & e=$$!
+                  ./cnt-daily-recorder.sh & d=$$!
+                  echo CNT_EPISODE_WORKERS_STARTED=1
+                  wait -n "$$r" "$$o" "$$e" "$$d"
+                  code=$$?
+                  echo "CNT_EPISODE_WORKER_EXIT code=$$code"
+                  kill "$$r" "$$o" "$$e" "$$d" 2>/dev/null || :
+                  wait || :
+                  exit 1
+          networks:
+            cnt-only:
+              internal: false
+          COMPOSE
+          sudo docker compose -f docker-compose.phase2.yml config -q
+          echo CNT_COMPOSE_VALID=true
+          rollback() {
+            echo 'CNT_ROLLBACK=INITIATED'
+            sudo docker rm -f epic-cnt-archive-worker >/dev/null 2>&1 || :
+            sudo docker compose -f docker-compose.yml up -d --no-build cnt || :
+            echo 'CNT_ROLLBACK=COMPLETED_ATTEMPT'
+          }
+          trap rollback ERR
+          sudo docker compose -f docker-compose.phase2.yml up -d --no-build
+          echo 'CNT_CUTOVER_REQUESTED=true'
+          healthy=0
+          for i in $(seq 1 36); do
+            stat=$(sudo docker inspect -f '{{.State.Health.Status}}' epic-cnt-capture 2>/dev/null || echo missing)
+            if [ "$stat" = healthy ]; then healthy=1; break; fi
+            if [ "$stat" = unhealthy ] && [ "$i" -gt 12 ]; then break; fi
+            sleep 5
+          done
+          test "$healthy" = 1
+          sudo docker exec epic-cnt-capture sh -lc 'test -f /tmp/cnt-ffmpeg.progress && curl -sf -m 3 http://127.0.0.1:9223/json/version >/dev/null'
+          test "$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)" = "$before_fgb"
+          test "$(sudo docker exec fgb-transport-youtube-1 pgrep -o ffmpeg)" = "$before_ffmpeg"
+          workstat=$(sudo docker inspect -f '{{.State.Status}}' epic-cnt-archive-worker)
+          test "$workstat" = running
+          test -d /srv/cnt-archive/rolling
+          test -f /srv/cnt-archive/state/chrome.log
+          trap - ERR
+          echo 'CNT_PHASE2_CUTOVER=SUCCESS'
+          echo 'FGB_ENCODER_UNCHANGED=true'
+          echo 'CNT_PREVIOUS_CONTAINER_ID_CHANGED=true'
+          echo 'CNT_ARCHIVE_DELETE_APPLY=false'
+          sudo docker ps --filter name=epic-cnt --format '{{.Names}} {{.Status}}'
+          echo 'RECORDER_FILES'
+          find /srv/cnt-archive/rolling -maxdepth 1 -type f -name 'live-*.ts' -printf '%f %s bytes\n' | tail -4 || :
+          df -h /srv
+          REMOTE
