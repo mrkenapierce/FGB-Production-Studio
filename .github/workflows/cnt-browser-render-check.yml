@@ -105,3 +105,5 @@ jobs:
               out('DIAGNOSTIC_EXCEPTION',type(e).__name__+':'+str(e)[:150])
           PY
           REMOTE
+
+# Post targeted CNT-tab reload verification (read only)
