@@ -1,0 +1,84 @@
+name: CNT YouTube authenticated broadcast binding audit
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-youtube-authenticated-audit.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      CNT_KEY: ${{ secrets.CNT_YOUTUBE_STREAM_KEY }}
+      CNT_OAUTH_CLIENT_ID: ${{ secrets.CNT_YOUTUBE_CLIENT_ID }}
+      CNT_OAUTH_CLIENT_SECRET: ${{ secrets.CNT_YOUTUBE_CLIENT_SECRET }}
+      CNT_OAUTH_REFRESH: ${{ secrets.CNT_YOUTUBE_REFRESH_TOKEN }}
+      SHARED_OAUTH_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+      SHARED_OAUTH_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+    steps:
+      - name: Inspect CNT channel ownership, broadcast binding and stream ingest without writes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,json,urllib.parse,urllib.request,hmac
+          target='UC2nq0qnQarvLC-8QR7lRwCA'
+          cid=os.getenv('CNT_OAUTH_CLIENT_ID') or os.getenv('SHARED_OAUTH_CLIENT_ID')
+          csecret=os.getenv('CNT_OAUTH_CLIENT_SECRET') or os.getenv('SHARED_OAUTH_CLIENT_SECRET')
+          refresh=os.getenv('CNT_OAUTH_REFRESH')
+          key=os.getenv('CNT_KEY')
+          print('CNT_INGEST_SECRET='+('PRESENT' if key else 'MISSING'))
+          if not (cid and csecret and refresh):
+              print('CNT_OAUTH_STATUS=BLOCKED_NO_CNT_REFRESH_TOKEN_OR_CLIENT')
+              raise SystemExit(0)
+          form=urllib.parse.urlencode({'client_id':cid,'client_secret':csecret,'refresh_token':refresh,'grant_type':'refresh_token'}).encode()
+          try:
+              req=urllib.request.Request('https://oauth2.googleapis.com/token',data=form,method='POST')
+              tok=json.load(urllib.request.urlopen(req,timeout=12)).get('access_token')
+              if not tok:raise RuntimeError('NO_ACCESS_TOKEN')
+          except Exception as e:
+              print('CNT_OAUTH_STATUS=TOKEN_EXCHANGE_FAILED_'+type(e).__name__)
+              raise SystemExit(1)
+          def api(method,query):
+              url='https://www.googleapis.com/youtube/v3/'+method+'?'+urllib.parse.urlencode(query)
+              req=urllib.request.Request(url,headers={'Authorization':'Bearer '+tok})
+              with urllib.request.urlopen(req,timeout=15) as r:return json.load(r)
+          try:
+              channels=api('channels',{'part':'id','mine':'true'})
+              ids=[v.get('id') for v in channels.get('items',[])]
+              if target not in ids:
+                  print('CNT_OAUTH_STATUS=WRONG_CHANNEL_BEARER_TOKEN')
+                  print('CNT_CHANNEL_MATCH=NO')
+                  raise SystemExit(2)
+              print('CNT_OAUTH_STATUS=CORRECT_CHANNEL')
+              broadcasts=api('liveBroadcasts',{'part':'id,snippet,status,contentDetails','broadcastStatus':'active','broadcastType':'all','mine':'true','maxResults':50})
+              active=broadcasts.get('items',[])
+              print('CNT_ACTIVE_BROADCASTS='+str(len(active)))
+              streams=api('liveStreams',{'part':'id,status,cdn','mine':'true','maxResults':50})
+              stream_map={v.get('id'):v for v in streams.get('items',[])}
+              for b in active:
+                  bound=b.get('contentDetails',{}).get('boundStreamId')
+                  v=stream_map.get(bound,{})
+                  incoming=v.get('cdn',{}).get('ingestionInfo',{}).get('streamName')
+                  match=bool(incoming and key and hmac.compare_digest(incoming,key))
+                  print('CNT_BROADCAST_ID='+str(b.get('id')))
+                  print('CNT_LIFECYCLE='+str(b.get('status',{}).get('lifeCycleStatus')))
+                  print('CNT_PRIVACY='+str(b.get('status',{}).get('privacyStatus')))
+                  print('CNT_BOUND_STREAM_ID='+str(bound))
+                  print('CNT_STREAM_INGEST_STATUS='+str(v.get('status',{}).get('streamStatus')))
+                  print('CNT_STREAM_HEALTH='+str(v.get('status',{}).get('healthStatus',{}).get('status')))
+                  print('CNT_STREAM_KEY_MATCH='+str(match))
+              if not active:
+                  print('CNT_YOUTUBE_RESULT=NO_ACTIVE_BROADCAST')
+              elif not any(hmac.compare_digest(stream_map.get(b.get('contentDetails',{}).get('boundStreamId'),{}).get('cdn',{}).get('ingestionInfo',{}).get('streamName') or '',key or '') for b in active):
+                  print('CNT_YOUTUBE_RESULT=ACTIVE_STREAM_KEY_MISMATCH')
+                  raise SystemExit(3)
+              else:
+                  print('CNT_YOUTUBE_RESULT=BOUND_STREAM_KEY_CONFIRMED')
+          except SystemExit:raise
+          except Exception as e:
+              print('CNT_YOUTUBE_API_ERROR='+type(e).__name__)
+              raise SystemExit(4)
+          PY
