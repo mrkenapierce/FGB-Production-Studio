@@ -1,0 +1,13 @@
+[Unit]
+Description=Check FGB YouTube Browser Renderer Every 20 Seconds
+
+[Timer]
+OnBootSec=75s
+OnUnitInactiveSec=20s
+AccuracySec=2s
+RandomizedDelaySec=0
+Unit=fgb-browser-guard.service
+Persistent=false
+
+[Install]
+WantedBy=timers.target
