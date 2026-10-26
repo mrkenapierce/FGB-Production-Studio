@@ -46,6 +46,8 @@ jobs:
           set -euo pipefail
           scp -q -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key \
             ops/transport-ovh/fgb-offsite-backup.sh ubuntu@40.160.144.185:/tmp/fgb-offsite-backup.sh
+          scp -q -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key \
+            ops/transport-ovh/archive-uploader.py ubuntu@40.160.144.185:/tmp/fgb-archive-uploader-offsite.py
           ssh -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
           set -euo pipefail
           sudo bash -n /tmp/fgb-offsite-backup.sh
@@ -111,9 +113,59 @@ jobs:
             sudo apt-get update -qq
             sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq rclone
           fi
+          FGB=fgb-transport-youtube-1
+          CNT=epic-cnt-capture
+          before_fgb=$(sudo docker inspect -f '{{.Id}}' "$FGB")
+          before_cnt=$(sudo docker inspect -f '{{.Id}}' "$CNT")
+          before_ffmpeg=$(sudo docker exec "$FGB" pgrep -o ffmpeg)
           sudo install -o root -g root -m 0600 /tmp/fgb-offsite-secure.env /etc/fgb-archive-offsite.env
           rm -f /tmp/fgb-offsite-secure.env
+          # Verify both writes and remote reads before treating storage as usable.
+          sudo bash -s <<'PREFLIGHT'
+          set -euo pipefail
+          source /etc/fgb-archive-offsite.env
+          export RCLONE_CONFIG_FGBARCHIVE_TYPE=s3
+          export RCLONE_CONFIG_FGBARCHIVE_PROVIDER=Other
+          export RCLONE_CONFIG_FGBARCHIVE_ENV_AUTH=false
+          export RCLONE_CONFIG_FGBARCHIVE_ACCESS_KEY_ID="$FGB_OFFSITE_ACCESS_KEY_ID"
+          export RCLONE_CONFIG_FGBARCHIVE_SECRET_ACCESS_KEY="$FGB_OFFSITE_SECRET_ACCESS_KEY"
+          export RCLONE_CONFIG_FGBARCHIVE_ENDPOINT="$FGB_OFFSITE_ENDPOINT"
+          export RCLONE_CONFIG_FGBARCHIVE_REGION="$FGB_OFFSITE_REGION"
+          printf 'FGB offsite health %s\n' "$(date -u +%FT%TZ)" >/tmp/fgb-offsite-canary.txt
+          remote="FGBARCHIVE:$FGB_OFFSITE_BUCKET/fgb/control/activation-canary.txt"
+          rclone copyto /tmp/fgb-offsite-canary.txt "$remote" --s3-no-check-bucket --quiet
+          local_hash=$(sha256sum /tmp/fgb-offsite-canary.txt | awk '{print $1}')
+          remote_hash=$(rclone cat "$remote" --quiet | sha256sum | awk '{print $1}')
+          test "$local_hash" = "$remote_hash"
+          echo 'FGB_OFFSITE_REMOTE_READ_WRITE_SHA256=PASS'
+          rm -f /tmp/fgb-offsite-canary.txt
+          PREFLIGHT
+          # Set offsite retention gate ONLY after the independent bucket
+          # passes the read/write checksum preflight.
+          sudo python3 -m py_compile /tmp/fgb-archive-uploader-offsite.py
+          sudo cp -p /opt/fgb-transport/archive-uploader.py /opt/fgb-transport/archive-uploader.before-offsite.py
+          sudo install -o root -g root -m 0644 /tmp/fgb-archive-uploader-offsite.py /opt/fgb-transport/archive-uploader.py
+          sudo python3 - <<'PY'
+          from pathlib import Path
+          import os
+          p=Path('/opt/fgb-transport/.env')
+          rows=[row for row in p.read_text().splitlines() if not row.startswith('FGB_OFFSITE_REQUIRED=')]
+          rows.append('FGB_OFFSITE_REQUIRED=1')
+          tmp=p.with_name('.env.offsite-next')
+          fd=os.open(tmp,os.O_WRONLY|os.O_CREAT|os.O_TRUNC,0o600)
+          with os.fdopen(fd,'w') as fh:fh.write('\n'.join(rows)+'\n')
+          os.chmod(tmp,0o600)
+          os.replace(tmp,p)
+          PY
+          cd /opt/fgb-transport
+          sudo docker compose --env-file .env up -d --no-deps --force-recreate archive_uploader
+          sudo docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' fgb-transport-archive_uploader-1 | grep -Fxq 'FGB_OFFSITE_REQUIRED=1'
           sudo systemctl enable --now fgb-offsite-backup.timer
           sudo systemctl is-active --quiet fgb-offsite-backup.timer
+          test "$(sudo docker inspect -f '{{.Id}}' "$FGB")" = "$before_fgb"
+          test "$(sudo docker inspect -f '{{.Id}}' "$CNT")" = "$before_cnt"
+          test "$(sudo docker exec "$FGB" pgrep -o ffmpeg)" = "$before_ffmpeg"
           echo FGB_OFFSITE_BACKUP_STATUS=HOURLY_TIMER_ENABLED
+          echo FGB_OFFSITE_RAW_RETENTION_REQUIRES_VERIFIED_SHA=true
+          echo FGB_CNT_LIVE_ENCODERS_UNCHANGED=true
           REMOTE
