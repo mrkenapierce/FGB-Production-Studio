@@ -117,8 +117,8 @@ jobs:
                   # Prove what FFmpeg actually captures from the CNT X11 display,
                   # not just what the Chromium compositor reports via CDP.
                   import subprocess
-                  cmd=['docker','exec','-e','DISPLAY=:98','epic-cnt-capture','ffmpeg','-hide_banner','-loglevel','error','-nostdin','-f','x11grab','-video_size','1280x720','-i',':98.0','-frames:v','1','-f','image2pipe','-vcodec','png','-']
-                  x11=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=22)
+                  x11_command=['docker','exec','-e','DISPLAY=:98','epic-cnt-capture','ffmpeg','-hide_banner','-loglevel','error','-nostdin','-f','x11grab','-video_size','1280x720','-i',':98.0','-frames:v','1','-f','image2pipe','-vcodec','png','-']
+                  x11=subprocess.run(x11_command,stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=22)
                   if x11.returncode or len(x11.stdout)<1000:
                       raise RuntimeError('CNT_X11_INPUT_FRAME_CAPTURE_FAILED:'+x11.stderr.decode(errors='replace')[:150])
                   with open('/tmp/cnt-confirmed-trivia-x11.png','wb') as out:out.write(x11.stdout)
