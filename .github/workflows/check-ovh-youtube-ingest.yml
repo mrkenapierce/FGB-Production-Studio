@@ -89,6 +89,13 @@ jobs:
           test "$s2" -ge "$s1"
           echo 'FGB_REMOTE_DIAGNOSTIC_COMPLETED=true'
           cat /tmp/ovh-youtube-ingest.txt
+          echo 'FGB_PUBLIC_ORIGIN_PROBE_START'
+          curl -sS -L -o /dev/null --max-time 15 -w 'FGB_BROADCAST_HTTP=%{http_code}\n' 'https://epiccontentcreatorgrants.org/fgb-broadcast?target=youtube' || true
+          curl -sS -L -o /dev/null --max-time 15 -w 'FGB_GAMESCREEN_HTTP=%{http_code}\n' 'https://epiccontentcreatorgrants.org/api/public/fgbears/game-screen' || true
+          echo 'FGB_CHROMIUM_TABS_START'
+          sudo docker compose --env-file .env exec -T youtube curl -fsS -m 5 http://127.0.0.1:9222/json/list | python3 -c 'import json,sys; d=json.load(sys.stdin); [print("CHROME_TAB_TITLE="+str(t.get("title",""))[:160]+" CHROME_TAB_URL="+str(t.get("url",""))[:260]) for t in d if t.get("type")=="page"]' || true
+          echo 'FGB_TCP_STATES_START'
+          sudo docker compose --env-file .env exec -T youtube sh -lc 'awk "NR>1 && length(\$4)==2 {x[\$4]++} END{for (s in x) print s,x[s]}" /proc/net/tcp' || true
           REMOTE
           scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key /tmp/fgb-ingest-remote.sh ubuntu@40.160.144.185:/tmp/fgb-ingest-remote.sh
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash /tmp/fgb-ingest-remote.sh'
