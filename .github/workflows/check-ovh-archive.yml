@@ -29,7 +29,9 @@ jobs:
       - name: Enforce live, capture, publishing, and browser-source health
         run: |
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
-          set -euo pipefail
+          # All reads are best-effort: collect health report even on a missing
+          # archive component and let the explicit checks fail after reporting.
+          set -uo pipefail
           cd /opt/fgb-transport
 
           live=$(sudo docker compose --env-file .env exec -T youtube sh -lc 'cat /tmp/fgb-transport.state 2>/dev/null || echo missing')
