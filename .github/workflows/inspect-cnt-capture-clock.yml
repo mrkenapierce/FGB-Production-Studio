@@ -1,0 +1,94 @@
+name: Inspect CNT Capture Clock Without Restart
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-cnt-capture-clock.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - name: Configure read-only OVH connection
+        env:
+          SSH_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$SSH_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/clock-audit
+          chmod 600 ~/.ssh/clock-audit
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Locate existing CNT encoder clock and measure without changing anything
+        run: |
+          set -euo pipefail
+          cat > /tmp/cnt-audit-remote.sh <<'REMOTE'
+          set -euo pipefail
+          c='epic-cnt-capture'
+          echo "CNT_AUDIT_BEGIN=$(date -u +%FT%TZ)"
+          sudo docker inspect -f 'CNT_CONTAINER_STATUS={{.State.Status}} CNT_RESTARTS={{.RestartCount}} CNT_STARTED={{.State.StartedAt}}' "$c"
+          echo "CNT_RUNNING_PROCESS_NAMES_BEGIN"
+          sudo docker exec "$c" sh -lc 'ps -eo comm= 2>/dev/null | sort | uniq -c | tail -25' || true
+          echo "CNT_RUNNING_PROCESS_NAMES_END"
+          echo "CNT_PROGRESS_CANDIDATES_BEGIN"
+          sudo docker exec "$c" sh -lc 'find /tmp /run -maxdepth 3 -type f \( -iname "*progress*" -o -iname "*ffmpeg*" -o -iname "*status*" \) 2>/dev/null | head -50' || true
+          echo "CNT_PROGRESS_CANDIDATES_END"
+          echo "CNT_BROWSER_TABS_BEGIN"
+          sudo docker exec "$c" sh -lc 'for port in 9222 9223; do curl -fsS -m 3 http://127.0.0.1:$port/json/list 2>/dev/null && break; done' | python3 -c 'import sys,json; raw=sys.stdin.read(); data=json.loads(raw); [print(str(x.get("url",""))[:220]) for x in data if x.get("type")=="page"]' || true
+          echo "CNT_BROWSER_TABS_END"
+          for i in 0 1 2; do
+            echo "CNT_SAMPLE_BEGIN=$i"
+            echo "CNT_WALL_NS=$(date +%s%N)"
+            sudo docker exec "$c" sh -lc '
+              for p in /tmp/*progress* /run/*progress* /tmp/*ffmpeg* /run/*ffmpeg*; do
+                [ -f "$p" ] || continue
+                echo "PROGRESS_FILE=$p"
+                grep -E "^(frame|out_time_us|out_time_ms|speed|drop_frames|dup_frames|progress)=" "$p" 2>/dev/null | tail -10 || true
+              done' || true
+            echo "CNT_SAMPLE_END=$i"
+            [ "$i" = 2 ] || sleep 15
+          done
+          echo "CNT_AUDIT_END=$(date -u +%FT%TZ)"
+          REMOTE
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/clock-audit /tmp/cnt-audit-remote.sh ubuntu@40.160.144.185:/tmp/cnt-audit-remote.sh
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/clock-audit ubuntu@40.160.144.185 'bash /tmp/cnt-audit-remote.sh' > /tmp/cnt-clock-raw.txt
+          grep -q '^CNT_AUDIT_END=' /tmp/cnt-clock-raw.txt
+          cat /tmp/cnt-clock-raw.txt
+
+      - name: Save sanitized read-only CNT audit
+        if: always()
+        run: |
+          mkdir -p .github/deployment-status
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+          from datetime import datetime, timezone
+          raw=Path('/tmp/cnt-clock-raw.txt').read_text() if Path('/tmp/cnt-clock-raw.txt').exists() else ''
+          get=lambda p: (re.search(p,raw).group(1) if re.search(p,raw) else None)
+          def block(name):
+              m=re.search(name+r'_BEGIN\n(.*?)\n'+name+r'_END',raw,re.S)
+              return m.group(1).splitlines() if m else []
+          samples=[]
+          for m in re.finditer(r'CNT_SAMPLE_BEGIN=(\d+)\n(.*?)CNT_SAMPLE_END=\1',raw,re.S):
+              b=m.group(2)
+              p={k:v for k,v in re.findall(r'^(frame|out_time_us|out_time_ms|speed|drop_frames|dup_frames|progress)=([^\n]*)',b,re.M)}
+              samples.append(dict(wallNs=get(r'CNT_WALL_NS=(\d+)') if False else re.search(r'CNT_WALL_NS=(\d+)',b).group(1),progressFile=(re.search(r'PROGRESS_FILE=([^\n]*)',b).group(1) if 'PROGRESS_FILE=' in b else None),progress=p))
+          result=dict(checkedAt=datetime.now(timezone.utc).isoformat(),readOnly=True,status=get(r'CNT_CONTAINER_STATUS=(\w+)'),restarts=get(r'CNT_RESTARTS=(\d+)'),browserTabs=block('CNT_BROWSER_TABS'),processNames=block('CNT_RUNNING_PROCESS_NAMES'),progressCandidates=block('CNT_PROGRESS_CANDIDATES'),samples=samples,complete='CNT_AUDIT_END=' in raw)
+          Path('.github/deployment-status/cnt-clock-inspection.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(result,indent=2,sort_keys=True))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/deployment-status/cnt-clock-inspection.json
+          git commit -m 'Record read-only CNT encoder clock inspection' || exit 0
+          git pull --rebase
+          git push
