@@ -1,0 +1,94 @@
+name: Deploy FGB Renderer Guard (No Encoder Restart)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-fgb-renderer-guard.yml'
+      - 'ops/transport-ovh/fgb-renderer-probe.py'
+      - 'ops/transport-ovh/fgb-browser-guard.sh'
+      - 'ops/transport-ovh/fgb-browser-guard.service'
+      - 'ops/transport-ovh/fgb-browser-guard.timer'
+permissions:
+  contents: read
+concurrency:
+  group: fgb-renderer-guard-deploy
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check watchdog safety gates
+        run: |
+          set -euo pipefail
+          bash -n ops/transport-ovh/fgb-browser-guard.sh
+          python3 -m py_compile ops/transport-ovh/fgb-renderer-probe.py
+          grep -Fq 'Runtime.evaluate' ops/transport-ovh/fgb-renderer-probe.py
+          grep -Fq 'attempts >= 3' ops/transport-ovh/fgb-browser-guard.sh
+          grep -Fq 'failures >= 3' ops/transport-ovh/fgb-browser-guard.sh
+          grep -Fq 'OnUnitInactiveSec=20s' ops/transport-ovh/fgb-browser-guard.timer
+          ! grep -Eiq '(epic-cnt-capture|systemctl restart|docker restart|docker compose restart)' ops/transport-ovh/fgb-browser-guard.sh
+          echo 'FGB_RENDERER_GUARD_STATIC_CHECK=PASS'
+
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/fgb-guard-key
+          chmod 600 ~/.ssh/fgb-guard-key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Stage FGB-only scripts on OVH
+        run: |
+          set -euo pipefail
+          for name in fgb-renderer-probe.py fgb-browser-guard.sh fgb-browser-guard.service fgb-browser-guard.timer; do
+            scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/fgb-guard-key \
+              "ops/transport-ovh/$name" "ubuntu@40.160.144.185:/tmp/$name"
+          done
+      - name: Install host watchdog without touching encoders or CNT
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/fgb-guard-key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          FGB=fgb-transport-youtube-1
+          CNT=epic-cnt-capture
+          before_id=$(sudo docker inspect -f '{{.Id}}' "$FGB")
+          before_restart=$(sudo docker inspect -f '{{.RestartCount}}' "$FGB")
+          before_encoder=$(sudo docker exec "$FGB" sh -lc 'pgrep -o ffmpeg')
+          before_cnt=$(sudo docker inspect -f '{{.Id}}' "$CNT" || true)
+          test -n "$before_id" && test -n "$before_encoder"
+          sudo install -d -m 0755 /usr/local/libexec
+          sudo install -m 0644 /tmp/fgb-renderer-probe.py /usr/local/libexec/fgb-renderer-probe.py
+          sudo install -m 0755 /tmp/fgb-browser-guard.sh /usr/local/libexec/fgb-browser-guard.sh
+          sudo install -m 0644 /tmp/fgb-browser-guard.service /etc/systemd/system/fgb-browser-guard.service
+          sudo install -m 0644 /tmp/fgb-browser-guard.timer /etc/systemd/system/fgb-browser-guard.timer
+          sudo python3 -m py_compile /usr/local/libexec/fgb-renderer-probe.py
+          sudo bash -n /usr/local/libexec/fgb-browser-guard.sh
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now fgb-browser-guard.timer
+          sudo systemctl is-enabled --quiet fgb-browser-guard.timer
+          sudo systemctl is-active --quiet fgb-browser-guard.timer
+          sudo systemctl start fgb-browser-guard.service
+          after_id=$(sudo docker inspect -f '{{.Id}}' "$FGB")
+          after_restart=$(sudo docker inspect -f '{{.RestartCount}}' "$FGB")
+          after_encoder=$(sudo docker exec "$FGB" sh -lc 'pgrep -o ffmpeg')
+          after_cnt=$(sudo docker inspect -f '{{.Id}}' "$CNT" || true)
+          test "$before_id" = "$after_id"
+          test "$before_restart" = "$after_restart"
+          test "$before_encoder" = "$after_encoder"
+          test "$before_cnt" = "$after_cnt"
+          echo 'FGB_BROWSER_GUARD_TIMER=active'
+          echo 'FGB_ENCODER_RESTARTED=false'
+          echo 'CNT_CONTAINER_UNCHANGED=true'
+          sudo journalctl -u fgb-browser-guard.service -n 12 --no-pager -o cat || true
+          REMOTE
