@@ -1,0 +1,32 @@
+name: CNT feed relay safe rollback
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-feed-relay-rollback.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Stop only experimental CNT request relay; keep CNT and FGB encoders untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key"
+          install -d -m 700 ~/.ssh; printf '%s\n' "$key" > ~/.ssh/key; chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          sudo -n systemctl disable --now cnt-feed-relay.service || true
+          echo CNT_FEED_RELAY_STATE=$(systemctl is-active cnt-feed-relay.service || true)
+          echo CNT_FEED_RELAY_ENABLED=$(systemctl is-enabled cnt-feed-relay.service || true)
+          echo CNT_CAPTURE_CONTAINER=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)
+          echo FGB_CONTAINER=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)
+          REMOTE
