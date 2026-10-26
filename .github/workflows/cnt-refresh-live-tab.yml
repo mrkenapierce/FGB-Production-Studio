@@ -1,4 +1,4 @@
-name: CNT refresh stale broadcast tab without stopping encoder
+name: CNT activate latest FGB-matched compositor without encoder restart
 on:
   push:
     branches: [cnt-ingest-preflight-20261025]
@@ -71,7 +71,7 @@ jobs:
                   x=rec()
                   if x.get('id')==k:return x
               raise RuntimeError('CDP_TIMEOUT')
-          expr="JSON.stringify({body:document.body?.innerText?.slice(0,650),sharedScene:(!!document.querySelector('audio')&&(document.body?.innerText||'').includes('ON AIR')),audio:!!document.querySelector('audio'),oldPage:(document.body?.innerText||'').includes('Programming off')})"
+          expr="JSON.stringify({body:document.body?.innerText?.slice(0,650),sharedScene:!!document.querySelector('[data-testid=cnt-broadcast]')&&!!document.querySelector('[data-testid=broadcast-scene]'),audio:!!document.querySelector('audio'),oldPage:(document.body?.innerText||'').includes('Programming off')})"
           def snapshot(name):
               d=cmd('Runtime.evaluate',{'expression':expr,'returnByValue':True})
               v=d.get('result',{}).get('result',{}).get('value')
