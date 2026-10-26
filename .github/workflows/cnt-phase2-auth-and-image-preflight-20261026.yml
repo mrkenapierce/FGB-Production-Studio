@@ -1,0 +1,42 @@
+name: CNT Phase 2 Auth and Host Image Preflight
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-phase2-auth-and-image-preflight-20261026.yml']
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare key
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          mkdir -p -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Copy updated scripts, check CNT auth, build isolated image
+        run: |
+          set -euo pipefail
+          addr=ubuntu@40.160.144.185
+          args=(-o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key)
+          scp "${args[@]}" -q ops/cnt-phase2/*.sh ops/cnt-phase2/*.py ops/cnt-phase2/Dockerfile.cnt "$addr:/opt/cnt-phase2-staging/"
+          ssh "${args[@]}" "$addr" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          dir=/opt/cnt-phase2-staging
+          for f in "$dir"/*.sh; do bash -n "$f"; done
+          python3 -m py_compile "$dir"/*.py
+          echo 'CNT_AUTH_PROBE'
+          echo '{"action":"episode_jobs"}' | sudo python3 "$dir/cnt-api-client.py" 'https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/archive' /etc/epic-cnt/archive-key | python3 -c 'import json,sys;d=json.load(sys.stdin); print("CNT_AUTH_OK="+str(d.get("ok") is True));print("CNT_EPISODE_JOBS="+str(len(d.get("jobs") or [])));assert d.get("ok") is True'
+          echo 'BUILD_HOST_IMAGE_STARTED=true'
+          sudo docker build -q -t epic-cnt-phase2:staged -f "$dir/Dockerfile.cnt" "$dir" >/dev/null
+          sudo docker run --rm --entrypoint /bin/bash epic-cnt-phase2:staged -lc 'test -x /opt/cnt/cnt-rolling-recorder.sh && test -s /opt/cnt/cnt-air-observer.py && command -v python3 && command -v jq && command -v ffprobe && echo CNT_HOST_IMAGE_OK=true'
+          echo 'NO_EXISTING_CONTAINER_RESTARTED=true'
+          df -h /srv
+          REMOTE
