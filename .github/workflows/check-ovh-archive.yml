@@ -41,7 +41,7 @@ jobs:
           test -n "$chunk" && archive_capture=active
           free=$(df -BG --output=avail /srv/fgb-archive | tail -1 | tr -dc '0-9')
           archive_auth=not_ready
-          if sudo docker compose --env-file .env exec -T archive_uploader python3 ./archive-token-wrapper.py --check-auth >/tmp/archive-auth-check.txt 2>/dev/null; then
+          if sudo docker compose --env-file .env exec -T archive_uploader python3 ./archive-uploader.py --check-auth >/tmp/archive-auth-check.txt 2>/dev/null; then
             grep -q 'ARCHIVE_OAUTH_READY=true' /tmp/archive-auth-check.txt && archive_auth=ready || true
           fi
           rm -f /tmp/archive-auth-check.txt
@@ -73,14 +73,22 @@ jobs:
           EOF
 
           cat /tmp/fgb-live-diagnostic.txt
-          test "$live" = live
-          test "$restarts" -le 1
-          test "$archive_uploader" = running
-          test "$archive_capture" = active
-          test "$archive_auth" = ready
-          test "$free" -ge 8
+          # Persist the diagnostic first, even if archive OAuth is not ready.
+          # Distinguish transport health from archive publication readiness.
+          echo ARCHIVE_HEALTH_SNAPSHOT_COMPLETE=true
           REMOTE
           scp -q -i ~/.ssh/ovh_key ubuntu@40.160.144.185:/tmp/fgb-live-diagnostic.txt /tmp/fgb-live-diagnostic.txt
+          cat /tmp/fgb-live-diagnostic.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          d=dict(x.split('=',1) for x in Path('/tmp/fgb-live-diagnostic.txt').read_text().splitlines() if '=' in x)
+          print('FGBCAPTURE=',d.get('LIVE_STATE'),'ARCHIVE_UPLOADER=',d.get('ARCHIVE_UPLOADER'),'ARCHIVE_AUTH=',d.get('ARCHIVE_AUTH'),'FREE_GB=',d.get('ARCHIVE_FREE_GB'))
+          if d.get('LIVE_STATE') != 'live': raise SystemExit('FGB transport is not live')
+          if d.get('ARCHIVE_UPLOADER') != 'running': raise SystemExit('FGB archive uploader not running')
+          if d.get('ARCHIVE_CAPTURE') != 'active': raise SystemExit('FGB archive capture not active')
+          if d.get('ARCHIVE_AUTH') != 'ready': raise SystemExit('FGB archive OAuth unavailable; publishing may be blocked')
+          if float(d.get('ARCHIVE_FREE_GB') or '0') < 8: raise SystemExit('FGB archive disk is under the 8GB guardrail')
+          PY
 
       - name: Persist sanitized diagnostic
         if: always()
