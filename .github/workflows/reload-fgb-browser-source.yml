@@ -30,7 +30,8 @@ jobs:
       - name: Reload Chromium tab only and verify encoder unchanged
         run: |
           set -euo pipefail
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          # Copy the complete script before running it: Docker Compose may consume an SSH heredoc stdin.
+          cat > /tmp/fgb-reload-remote.sh <<'REMOTE'
           set -euo pipefail
           cd /opt/fgb-transport
 
@@ -107,3 +108,5 @@ jobs:
           echo "BROWSER_URL=$url"
           echo "BROWSER_TITLE=$title"
           REMOTE
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key /tmp/fgb-reload-remote.sh ubuntu@40.160.144.185:/tmp/fgb-reload-remote.sh
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash /tmp/fgb-reload-remote.sh'
