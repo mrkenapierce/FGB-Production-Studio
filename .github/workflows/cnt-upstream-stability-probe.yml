@@ -1,0 +1,51 @@
+name: CNT continuous game-feed latency and schema check
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-upstream-stability-probe.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Compare FGB game-source reliability from inside the CNT capture network
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key" || { echo BLOCKED=SSH_KEY_MISSING; exit 5; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/key; chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null || true
+          test -s ~/.ssh/known_hosts || exit 6
+          ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo MODE=READ_ONLY_NO_RESTARTS
+          printf 'UTC='; date -u +%FT%TZ
+          for n in $(seq 1 18); do
+            url="https://epiccontentcreatorgrants.org/api/public/fgbears/game-screen?cntcheck=$(date +%s)"
+            metrics=$(sudo -n docker exec epic-cnt-capture curl -4 -sS --connect-timeout 2 --max-time 8 -o /tmp/cnt-upstream-sample.json -w 'status=%{http_code} total=%{time_total} size=%{size_download}' "$url" 2>&1) || true
+            echo "SAMPLE=$n $metrics"
+            if printf '%s' "$metrics" | grep -q 'status=200'; then
+              sudo -n docker exec epic-cnt-capture cat /tmp/cnt-upstream-sample.json | python3 -c '
+import json,sys
+try:
+ x=json.load(sys.stdin)
+ print("SCHEMA phase=%s type=%s number=%s prompt=%s updated=%s topKeys=%s dataKeys=%s" % (
+  str(x.get("phase"))[:30],str(x.get("presentationType"))[:30], str(x.get("questionNumber"))[:18],
+  "YES" if isinstance(x.get("prompt"),str) and x["prompt"].strip() else "NO",str(x.get("updatedAt"))[:40],
+  ",".join(x.keys())[:330], ",".join(x.get("data",{}).keys())[:140] if isinstance(x.get("data"),dict) else "none"))
+except Exception as e:print("PARSE_FAILURE="+str(e)[:120])
+'
+            fi
+            sleep 3
+          done
+          echo CNT_ENCODER_STATE=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)
+          echo FGB_ENCODER_STATE=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)
+          REMOTE
