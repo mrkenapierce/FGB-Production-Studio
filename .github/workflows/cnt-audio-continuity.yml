@@ -102,7 +102,7 @@ jobs:
                   if delta < -1:resets+=1;say('AUDIO_RESTART_AT',f'sample {i}; prev={previous["time"]:.1f} now={z["time"]:.1f}')
                   elif elapsed>1 and delta<elapsed*.4:stalls+=1;say('AUDIO_STALL_AT',f'sample {i}; dt={elapsed:.1f} audio_advance={delta:.2f}')
               if i%5==0 or (previous and z['events']!=previous['events']):
-                  say('SAMPLE',json.dumps({'i':i,'time':round(z['time'],1),'delta':round(z['time']-previous['time'],2) if previous else None,'ready':z['ready'],'network':z['network'],'ahead':z.get('bufferedAhead'),'paused':z['paused'],'error':z['error'],'events':z['events']},separators=(',',':')))
+                  say('SAMPLE',json.dumps({'i':i,'time':round(z['time'],1),'delta':round(z['time']-previous['time'],2) if previous else None,'ready':z['ready'],'network':z['network'],'ahead':z.get('bufferedAhead'),'paused':z['paused'],'error':z.get('error'),'events':z['events']},separators=(',',':')))
               previous=z
               time.sleep(2)
           say('TOTAL_PLAYBACK_RESETS',resets)
