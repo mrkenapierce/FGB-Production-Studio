@@ -1,0 +1,62 @@
+name: Audit confirmed FGB raw recordings against three-hour policy
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/one-shot-fgb-raw-audit-20261026.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Set up OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          mkdir -p -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Report publication-confirmed source bytes, no changes
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'python3 -' <<'PY'
+          import json,datetime as dt,re,time,os
+          from pathlib import Path
+          root=Path("/srv/fgb-archive")
+          counts=dict(receipts=0,confirmed=0,pending=0,potentially_older_than_3h=0,older_confirmed_gb=0.0,missing_confirmed_sources=0,protected=0,unmatched=0)
+          now=time.time()
+          video=re.compile(r"^[A-Za-z0-9_-]{11}$")
+          names=re.compile(r"^live-(\d{8})-(\d{6})-([+-]\d{4})\.ts$")
+          hold=root/"state"/"episode_hold"
+          holds={x.strip() for x in hold.read_text().splitlines()} if hold.is_file() else set()
+          for receipt in (root/"state").glob("hourly-*.json"):
+              counts["receipts"]+=1
+              try: d=json.loads(receipt.read_text())
+              except Exception: counts["unmatched"]+=1; continue
+              if not (d.get("confirmed") is True and video.fullmatch(str(d.get("video_id") or ""))):
+                  counts["pending"]+=1; continue
+              counts["confirmed"]+=1
+              path=Path(str(d.get("source") or ""))
+              if path.parent!=Path("/archive/hourly") or not names.fullmatch(path.name):
+                  counts["unmatched"]+=1; continue
+              real=root/"hourly"/path.name
+              if not real.is_file():
+                  counts["missing_confirmed_sources"]+=1; continue
+              if path.name in holds:
+                  counts["protected"]+=1; continue
+              m=names.fullmatch(path.name)
+              start=dt.datetime.strptime("".join(m.groups()),"%Y%m%d%H%M%S%z").timestamp()
+              if start+3600+3*3600<=now and real.stat().st_mtime<now-180:
+                  counts["potentially_older_than_3h"]+=1
+                  counts["older_confirmed_gb"]+=real.stat().st_size/(1024**3)
+          counts["older_confirmed_gb"]=round(counts["older_confirmed_gb"],3)
+          counts["episode_hold_file_present"]=hold.is_file()
+          counts["disk_free_gb"]=round(os.statvfs(str(root)).f_bavail*os.statvfs(str(root)).f_frsize/(1024**3),3)
+          print("FGB_THREE_HOUR_READ_ONLY_AUDIT="+json.dumps(counts,sort_keys=True))
+          print("NO_RECORDING_FILES_DELETED=true")
+          PY
