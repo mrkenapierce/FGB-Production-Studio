@@ -1,0 +1,69 @@
+name: CNT Phase 2 Stage Files on OVH (no stream restart)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-phase2-stage-on-ovh-20261026.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate package
+        run: |
+          set -euo pipefail
+          for f in ops/cnt-phase2/*.sh; do bash -n "$f"; done
+          python3 -m py_compile ops/cnt-phase2/*.py
+          test -s ops/cnt-phase2/Dockerfile.cnt
+          test -s ops/cnt-phase2/cnt-air-observer.py
+          test -s ops/cnt-phase2/cnt-rolling-recorder.sh
+          echo CNT_PACKAGE_CHECK=PASS
+      - name: SSH setup
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          mkdir -p -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Stage CNT-only scripts and initialize isolated archive mountpoint
+        run: |
+          set -euo pipefail
+          addr=ubuntu@40.160.144.185
+          args=(-o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key)
+          ssh "${args[@]}" "$addr" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          fgb=$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)
+          cnt=$(sudo docker inspect -f '{{.Id}}' epic-cnt-capture)
+          fgbpid=$(sudo docker exec fgb-transport-youtube-1 pgrep -o ffmpeg)
+          test -n "$fgbpid"
+          test "$(df -Pk /srv | awk 'NR==2{print $4}')" -gt 20971520
+          sudo install -d -o ubuntu -g ubuntu -m 0700 /opt/cnt-phase2-staging
+          sudo install -d -o 1000 -g 1000 -m 0750 /srv/cnt-archive
+          for d in rolling state daily episodes; do
+            sudo install -d -o 1000 -g 1000 -m 0750 "/srv/cnt-archive/$d"
+          done
+          test "$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)" = "$fgb"
+          test "$(sudo docker inspect -f '{{.Id}}' epic-cnt-capture)" = "$cnt"
+          test "$(sudo docker exec fgb-transport-youtube-1 pgrep -o ffmpeg)" = "$fgbpid"
+          echo CNT_STAGING_DIR_READY=true
+          echo FGB_AND_CNT_LIVE_CONTAINERS_UNCHANGED=true
+          REMOTE
+          scp "${args[@]}" -q ops/cnt-phase2/* "$addr:/opt/cnt-phase2-staging/"
+          ssh "${args[@]}" "$addr" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          for f in /opt/cnt-phase2-staging/*.sh; do bash -n "$f"; done
+          python3 -m py_compile /opt/cnt-phase2-staging/*.py
+          CNT_ARCHIVE_DIR=/srv/cnt-archive CNT_MIN_FREE_GB=8 bash /opt/cnt-phase2-staging/cnt-rolling-recorder.sh --preflight
+          echo CNT_STAGED_FILE_COUNT=$(find /opt/cnt-phase2-staging -maxdepth 1 -type f | wc -l)
+          echo CNT_RECORDING_STARTED=false
+          echo CNT_PUBLISHER_STARTED=false
+          echo CNT_STREAM_RESTARTED=false
+          echo FGB_STREAM_RESTARTED=false
+          df -h /srv
+          REMOTE
