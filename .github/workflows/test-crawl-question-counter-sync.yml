@@ -1,0 +1,54 @@
+name: Crawl live question counter parity tests
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths:
+      - services/fgbears-live/bin/crawl-overlay.py
+      - .github/workflows/test-crawl-question-counter-sync.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m pip -q install pillow
+      - name: Test live question update without resetting ordinary messages
+        run: |
+          python3 - <<'PY'
+          import os,importlib.util,tempfile
+          from pathlib import Path
+          with tempfile.TemporaryDirectory() as directory:
+              os.environ['CRAWL_RUNTIME_DIR']=directory
+              os.environ['CRAWL_FEED_FILE']=str(Path(directory)/'feed.json')
+              p=Path('services/fgbears-live/bin/crawl-overlay.py')
+              spec=importlib.util.spec_from_file_location('live_crawl',p)
+              mod=importlib.util.module_from_spec(spec);spec.loader.exec_module(mod)
+              seq=mod.CrawlSequence()
+              def state(n):
+                  return {'active':True,'messages':['RESULTS: 100 PTS',f'QUESTION {n} OF 20','PRIZE $20']}
+              assert seq.select(state(1),100)==('RESULTS: 100 PTS',100)
+              # An ordinary scrolling item is allowed to finish uninterrupted.
+              seq.select(state(2),105)
+              assert seq.current=='RESULTS: 100 PTS'
+              # Simulate advancing into the question message.
+              assert seq.advance_if_complete(-99999,1,108)
+              assert seq.current=='QUESTION 2 OF 20'
+              started=seq.started
+              # The question count must be updated mid-scroll with no restart.
+              seq.select(state(3),110)
+              assert seq.current=='QUESTION 3 OF 20'
+              assert seq.started==started
+              seq.select(state(10),112)
+              assert seq.current=='QUESTION 10 OF 20'
+              assert seq.started==started
+              seq.select({'active':True,'messages':['NEWS NOW','PRIZE $20']},115)
+              assert not seq.current.startswith('QUESTION ')
+              assert seq.started==115
+              # No activity clears the counter immediately.
+              seq.select({'active':False,'messages':[]},116)
+              assert seq.current==''
+              print('CRAWL_QUESTION_PROGRESS_TEST=PASS')
+          PY
