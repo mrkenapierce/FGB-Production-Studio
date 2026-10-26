@@ -44,15 +44,15 @@ jobs:
           [Service]
           Type=oneshot
           ExecStart=/usr/bin/python3 /opt/cnt-transport/cnt-watchdog.py --repair
-          TimeoutStartSec=30
+          TimeoutStartSec=50
           SERVICE
           sudo -n tee /etc/systemd/system/cnt-trivia-watchdog.timer >/dev/null <<'TIMER'
           [Unit]
-          Description=Check CNT question parity each minute
+          Description=Check CNT question parity frequently enough to observe short question cycles
           [Timer]
           OnBootSec=1min
-          OnUnitActiveSec=60s
-          AccuracySec=2s
+          OnUnitActiveSec=20s
+          AccuracySec=3s
           Persistent=true
           Unit=cnt-trivia-watchdog.service
           [Install]
@@ -60,6 +60,7 @@ jobs:
           TIMER
           sudo -n systemctl daemon-reload
           sudo -n systemctl enable --now cnt-trivia-watchdog.timer
+          sudo -n systemctl restart cnt-trivia-watchdog.timer
           sudo -n systemctl --no-pager status cnt-trivia-watchdog.timer
           echo CNT_WATCHDOG_INSTALLED=YES
           echo CNT_CONTAINER=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)
