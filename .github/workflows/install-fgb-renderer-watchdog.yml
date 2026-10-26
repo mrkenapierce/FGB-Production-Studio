@@ -1,0 +1,134 @@
+name: Install FGB Renderer Health Watchdog
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ops/transport-ovh/fgb-browser-watchdog.py'
+      - '.github/workflows/install-fgb-renderer-watchdog.yml'
+permissions:
+  contents: read
+concurrency:
+  group: install-fgb-renderer-watchdog
+  cancel-in-progress: false
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate FGB-only recovery semantics
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ops/transport-ovh/fgb-browser-watchdog.py
+          python3 - <<'PY'
+          import importlib.util
+          from pathlib import Path
+          p=Path("ops/transport-ovh/fgb-browser-watchdog.py")
+          s=p.read_text()
+          spec=importlib.util.spec_from_file_location("fgb_renderer_watchdog",p)
+          m=importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(m)
+          assert m.CONTAINER=="fgb-transport-youtube-1"
+          assert m.RECOVERY_LIMIT_PER_HOUR==3
+          assert m.PROBE_FAIL_THRESHOLD==3
+          assert m.RECOVERY_COOLDOWN_SECONDS>=120
+          assert "epiccontentcreatorgrants.org/fgb-broadcast?target=youtube" in m.URL
+          for forbidden in ("docker restart", "docker compose restart", "systemctl restart",
+                            "epic-cnt-capture", "pgrep -f ffmpeg | xargs kill"):
+              assert forbidden not in s, forbidden
+          cases=[
+              ({"root":True,"ready":"complete","url":m.URL,"title":"FGB Broadcast Program","layer":"question"},True),
+              ({"root":False,"ready":"complete","url":m.URL},False),
+              ({"root":True,"ready":"loading","url":m.URL},False),
+              ({"root":True,"ready":"complete","url":"https://wrong.example/fgb-broadcast?target=youtube"},False)
+          ]
+          old=m.eval_tab
+          try:
+              for data,expected in cases:
+                  m.eval_tab=lambda tab, v=data: v
+                  assert m.health({"id":"synthetic"})["ok"] is expected
+          finally:
+              m.eval_tab=old
+          print("PRE_FLIGHT=PASS; scope=FGB-only; test=renderer-root/crash/recovery-guard")
+          PY
+      - name: Configure existing OVH SSH connection
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Install separate FGB-only watchdog and timer
+        run: |
+          set -euo pipefail
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key \
+            ops/transport-ovh/fgb-browser-watchdog.py ubuntu@40.160.144.185:/tmp/fgb-browser-watchdog.candidate.py
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/ovh_key \
+            ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          FGB=fgb-transport-youtube-1
+          CNT=epic-cnt-capture
+          fgb_id_before=$(sudo docker inspect -f '{{.Id}}' "$FGB")
+          fgb_restarts_before=$(sudo docker inspect -f '{{.RestartCount}}' "$FGB")
+          cnt_id_before=$(sudo docker inspect -f '{{.Id}}' "$CNT")
+          cnt_restarts_before=$(sudo docker inspect -f '{{.RestartCount}}' "$CNT")
+          ffmpeg_before=$(sudo docker exec "$FGB" pgrep -o ffmpeg)
+          test -n "$ffmpeg_before"
+          test "$(sudo docker exec "$FGB" cat /tmp/fgb-transport.state)" = live
+          python3 -m py_compile /tmp/fgb-browser-watchdog.candidate.py
+          sudo install -d -m 0755 /usr/local/libexec
+          sudo install -o root -g root -m 0755 /tmp/fgb-browser-watchdog.candidate.py /usr/local/libexec/fgb-browser-watchdog.py
+          sudo tee /etc/systemd/system/fgb-browser-watchdog.service >/dev/null <<'SERVICE'
+          [Unit]
+          Description=FGB-only Chromium broadcast renderer crash watchdog
+          After=docker.service network-online.target
+          Requires=docker.service
+          ConditionPathExists=/usr/local/libexec/fgb-browser-watchdog.py
+
+          [Service]
+          Type=oneshot
+          User=root
+          ExecStart=/usr/bin/python3 /usr/local/libexec/fgb-browser-watchdog.py
+          TimeoutStartSec=75
+          NoNewPrivileges=true
+          PrivateTmp=true
+          SERVICE
+          sudo tee /etc/systemd/system/fgb-browser-watchdog.timer >/dev/null <<'TIMER'
+          [Unit]
+          Description=Check FGB broadcast renderer every 30 seconds (CNT unaffected)
+
+          [Timer]
+          OnBootSec=90s
+          OnUnitInactiveSec=30s
+          AccuracySec=5s
+          Unit=fgb-browser-watchdog.service
+
+          [Install]
+          WantedBy=timers.target
+          TIMER
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now fgb-browser-watchdog.timer
+          sudo systemctl start fgb-browser-watchdog.service
+          sudo systemctl is-active --quiet fgb-browser-watchdog.timer
+          sudo test -s /var/lib/fgb-browser-watchdog/state.json
+          sudo journalctl -u fgb-browser-watchdog.service -n 6 --no-pager --output=cat
+          fgb_id_after=$(sudo docker inspect -f '{{.Id}}' "$FGB")
+          fgb_restarts_after=$(sudo docker inspect -f '{{.RestartCount}}' "$FGB")
+          cnt_id_after=$(sudo docker inspect -f '{{.Id}}' "$CNT")
+          cnt_restarts_after=$(sudo docker inspect -f '{{.RestartCount}}' "$CNT")
+          ffmpeg_after=$(sudo docker exec "$FGB" pgrep -o ffmpeg)
+          test "$fgb_id_before" = "$fgb_id_after"
+          test "$fgb_restarts_before" = "$fgb_restarts_after"
+          test "$cnt_id_before" = "$cnt_id_after"
+          test "$cnt_restarts_before" = "$cnt_restarts_after"
+          test "$ffmpeg_before" = "$ffmpeg_after"
+          echo FGB_RENDERER_WATCHDOG_TIMER_ACTIVE=true
+          echo FGB_ENCODER_UNCHANGED=true
+          echo CNT_CONTAINER_UNCHANGED=true
+          echo FGB_RECOVERY_MAX_PER_HOUR=3
+          echo FGB_FAILURES_BEFORE_RECOVERY=3
+          REMOTE
