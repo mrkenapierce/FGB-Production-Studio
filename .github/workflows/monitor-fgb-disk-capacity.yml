@@ -1,6 +1,10 @@
 name: Monitor FGB Disk and Backup Capacity
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/monitor-fgb-disk-capacity.yml'
   schedule:
     - cron: '*/15 * * * *'
 permissions:
