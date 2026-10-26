@@ -78,7 +78,7 @@ jobs:
                   b=recv_exact(length)
                   if mask:b=bytes(x^mask[i%4] for i,x in enumerate(b))
                   return json.loads(b.decode('utf-8','replace')) if (h[0]&15)==1 else {}
-              expression="""(async()=>{let paths=['/api/public/fgbears/game-screen','/api/public/fgbears/stream-routing','/api/public/channels/cruisenewstrivia/news','/api/public/channels/cruisenewstrivia/audio'];let feeds=await Promise.all(paths.map(async u=>{try{let r=await fetch(u,{cache:'no-store'});let d=await r.json();return {path:u,status:r.status,entries:u.endsWith('/news')?d.headlines?.length:undefined,enabled:u.endsWith('/audio')?d.enabled:undefined,prompt:u.endsWith('/game-screen')?!!d.prompt:undefined,crawl:u.endsWith('/stream-routing')?d.presentation?.crawl?.messages?.length:undefined}}catch(e){return{path:u,error:String(e).slice(0,90)}}}));let a=document.querySelector('audio');return JSON.stringify({location:location.href,readyState:document.readyState,title:document.title,body:document.body?.innerText?.slice(0,950),rootLength:document.getElementById('root')?.innerText?.length,audio:{present:!!a,paused:a?.paused,error:a?.error?.code,readyState:a?.readyState},feeds})})()"""
+              expression="""(async()=>{let paths=['/api/public/fgbears/game-screen','/api/public/fgbears/stream-routing','/api/public/channels/cruisenewstrivia/news','/api/public/channels/cruisenewstrivia/audio'];let feeds=await Promise.all(paths.map(async u=>{try{let r=await fetch(u,{cache:'no-store'});let d=await r.json();return {path:u,status:r.status,entries:u.endsWith('/news')?d.headlines?.length:undefined,enabled:u.endsWith('/audio')?d.enabled:undefined,prompt:u.endsWith('/game-screen')?!!d.prompt:undefined,crawl:u.endsWith('/stream-routing')?d.presentation?.crawl?.messages?.length:undefined}}catch(e){return{path:u,error:String(e).slice(0,90)}}}));let a=document.querySelector('audio');return JSON.stringify({location:location.href,readyState:document.readyState,title:document.title,body:document.body?.innerText?.slice(0,950),rootLength:document.getElementById('root')?.innerText?.length,scripts:[...document.querySelectorAll('script[src]')].map(x=>new URL(x.src).pathname).slice(0,8),navigation:performance.getEntriesByType('navigation')[0]?.startTime,playbackSeconds:a?.currentTime,audio:{present:!!a,paused:a?.paused,error:a?.error?.code,readyState:a?.readyState},feeds})})()"""
               send_json({'id':1,'method':'Runtime.evaluate','params':{'expression':expression,'awaitPromise':True,'returnByValue':True}})
               deadline=time.monotonic()+20
               while time.monotonic()<deadline:
@@ -94,7 +94,7 @@ jobs:
                           out('AUDIO_PRESENT',a.get('present'))
                           out('AUDIO_PAUSED',a.get('paused'))
                           out('AUDIO_ERROR_CODE',a.get('error'))
-                          out('AUDIO_READY_STATE',a.get('readyState'))
+                          out('AUDIO_READY_STATE',a.get('readyState'))\n                          out('AUDIO_PLAYBACK_SECONDS',a.get('playbackSeconds'))\n                          out('BROWSER_SCRIPT_PATHS',','.join(data.get('scripts',[])))
                           for row in data.get('feeds',[]):
                               label=row['path'].rsplit('/',1)[-1].upper().replace('-','_')
                               out('FEED_'+label,json.dumps(row,separators=(',',':')))
