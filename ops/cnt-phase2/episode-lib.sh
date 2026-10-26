@@ -28,6 +28,11 @@ ep_api() {
   ts=$(date +%s)
   if [ "$(ep_channel)" = cnt ]; then
     url="${CNT_ARCHIVE_URL:?CNT_ARCHIVE_URL required}"; prefix=x-cnt
+    if [ "${EP_DRY_RUN:-0}" != 1 ] && [ -n "${CNT_ARCHIVE_KEY_FILE:-}" ]; then
+      # Server-side only. Keep raw CNT key out of argv, logs, and the browser.
+      printf '%s' "$body" | python3 "$(dirname "${BASH_SOURCE[0]}")/cnt-api-client.py" "$url" "$CNT_ARCHIVE_KEY_FILE"
+      return $?
+    fi
     [ "${EP_DRY_RUN:-0}" = 1 ] || secret="${CNT_ARCHIVE_HMAC_SECRET:?CNT_ARCHIVE_HMAC_SECRET required}"
   else
     url="${ARCHIVE_URL:?ARCHIVE_URL required}"; prefix=x-fgb
