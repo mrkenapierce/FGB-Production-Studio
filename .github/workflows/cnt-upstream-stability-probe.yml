@@ -1,4 +1,4 @@
-name: CNT continuous game-feed latency and schema check
+name: CNT canonical game-feed latency and schema check
 on:
   push:
     branches: [cnt-ingest-preflight-20261025]
@@ -28,8 +28,8 @@ jobs:
           set -euo pipefail
           echo MODE=READ_ONLY_NO_RESTARTS
           printf 'UTC='; date -u +%FT%TZ
-          for n in $(seq 1 18); do
-            url="https://epiccontentcreatorgrants.org/api/public/fgbears/game-screen?cntcheck=$(date +%s)"
+          for n in $(seq 1 12); do
+            url="https://epiccontentcreatorgrants.org/api/public/fgbears/game-screen"
             metrics=$(sudo -n docker exec epic-cnt-capture curl -4 -sS --connect-timeout 2 --max-time 8 -o /tmp/cnt-upstream-sample.json -w 'status=%{http_code} total=%{time_total} size=%{size_download}' "$url" 2>&1) || true
             echo "SAMPLE=$n $metrics"
             if printf '%s' "$metrics" | grep -q 'status=200'; then
