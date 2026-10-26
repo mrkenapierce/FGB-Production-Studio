@@ -1,7 +1,7 @@
 {
   "aligned": null,
   "alignmentToleranceSeconds": 4.0,
-  "checkedAt": "2026-10-26T07:46:45.378602+00:00",
+  "checkedAt": "2026-10-26T13:18:25.654510+00:00",
   "policy": "Leave YouTube unchanged; website question/answer presentation should follow measured public player delay.",
   "publicPlayerMaxLagSeconds": null,
   "publicPlayerMedianLagSeconds": null,
@@ -146,33 +146,33 @@
   "websiteSamples": [
     {
       "delaySeconds": 21.25,
-      "gameId": "7b2c8755-9774-4bac-a102-d31d5b842455",
+      "gameId": "6c4ac50b-4286-4547-b5f7-57a1f93ddd78",
+      "phase": "transition",
+      "questionNumber": null
+    },
+    {
+      "delaySeconds": 21.25,
+      "gameId": "6c4ac50b-4286-4547-b5f7-57a1f93ddd78",
+      "phase": "question",
+      "questionNumber": 20
+    },
+    {
+      "delaySeconds": 21.25,
+      "gameId": "6c4ac50b-4286-4547-b5f7-57a1f93ddd78",
+      "phase": "question",
+      "questionNumber": 20
+    },
+    {
+      "delaySeconds": 21.25,
+      "gameId": "6c4ac50b-4286-4547-b5f7-57a1f93ddd78",
+      "phase": "question",
+      "questionNumber": 20
+    },
+    {
+      "delaySeconds": 21.25,
+      "gameId": "6c4ac50b-4286-4547-b5f7-57a1f93ddd78",
       "phase": "revealed",
-      "questionNumber": 15
-    },
-    {
-      "delaySeconds": 21.25,
-      "gameId": "7b2c8755-9774-4bac-a102-d31d5b842455",
-      "phase": "transition",
-      "questionNumber": null
-    },
-    {
-      "delaySeconds": 21.25,
-      "gameId": "7b2c8755-9774-4bac-a102-d31d5b842455",
-      "phase": "transition",
-      "questionNumber": null
-    },
-    {
-      "delaySeconds": 21.25,
-      "gameId": "7b2c8755-9774-4bac-a102-d31d5b842455",
-      "phase": "transition",
-      "questionNumber": null
-    },
-    {
-      "delaySeconds": 21.25,
-      "gameId": "7b2c8755-9774-4bac-a102-d31d5b842455",
-      "phase": "transition",
-      "questionNumber": null
+      "questionNumber": 20
     }
   ]
 }
