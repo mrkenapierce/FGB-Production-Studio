@@ -1,0 +1,107 @@
+name: CNT actual renderer diagnostics - read only
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-browser-render-check.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Check deployed CNT Chromium program and data fetches from browser, no restarts
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          if [ -z "$key" ]; then echo 'DIAG=NO_SSH_KEY'; exit 0; fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/key
+          chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null || true
+          if [ ! -s ~/.ssh/known_hosts ]; then echo 'DIAG=NO_HOST_KEY'; exit 0; fi
+          ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo CNT_DIAG=READ_ONLY
+          echo "DISK_FREE_MB=$(df -Pm / | awk 'NR==2{print $4}')"
+          echo "CNT_STATE=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)"
+          echo "CNT_HEALTH=$(sudo -n docker inspect -f '{{.State.Health.Status}}' epic-cnt-capture)"
+          echo "CNT_BROWSER_DEVTOOLS=$(sudo -n docker exec epic-cnt-capture sh -lc 'curl -fsS --max-time 3 http://127.0.0.1:9223/json/list | grep -o "\"type\": \"page\"" | wc -l' || echo unavailable)"
+          echo "FGB_STATE=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)"
+          pid=$(sudo -n docker inspect -f '{{.State.Pid}}' epic-cnt-capture)
+          sudo -n nsenter -t "$pid" -n python3 - <<'PY'
+          import urllib.request,json,socket,base64,os,hashlib,struct,time
+          def out(k,v):print('BROWSER_'+k+'='+str(v).replace('\n',' ')[:1200],flush=True)
+          try:
+              with urllib.request.urlopen('http://127.0.0.1:9223/json/list',timeout=4) as r: pages=json.load(r)
+              pages=[x for x in pages if x.get('type')=='page']
+              out('OPEN_PAGES',len(pages))
+              if not pages:raise RuntimeError('NO_CHROME_PAGE')
+              page=next((p for p in pages if '/channels/cruisenewstrivia/broadcast' in p.get('url','')),pages[0])
+              out('TAB_URL',page.get('url',''))
+              out('TAB_TITLE',page.get('title','')[:150])
+              import urllib.parse
+              ws=urllib.parse.urlsplit(page['webSocketDebuggerUrl'])
+              s=socket.create_connection((ws.hostname,ws.port or 80),timeout=7)
+              s.settimeout(14)
+              key=base64.b64encode(os.urandom(16)).decode()
+              req=(f'GET {ws.path} HTTP/1.1\r\nHost: {ws.hostname}:{ws.port}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n')
+              s.sendall(req.encode())
+              head=b''
+              while b'\r\n\r\n' not in head and len(head)<8192:head+=s.recv(1024)
+              first=head.split(b'\r\n',1)[0].decode(errors='replace')
+              out('DEVTOOLS_HANDSHAKE',first)
+              if b'101' not in head.split(b'\r\n',1)[0]:raise RuntimeError('CDP_SOCKET_BLOCKED')
+              extra=head.split(b'\r\n\r\n',1)[1]
+              def recv_exact(n):
+                  global extra
+                  b=extra[:n];extra=extra[n:]
+                  while len(b)<n:b+=s.recv(n-len(b))
+                  return b
+              def send_json(d):
+                  payload=json.dumps(d,separators=(',',':')).encode()
+                  mask=os.urandom(4)
+                  n=len(payload)
+                  header=bytes([0x81,0x80|n]) if n<126 else bytes([0x81,0x80|126])+struct.pack('!H',n) if n<65536 else bytes([0x81,0x80|127])+struct.pack('!Q',n)
+                  s.sendall(header+mask+bytes(x^mask[i%4] for i,x in enumerate(payload)))
+              def read_message():
+                  h=recv_exact(2)
+                  length=h[1]&127
+                  if length==126:length=struct.unpack('!H',recv_exact(2))[0]
+                  if length==127:length=struct.unpack('!Q',recv_exact(8))[0]
+                  if h[1]&128:mask=recv_exact(4)
+                  else:mask=None
+                  b=recv_exact(length)
+                  if mask:b=bytes(x^mask[i%4] for i,x in enumerate(b))
+                  return json.loads(b.decode('utf-8','replace')) if (h[0]&15)==1 else {}
+              expression="""(async()=>{let paths=['/api/public/fgbears/game-screen','/api/public/fgbears/stream-routing','/api/public/channels/cruisenewstrivia/news','/api/public/channels/cruisenewstrivia/audio'];let feeds=await Promise.all(paths.map(async u=>{try{let r=await fetch(u,{cache:'no-store'});let d=await r.json();return {path:u,status:r.status,entries:u.endsWith('/news')?d.headlines?.length:undefined,enabled:u.endsWith('/audio')?d.enabled:undefined,prompt:u.endsWith('/game-screen')?!!d.prompt:undefined,crawl:u.endsWith('/stream-routing')?d.presentation?.crawl?.messages?.length:undefined}}catch(e){return{path:u,error:String(e).slice(0,90)}}}));let a=document.querySelector('audio');return JSON.stringify({location:location.href,readyState:document.readyState,title:document.title,body:document.body?.innerText?.slice(0,950),rootLength:document.getElementById('root')?.innerText?.length,audio:{present:!!a,paused:a?.paused,error:a?.error?.code,readyState:a?.readyState},feeds})})()"""
+              send_json({'id':1,'method':'Runtime.evaluate','params':{'expression':expression,'awaitPromise':True,'returnByValue':True}})
+              deadline=time.monotonic()+20
+              while time.monotonic()<deadline:
+                  result=read_message()
+                  if result.get('id')==1:
+                      value=(result.get('result') or {}).get('result',{}).get('value')
+                      if value:
+                          data=json.loads(value)
+                          out('DOM_READY',data.get('readyState'))
+                          out('DOM_TEXT',data.get('body'))
+                          out('ROOT_TEXT_LENGTH',data.get('rootLength'))
+                          a=data.get('audio') or {}
+                          out('AUDIO_PRESENT',a.get('present'))
+                          out('AUDIO_PAUSED',a.get('paused'))
+                          out('AUDIO_ERROR_CODE',a.get('error'))
+                          out('AUDIO_READY_STATE',a.get('readyState'))
+                          for row in data.get('feeds',[]):
+                              label=row['path'].rsplit('/',1)[-1].upper().replace('-','_')
+                              out('FEED_'+label,json.dumps(row,separators=(',',':')))
+                      else:out('CDP_EVAL_ERROR',str(result.get('result',{}).get('exceptionDetails','unknown'))[:200])
+                      break
+              s.close()
+          except Exception as e:
+              out('DIAGNOSTIC_EXCEPTION',type(e).__name__+':'+str(e)[:150])
+          PY
+          REMOTE
