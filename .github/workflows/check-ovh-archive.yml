@@ -58,20 +58,21 @@ jobs:
           rm -f /tmp/fgb-origin.headers /tmp/fgb-origin.body
 
           cat >/tmp/fgb-live-diagnostic.txt <<EOF
-LIVE_STATE=$live
-LIVE_RESTARTS=$restarts
-ARCHIVE_CAPTURE=$archive_capture
-ARCHIVE_UPLOADER=$archive_uploader
-ARCHIVE_AUTH=$archive_auth
-ARCHIVE_FREE_GB=$free
-CHROMIUM_TITLE=$chrome_title
-CHROMIUM_URL=$chrome_url
-ORIGIN_HTTP=$origin_code
-CF_ERROR_TYPE=${cf_error:-none}
-ORIGIN_BODY_MARKER=${body_marker:-none}
-ORIGIN_BODY_BYTES=$body_bytes
-EOF
+          LIVE_STATE=$live
+          LIVE_RESTARTS=$restarts
+          ARCHIVE_CAPTURE=$archive_capture
+          ARCHIVE_UPLOADER=$archive_uploader
+          ARCHIVE_AUTH=$archive_auth
+          ARCHIVE_FREE_GB=$free
+          CHROMIUM_TITLE=$chrome_title
+          CHROMIUM_URL=$chrome_url
+          ORIGIN_HTTP=$origin_code
+          CF_ERROR_TYPE=${cf_error:-none}
+          ORIGIN_BODY_MARKER=${body_marker:-none}
+          ORIGIN_BODY_BYTES=$body_bytes
+          EOF
 
+          cat /tmp/fgb-live-diagnostic.txt
           test "$live" = live
           test "$restarts" -le 1
           test "$archive_uploader" = running
