@@ -1,0 +1,40 @@
+name: CNT Phase 2 Validate Recorded Video and Publisher
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-phase2-codec-and-publisher-audit-20261026.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Inspect CNT media, process status and archive job protocol
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo 'VIDEO_TRACK_INSPECTION'
+          sudo docker exec epic-cnt-archive-worker bash -c 'f=$(find /cnt-archive/rolling -maxdepth 1 -type f -name "live-*.ts" | sort | head -1); test -n "$f" && ffprobe -v error -show_entries stream=codec_name,codec_type -of compact=p=0:nk=0 "$f"' | head -12
+          echo 'EPISODE_WORKER'
+          sudo docker ps --filter name=epic-cnt --format '{{.Names}} {{.Status}}'
+          sudo docker exec epic-cnt-archive-worker bash -c 'ps -eo comm,args | grep -E "cnt-air-observer|cnt-rolling-recorder|episode-cutter|cnt-daily-recorder" | grep -v grep | head -8' | cut -c1-165
+          echo 'EPISODE_JOBS_PROTOCOL'
+          echo '{"action":"episode_jobs"}' | sudo python3 /opt/cnt-phase2-staging/cnt-api-client.py https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/archive /etc/epic-cnt/archive-key | python3 -c 'import json,sys;d=json.load(sys.stdin);print("episode_api_ok="+str(d.get("ok") is True));print("pending_jobs="+str(len(d.get("jobs") or [])));print("response_field_names="+",".join(sorted(d.keys())));assert d.get("ok") is True'
+          echo 'ARCHIVE_LAST_MEDIA'
+          find /srv/cnt-archive/rolling -maxdepth 1 -type f -name 'live-*.ts' -printf '%f %s bytes\n' | sort | tail -3
+          echo 'DISK_SPACE'
+          df -h /srv/cnt-archive
+          echo 'READ_ONLY_VERIFICATION_COMPLETE=true'
+          REMOTE
