@@ -1,0 +1,37 @@
+name: CNT captured-question frames — retrieve and compare
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-recover-visual-evidence.yml]
+permissions:
+  contents: read
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Read-only transfer of recently captured CNT browser and encoder-input frames
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/key
+          chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          mkdir -p evidence
+          scp -q -o BatchMode=yes -o ConnectTimeout=9 -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185:/tmp/cnt-confirmed-trivia-question.png evidence/browser.png
+          scp -q -o BatchMode=yes -o ConnectTimeout=9 -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185:/tmp/cnt-confirmed-trivia-x11.png evidence/x11.png
+          file evidence/*.png
+          sha256sum evidence/*.png
+          test -s evidence/browser.png && test -s evidence/x11.png
+      - name: Preserve CNT visual proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: cnt-question-browser-versus-encoder-input
+          path: evidence/
+          retention-days: 7
