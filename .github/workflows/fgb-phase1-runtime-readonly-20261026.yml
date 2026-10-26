@@ -1,0 +1,55 @@
+name: FGB Episode Phase 1 Runtime Discovery
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fgb-phase1-runtime-readonly-20261026.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: SSH authentication
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Read-only FGB recorder and playback inventory
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo === TIMESTAMP_AND_DISK ===
+          date -u +%FT%TZ
+          df -h /srv/fgb-archive
+          echo === LIVE_CONTAINERS ===
+          sudo docker ps --format '{{.Names}} {{.Image}} {{.Status}}'
+          echo === MOUNTS_ONLY ===
+          for n in fgb-transport-youtube-1 fgb-transport-archive_uploader-1 epic-cnt-capture; do
+            echo "container=$n"
+            sudo docker inspect -f '{{range .Mounts}}{{.Source}} -> {{.Destination}};{{end}}' "$n" || true
+          done
+          echo === HOST_SERVICES ===
+          systemctl list-units --all --no-pager --plain 'fgb*' 'epic*' | head -40
+          echo === HOST_RECENT_RECORDING ===
+          find /srv/fgb-archive/hourly -maxdepth 1 -type f -name 'live-*.ts' -printf '%TY-%Tm-%TdT%TH:%TM:%TS %s %f\n' | sort | tail -7
+          echo === RECORDING_AND_AIR_FILES ===
+          for name in episode_hold discovery-ready.json; do
+            if sudo test -f "/srv/fgb-archive/state/$name"; then echo "$name=present"; else echo "$name=absent"; fi
+          done
+          echo === ENCODER_PROCESSES ===
+          sudo docker exec fgb-transport-youtube-1 sh -lc 'ps -eo pid,comm,args | grep -E "(ffmpeg|chromium|audio|pulse)" | cut -c1-170 | head -35' || true
+          echo === LOCAL_RUNTIME_TOOLS ===
+          sudo docker exec fgb-transport-youtube-1 sh -lc 'for c in python3 jq curl ffmpeg ffprobe node; do command -v "$c" || true; done' || true
+          echo === CONTAINER_ARCHIVE_OUTPUT ===
+          sudo docker exec fgb-transport-youtube-1 sh -lc 'ls -la /archive | head -18' || true
+          echo === HOST_AUX_AUDIO_PATHS ===
+          find /opt /srv -maxdepth 4 -iname '*audio*' -o -iname '*player*' 2>/dev/null | head -55
+          REMOTE
