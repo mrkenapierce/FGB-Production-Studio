@@ -1,0 +1,54 @@
+name: CNT Phase 2 Read-only Deployment Audit
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-phase2-readonly-audit-20261026.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Set up OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          mkdir -p -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Capture CNT deployment facts without secrets or mutations
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo 'CNT_PHASE2_AUDIT_BEGIN'
+          date -u +%FT%TZ
+          df -h / /srv
+          echo 'VOLUME_MOUNTS'
+          lsblk -o NAME,TYPE,SIZE,MOUNTPOINTS -n
+          echo 'CONTAINERS'
+          sudo docker ps --format '{{.Names}} {{.Image}} {{.Status}}'
+          echo 'CNT_MOUNTS'
+          sudo docker inspect -f '{{range .Mounts}}{{.Source}} -> {{.Destination}};{{end}}' epic-cnt-capture
+          echo 'CNT_CONFIG_SAFE'
+          sudo docker inspect -f 'image={{.Config.Image}} entry={{.Path}} cmd={{json .Args}} restart={{.HostConfig.RestartPolicy.Name}}' epic-cnt-capture
+          echo 'CNT_HOST_FILES'
+          find /opt /srv -maxdepth 4 \( -iname '*cnt*' -o -iname '*cruise*' \) -print 2>/dev/null | head -55 || true
+          echo 'CNT_CONTAINERS_TOOLS'
+          sudo docker exec epic-cnt-capture sh -lc 'for x in ffmpeg ffprobe python3 jq openssl curl chromium; do command -v "$x" || true; done; find /opt -maxdepth 2 -type f -printf "%p\n" | head -35' || true
+          echo 'CNT_CAPTURE_RUNTIME'
+          sudo docker exec epic-cnt-capture sh -lc 'ps -eo pid,comm,args | grep -E "(ffmpeg|chromium|run-cnt)" | cut -c1-130 | head -17' || true
+          echo 'CNT_DEVTOOLS'
+          sudo docker exec epic-cnt-capture sh -lc 'curl -sS -m 2 -o /dev/null -w "CNT_CDP_HTTP=%{http_code}\n" http://127.0.0.1:9223/json/version' || true
+          echo 'CNT_ARCHIVE_FOLDER'
+          if sudo test -d /srv/cnt-archive; then sudo du -sh /srv/cnt-archive; else echo CNT_ARCHIVE_MISSING; fi
+          echo 'CNT_COMPOSE'
+          find /opt -maxdepth 4 -name '*compose*.yml' -o -name 'Dockerfile.cnt' 2>/dev/null | head -25 || true
+          echo 'FGB_NOT_TOUCHED=true'
+          echo 'CNT_PHASE2_AUDIT_END'
+          REMOTE
