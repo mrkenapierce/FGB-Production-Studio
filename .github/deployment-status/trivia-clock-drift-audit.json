@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-26T14:06:43.979200+00:00",
+  "checkedAt": "2026-10-26T14:11:11.299053+00:00",
   "cntContainersDiscovered": [
     {
       "image": "epic-cnt-streamer:local",
@@ -25,36 +25,69 @@
       "status": "Up 3 weeks (healthy)"
     }
   ],
-  "cumulativeEncoderLagGrowthSeconds": null,
-  "fgbCaptureUrl": [],
+  "cumulativeEncoderLagGrowthSeconds": -0.238,
+  "fgbCaptureUrl": [
+    "https://epiccontentcreatorgrants.org/fgb-broadcast?target=youtube"
+  ],
   "host": "OVH",
   "limits": [
     "No YouTube viewer-player latency measured; encoder pacing and YouTube playback latency are distinct.",
     "A channel not found on this Docker host may run elsewhere."
   ],
-  "mediaDurationSeconds": 0,
-  "mediaTimeVsWallTimeStatus": "INSUFFICIENT_SAMPLES",
-  "observationDurationSeconds": 0,
-  "perWindow": [],
+  "mediaDurationSeconds": 117.58,
+  "mediaTimeVsWallTimeStatus": "ENCODER_PACING_NORMAL",
+  "observationDurationSeconds": 117.35,
+  "perWindow": [
+    {
+      "droppedDelta": 0,
+      "duplicatedDelta": 0,
+      "frames": 883,
+      "measuredFps": 30.26,
+      "mediaSeconds": 29.433,
+      "mediaToWallRatio": 1.0086,
+      "wallSeconds": 29.181
+    },
+    {
+      "droppedDelta": 0,
+      "duplicatedDelta": 0,
+      "frames": 866,
+      "measuredFps": 29.77,
+      "mediaSeconds": 28.867,
+      "mediaToWallRatio": 0.9922,
+      "wallSeconds": 29.092
+    },
+    {
+      "droppedDelta": 0,
+      "duplicatedDelta": 0,
+      "frames": 867,
+      "measuredFps": 30.01,
+      "mediaSeconds": 28.9,
+      "mediaToWallRatio": 1.0002,
+      "wallSeconds": 28.894
+    },
+    {
+      "droppedDelta": 0,
+      "duplicatedDelta": 0,
+      "frames": 911,
+      "measuredFps": 30.19,
+      "mediaSeconds": 30.384,
+      "mediaToWallRatio": 1.0068,
+      "wallSeconds": 30.179
+    }
+  ],
   "readOnly": true,
   "sourceClock": {
     "source": {
-      "active": true,
-      "delaySeconds": null,
-      "gameId": "0e7f467e-6b57-4a08-a6e4-3cbe37d47263",
-      "phase": "question",
-      "phaseEndsAt": "2026-10-26T14:06:47.000Z",
-      "questionNumber": 16,
-      "updatedAt": "2026-10-26T14:06:05.654537+00:00"
+      "error": "TimeoutError"
     },
     "website": {
       "active": true,
       "delaySeconds": 21.25,
-      "gameId": "0e7f467e-6b57-4a08-a6e4-3cbe37d47263",
-      "phase": "revealed",
-      "phaseEndsAt": "2026-10-26T14:06:46.250Z",
-      "questionNumber": 17,
-      "updatedAt": "2026-10-26T14:06:43.962Z"
+      "gameId": "bbb80736-eada-4aed-be7e-74a98b55da3f",
+      "phase": null,
+      "phaseEndsAt": null,
+      "questionNumber": null,
+      "updatedAt": "2026-10-26T14:11:11.278Z"
     }
   }
 }
