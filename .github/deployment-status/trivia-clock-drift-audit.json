@@ -1,0 +1,60 @@
+{
+  "checkedAt": "2026-10-26T14:06:43.979200+00:00",
+  "cntContainersDiscovered": [
+    {
+      "image": "epic-cnt-streamer:local",
+      "name": "epic-cnt-capture",
+      "status": "Up 16 hours (healthy)"
+    }
+  ],
+  "containerRestartCount": "0",
+  "containers": [
+    {
+      "image": "epic-cnt-streamer:local",
+      "name": "epic-cnt-capture",
+      "status": "Up 16 hours (healthy)"
+    },
+    {
+      "image": "transport-ovh-youtube",
+      "name": "fgb-transport-archive_uploader-1",
+      "status": "Up 3 weeks"
+    },
+    {
+      "image": "transport-ovh-youtube",
+      "name": "fgb-transport-youtube-1",
+      "status": "Up 3 weeks (healthy)"
+    }
+  ],
+  "cumulativeEncoderLagGrowthSeconds": null,
+  "fgbCaptureUrl": [],
+  "host": "OVH",
+  "limits": [
+    "No YouTube viewer-player latency measured; encoder pacing and YouTube playback latency are distinct.",
+    "A channel not found on this Docker host may run elsewhere."
+  ],
+  "mediaDurationSeconds": 0,
+  "mediaTimeVsWallTimeStatus": "INSUFFICIENT_SAMPLES",
+  "observationDurationSeconds": 0,
+  "perWindow": [],
+  "readOnly": true,
+  "sourceClock": {
+    "source": {
+      "active": true,
+      "delaySeconds": null,
+      "gameId": "0e7f467e-6b57-4a08-a6e4-3cbe37d47263",
+      "phase": "question",
+      "phaseEndsAt": "2026-10-26T14:06:47.000Z",
+      "questionNumber": 16,
+      "updatedAt": "2026-10-26T14:06:05.654537+00:00"
+    },
+    "website": {
+      "active": true,
+      "delaySeconds": 21.25,
+      "gameId": "0e7f467e-6b57-4a08-a6e4-3cbe37d47263",
+      "phase": "revealed",
+      "phaseEndsAt": "2026-10-26T14:06:46.250Z",
+      "questionNumber": 17,
+      "updatedAt": "2026-10-26T14:06:43.962Z"
+    }
+  }
+}
