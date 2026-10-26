@@ -1,0 +1,122 @@
+name: CNT shared trivia question lifecycle observer
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-question-lifecycle.yml]
+permissions:
+  contents: read
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Read-only CNT question and reveal timing against shared FGB feed
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key" || { echo BLOCKED=SSH_KEY_MISSING; exit 5; }
+          install -d -m 700 ~/.ssh; printf '%s\n' "$key" > ~/.ssh/key; chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null || true
+          test -s ~/.ssh/known_hosts || { echo BLOCKED=NO_SSH_BANNER; exit 6; }
+          mkdir -p evidence
+          ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo CNT_REFRESH_SCOPE=ONLY_CNT_BROWSER_TAB
+          old_frame=$(sudo -n docker exec epic-cnt-capture sh -lc 'awk -F= "/^frame=/{x=\$2} END{print x+0}" /tmp/cnt-ffmpeg.progress' 2>/dev/null || echo 0)
+          pid=$(sudo -n docker inspect -f '{{.State.Pid}}' epic-cnt-capture)
+          sudo -n nsenter -t "$pid" -n python3 - <<'PY'
+          import urllib.request,json,socket,os,base64,struct,time,urllib.parse
+          def say(k,v):print('CNT_TAB_'+k+'='+str(v).replace('\n',' ')[:1400],flush=True)
+          data=json.load(urllib.request.urlopen('http://127.0.0.1:9223/json/list',timeout=5))
+          pages=[p for p in data if p.get('type')=='page']
+          if len(pages)!=1:raise RuntimeError('CNT_TARGET_NOT_UNIQUE')
+          pg=pages[0];say('TARGET',pg.get('url',''))
+          ws=urllib.parse.urlsplit(pg['webSocketDebuggerUrl'])
+          s=socket.create_connection((ws.hostname,ws.port),timeout=8);s.settimeout(14)
+          key=base64.b64encode(os.urandom(16)).decode()
+          s.sendall((f'GET {ws.path} HTTP/1.1\r\nHost: {ws.hostname}:{ws.port}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: {key}\r\nSec-WebSocket-Version: 13\r\n\r\n').encode())
+          a=b''
+          while b'\r\n\r\n' not in a:a+=s.recv(512)
+          if b'101' not in a.split(b'\r\n',1)[0]:raise RuntimeError('CDP_NOT_CONNECTED')
+          buf=a.split(b'\r\n\r\n',1)[1]
+          def readn(n):
+              global buf
+              b=buf[:n];buf=buf[n:]
+              while len(b)<n:b+=s.recv(n-len(b))
+              return b
+          def send(d):
+              x=json.dumps(d,separators=(',',':')).encode();m=os.urandom(4);n=len(x)
+              h=bytes([129,128|n]) if n<126 else bytes([129,254])+struct.pack('!H',n) if n<65536 else bytes([129,255])+struct.pack('!Q',n)
+              s.sendall(h+m+bytes(v^m[i%4] for i,v in enumerate(x)))
+          def rec():
+              h=readn(2);n=h[1]&127
+              if n==126:n=struct.unpack('!H',readn(2))[0]
+              if n==127:n=struct.unpack('!Q',readn(8))[0]
+              m=readn(4) if h[1]&128 else None
+              b=readn(n)
+              if m:b=bytes(v^m[i%4] for i,v in enumerate(b))
+              try:return json.loads(b.decode()) if (h[0]&15)==1 else {}
+              except:return {}
+          counter=0
+          def cmd(method,params):
+              global counter
+              counter+=1
+              k=counter
+              send({'id':k,'method':method,'params':params})
+              deadline=time.monotonic()+16
+              while time.monotonic()<deadline:
+                  x=rec()
+                  if x.get('id')==k:return x
+              raise RuntimeError('CDP_TIMEOUT')
+          expr="JSON.stringify({body:document.body?.innerText?.slice(0,650),sharedScene:!!document.querySelector('[data-testid=cnt-broadcast]')&&!!document.querySelector('[data-testid=broadcast-scene]'),audio:!!document.querySelector('audio'),oldPage:(document.body?.innerText||'').includes('Programming off')})"
+          def snapshot(name):
+              d=cmd('Runtime.evaluate',{'expression':expr,'returnByValue':True})
+              v=d.get('result',{}).get('result',{}).get('value')
+              if not v:
+                  say(name+'_ERROR',d.get('result',{}).get('exceptionDetails','unknown'));return None
+              x=json.loads(v)
+              say(name+'_SHARED_SCENE',x['sharedScene']);say(name+'_AUDIO_NODE',x['audio']);say(name+'_OLD_PAGE',x['oldPage']);say(name+'_DOM',x['body'])
+              return x
+          if pg.get('url') != 'https://epiccontentcreatorgrants.org/channels/cruisenewstrivia/broadcast':
+              say('MONITOR_ERROR','WRONG_CAPTURE_URL');s.close();raise SystemExit(0)
+          say('MONITOR_MODE','READ_ONLY; NO PAGE_RELOAD; FGB_DATA_FEED_ONLY')
+          expr2="""(async()=>{try{const r=await fetch('/api/public/fgbears/game-screen?t='+Date.now(),{cache:'no-store'});const g=await r.json();const p=(document.querySelector('[data-testid=prompt]')?.textContent||'').trim();return JSON.stringify({status:r.status,sourcePhase:g.phase,sourcePresentation:g.presentationType,sourceQuestion:g.questionNumber,sourcePrompt:(g.prompt||'').trim().slice(0,230),domPrompt:p.slice(0,230),domMatches:!!p&&p===(g.prompt||'').trim(),domState:document.querySelector('[data-testid=broadcast-scene]')?.getAttribute('data-state'),domQuestion:document.querySelector('[data-testid=questionCard]')?.textContent?.slice(0,180),audioPaused:document.querySelector('audio')?.paused})}catch(e){return JSON.stringify({error:String(e).slice(0,150)})}})()"""
+          started=time.monotonic();firstSource=None;firstDom=None;observedQuestion=None;observedReveal=False;lastLog=''
+          while time.monotonic()-started<425:
+              d=cmd('Runtime.evaluate',{'expression':expr2,'awaitPromise':True,'returnByValue':True})
+              val=d.get('result',{}).get('result',{}).get('value')
+              if not val:
+                  say('EVAL_ERROR','NO_VALUE');time.sleep(3);continue
+              z=json.loads(val)
+              if z.get('error'):
+                  say('FETCH_ERROR',z['error']);time.sleep(3);continue
+              now=time.monotonic()
+              k=(z.get('sourceQuestion'),z.get('sourcePresentation'),z.get('domState'))
+              if k!=lastLog:
+                  say('PHASE',f't={now-started:.1f}s source_q={z.get("sourceQuestion")} source_type={z.get("sourcePresentation")} CNT_scene={z.get("domState")}')
+                  lastLog=k
+              if z.get('sourcePresentation') in ('question','vote') and z.get('sourcePrompt') and firstSource is None:
+                  firstSource=now;observedQuestion=z.get('sourceQuestion');say('SOURCE_QUESTION_SEEN',str(z.get('sourceQuestion'))+' '+str(z.get('sourcePrompt')))
+              if z.get('domMatches') and firstDom is None:
+                  firstDom=now;say('CNT_MATCHED_SHARED_PROMPT','YES');say('MATCH_DELAY_FROM_FEED_FIRST_SEEN_SEC',round(max(0,now-(firstSource or now)),1))
+              if firstDom is not None and z.get('domState')=='reveal':
+                  observedReveal=True;say('CNT_ANSWER_REVEAL','YES');break
+              if firstDom is not None and z.get('sourceQuestion')!=observedQuestion and z.get('sourcePresentation')=='question':
+                  say('CNT_QUESTION_TRANSITION','NEXT_QUESTION');break
+              time.sleep(3)
+          say('RESULT_SOURCE_QUESTION_SEEN',firstSource is not None)
+          say('RESULT_CNT_QUESTION_MATCH',firstDom is not None)
+          say('RESULT_CNT_REVEAL',observedReveal)
+          say('RESULT_YOUTUBE_VIEWER_VERIFIED','NO; YouTube requires sign-in from public sampling host')
+          s.close()
+          PY
+          new_frame=$(sudo -n docker exec epic-cnt-capture sh -lc 'awk -F= "/^frame=/{x=\$2} END{print x+0}" /tmp/cnt-ffmpeg.progress' 2>/dev/null || echo 0)
+          echo "CNT_FFMPEG_FRAMES_BEFORE=$old_frame"
+          echo "CNT_FFMPEG_FRAMES_AFTER=$new_frame"
+          if [ "$new_frame" -gt "$old_frame" ]; then echo CNT_ENCODER=STILL_ADVANCING; else echo CNT_ENCODER=FRAME_CHECK_INCONCLUSIVE; fi
+          echo "FGB_CONTAINER_STATE=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)"
+          REMOTE
