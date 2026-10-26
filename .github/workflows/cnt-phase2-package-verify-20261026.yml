@@ -1,0 +1,36 @@
+name: CNT Phase 2 Package Verify (no deployment)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'ops/cnt-phase2/**'
+      - '.github/workflows/cnt-phase2-package-verify-20261026.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell and Python static validation
+        run: |
+          set -euo pipefail
+          for f in ops/cnt-phase2/*.sh; do bash -n "$f"; done
+          python3 -m py_compile ops/cnt-phase2/*.py
+          grep -Fq 'onfail=ignore' ops/cnt-phase2/run-cnt.sh
+          grep -Fq 'CNT_MIN_FREE_GB' ops/cnt-phase2/cnt-rolling-recorder.sh
+          grep -Fq 'DISCOVERY_UNAVAILABLE' ops/cnt-phase2/archive-retention.py
+          grep -Fq 'CNT_ARCHIVE_HMAC_SECRET' ops/cnt-phase2/cnt-air-observer.py
+          echo CNT_PHASE2_STATIC_CHECKS=PASS
+      - name: Build replacement CNT image on GitHub only
+        run: |
+          set -euo pipefail
+          docker build -t cnt-phase2:verify -f ops/cnt-phase2/Dockerfile.cnt ops/cnt-phase2
+          docker run --rm --entrypoint /bin/bash cnt-phase2:verify -lc 'python3 --version && jq --version && ffmpeg -version | head -1 && test -x ./cnt-rolling-recorder.sh && test -x ./cnt-air-observer.py && echo CNT_PHASE2_IMAGE=PASS'
+      - name: Assert no production changes
+        run: |
+          echo OVH_DEPLOYED=false
+          echo LIVESTREAM_RESTARTED=false
+          echo ARCHIVE_DELETION_ENABLED=false
