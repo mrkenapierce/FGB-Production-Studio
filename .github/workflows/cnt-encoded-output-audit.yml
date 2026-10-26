@@ -1,0 +1,63 @@
+name: CNT encoded uplink audit - source vs YouTube RTMPS
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-encoded-output-audit.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Audit CNT-only live encoder output bytes, RTMPS socket, and destination (key redacted)
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key" || exit 5
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/key
+          chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo CNT_OVH_OUTPUT_AUDIT=READ_ONLY
+          echo CNT_CONTAINER=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)
+          echo FGB_CONTAINER=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)
+          echo CNT_SYSTEM_TIME=$(date -u +%FT%TZ)
+          echo CNT_FFMPEG_SOURCE_AND_OUTPUT
+          sudo -n docker exec epic-cnt-capture python3 --version >/dev/null 2>&1 && echo CNT_PYTHON3=YES || echo CNT_PYTHON3=NO
+          sudo -n docker exec epic-cnt-capture sh -c 'tr "\000" "\n" </proc/$(pgrep -o ffmpeg)/cmdline' | grep -E '^(:98\.0|cnt\.monitor|flv|libx264|aac)$' || true
+          echo CNT_DESTINATION_CHECK
+          sudo -n docker exec epic-cnt-capture sh -lc 'test -n "$CNT_YOUTUBE_STREAM_KEY" && echo CNT_SECRET_IN_CONTAINER=PRESENT; test "$CNT_YOUTUBE_INGEST_URL" = "rtmps://a.rtmps.youtube.com/live2" && echo CNT_DESTINATION=YOUTUBE_LIVE2' || true
+          echo CNT_PROGRESS_BEFORE
+          sudo -n docker exec epic-cnt-capture sh -lc 'grep -E "^(frame|fps|bitrate|total_size|out_time|speed|progress)=" /tmp/cnt-ffmpeg.progress | tail -n 8' || true
+          sleep 12
+          echo CNT_PROGRESS_AFTER
+          sudo -n docker exec epic-cnt-capture sh -lc 'grep -E "^(frame|fps|bitrate|total_size|out_time|speed|progress)=" /tmp/cnt-ffmpeg.progress | tail -n 8' || true
+          echo CNT_RTMS_TCP_ESTABLISHED
+          sudo -n docker exec epic-cnt-capture sh -lc "awk 'NR>1 && \\$4==\"01\" {split(\\$3,a,\":\"); if(toupper(a[2])==\"01BB\") n++} END{print \"TCP443_ESTABLISHED=\"n+0}' /proc/net/tcp /proc/net/tcp6" || true
+          echo CNT_STREAM_CONFIG_COMPLETE
+          REMOTE
+      - name: Query public CNT video metadata (no authentication or claims of playback)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import urllib.request,re,json
+          url='https://www.youtube.com/watch?v=q_2BHP87zQo'
+          try:
+              req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'})
+              with urllib.request.urlopen(req,timeout=12) as r:
+                  data=r.read(600000).decode('utf-8','replace')
+                  print('CNT_PUBLIC_VIDEO_HTTP='+str(r.status))
+                  for token in ['isLiveNow','liveBroadcastDetails','Sign in to confirm','playabilityStatus','isLiveContent']:
+                      print('CNT_YOUTUBE_META_'+token+'='+str(token in data))
+                  m=re.search(r'<title>([^<]+)</title>',data)
+                  if m:print('CNT_PUBLIC_VIDEO_TITLE='+m.group(1)[:150])
+          except Exception as e:
+              print('CNT_PUBLIC_VIDEO_CHECK_UNAVAILABLE='+type(e).__name__+':'+str(e)[:180])
+          PY
