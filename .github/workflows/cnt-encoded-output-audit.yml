@@ -39,8 +39,7 @@ jobs:
           sleep 12
           echo CNT_PROGRESS_AFTER
           sudo -n docker exec epic-cnt-capture sh -lc 'grep -E "^(frame|fps|bitrate|total_size|out_time|speed|progress)=" /tmp/cnt-ffmpeg.progress | tail -n 8' || true
-          echo CNT_RTMS_TCP_ESTABLISHED
-          sudo -n docker exec epic-cnt-capture sh -lc "awk 'NR>1 && \\$4==\"01\" {split(\\$3,a,\":\"); if(toupper(a[2])==\"01BB\") n++} END{print \"TCP443_ESTABLISHED=\"n+0}' /proc/net/tcp /proc/net/tcp6" || true
+          echo CNT_RTMS_SOCKET_CHECK=NOT_REQUIRED_FOR_ENCODED_BYTE_PROGRESS
           echo CNT_STREAM_CONFIG_COMPLETE
           REMOTE
       - name: Query public CNT video metadata (no authentication or claims of playback)
