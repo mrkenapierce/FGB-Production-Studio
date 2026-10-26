@@ -1,0 +1,83 @@
+name: CNT real-time question scene and network diagnostic
+on:
+  workflow_dispatch:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-browser-live-question-check.yml]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Observe real CNT page DOM and upstream source, without reloading anything
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key"
+          install -d -m 700 ~/.ssh; printf '%s\n' "$key" > ~/.ssh/key; chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo TEST_SCOPE=READ_ONLY_CNT_ONLY
+          echo CNT_CONTAINER=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)
+          echo FGB_CONTAINER=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)
+          echo CNT_FFMPEG_PROCESS_COUNT=$(sudo -n docker exec epic-cnt-capture sh -lc "pgrep -x ffmpeg | wc -l")
+          echo CNT_CHROMIUM_PROCESS_COUNT=$(sudo -n docker exec epic-cnt-capture sh -lc "pgrep -x chromium | wc -l")
+          echo CNT_MONITOR_EVENTS
+          sudo -n journalctl -u cnt-trivia-watchdog.service --no-pager -n 12 -o cat | grep -E '\{"utc"' || true
+          pid=$(sudo -n docker inspect -f '{{.State.Pid}}' epic-cnt-capture)
+          sudo -n nsenter -t "$pid" -n python3 - <<'PY'
+          import urllib.request,json,socket,os,base64,struct,time,urllib.parse
+          pages=json.load(urllib.request.urlopen('http://127.0.0.1:9223/json/list',timeout=5))
+          pages=[p for p in pages if p.get('type')=='page']
+          if len(pages)!=1:raise RuntimeError('CNT_PAGE_NOT_UNIQUE')
+          page=pages[0]
+          print('CNT_TAB='+str(page.get('url')),flush=True)
+          ws=urllib.parse.urlsplit(page['webSocketDebuggerUrl'])
+          s=socket.create_connection((ws.hostname,ws.port),timeout=5);s.settimeout(18)
+          nonce=base64.b64encode(os.urandom(16)).decode()
+          s.sendall((f'GET {ws.path} HTTP/1.1\r\nHost: {ws.hostname}:{ws.port}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Key: {nonce}\r\nSec-WebSocket-Version: 13\r\n\r\n').encode())
+          b=b''
+          while b'\r\n\r\n' not in b:b+=s.recv(1024)
+          if b'101' not in b.split(b'\r\n',1)[0]:raise RuntimeError('CDP_NO_UPGRADE')
+          buf=b.split(b'\r\n\r\n',1)[1]
+          def take(n):
+              global buf
+              while len(buf)<n:buf+=s.recv(65536)
+              v,buf=buf[:n],buf[n:];return v
+          def cmd(expr):
+              payload=json.dumps({'id':1,'method':'Runtime.evaluate','params':{'expression':expr,'awaitPromise':True,'returnByValue':True}}).encode()
+              mask=os.urandom(4);n=len(payload)
+              head=bytes([129,128|n]) if n<126 else bytes([129,254])+struct.pack('!H',n)
+              s.sendall(head+mask+bytes(v^mask[i%4] for i,v in enumerate(payload)))
+              while True:
+                  h=take(2);n=h[1]&127
+                  if n==126:n=struct.unpack('!H',take(2))[0]
+                  elif n==127:n=struct.unpack('!Q',take(8))[0]
+                  m=take(4) if h[1]&128 else None
+                  d=take(n)
+                  if m:d=bytes(v^m[i%4] for i,v in enumerate(d))
+                  if h[0]&15!=1:continue
+                  row=json.loads(d)
+                  if row.get('id')==1:
+                      if row.get('error'):raise RuntimeError(str(row['error']))
+                      value=row.get('result',{}).get('result',{}).get('value')
+                      return json.loads(value) if value else {'error':'EMPTY_CDP_RESULT'}
+          expr="""(async()=>{const start=Date.now();let feed={};try{let r=await fetch('/api/public/fgbears/game-screen',{cache:'no-store',signal:AbortSignal.timeout(4500)});let d=await r.json();feed={status:r.status,ms:Date.now()-start,phase:d.phase,presentation:d.presentationType,question:d.questionNumber,total:d.questionCount,prompt:(d.prompt||'').slice(0,140)}}catch(e){feed={error:String(e).slice(0,120),ms:Date.now()-start}};let scene=document.querySelector('[data-testid=broadcast-scene]');let p=document.querySelector('[data-testid=prompt]');let t=document.querySelector('[data-testid=questionCard]');return JSON.stringify({url:location.href,now:new Date().toISOString(),ready:document.readyState,sceneState:scene?.getAttribute('data-state'),sharedScene:!!scene,domPrompt:(p?.textContent||'').trim().slice(0,140),card:(t?.textContent||'').slice(0,120),body:(document.body?.innerText||'').slice(0,260),swControlled:!!navigator.serviceWorker?.controller,networkCount:performance.getEntriesByType('resource').filter(x=>x.name.includes('game-screen')).length,feed})})()"""
+          for i in range(8):
+              try:
+                  result=cmd(expr)
+                  print('CNT_SCENE_SAMPLE='+json.dumps({'i':i+1,**result},ensure_ascii=False),flush=True)
+              except Exception as e:print('CNT_SCENE_ERROR='+type(e).__name__+':'+str(e)[:120],flush=True)
+              time.sleep(5)
+          s.close()
+          PY
+          echo CNT_ENCODER_STATE=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)
+          echo FGB_ENCODER_STATE=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)
+          REMOTE
