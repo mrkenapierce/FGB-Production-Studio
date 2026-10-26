@@ -479,15 +479,28 @@ def cleanup_confirmed(root: Path, retention_hours: int) -> None:
     for path in state_dir.glob("hourly-*.json"):
         state = load_json(path)
         confirmed_epoch = state.get("confirmed_epoch")
-        if not isinstance(confirmed_epoch, (int, float)) or confirmed_epoch > cutoff:
+        # Only remove local *copies* backed by a confirmed YouTube video ID.
+        # Never delete unverified, unpublished or otherwise unfinished media.
+        video_id = str(state.get("video_id") or "")
+        if (state.get("confirmed") is not True
+                or not re.fullmatch(r"[A-Za-z0-9_-]{11}", video_id)
+                or not isinstance(confirmed_epoch, (int, float))
+                or confirmed_epoch > cutoff):
             continue
-        for key in ("source", "mp4"):
+        for key, folder in (("source", "hourly"), ("mp4", "final")):
             value = state.get(key)
-            if value:
-                try:
-                    Path(str(value)).unlink(missing_ok=True)
-                except OSError:
-                    pass
+            if not value:
+                continue
+            file_path = Path(str(value))
+            # State files are internal, but still enforce this deletion boundary.
+            if not file_path.resolve().is_relative_to((root / folder).resolve()):
+                log(f"ARCHIVE_CLEANUP_SKIPPED_UNSAFE_PATH={path.name}:{key}")
+                continue
+            try:
+                file_path.unlink(missing_ok=True)
+            except OSError:
+                pass
+        # Preserve upload receipts, segment IDs, and playlist confirmation records.
         if not state.get("media_removed"):
             state["media_removed"] = True
             state["media_removed_at"] = now_iso()
