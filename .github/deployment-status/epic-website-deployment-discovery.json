@@ -1,0 +1,82 @@
+{
+  "checkedAt": "2026-10-26T14:49:09.598076+00:00",
+  "deploymentCredentialsPresent": {
+    "CF_PAGES_PROJECT_NAME": false,
+    "CLOUDFLARE_API_TOKEN": false,
+    "NETLIFY_AUTH_TOKEN": false,
+    "NETLIFY_SITE_ID": false,
+    "OVH_SSH_KEY": true,
+    "VERCEL_PROJECT_ID": false,
+    "VERCEL_TOKEN": false
+  },
+  "dnsIPv4": [
+    "185.158.133.1"
+  ],
+  "hostname": "epiccontentcreatorgrants.org",
+  "readOnly": true,
+  "routes": {
+    "/channels/cruisenewstrivia/broadcast": {
+      "buildMarkers": [
+        "next",
+        "lovable"
+      ],
+      "finalPath": "/channels/cruisenewstrivia/broadcast",
+      "headDescription": "U.S. cruise headlines, ships, ports, itinerary changes and travel advisories alongside the shared EPIC live trivia game.",
+      "serverHeaders": {
+        "cache-control": "no-cache, must-revalidate, max-age=0",
+        "cf-ray": "a50a4425ea37c9ab-IAD",
+        "content-type": "text/html; charset=utf-8",
+        "server": "cloudflare"
+      },
+      "staticScriptSrcs": [
+        "/~flock.js",
+        "/__l5e/events.b21a279f52bb8621.js",
+        "/assets/index-B28XzAW8.js"
+      ],
+      "status": 200,
+      "stylesheetHrefs": []
+    },
+    "/fgb-broadcast?target=youtube": {
+      "buildMarkers": [
+        "next",
+        "lovable"
+      ],
+      "finalPath": "/fgb-broadcast",
+      "headDescription": "Fixed 1280x720 broadcast program for the Football\u2019s Greatest Bears livestream.",
+      "serverHeaders": {
+        "cache-control": "no-cache, must-revalidate, max-age=0",
+        "cf-ray": "a50a442d689ba14d-IAD",
+        "content-type": "text/html; charset=utf-8",
+        "server": "cloudflare"
+      },
+      "staticScriptSrcs": [
+        "/~flock.js",
+        "/__l5e/events.b21a279f52bb8621.js",
+        "/assets/index-B28XzAW8.js"
+      ],
+      "status": 200,
+      "stylesheetHrefs": []
+    },
+    "/my-002-trivia": {
+      "buildMarkers": [
+        "next",
+        "lovable"
+      ],
+      "finalPath": "/my-002-trivia",
+      "headDescription": "Play free skill-based trivia during Football&#x27;s Greatest Bears. Every qualifying play creates 5\u00a2 in My $0.02 \u2014 2\u00a2 directly to you and 3\u00a2 shared with qualified players.",
+      "serverHeaders": {
+        "cache-control": "no-cache, must-revalidate, max-age=0",
+        "cf-ray": "a50a441bf8cc87a6-IAD",
+        "content-type": "text/html; charset=utf-8",
+        "server": "cloudflare"
+      },
+      "staticScriptSrcs": [
+        "/~flock.js",
+        "/__l5e/events.b21a279f52bb8621.js",
+        "/assets/index-B28XzAW8.js"
+      ],
+      "status": 200,
+      "stylesheetHrefs": []
+    }
+  }
+}
