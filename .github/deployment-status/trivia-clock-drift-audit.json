@@ -1,5 +1,5 @@
 {
-  "checkedAt": "2026-10-26T14:11:11.299053+00:00",
+  "checkedAt": "2026-10-26T14:19:34.711356+00:00",
   "cntContainersDiscovered": [
     {
       "image": "epic-cnt-streamer:local",
@@ -7,6 +7,46 @@
       "status": "Up 16 hours (healthy)"
     }
   ],
+  "cntPacing": {
+    "cumulativeLagGrowthSeconds": 0.004,
+    "mediaDurationSeconds": 151.246,
+    "observationDurationSeconds": 151.25,
+    "perWindow": [
+      {
+        "droppedDelta": 0,
+        "duplicatedDelta": 0,
+        "measuredFps": 30.22,
+        "mediaSeconds": 37.886,
+        "mediaToWallRatio": 1.006,
+        "wallSeconds": 37.66
+      },
+      {
+        "droppedDelta": 0,
+        "duplicatedDelta": 0,
+        "measuredFps": 29.98,
+        "mediaSeconds": 37.928,
+        "mediaToWallRatio": 0.999,
+        "wallSeconds": 37.964
+      },
+      {
+        "droppedDelta": 0,
+        "duplicatedDelta": 0,
+        "measuredFps": 29.93,
+        "mediaSeconds": 37.48,
+        "mediaToWallRatio": 0.998,
+        "wallSeconds": 37.554
+      },
+      {
+        "droppedDelta": 0,
+        "duplicatedDelta": 0,
+        "measuredFps": 29.92,
+        "mediaSeconds": 37.952,
+        "mediaToWallRatio": 0.9968,
+        "wallSeconds": 38.072
+      }
+    ],
+    "status": "ENCODER_PACING_NORMAL"
+  },
   "containerRestartCount": "0",
   "containers": [
     {
@@ -25,7 +65,7 @@
       "status": "Up 3 weeks (healthy)"
     }
   ],
-  "cumulativeEncoderLagGrowthSeconds": -0.238,
+  "cumulativeEncoderLagGrowthSeconds": -0.004,
   "fgbCaptureUrl": [
     "https://epiccontentcreatorgrants.org/fgb-broadcast?target=youtube"
   ],
@@ -34,60 +74,66 @@
     "No YouTube viewer-player latency measured; encoder pacing and YouTube playback latency are distinct.",
     "A channel not found on this Docker host may run elsewhere."
   ],
-  "mediaDurationSeconds": 117.58,
+  "mediaDurationSeconds": 150.48,
   "mediaTimeVsWallTimeStatus": "ENCODER_PACING_NORMAL",
-  "observationDurationSeconds": 117.35,
+  "observationDurationSeconds": 150.48,
   "perWindow": [
     {
       "droppedDelta": 0,
       "duplicatedDelta": 0,
-      "frames": 883,
-      "measuredFps": 30.26,
-      "mediaSeconds": 29.433,
-      "mediaToWallRatio": 1.0086,
-      "wallSeconds": 29.181
+      "frames": 1125,
+      "measuredFps": 30.16,
+      "mediaSeconds": 37.481,
+      "mediaToWallRatio": 1.0048,
+      "wallSeconds": 37.301
     },
     {
       "droppedDelta": 0,
       "duplicatedDelta": 0,
-      "frames": 866,
-      "measuredFps": 29.77,
-      "mediaSeconds": 28.867,
-      "mediaToWallRatio": 0.9922,
-      "wallSeconds": 29.092
+      "frames": 1142,
+      "measuredFps": 30.33,
+      "mediaSeconds": 38.075,
+      "mediaToWallRatio": 1.0112,
+      "wallSeconds": 37.655
     },
     {
       "droppedDelta": 0,
       "duplicatedDelta": 0,
-      "frames": 867,
-      "measuredFps": 30.01,
-      "mediaSeconds": 28.9,
-      "mediaToWallRatio": 1.0002,
-      "wallSeconds": 28.894
+      "frames": 1124,
+      "measuredFps": 29.61,
+      "mediaSeconds": 37.479,
+      "mediaToWallRatio": 0.9872,
+      "wallSeconds": 37.965
     },
     {
       "droppedDelta": 0,
       "duplicatedDelta": 0,
-      "frames": 911,
-      "measuredFps": 30.19,
-      "mediaSeconds": 30.384,
-      "mediaToWallRatio": 1.0068,
-      "wallSeconds": 30.179
+      "frames": 1124,
+      "measuredFps": 29.93,
+      "mediaSeconds": 37.446,
+      "mediaToWallRatio": 0.9971,
+      "wallSeconds": 37.556
     }
   ],
   "readOnly": true,
   "sourceClock": {
     "source": {
-      "error": "TimeoutError"
+      "active": true,
+      "delaySeconds": null,
+      "gameId": "bbb80736-eada-4aed-be7e-74a98b55da3f",
+      "phase": "scoreboard",
+      "phaseEndsAt": null,
+      "questionNumber": null,
+      "updatedAt": "2026-10-26T14:19:00.810913+00:00"
     },
     "website": {
-      "active": true,
+      "active": false,
       "delaySeconds": 21.25,
-      "gameId": "bbb80736-eada-4aed-be7e-74a98b55da3f",
+      "gameId": null,
       "phase": null,
       "phaseEndsAt": null,
       "questionNumber": null,
-      "updatedAt": "2026-10-26T14:11:11.278Z"
+      "updatedAt": "2026-10-26T14:19:34.677Z"
     }
   }
 }
