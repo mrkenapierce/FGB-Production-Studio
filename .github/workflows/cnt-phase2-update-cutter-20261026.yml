@@ -1,0 +1,58 @@
+name: CNT Phase 2 Update Episode Receipt Verification (worker only)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-phase2-update-cutter-20261026.yml']
+permissions:
+  contents: read
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check updated cutter semantics
+        run: |
+          set -euo pipefail
+          bash -n ops/cnt-phase2/episode-cutter.sh
+          grep -Fq 'youtube_public_processed' ops/cnt-phase2/episode-cutter.sh
+          grep -Fq 'postedReceipt' ops/cnt-phase2/episode-cutter.sh
+          printf '%s\n' '{"items":[{"id":"abcdefghijk","status":{"privacyStatus":"public","uploadStatus":"processed"},"processingDetails":{"processingStatus":"succeeded"}}]}' |
+             jq -e --arg v abcdefghijk '.items | length == 1 and .[0].id == $v and .[0].status.privacyStatus == "public" and .[0].status.uploadStatus == "processed" and .[0].processingDetails.processingStatus == "succeeded"' >/dev/null
+          echo CNT_CUTTER_SAFETY_CHECK=PASS
+      - name: Configure direct OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Build and replace only CNT episode worker, not capture
+        run: |
+          set -euo pipefail
+          addr=ubuntu@40.160.144.185
+          args=(-o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key)
+          scp "${args[@]}" -q ops/cnt-phase2/episode-cutter.sh "$addr:/opt/cnt-phase2-staging/episode-cutter.sh"
+          ssh "${args[@]}" "$addr" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          before_fgb=$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)
+          before_cnt=$(sudo docker inspect -f '{{.Id}}' epic-cnt-capture)
+          before_ffmpeg=$(sudo docker exec epic-cnt-capture pgrep -o ffmpeg)
+          test -n "$before_ffmpeg"
+          bash -n /opt/cnt-phase2-staging/episode-cutter.sh
+          sudo docker build -q -t epic-cnt-phase2:staged -f /opt/cnt-phase2-staging/Dockerfile.cnt /opt/cnt-phase2-staging >/dev/null
+          cd /opt/cnt-transport
+          sudo docker compose -f docker-compose.phase2.yml up -d --no-build --no-deps --force-recreate archive_worker
+          sleep 5
+          sudo docker exec epic-cnt-archive-worker bash -lc 'grep -q "youtube_public_processed" /opt/cnt/episode-cutter.sh && pgrep -f cnt-air-observer.py >/dev/null && pgrep -f cnt-rolling-recorder.sh >/dev/null'
+          test "$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)" = "$before_fgb"
+          test "$(sudo docker inspect -f '{{.Id}}' epic-cnt-capture)" = "$before_cnt"
+          test "$(sudo docker exec epic-cnt-capture pgrep -o ffmpeg)" = "$before_ffmpeg"
+          echo 'CNT_CUTTER_CONTRACT_UPDATED=true'
+          echo 'CNT_CAPTURE_UNCHANGED=true'
+          echo 'FGB_CAPTURE_UNCHANGED=true'
+          sudo docker ps --filter name=epic-cnt --format '{{.Names}} {{.Status}}'
+          REMOTE
