@@ -1,0 +1,67 @@
+name: CNT-only trivia parity recovery guard installation
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-watchdog-install.yml]
+permissions:
+  contents: read
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile and syntax check CNT watchdog
+        run: python3 -m py_compile ops/cnt-transport/cnt-watchdog.py
+      - name: Install CNT-only watchdog and periodic recovery gate on OVH
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key" || { echo BLOCKED=SSH_KEY_MISSING; exit 5; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/key; chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          scp -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/key ops/cnt-transport/cnt-watchdog.py ubuntu@40.160.144.185:/tmp/cnt-watchdog.new
+          ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          test "$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)" = running
+          test "$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)" = running
+          sudo -n install -D -m 0755 /tmp/cnt-watchdog.new /opt/cnt-transport/cnt-watchdog.py
+          sudo -n python3 -m py_compile /opt/cnt-transport/cnt-watchdog.py
+          pid=$(sudo -n docker inspect -f '{{.State.Pid}}' epic-cnt-capture)
+          echo CNT_CDP_PREFLIGHT
+          sudo -n nsenter -t "$pid" -n python3 /opt/cnt-transport/cnt-watchdog.py --cdp inspect
+          echo CNT_WATCHDOG_FIRST_SAFE_READ
+          sudo -n python3 /opt/cnt-transport/cnt-watchdog.py
+          sudo -n tee /etc/systemd/system/cnt-trivia-watchdog.service >/dev/null <<'SERVICE'
+          [Unit]
+          Description=CNT-only live trivia browser parity and bounded recovery
+          After=docker.service
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/bin/python3 /opt/cnt-transport/cnt-watchdog.py --repair
+          TimeoutStartSec=30
+          SERVICE
+          sudo -n tee /etc/systemd/system/cnt-trivia-watchdog.timer >/dev/null <<'TIMER'
+          [Unit]
+          Description=Check CNT question parity each minute
+          [Timer]
+          OnBootSec=1min
+          OnUnitActiveSec=60s
+          AccuracySec=2s
+          Persistent=true
+          Unit=cnt-trivia-watchdog.service
+          [Install]
+          WantedBy=timers.target
+          TIMER
+          sudo -n systemctl daemon-reload
+          sudo -n systemctl enable --now cnt-trivia-watchdog.timer
+          sudo -n systemctl --no-pager status cnt-trivia-watchdog.timer
+          echo CNT_WATCHDOG_INSTALLED=YES
+          echo CNT_CONTAINER=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)
+          echo FGB_CONTAINER=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)
+          REMOTE
