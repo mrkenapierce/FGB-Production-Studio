@@ -1,0 +1,47 @@
+name: CNT Phase 2 Create Private Host Archive Credential
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-phase2-create-private-host-key-20261026.yml']
+permissions:
+  contents: read
+jobs:
+  key:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Configure direct OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Create CNT-only random secret on host; emit digest only
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'sudo python3 -' <<'PY'
+          import hashlib,os,pathlib,secrets
+          folder=pathlib.Path("/etc/epic-cnt")
+          folder.mkdir(mode=0o700,parents=True,exist_ok=True)
+          os.chmod(folder,0o700)
+          path=folder/"archive-key"
+          if not path.exists():
+              fd=os.open(path,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+              os.fchown(fd,1000,1000)
+              os.fchmod(fd,0o600)
+              with os.fdopen(fd,"w") as fh:
+                  fh.write(secrets.token_urlsafe(48)+"\n")
+              print("CNT_ARCHIVE_KEY=created")
+          else:
+              print("CNT_ARCHIVE_KEY=preserved")
+          data=path.read_bytes().strip()
+          if len(data)<48 or b"\n" in data:
+              raise SystemExit("bad archive key")
+          print("CNT_ARCHIVE_KEY_SHA256="+hashlib.sha256(data).hexdigest())
+          print("CNT_ARCHIVE_KEY_FILE_MODE="+oct(path.stat().st_mode&0o777))
+          print("CNT_RAW_SECRET_EXPOSED=false")
+          PY
