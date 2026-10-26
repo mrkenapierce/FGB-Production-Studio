@@ -1,8 +1,12 @@
 name: CNT shared trivia question lifecycle observer
 on:
+  workflow_dispatch:
   push:
     branches: [cnt-ingest-preflight-20261025]
-    paths: [.github/workflows/cnt-question-lifecycle.yml]
+    paths:
+      - .github/workflows/cnt-question-lifecycle.yml
+      - ops/cnt-transport/**
+      - ops/transport-ovh/**
 permissions:
   contents: read
 jobs:
@@ -119,6 +123,12 @@ jobs:
           say('RESULT_CNT_QUESTION_MATCH',firstDom is not None)
           say('RESULT_CNT_REVEAL',observedReveal)
           say('RESULT_YOUTUBE_VIEWER_VERIFIED','NO; YouTube requires sign-in from public sampling host')
+          # A successful job must prove a displayed prompt and its answer reveal,
+          # not merely that the observer script ran without an exception.
+          if firstSource is not None and firstDom is None:
+              raise RuntimeError('CNT_SHARED_TRIVIA_PROMPT_NOT_RENDERED')
+          if firstDom is not None and not observedReveal:
+              raise RuntimeError('CNT_SHARED_TRIVIA_ANSWER_REVEAL_NOT_RENDERED')
           s.close()
           PY
           new_frame=$(sudo -n docker exec epic-cnt-capture sh -lc 'awk -F= "/^frame=/{x=\$2} END{print x+0}" /tmp/cnt-ffmpeg.progress' 2>/dev/null || echo 0)
