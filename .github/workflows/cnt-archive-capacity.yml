@@ -1,0 +1,38 @@
+name: CNT archive capacity safety check
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-archive-capacity.yml]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Read only host disk and archive status
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"
+          if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key" || { echo 'CNT_ARCHIVE_STATUS=SSH_CREDENTIAL_MISSING'; exit 0; }
+          mkdir -p ~/.ssh; chmod 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/cnt_check_key; chmod 600 ~/.ssh/cnt_check_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null || true
+          if [ ! -s ~/.ssh/known_hosts ]; then echo 'CNT_ARCHIVE_STATUS=NO_HOST_KEY'; exit 0; fi
+          ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/cnt_check_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -eu
+          echo CNT_ARCHIVE_AUDIT=READ_ONLY
+          df -Pm / /srv/fgb-archive 2>/dev/null | awk 'NR==1 || !seen[$1]++ {print "DISK_PARTITION "$0}'
+          echo "RAM_AVAILABLE_MB=$(awk '/^MemAvailable:/{printf "%.0f",$2/1024}' /proc/meminfo)"
+          echo "CPU_CORES=$(nproc)"
+          echo "CPU_LOAD_AVG=$(cut -d' ' -f1-3 /proc/loadavg)"
+          echo "CNT_CONTAINER=$(sudo -n docker inspect -f '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' epic-cnt-capture 2>/dev/null || echo missing)"
+          echo "FGB_CONTAINER=$(sudo -n docker inspect -f '{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{end}}' fgb-transport-youtube-1 2>/dev/null || echo missing)"
+          echo "ARCHIVE_FGB_DISK_USAGE=$(du -sh /srv/fgb-archive 2>/dev/null | cut -f1 || echo unavailable)"
+          echo "CNT_ARCHIVE_ALREADY_RUNNING=$(sudo -n docker ps --format '{{.Names}}' | grep -Ei '^epic-cnt.*archiv' | wc -l)"
+          REMOTE
