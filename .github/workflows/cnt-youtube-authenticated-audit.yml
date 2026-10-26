@@ -17,6 +17,9 @@ jobs:
       CNT_OAUTH_REFRESH: ${{ secrets.CNT_YOUTUBE_REFRESH_TOKEN }}
       SHARED_OAUTH_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
       SHARED_OAUTH_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+      FGB_OAUTH_CLIENT_ID: ${{ secrets.FGB_YOUTUBE_CLIENT_ID }}
+      FGB_OAUTH_CLIENT_SECRET: ${{ secrets.FGB_YOUTUBE_CLIENT_SECRET }}
+      FGB_OAUTH_REFRESH: ${{ secrets.FGB_YOUTUBE_REFRESH_TOKEN }}
     steps:
       - name: Inspect CNT channel ownership, broadcast binding and stream ingest without writes
         shell: bash
@@ -25,9 +28,17 @@ jobs:
           python3 - <<'PY'
           import os,json,urllib.parse,urllib.request,hmac
           target='UC2nq0qnQarvLC-8QR7lRwCA'
-          cid=os.getenv('CNT_OAUTH_CLIENT_ID') or os.getenv('SHARED_OAUTH_CLIENT_ID')
-          csecret=os.getenv('CNT_OAUTH_CLIENT_SECRET') or os.getenv('SHARED_OAUTH_CLIENT_SECRET')
-          refresh=os.getenv('CNT_OAUTH_REFRESH')
+          cntrefresh=os.getenv('CNT_OAUTH_REFRESH')
+          if cntrefresh:
+              cid=os.getenv('CNT_OAUTH_CLIENT_ID') or os.getenv('SHARED_OAUTH_CLIENT_ID')
+              csecret=os.getenv('CNT_OAUTH_CLIENT_SECRET') or os.getenv('SHARED_OAUTH_CLIENT_SECRET')
+              refresh=cntrefresh
+              print('CNT_AUTH_SET=CNT')
+          else:
+              cid=os.getenv('FGB_OAUTH_CLIENT_ID')
+              csecret=os.getenv('FGB_OAUTH_CLIENT_SECRET')
+              refresh=os.getenv('FGB_OAUTH_REFRESH')
+              print('CNT_AUTH_SET=EXISTING_FGB_READ_ONLY_ELIGIBILITY_CHECK')
           key=os.getenv('CNT_KEY')
           print('CNT_INGEST_SECRET='+('PRESENT' if key else 'MISSING'))
           if not (cid and csecret and refresh):
