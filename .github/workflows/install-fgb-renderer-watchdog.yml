@@ -131,4 +131,17 @@ jobs:
           echo CNT_CONTAINER_UNCHANGED=true
           echo FGB_RECOVERY_MAX_PER_HOUR=3
           echo FGB_FAILURES_BEFORE_RECOVERY=3
+          echo OVH_CONTAINER_INVENTORY_BEGIN
+          sudo docker ps -a --format 'name={{.Names}} status={{.Status}} image={{.Image}}'
+          echo OVH_CONTAINER_INVENTORY_END
+          echo OVH_FGB_CNT_SYSTEMD_SERVICES_BEGIN
+          systemctl list-units --all --type=service --no-legend --no-pager | awk 'tolower($1) ~ /fgb|oracle|youtube|facebook|rumble|cnt|cruise/ {print $1, $3, $4}' || true
+          echo OVH_FGB_CNT_SYSTEMD_SERVICES_END
+          echo OVH_FGB_CNT_SYSTEMD_TIMERS_BEGIN
+          systemctl list-timers --all --no-legend --no-pager | awk 'tolower($0) ~ /fgb|oracle|youtube|facebook|rumble|cnt|cruise/ {print $0}' || true
+          echo OVH_FGB_CNT_SYSTEMD_TIMERS_END
+          echo FGB_CAPTURE_RESOURCE_BEGIN
+          sudo docker stats --no-stream --format 'name={{.Name}} cpu={{.CPUPerc}} memory={{.MemUsage}}' "$FGB" || true
+          sudo docker exec "$FGB" df -h /tmp /dev/shm || true
+          echo FGB_CAPTURE_RESOURCE_END
           REMOTE
