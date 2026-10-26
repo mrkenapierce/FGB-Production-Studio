@@ -1,4 +1,4 @@
-# Manual FGB read-only ingest check requested 2026-10-26; leave CNT unchanged.
+# FGB ingest read-only resample for sync investigation, 2026-10-26 08:36 CDT; CNT unchanged.
 name: Check OVH YouTube Ingest
 
 on:
