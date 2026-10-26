@@ -104,6 +104,38 @@ jobs:
           sudo systemctl is-active --quiet fgb-browser-guard.timer
           echo 'CANONICAL_FGB_BROWSER_GUARD_TIMER=active'
           echo 'OVH_STORAGE_AUDIT_BEGIN'
+          free_before_kb=$(df -Pk / | awk 'NR==2{print $4}')
+          echo "HOST_FREE_KB_BEFORE=$free_before_kb"
+          if [ "$free_before_kb" -lt 2097152 ]; then
+            echo 'PRUNING_UNUSED_BUILD_CACHE_OLDER_THAN_7_DAYS=true'
+            sudo docker builder prune --force --filter 'until=168h' | tail -n 8 || true
+          fi
+          echo "HOST_FREE_KB_AFTER=$(df -Pk / | awk 'NR==2{print $4}')"
+          echo 'OVH_IMAGE_INVENTORY_BEGIN'
+          sudo docker image ls --format 'image={{.Repository}}:{{.Tag}} id={{.ID}} size={{.Size}}' || true
+          echo 'OVH_IMAGE_INVENTORY_END'
+          echo 'OVH_ARCHIVE_STATE_COUNTS_BEGIN'
+          sudo python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          root=Path('/srv/fgb-archive')
+          for section,ext in [('hourly','.ts'),('final','.mp4'),('state','.json')]:
+              folder=root/section
+              files=[p for p in folder.iterdir() if p.is_file() and p.suffix==ext] if folder.exists() else []
+              print('ARCHIVE_SECTION',section,'files',len(files),'bytes',sum(p.stat().st_size for p in files))
+              if section=='state':
+                  counts={'confirmed':0,'unconfirmed':0,'ignored':0,'media_removed':0,'failed':0}
+                  for p in files:
+                      try:
+                          d=json.loads(p.read_text())
+                          for k in ('confirmed','ignored','media_removed'):
+                              if d.get(k):counts[k]+=1
+                          if not d.get('confirmed') and not d.get('ignored'):counts['unconfirmed']+=1
+                          if d.get('last_error'):counts['failed']+=1
+                      except Exception:pass
+                  print('ARCHIVE_STATE_SUMMARY',json.dumps(counts,sort_keys=True))
+          PY
+          echo 'OVH_ARCHIVE_STATE_COUNTS_END'
           df -hT / /var/lib/docker /srv/fgb-archive 2>/dev/null || true
           sudo docker system df || true
           sudo journalctl --disk-usage || true
