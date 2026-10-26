@@ -131,10 +131,22 @@ class Observer:
 
 def sign_and_send(url: str, secret: str, report: dict) -> bool:
     body = json.dumps(report, separators=(",", ":"))
-    ts = str(int(time.time()))
-    sig = hmac.new(secret.encode(), f"{ts}.{body}".encode(), hashlib.sha256).hexdigest()
-    req = urllib.request.Request(url, data=body.encode(), method="POST", headers={
-        "content-type": "application/json", "x-cnt-timestamp": ts, "x-cnt-signature": sig})
+    key_path = os.environ.get("CNT_ARCHIVE_KEY_FILE", "")
+    headers = {"content-type": "application/json"}
+    if key_path:
+        # Never expose the raw key to the Chromium browser or process args.
+        try:
+            key = open(key_path, encoding="utf-8").read().strip()
+            if len(key) < 48:
+                return False
+            headers["x-cnt-archive-key"] = key
+        except OSError:
+            return False
+    else:
+        ts = str(int(time.time()))
+        sig = hmac.new(secret.encode(), f"{ts}.{body}".encode(), hashlib.sha256).hexdigest()
+        headers.update({"x-cnt-timestamp": ts, "x-cnt-signature": sig})
+    req = urllib.request.Request(url, data=body.encode(), method="POST", headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=20) as r:
             return json.loads(r.read() or b"{}").get("ok") is True
@@ -147,8 +159,8 @@ def main() -> None:
     url = os.environ.get("CNT_ARCHIVE_URL", "https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/archive")
     secret = os.environ.get("CNT_ARCHIVE_HMAC_SECRET", "")
     dry = os.environ.get("EP_DRY_RUN") == "1"
-    if not secret and not dry:
-        sys.exit("CNT_ARCHIVE_HMAC_SECRET required")
+    if not secret and not os.environ.get("CNT_ARCHIVE_KEY_FILE") and not dry:
+        sys.exit("CNT archive key file or HMAC secret required")
     if "/fgbears/" in url:
         sys.exit("refusing FGB endpoint")
     state_path = os.environ.get("CNT_AIR_STATE", "/cnt-archive/state/air-observer.json")
