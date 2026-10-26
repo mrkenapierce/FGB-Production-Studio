@@ -487,6 +487,8 @@ def cleanup_confirmed(root: Path, retention_hours: int) -> None:
                 or not isinstance(confirmed_epoch, (int, float))
                 or confirmed_epoch > cutoff):
             continue
+        offsite_required = env("FGB_OFFSITE_REQUIRED", "0") == "1"
+        media_remaining = False
         for key, folder in (("source", "hourly"), ("mp4", "final")):
             value = state.get(key)
             if not value:
@@ -495,13 +497,36 @@ def cleanup_confirmed(root: Path, retention_hours: int) -> None:
             # State files are internal, but still enforce this deletion boundary.
             if not file_path.resolve().is_relative_to((root / folder).resolve()):
                 log(f"ARCHIVE_CLEANUP_SKIPPED_UNSAFE_PATH={path.name}:{key}")
+                media_remaining = True
                 continue
+            if not file_path.exists():
+                continue
+            if key == "source" and offsite_required:
+                # The raw recording is retained until byte-level offsite proof
+                # exists. The offsite script creates this receipt ONLY after
+                # uploading and downloading the object to compare SHA-256.
+                receipt = root / "offsite" / (file_path.name + ".sha256")
+                try:
+                    recorded = receipt.read_text(encoding="utf-8").split()[0]
+                    if not re.fullmatch(r"[a-f0-9]{64}", recorded):
+                        raise ValueError("Invalid offsite receipt digest")
+                    with file_path.open("rb") as handle:
+                        actual = hashlib.file_digest(handle, "sha256").hexdigest()
+                    if recorded != actual:
+                        raise ValueError("Offsite proof does not match local source")
+                except (OSError, ValueError, IndexError):
+                    media_remaining = True
+                    log(f"ARCHIVE_LOCAL_SOURCE_RETAINED_PENDING_OFFSITE={file_path.name}")
+                    continue
             try:
                 file_path.unlink(missing_ok=True)
             except OSError:
-                pass
-        # Preserve upload receipts, segment IDs, and playlist confirmation records.
-        if not state.get("media_removed"):
+                media_remaining = True
+            if file_path.exists():
+                media_remaining = True
+        # Record media removal only when no local copies remain. Preserve
+        # YouTube upload receipts, segment IDs and playlist ledger indefinitely.
+        if not media_remaining and not state.get("media_removed"):
             state["media_removed"] = True
             state["media_removed_at"] = now_iso()
             atomic_json(path, state)
