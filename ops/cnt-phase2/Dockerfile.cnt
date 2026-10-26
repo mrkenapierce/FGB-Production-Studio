@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN useradd -m -u 1000 cnt
 WORKDIR /opt/cnt
 COPY run-cnt.sh episode-lib.sh episode-cutter.sh cnt-rolling-recorder.sh cnt-daily-recorder.sh \
-     cnt-archive-retention.sh archive-retention.py cnt-air-observer.py ./
+     cnt-archive-retention.sh archive-retention.py cnt-air-observer.py cnt-api-client.py ./
 RUN chmod +x *.sh cnt-air-observer.py
 USER cnt
 
