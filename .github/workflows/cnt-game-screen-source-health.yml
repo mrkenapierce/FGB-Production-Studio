@@ -1,0 +1,64 @@
+name: CNT game-screen source and capture health — read only
+on:
+  workflow_dispatch:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths:
+      - .github/workflows/cnt-game-screen-source-health.yml
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    env:
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+    steps:
+      - name: Probe live app endpoints with independent short timeouts
+        shell: bash
+        run: |
+          set -euo pipefail
+          for item in 'GAME_SCREEN|https://epiccontentcreatorgrants.org/api/public/fgbears/game-screen' 'CNT_PAGE|https://epiccontentcreatorgrants.org/channels/cruisenewstrivia/broadcast' 'FGB_PAGE|https://epiccontentcreatorgrants.org/fgb-broadcast?target=youtube'; do
+            IFS='|' read -r name url <<< "$item"
+            printf '%s ' "$name"
+            curl --connect-timeout 4 --max-time 12 -s -o "/tmp/$name" -w 'http=%{http_code} seconds=%{time_total} bytes=%{size_download}\n' "$url" || echo "probe_failed=$?"
+            if [ "$name" = GAME_SCREEN ] && [ -s /tmp/GAME_SCREEN ]; then
+              python3 - <<'PY'
+          import json
+          try:
+              x=json.load(open('/tmp/GAME_SCREEN'))
+              print('GAME_SCREEN_DATA='+str({k:x.get(k) for k in ('phase','presentationType','questionNumber','prompt')} )[:420])
+          except Exception as e:print('GAME_SCREEN_PARSE_ERROR='+str(e)[:120])
+          PY
+            fi
+          done
+      - name: Inspect live CNT renderer and both encoders via OVH — NO mutation
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key" || { echo 'BLOCKED=SSH_KEY_NOT_AVAILABLE'; exit 4; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/key; chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null || true
+          test -s ~/.ssh/known_hosts || { echo 'BLOCKED=NO_SSH_BANNER'; exit 5; }
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8 -i ~/.ssh/key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo OVH_READ_ONLY=YES
+          echo "CNT_CONTAINER=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)"
+          echo "FGB_CONTAINER=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)"
+          echo "LOAD_AVERAGE=$(cut -d' ' -f1-3 /proc/loadavg)"
+          echo "MEM_AVAILABLE_MB=$(awk '/^MemAvailable:/{printf "%.0f",$2/1024}' /proc/meminfo)"
+          for pair in 'CNT|epic-cnt-capture|/tmp/cnt-ffmpeg.progress' 'FGB|fgb-transport-youtube-1|/tmp/fgb-ffmpeg.progress'; do
+            IFS='|' read -r name container file <<< "$pair"
+            sudo -n docker exec "$container" sh -lc 'test -f "'$file'" && grep -E "^(frame|fps|speed|progress)=" "'$file'" | tail -n4' | sed "s/^/$name-/"
+          done
+          echo CNT_CHROMIUM_TABS_BEGIN
+          sudo -n docker exec epic-cnt-capture sh -lc 'curl --max-time 6 -fsS http://127.0.0.1:9223/json/list' | python3 -c 'import json,sys
+          for p in json.load(sys.stdin):
+              if p.get("type")=="page": print("CNT_TAB_URL="+p.get("url",""))' || echo CNT_DEVTOOLS_FAILURE=YES
+          echo CNT_CHROMIUM_TABS_END
+          echo CNT_REMOTE_SOURCE
+          sudo -n docker exec epic-cnt-capture sh -lc "curl --connect-timeout 4 --max-time 12 -s -o /tmp/cnt-game-screen-response.json -w 'game_screen_http=%{http_code} seconds=%{time_total} bytes=%{size_download}\n' 'https://epiccontentcreatorgrants.org/api/public/fgbears/game-screen'" || echo CNT_GAME_SCREEN_REMOTE_ERROR=YES
+          REMOTE
