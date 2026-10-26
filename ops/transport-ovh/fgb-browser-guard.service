@@ -1,0 +1,14 @@
+[Unit]
+Description=FGB Chromium Renderer Crash Recovery (FGB Only)
+Documentation=https://github.com/mrkenapierce/FGB-Production-Studio/tree/main/ops/transport-ovh
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/libexec/fgb-browser-guard.sh
+TimeoutStartSec=105
+User=root
+NoNewPrivileges=true
+PrivateTmp=false
+ProtectHome=true
