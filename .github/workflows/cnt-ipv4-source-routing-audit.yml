@@ -1,0 +1,37 @@
+name: CNT IPv4 origin route from host netns vs container runtime
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths: [.github/workflows/cnt-ipv4-source-routing-audit.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    env:
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Compare two possible CNT-only upstream fetch paths without mutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$ORACLE_SSH_KEY"; fi
+          test -n "$key"
+          install -d -m 700 ~/.ssh; printf '%s\n' "$key" > ~/.ssh/key; chmod 600 ~/.ssh/key
+          ssh-keyscan -T 7 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes -i ~/.ssh/key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          pid=$(sudo -n docker inspect -f '{{.State.Pid}}' epic-cnt-capture)
+          url=https://epiccontentcreatorgrants.org/api/public/fgbears/game-screen
+          for i in 1 2 3; do
+            echo TEST_SAMPLE=$i
+            sudo -n timeout 9 nsenter -t "$pid" -n curl -4 -sS --connect-timeout 2 --max-time 6 -o /dev/null -w 'HOST_NETNS_HTTP=%{http_code} TOTAL=%{time_total}\n' "$url" 2>&1 || echo HOST_NETNS_REQUEST_FAILED
+            sudo -n timeout 9 docker exec epic-cnt-capture curl -4 -sS --connect-timeout 2 --max-time 6 -o /dev/null -w 'DOCKER_EXEC_HTTP=%{http_code} TOTAL=%{time_total}\n' "$url" 2>&1 || echo DOCKER_EXEC_REQUEST_FAILED
+          done
+          echo CNT_RELAY_STATE=$(systemctl is-active cnt-feed-relay.service || true)
+          echo CNT_STATE=$(sudo -n docker inspect -f '{{.State.Status}}' epic-cnt-capture)
+          echo FGB_STATE=$(sudo -n docker inspect -f '{{.State.Status}}' fgb-transport-youtube-1)
+          REMOTE
