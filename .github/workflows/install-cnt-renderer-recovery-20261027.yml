@@ -1,0 +1,70 @@
+name: Install CNT renderer recovery
+on:
+  push:
+    paths: ['.github/workflows/install-cnt-renderer-recovery-20261027.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cnt-renderer-recovery
+  cancel-in-progress: false
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate and stage
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ops/cnt-phase2/cnt-renderer-probe.py ops/cnt-phase2/cnt-page-recovery.py
+          bash -n ops/cnt-phase2/cnt-renderer-guard.sh
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          scp -q -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ops/cnt-phase2/cnt-renderer-probe.py ops/cnt-phase2/cnt-page-recovery.py ops/cnt-phase2/cnt-renderer-guard.sh ubuntu@40.160.144.185:/tmp/
+      - name: Install isolated CNT page guard and verify
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          if systemctl list-unit-files --no-legend | grep -Ei 'cnt.*(guard|watchdog)' | grep -v epic-cnt-renderer; then
+            echo EXISTING_CNT_GUARD_REQUIRES_REVIEW
+            exit 1
+          fi
+          sudo install -m 755 /tmp/cnt-renderer-probe.py /tmp/cnt-page-recovery.py /tmp/cnt-renderer-guard.sh /usr/local/libexec/
+          sudo tee /etc/systemd/system/epic-cnt-renderer.service >/dev/null <<'UNIT'
+          [Unit]
+          Description=CNT broadcast renderer health and bounded page recovery
+          After=docker.service
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/local/libexec/cnt-renderer-guard.sh
+          TimeoutStartSec=75
+          UNIT
+          sudo tee /etc/systemd/system/epic-cnt-renderer.timer >/dev/null <<'UNIT'
+          [Unit]
+          Description=Check CNT broadcast renderer every 20 seconds
+          [Timer]
+          OnBootSec=60
+          OnUnitInactiveSec=20
+          AccuracySec=1
+          [Install]
+          WantedBy=timers.target
+          UNIT
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now epic-cnt-renderer.timer
+          sudo systemctl start epic-cnt-renderer.service || true
+          for i in 1 2 3 4; do
+            sleep 25
+            sudo systemctl start epic-cnt-renderer.service || true
+          done
+          sudo systemctl is-active epic-cnt-renderer.timer
+          sudo journalctl -u epic-cnt-renderer.service --since '-4 minutes' --no-pager
+          sudo docker exec epic-cnt-capture python3 /tmp/cnt-renderer-probe.py
+          sudo docker exec epic-cnt-capture sh -c 'test $(( $(date +%s) - $(stat -c %Y /tmp/cnt-ffmpeg.progress) )) -lt 30'
+          echo CNT_RENDERER_AND_ENCODER_VERIFIED
+          REMOTE
