@@ -1,0 +1,2 @@
+Deploy and verify the three-hour receipt-gated archive cleanup in dry-run mode for FGB and CNT.
+Requested: 2026-10-27
