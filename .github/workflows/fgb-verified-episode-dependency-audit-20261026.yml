@@ -1,0 +1,42 @@
+name: FGB Verify Episode Dependencies and YouTube Before Cleanup
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fgb-verified-episode-dependency-audit-20261026.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: SSH setup
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Read only authenticated FGB episode and video-status audit
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo FGB_EPISODE_VERIFY_BEGIN
+          date -u +%FT%TZ
+          echo FGB_PRODUCTION_CONTAINERS
+          sudo docker ps --filter name=fgb-transport --format '{{.Names}} {{.Status}}'
+          sudo docker exec fgb-transport-archive_uploader-1 python3 - <<'PY' || true
+          print("note: stdin using -i not available")
+          PY
+          echo FGB_ARCHIVER_RUNTIME
+          sudo docker exec fgb-transport-archive_uploader-1 sh -lc 'python3 -c "import runpy; a=runpy.run_path(\"/app/archive-uploader.py\"); print(a[\"get_token\"].__name__)"' 2>/dev/null || echo "archive source path may differ"
+          echo EPISODE_HOLD_FILE
+          if sudo test -f /srv/fgb-archive/state/episode_hold; then sudo stat -c '%n %s bytes %Y' /srv/fgb-archive/state/episode_hold; else echo MISSING; fi
+          echo CURRENT_DISK
+          df -h /srv/fgb-archive
+          echo READ_ONLY_DONE
+          REMOTE
