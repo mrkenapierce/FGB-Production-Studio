@@ -1,0 +1,42 @@
+name: OVH Live Disk Snapshot 2026-10-26 22-44 CT
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ovh-disk-snapshot-20261026-2244ct.yml'
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Set up direct OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Read-only OVH disk space and archive footprint
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo "OVH_DISK_SNAPSHOT_BEGIN"
+          date -u +'%Y-%m-%dT%H:%M:%SZ'
+          echo "DISK_FREE_MIB_AND_TOTAL"
+          df -BM -P / /srv/fgb-archive /srv/cnt-archive
+          echo "DISK_FREE_BYTES_ROOT"
+          stat -f -c 'available_blocks=%a block_size=%S total_blocks=%b' /
+          echo "ARCHIVE_SIZE"
+          du -sh /srv/fgb-archive /srv/cnt-archive 2>/dev/null || true
+          echo "STREAM_STATUS"
+          sudo docker ps --filter name=fgb-transport-youtube --filter name=epic-cnt-capture --format '{{.Names}}: {{.Status}}'
+          echo "NO_STREAM_OR_STORAGE_MUTATIONS=true"
+          echo "OVH_DISK_SNAPSHOT_END"
+          REMOTE
