@@ -1,0 +1,120 @@
+name: Activate three-hour archive cleanup
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths:
+      - ops/archive-cleanup/ACTIVATE.txt
+permissions:
+  contents: read
+concurrency:
+  group: archive-cleanup-production
+  cancel-in-progress: false
+jobs:
+  activate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      OVH_HOST: 40.160.144.185
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Connect to OVH
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; [ -n "$key" ] || key="$ORACLE_SSH_KEY"
+          test -n "$key"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/archive_key
+          chmod 600 ~/.ssh/archive_key
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/archive_known_hosts 2>/dev/null
+          ssh -o BatchMode=yes -o UserKnownHostsFile=~/.ssh/archive_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/archive_key "ubuntu@$OVH_HOST" 'printf ARCHIVE_SSH_AUTH=OK'
+      - name: Validate dry-run and activate channel-safe cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o UserKnownHostsFile=~/.ssh/archive_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/archive_key "ubuntu@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          sudo python3 - <<'PY'
+          import datetime, json
+          paths = [
+              "/srv/fgb-archive/state/cleanup-status.json",
+              "/srv/cnt-archive/state/cleanup-status.json",
+          ]
+          now = datetime.datetime.now(datetime.timezone.utc)
+          for path in paths:
+              with open(path) as f:
+                  s = json.load(f)
+              assert s["mode"] == "dry-run", s
+              assert s["retention_hours"] == 3, s
+              assert not s["error"], s
+              last = datetime.datetime.fromisoformat(s["last_run"].replace("Z", "+00:00"))
+              assert (now-last).total_seconds() < 1800, (path, s["last_run"])
+              assert s["deleted_count"] == 0, s
+              print("DRY_RUN_APPROVED", s["channel"],
+                    "candidates="+str(s["candidate_count"]),
+                    "protected="+str(s["protected_count"]),
+                    "overdue="+str(s["overdue_count"]))
+          PY
+
+          youtube_before=$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)
+          cnt_before=$(sudo docker inspect -f '{{.Id}}' epic-cnt-capture)
+          sudo python3 - <<'PY'
+          from pathlib import Path
+          p = Path("/opt/fgb-transport/.env")
+          text = p.read_text()
+          lines = text.splitlines()
+          key = "FGB_ARCHIVE_RETENTION_HOURS"
+          out = []
+          found = False
+          for line in lines:
+              if line.startswith(key+"="):
+                  out.append(key+"=3")
+                  found = True
+              else:
+                  out.append(line)
+          if not found:
+              out.append(key+"=3")
+          tmp = p.with_suffix(".env.cleanup-tmp")
+          tmp.write_text("\n".join(out)+"\n")
+          tmp.chmod(p.stat().st_mode)
+          tmp.chown(p.stat().st_uid, p.stat().st_gid)
+          tmp.replace(p)
+          PY
+          cd /opt/fgb-transport
+          sudo docker compose up -d --no-deps --force-recreate archive_uploader >/dev/null
+          test "$(sudo docker inspect -f '{{.State.Running}}' fgb-transport-archive_uploader-1)" = true
+          fgb_retention=$(sudo docker inspect fgb-transport-archive_uploader-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^FGB_ARCHIVE_RETENTION_HOURS=//p')
+          test "$fgb_retention" = 3
+
+          sudo sed -i 's/^DRY_RUN=.*/DRY_RUN=false/; s/^CLEANUP_CONFIRM_DELETE=.*/CLEANUP_CONFIRM_DELETE=yes/' /etc/epic-archive-cleanup/cnt.env
+          sudo systemctl start epic-archive-cleanup-cnt.service
+          sudo python3 - <<'PY'
+          import json
+          with open("/srv/cnt-archive/state/cleanup-status.json") as f:
+              s = json.load(f)
+          assert s["mode"] == "apply", s
+          assert s["retention_hours"] == 3, s
+          assert not s["error"], s
+          print("CNT_CLEANUP_APPLY",
+                "candidates="+str(s["candidate_count"]),
+                "deleted="+str(s["deleted_count"]),
+                "protected="+str(s["protected_count"]),
+                "overdue="+str(s["overdue_count"]),
+                "disk_free_mb="+str(s["disk_free_mb"]))
+          PY
+
+          test "$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)" = "$youtube_before"
+          test "$(sudo docker inspect -f '{{.Id}}' epic-cnt-capture)" = "$cnt_before"
+          test "$(sudo docker inspect -f '{{.State.Running}}' fgb-transport-youtube-1)" = true
+          test "$(sudo docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
+          test "$(sudo systemctl is-active epic-archive-cleanup-fgb.timer)" = active
+          test "$(sudo systemctl is-active epic-archive-cleanup-cnt.timer)" = active
+          echo STREAM_CONTAINER_IDS_UNCHANGED=YES
+          echo FGB_ARCHIVE_RETENTION_HOURS=3
+          echo FGB_CLEANUP_ENGINE=existing_receipt_gated_uploader
+          echo CNT_CLEANUP_ENGINE=scheduled_receipt_gated_service
+          sudo docker logs --tail 30 fgb-transport-archive_uploader-1 2>&1 | sed -E 's/(key|secret|token)=[^ ]+/\1=<redacted>/Ig'
+          sudo journalctl -u epic-archive-cleanup-cnt.service -n 40 --no-pager
+          REMOTE
