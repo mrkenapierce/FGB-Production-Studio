@@ -5,28 +5,38 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 27 Oct 2026 18:40:15 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 27 Oct 2026 22:36:08 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Position grades from the Patriots’ loss to the Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Position grades from the Patriots’ loss to the Bears</description>
-      <link>https://sports.yahoo.com/articles/position-grades-patriots-loss-bears-182738526.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9c3cbd25e63f9c66cea3</guid>
-      <pubDate>Tue, 27 Oct 2026 18:27:38 GMT</pubDate>
+      <title>Bears believe Sam Roush will help pick up slack at tight end</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears believe Sam Roush will help pick up slack at tight end</description>
+      <link>https://www.chicagobears.com/news/bears-believe-sam-roush-will-help-pick-up-slack-at-tight-end</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ebf7adedc1fa25ceecad</guid>
+      <pubDate>Tue, 27 Oct 2026 21:25:22 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Can Kyler Gordon continue making a big impact for the Chicago Bears?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Can Kyler Gordon continue making a big impact for the Chicago Bears?</description>
+      <link>https://sports.yahoo.com/articles/kyler-gordon-continue-making-big-200000573.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0a9b7bab9ad945913b72</guid>
+      <pubDate>Tue, 27 Oct 2026 20:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Chicago Bears Stock Watch: Wide Receivers Up, Defensive Backs Down</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Stock Watch: Wide Receivers Up, Defensive Backs Down</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-stock-watch-wide-180000621.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a60eb8131d98135aebd1</guid>
-      <pubDate>Tue, 27 Oct 2026 18:00:00 GMT</pubDate>
+      <title>49ers Trade For DeForest Buckner: Who Are Bears&apos; Other DT Options on Trade Market?</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 49ers Trade For DeForest Buckner: Who Are Bears&apos; Other DT Options on Trade Market?</description>
+      <link>https://www.si.com/nfl/bears/onsi/49ers-trade-deforest-buckner-bears-dt-options-trade-market</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-de5d8c894558b97a69a5</guid>
+      <pubDate>Tue, 27 Oct 2026 14:16:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -40,33 +50,23 @@
     </item>
 
     <item>
-      <title>Los Bears rinden homenaje al legendario Mike Ditka el jueves en el Soldier Field</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Los Bears rinden homenaje al legendario Mike Ditka el jueves en el Soldier Field</description>
-      <link>https://www.chicagobears.com/news/los-bears-rinden-homenaje-al-legendario-mike-ditka-el-jueves-en-el-soldier-field</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ece4998cc3f9db4d5e66</guid>
-      <pubDate>Tue, 27 Oct 2026 13:44:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears Surprisingly Showed Interest in Quenton Nelson Trade Before Seahawks-Colts Deal</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Surprisingly Showed Interest in Quenton Nelson Trade Before Seahawks-Colts Deal</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-quenton-nelson-trade-colts-seahawks</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a9a833a6d3979f904aa9</guid>
-      <pubDate>Tue, 27 Oct 2026 11:00:00 GMT</pubDate>
+      <title>Kyle Monangai Tuesday Injury Update, Bears&apos; Roster Move Are Bad Signs for RB&apos;s Week 8 Status</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyle Monangai Tuesday Injury Update, Bears&apos; Roster Move Are Bad Signs for RB&apos;s Week 8 Status</description>
+      <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-tuesday-bears-roster-move-bad-signs-week-8</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-43a9aa5de981053f45ea</guid>
+      <pubDate>Tue, 27 Oct 2026 12:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Quentin Nelson Trade Should be Green Light for Bears to Take a Big Swing</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Quentin Nelson Trade Should be Green Light for Bears to Take a Big Swing</description>
-      <link>https://www.si.com/nfl/bears/onsi/quentin-nelson-trade-should-be-green-light-for-bears-to-take-a-big-swing</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ef42d70167c2f66d5d95</guid>
-      <pubDate>Tue, 27 Oct 2026 10:25:00 GMT</pubDate>
+      <title>TNF Odds: Patriots at Bears Spread, Moneyline, Total, Props</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: TNF Odds: Patriots at Bears Spread, Moneyline, Total, Props</description>
+      <link>https://sports.yahoo.com/articles/tnf-odds-patriots-bears-spread-175511824.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b6ebd3a7e6e53c3ffcee</guid>
+      <pubDate>Tue, 27 Oct 2026 10:55:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
