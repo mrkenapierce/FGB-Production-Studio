@@ -1,0 +1,37 @@
+name: FGB uploader layout for guarded cleanup
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fgb-uploader-runtime-layout-20261026.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: SSH setup
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Read-only FGB uploader configuration
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo CONFIG
+          sudo docker inspect -f 'IMAGE={{.Config.Image}} PATH={{.Path}} ARGS={{json .Args}} MOUNTS={{range .Mounts}}{{.Source}}:{{.Destination}},{{end}}' fgb-transport-archive_uploader-1
+          echo PROCESS
+          sudo docker exec fgb-transport-archive_uploader-1 sh -lc 'ps -eo pid,comm,args | head -14 | cut -c1-160'
+          echo SOURCE_CANDIDATES
+          sudo docker exec fgb-transport-archive_uploader-1 sh -lc 'for p in /app/archive-uploader.py /opt/fgb/archive-uploader.py /usr/local/bin/archive-uploader.py /opt/transport/archive-uploader.py /archive/archive-uploader.py; do if test -f "$p"; then printf "FOUND:%s\n" "$p"; fi; done'
+          echo PYTHON_MODULES
+          sudo docker exec fgb-transport-archive_uploader-1 sh -lc 'python3 --version; command -v python3; command -v curl || true'
+          echo END
+          REMOTE
