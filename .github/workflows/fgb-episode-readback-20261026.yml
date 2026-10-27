@@ -1,0 +1,26 @@
+name: FGB episode registry authenticated readback
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fgb-episode-readback-20261026.yml']
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: SSH setup
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          mkdir -p -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Query signed FGB episode dependencies read-only
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'sudo docker exec fgb-transport-archive_uploader-1 python3 -c '"'"'import runpy,json; a=runpy.run_path("/opt/transport/archive-uploader.py"); r=a["api_call"]({"action":"episode_jobs","pageSize":100}); d=r.get("dependencies") or {}; print(json.dumps({"api_ok":r.get("ok"),"pending_job_count":len(r.get("jobs") or []),"dependency_page_count":len(d.get("items") or []),"dependency_complete":d.get("complete"),"has_next_cursor":bool(d.get("nextCursor")),"snapshotAt":d.get("snapshotAt")})); assert r.get("ok") is True and isinstance(d.get("complete"),bool)'"'"''
