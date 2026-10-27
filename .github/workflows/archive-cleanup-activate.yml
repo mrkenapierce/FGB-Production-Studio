@@ -61,6 +61,7 @@ jobs:
           youtube_before=$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)
           cnt_before=$(sudo docker inspect -f '{{.Id}}' epic-cnt-capture)
           sudo python3 - <<'PY'
+          import os
           from pathlib import Path
           p = Path("/opt/fgb-transport/.env")
           text = p.read_text()
@@ -79,7 +80,7 @@ jobs:
           tmp = p.with_suffix(".env.cleanup-tmp")
           tmp.write_text("\n".join(out)+"\n")
           tmp.chmod(p.stat().st_mode)
-          tmp.chown(p.stat().st_uid, p.stat().st_gid)
+          os.chown(tmp, p.stat().st_uid, p.stat().st_gid)
           tmp.replace(p)
           PY
           fgb_archive_key=$(sudo sed -n 's/^FGB_ARCHIVE_API_KEY=//p' /opt/fgb-transport/.env | head -1)
