@@ -122,62 +122,6 @@ class Tests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             ac.check_root("fgb", "/cnt-archive")
 
-    def test_cnt_uses_cnt_credentials_only(self):
-        self.assertEqual(ac.CHANNELS["cnt"]["archive_key_env"], "CNT_ARCHIVE_HMAC_SECRET")
-        self.assertNotIn("secret_env", ac.CHANNELS["cnt"])
-        self.assertEqual(ac.CHANNELS["fgb"]["archive_key_env"], "FGB_ARCHIVE_API_KEY")
-        self.assertEqual(ac.CHANNELS["fgb"]["secret_env"], "FGB_TRANSPORT_HEARTBEAT_SECRET")
-        e = Env("cnt"); s = e.run(None, CNT_ARCHIVE_URL="", FGB_TRANSPORT_HEARTBEAT_SECRET="x")
-        self.assertIn("CNT_ARCHIVE", s["error"])
-
-    def _capture_request(self, **auth):
-        import io
-        captured = {}
-        class Resp(io.BytesIO):
-            def __enter__(self): return self
-            def __exit__(self, *args): return False
-        def fake_urlopen(req, timeout=None):
-            captured["headers"] = {k.lower(): v for k, v in req.header_items()}
-            captured["body"] = req.data.decode()
-            return Resp(b'{"ok":true}')
-        original = ac.urllib.request.urlopen
-        ac.urllib.request.urlopen = fake_urlopen
-        try:
-            ac.signed_post("https://example.invalid/archive", auth.pop("prefix"),
-                           '{"action":"cleanup"}', **auth)
-        finally:
-            ac.urllib.request.urlopen = original
-        return captured
-
-    def test_fgb_static_key_request_is_key_only(self):
-        r = self._capture_request(prefix="x-fgb", archive_key="fgb-static-key",
-                                  hmac_secret="must-not-be-sent")
-        h = r["headers"]
-        self.assertEqual(h["x-fgb-archive-key"], "fgb-static-key")
-        self.assertNotIn("x-fgb-timestamp", h)
-        self.assertNotIn("x-fgb-signature", h)
-        self.assertNotIn("x-cnt-archive-key", h)
-
-    def test_fgb_hmac_request_signs_timestamp_dot_body(self):
-        import hashlib, hmac
-        secret = "fgb-hmac-only"
-        r = self._capture_request(prefix="x-fgb", hmac_secret=secret)
-        h = r["headers"]
-        expected = hmac.new(secret.encode(),
-                            f'{h["x-fgb-timestamp"]}.{r["body"]}'.encode(),
-                            hashlib.sha256).hexdigest()
-        self.assertEqual(h["x-fgb-signature"], expected)
-        self.assertNotIn("x-fgb-archive-key", h)
-        self.assertNotIn(secret, h.values())
-
-    def test_cnt_request_is_archive_key_only_and_separate(self):
-        r = self._capture_request(prefix="x-cnt", archive_key="cnt-key-only")
-        h = r["headers"]
-        self.assertEqual(h["x-cnt-archive-key"], "cnt-key-only")
-        self.assertNotIn("x-cnt-timestamp", h)
-        self.assertNotIn("x-cnt-signature", h)
-        self.assertFalse(any(k.startswith("x-fgb-") for k in h))
-
     def _age(self, seconds):
         e = Env(); os.utime(e.scan / OLD, (NOW - seconds, NOW - seconds))
         s = e.run(ok_fetch(["20261027T080001-0500"]), DRY_RUN="false", CLEANUP_CONFIRM_DELETE="yes")
@@ -200,6 +144,64 @@ class Tests(unittest.TestCase):
                            {"name": NEW, "kind": "file", "size": 1, "mtime": NOW - 7200}],
                           now=NOW, receipts={"20261027T080001-0500"}, held=set(), holds_ok=True, grace=120, retention=10800)
         self.assertEqual(out[0][1:3], ("PROTECT", "confirmed_within_retention"))
+
+    def _capture(self, channel, env):
+        import io
+        captured = {}
+
+        class Resp(io.BytesIO):
+            def __enter__(self): return self
+            def __exit__(self, *a): return False
+
+        def fake_urlopen(req, timeout=None):
+            captured["headers"] = {k.lower(): v for k, v in req.header_items()}
+            captured["body"] = req.data.decode()
+            return Resp(b'{"ok": true}')
+
+        orig = ac.urllib.request.urlopen
+        ac.urllib.request.urlopen = fake_urlopen
+        try:
+            ac.signed_post("https://example.invalid/x", channel, env, '{"action":"cleanup"}')
+        finally:
+            ac.urllib.request.urlopen = orig
+        return captured["headers"], captured["body"]
+
+    def test_fgb_static_key_request(self):
+        h, _ = self._capture("fgb", {"FGB_ARCHIVE_API_KEY": "k-fake", "FGB_TRANSPORT_HEARTBEAT_SECRET": "h-fake"})
+        self.assertEqual(h.get("x-fgb-archive-key"), "k-fake")
+        self.assertNotIn("x-fgb-signature", h); self.assertNotIn("x-fgb-timestamp", h)
+
+    def test_fgb_hmac_request(self):
+        import hashlib, hmac as hm
+        h, body = self._capture("fgb", {"FGB_TRANSPORT_HEARTBEAT_SECRET": "h-fake"})
+        self.assertNotIn("x-fgb-archive-key", h)
+        expected = hm.new(b"h-fake", f"{h['x-fgb-timestamp']}.{body}".encode(), hashlib.sha256).hexdigest()
+        self.assertTrue(hm.compare_digest(h["x-fgb-signature"], expected))
+
+    def test_cnt_key_only_request(self):
+        h, _ = self._capture("cnt", {"CNT_ARCHIVE_HMAC_SECRET": "c-fake"})
+        self.assertEqual(h.get("x-cnt-archive-key"), "c-fake")
+        self.assertNotIn("x-cnt-timestamp", h); self.assertNotIn("x-cnt-signature", h)
+
+    def test_channel_separation(self):
+        h, _ = self._capture("cnt", {"CNT_ARCHIVE_HMAC_SECRET": "c-fake", "FGB_ARCHIVE_API_KEY": "k-fake"})
+        self.assertFalse(any(k.startswith("x-fgb-") for k in h))
+        h, _ = self._capture("fgb", {"FGB_ARCHIVE_API_KEY": "k-fake", "CNT_ARCHIVE_HMAC_SECRET": "c-fake"})
+        self.assertFalse(any(k.startswith("x-cnt-") for k in h))
+        with self.assertRaises(RuntimeError):  # FGB never borrows CNT's key
+            ac.auth_headers("fgb", {"CNT_ARCHIVE_HMAC_SECRET": "c-fake"}, "{}")
+
+    def test_hmac_secret_never_sent_as_archive_key(self):
+        h, _ = self._capture("fgb", {"FGB_TRANSPORT_HEARTBEAT_SECRET": "h-fake"})
+        self.assertNotIn("h-fake", h.values())
+        h, _ = self._capture("fgb", {"FGB_ARCHIVE_API_KEY": "k-fake", "FGB_TRANSPORT_HEARTBEAT_SECRET": "h-fake"})
+        self.assertNotIn("h-fake", h.values())
+
+    def test_missing_credentials_fail_closed(self):
+        for ch, env in (("fgb", {"ARCHIVE_URL": "https://example.invalid"}), ("cnt", {"CNT_ARCHIVE_URL": "https://example.invalid", "FGB_ARCHIVE_API_KEY": "k"})):
+            e = Env(ch); s = e.run(None, DRY_RUN="false", CLEANUP_CONFIRM_DELETE="yes", **env)
+            self.assertEqual(s["deleted_count"], 0); self.assertIn("not set", s["error"])
+            self.assertTrue((e.scan / OLD).exists())
 
     def test_status_metrics_present(self):
         s = Env().run(ok_fetch([]))
