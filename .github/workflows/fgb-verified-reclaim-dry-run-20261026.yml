@@ -1,0 +1,49 @@
+name: FGB Verified Reclaim Dry Run
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fgb-verified-reclaim-dry-run-20261026.yml']
+permissions:
+  contents: read
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check one-shot script
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ops/transport-ovh/fgb-verified-reclaim-once.py
+          grep -q 'if not args.apply:' ops/transport-ovh/fgb-verified-reclaim-once.py
+          grep -q 'youtube_status_unverified_do_not_delete_anything' ops/transport-ovh/fgb-verified-reclaim-once.py
+          grep -q 'episode_dependencies_changed_mid_batch' ops/transport-ovh/fgb-verified-reclaim-once.py
+      - name: Prepare OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Copy FGB-only guard and perform dry run
+        run: |
+          set -euo pipefail
+          addr=ubuntu@40.160.144.185
+          args=(-o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key)
+          scp "${args[@]}" -q ops/transport-ovh/fgb-verified-reclaim-once.py "$addr:/tmp/fgb-verified-reclaim-once.py"
+          ssh "${args[@]}" "$addr" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          fgb=$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)
+          cnt=$(sudo docker inspect -f '{{.Id}}' epic-cnt-capture)
+          sudo docker cp /tmp/fgb-verified-reclaim-once.py fgb-transport-archive_uploader-1:/tmp/fgb-verified-reclaim-once.py
+          echo FGB_DRY_RUN_BEGIN
+          sudo docker exec fgb-transport-archive_uploader-1 python3 /tmp/fgb-verified-reclaim-once.py
+          echo FGB_DRY_RUN_COMPLETE
+          test "$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)" = "$fgb"
+          test "$(sudo docker inspect -f '{{.Id}}' epic-cnt-capture)" = "$cnt"
+          echo STREAMS_UNCHANGED=true
+          df -h /srv/fgb-archive
+          REMOTE
