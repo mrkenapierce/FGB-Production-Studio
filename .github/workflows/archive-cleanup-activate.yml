@@ -82,6 +82,8 @@ jobs:
           tmp.chown(p.stat().st_uid, p.stat().st_gid)
           tmp.replace(p)
           PY
+          fgb_archive_key=$(sudo sed -n 's/^FGB_ARCHIVE_API_KEY=//p' /opt/fgb-transport/.env | head -1)
+          test -n "$fgb_archive_key"
           cd /opt/fgb-transport
           sudo docker compose up -d --no-deps --force-recreate archive_uploader >/dev/null
           test "$(sudo docker inspect -f '{{.State.Running}}' fgb-transport-archive_uploader-1)" = true
