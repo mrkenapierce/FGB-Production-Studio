@@ -1,0 +1,94 @@
+name: FGB archive reduction read-only eligibility audit
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/fgb-archive-reduction-audit-20261026.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Set up OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Read-only receipt-aware archive sizing
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          date -u +%FT%TZ
+          echo 'ARCHIVE_BREAKDOWN'
+          for d in hourly final state offsite; do
+            sudo du -sh "/srv/fgb-archive/$d" 2>/dev/null || :
+          done
+          echo 'ARCHIVE_RETENTION_FLAGS'
+          sudo docker exec fgb-transport-archive_uploader-1 sh -lc 'printf "retention_hours=%s\noffsite_required=%s\n" "${FGB_ARCHIVE_RETENTION_HOURS:-24}" "${FGB_OFFSITE_REQUIRED:-0}"'
+          echo 'ARCHIVE_DEPENDENCY_HOLD'
+          if sudo test -e /srv/fgb-archive/state/episode_hold; then
+            sudo stat -c 'episode_hold_present=true mtime=%Y size=%s bytes' /srv/fgb-archive/state/episode_hold
+          else echo 'episode_hold_present=false'; fi
+          echo 'ARCHIVE_COUNTS_READONLY'
+          sudo python3 - <<'PY'
+          import json, os, re, time
+          from datetime import datetime
+          from pathlib import Path
+          root=Path('/srv/fgb-archive')
+          states=root/'state'
+          rec=root/'hourly'
+          now=time.time()
+          vid=re.compile(r'^[a-zA-Z0-9_-]{11}$')
+          seg=re.compile(r'^live-(\d{8})-(\d{6})-([+-]\d{4})\.ts$')
+          counts=dict(total_state=0,confirmed=0,pending=0,old_confirmed=0,old_confirmed_gib=0,young_confirmed=0,young_confirmed_gib=0,pending_gib=0,offsite_digest_present=0,offsite_digest_absent=0,bad_receipt=0,unreferenced_ts=0,unreferenced_gib=0,ignored=0,ignored_gib=0)
+          seen=set()
+          def gb(n): return n/1024**3
+          def filebytes(p):
+            try: return p.stat().st_size if p.is_file() and not p.is_symlink() else 0
+            except OSError: return 0
+          for f in states.glob('hourly-*.json'):
+            counts['total_state']+=1
+            try: row=json.loads(f.read_text())
+            except (OSError,ValueError): counts['bad_receipt']+=1; continue
+            src=row.get('source')
+            if not isinstance(src,str) or Path(src).parent!=Path('/archive/hourly') or not seg.fullmatch(Path(src).name):
+              counts['bad_receipt']+=1; continue
+            name=Path(src).name
+            seen.add(name)
+            p=rec/name
+            size=filebytes(p)
+            if row.get('ignored') is True:
+              counts['ignored']+=1; counts['ignored_gib']+=gb(size);continue
+            if row.get('confirmed') is True and isinstance(row.get('video_id'),str) and vid.fullmatch(row['video_id']) and isinstance(row.get('confirmed_epoch'),(float,int)):
+              counts['confirmed']+=1
+              m=seg.fullmatch(name)
+              try: start=datetime.strptime(''.join(m.groups()),'%Y%m%d%H%M%S%z').timestamp()
+              except ValueError: counts['bad_receipt']+=1; continue
+              # Conservative: at least 3 h after nominal full-hour end, plus 3 min idle.
+              if start+3600+3*3600<=now and p.exists() and p.stat().st_mtime<now-180:
+                counts['old_confirmed']+=1;counts['old_confirmed_gib']+=gb(size)
+                if (root/'offsite'/(name+'.sha256')).exists(): counts['offsite_digest_present']+=1
+                else: counts['offsite_digest_absent']+=1
+              else:
+                counts['young_confirmed']+=1;counts['young_confirmed_gib']+=gb(size)
+            else:
+              counts['pending']+=1; counts['pending_gib']+=gb(size)
+          for f in rec.glob('live-*.ts'):
+            if f.name not in seen:
+              counts['unreferenced_ts']+=1;counts['unreferenced_gib']+=gb(filebytes(f))
+          for key in counts:
+            if key.endswith('_gib'): counts[key]=round(counts[key],3)
+          print(json.dumps(counts,sort_keys=True))
+          PY
+          echo 'DISK_NOW'
+          df -h /srv/fgb-archive
+          echo 'NO_RECORDINGS_REMOVED=true'
+          REMOTE
