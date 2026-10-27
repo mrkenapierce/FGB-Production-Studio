@@ -48,7 +48,7 @@ CHANNELS = {
     },
     "cnt": {
         "root": "/cnt-archive", "scan": "rolling", "url_env": "CNT_ARCHIVE_URL",
-        "secret_env": "CNT_ARCHIVE_HMAC_SECRET", "prefix": "x-cnt", "signed": False,
+        "archive_key_env": "CNT_ARCHIVE_HMAC_SECRET", "prefix": "x-cnt",
         "forbidden": ("/srv/fgb-archive", "/archive"),
     },
 }
@@ -85,15 +85,21 @@ def check_root(channel, root):
     return resolved
 
 
-def signed_post(url, secret, prefix, body, timeout=30, archive_key=None, signed=True):
-    headers = {
-        "content-type": "application/json",
-        f"{prefix}-archive-key": archive_key or secret,
-    }
-    if signed:
+def signed_post(url, prefix, body, timeout=30, archive_key=None, hmac_secret=None):
+    """POST using exactly one production auth contract.
+
+    Static archive-key auth is preferred. HMAC signs timestamp.body and never
+    places the HMAC secret in an archive-key header.
+    """
+    headers = {"content-type": "application/json"}
+    if archive_key:
+        headers[f"{prefix}-archive-key"] = archive_key
+    elif hmac_secret:
         ts = str(int(time.time()))
-        sig = hmac.new(secret.encode(), (ts + body).encode(), hashlib.sha256).hexdigest()
+        sig = hmac.new(hmac_secret.encode(), f"{ts}.{body}".encode(), hashlib.sha256).hexdigest()
         headers.update({f"{prefix}-timestamp": ts, f"{prefix}-signature": sig})
+    else:
+        raise RuntimeError("no archive authentication credential configured")
     req = urllib.request.Request(url, data=body.encode(), method="POST", headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 (fixed configured URL)
         return json.loads(resp.read(2_000_000))
@@ -204,13 +210,19 @@ def run(channel, env=os.environ, fetch=None, now=None):
         receipts = None
         try:
             if fetch is None:
-                url, secret = env.get(cfg["url_env"]), env.get(cfg["secret_env"])
-                archive_key = env.get(cfg.get("archive_key_env", "")) or secret
-                if not url or not secret or not archive_key:
-                    raise RuntimeError(f"{cfg['url_env']}/{cfg['secret_env']}/archive key not set")
+                url = env.get(cfg["url_env"])
+                archive_key = env.get(cfg.get("archive_key_env", ""))
+                hmac_secret = env.get(cfg.get("secret_env", ""))
+                if not url:
+                    raise RuntimeError(f"{cfg['url_env']} not set")
+                if channel == "cnt" and not archive_key:
+                    raise RuntimeError(f"{cfg['archive_key_env']} not set")
+                if channel == "fgb" and not (archive_key or hmac_secret):
+                    raise RuntimeError("FGB_ARCHIVE_API_KEY/FGB_TRANSPORT_HEARTBEAT_SECRET not set")
                 fetch = lambda body: signed_post(  # noqa: E731
-                    url, secret, cfg["prefix"], body,
-                    archive_key=archive_key, signed=cfg.get("signed", True)
+                    url, cfg["prefix"], body,
+                    archive_key=archive_key,
+                    hmac_secret=None if archive_key else hmac_secret,
                 )
             receipts = fetch_receipts(fetch)
         except Exception as exc:  # any failure => delete nothing
