@@ -54,9 +54,11 @@ jobs:
           sudo install -d -m 700 /etc/epic-archive-cleanup
           sudo install -m 644 /tmp/epic-archive-cleanup-release/systemd/epic-archive-cleanup-fgb.service /tmp/epic-archive-cleanup-release/systemd/epic-archive-cleanup-fgb.timer /tmp/epic-archive-cleanup-release/systemd/epic-archive-cleanup-cnt.service /tmp/epic-archive-cleanup-release/systemd/epic-archive-cleanup-cnt.timer /etc/systemd/system/
 
-          fgb_secret=$(sudo docker inspect fgb-transport-archive_uploader-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^FGB_ARCHIVE_API_KEY=//p' | head -1)
+          fgb_secret=$(sudo docker inspect fgb-transport-archive_uploader-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^FGB_TRANSPORT_HEARTBEAT_SECRET=//p' | head -1)
+          fgb_archive_key=$(sudo docker inspect fgb-transport-archive_uploader-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^FGB_ARCHIVE_API_KEY=//p' | head -1)
           cnt_secret=$(sudo cat /etc/epic-cnt/archive-key)
           test -n "$fgb_secret"
+          test -n "$fgb_archive_key"
           test -n "$cnt_secret"
           umask 077
           {
@@ -66,6 +68,7 @@ jobs:
             echo CLEANUP_ROOT=/srv/fgb-archive
             echo ARCHIVE_URL=https://epiccontentcreatorgrants.org/api/public/fgbears/archive
             printf 'FGB_TRANSPORT_HEARTBEAT_SECRET=%s\n' "$fgb_secret"
+            printf 'FGB_ARCHIVE_API_KEY=%s\n' "$fgb_archive_key"
             echo CLEANUP_REQUIRE_HOLDS=false
             echo CLEANUP_HOLD_FILES=
           } > /tmp/fgb-cleanup.env
