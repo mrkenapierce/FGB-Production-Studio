@@ -1,0 +1,4 @@
+Activate the verified three-hour receipt-gated cleanup for FGB and CNT.
+Explicit live-deletion approval: 2026-10-27T19:41Z
+Dry-run workflow: 40570647921
+Approved FGB candidates: 21
