@@ -42,13 +42,14 @@ SEGMENT_RE = re.compile(r"\d{8}T\d{6}[+-]\d{4}")
 CHANNELS = {
     "fgb": {
         "root": "/srv/fgb-archive", "scan": "hourly", "url_env": "ARCHIVE_URL",
-        "secret_env": "FGB_TRANSPORT_HEARTBEAT_SECRET", "archive_key_env": "FGB_ARCHIVE_API_KEY",
-        "prefix": "x-fgb", "signed": True,
+        # Static key preferred when configured; HMAC heartbeat secret otherwise.
+        "key_env": "FGB_ARCHIVE_API_KEY", "hmac_env": "FGB_TRANSPORT_HEARTBEAT_SECRET", "prefix": "x-fgb",
         "forbidden": ("/srv/cnt-archive", "/cnt-archive"),
     },
     "cnt": {
         "root": "/cnt-archive", "scan": "rolling", "url_env": "CNT_ARCHIVE_URL",
-        "archive_key_env": "CNT_ARCHIVE_HMAC_SECRET", "prefix": "x-cnt",
+        # CNT production contract: static archive key only (existing env name).
+        "key_env": "CNT_ARCHIVE_HMAC_SECRET", "hmac_env": None, "prefix": "x-cnt",
         "forbidden": ("/srv/fgb-archive", "/archive"),
     },
 }
@@ -85,21 +86,24 @@ def check_root(channel, root):
     return resolved
 
 
-def signed_post(url, prefix, body, timeout=30, archive_key=None, hmac_secret=None):
-    """POST using exactly one production auth contract.
+def auth_headers(channel, env, body):
+    """Exactly one auth method per request; never reuses one value for both.
+    Raises RuntimeError (fail closed) when the channel's credential is missing."""
+    cfg = CHANNELS[channel]
+    prefix, key = cfg["prefix"], env.get(cfg["key_env"]) or ""
+    if key:
+        return {f"{prefix}-archive-key": key}
+    secret = env.get(cfg["hmac_env"]) if cfg["hmac_env"] else ""
+    if not secret:
+        needed = cfg["key_env"] + (f" or {cfg['hmac_env']}" if cfg["hmac_env"] else "")
+        raise RuntimeError(f"{needed} not set")
+    ts = str(int(time.time()))
+    sig = hmac.new(secret.encode(), f"{ts}.{body}".encode(), hashlib.sha256).hexdigest()
+    return {f"{prefix}-timestamp": ts, f"{prefix}-signature": sig}
 
-    Static archive-key auth is preferred. HMAC signs timestamp.body and never
-    places the HMAC secret in an archive-key header.
-    """
-    headers = {"content-type": "application/json"}
-    if archive_key:
-        headers[f"{prefix}-archive-key"] = archive_key
-    elif hmac_secret:
-        ts = str(int(time.time()))
-        sig = hmac.new(hmac_secret.encode(), f"{ts}.{body}".encode(), hashlib.sha256).hexdigest()
-        headers.update({f"{prefix}-timestamp": ts, f"{prefix}-signature": sig})
-    else:
-        raise RuntimeError("no archive authentication credential configured")
+
+def signed_post(url, channel, env, body, timeout=30):
+    headers = {"content-type": "application/json", **auth_headers(channel, env, body)}
     req = urllib.request.Request(url, data=body.encode(), method="POST", headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 (fixed configured URL)
         return json.loads(resp.read(2_000_000))
@@ -211,19 +215,10 @@ def run(channel, env=os.environ, fetch=None, now=None):
         try:
             if fetch is None:
                 url = env.get(cfg["url_env"])
-                archive_key = env.get(cfg.get("archive_key_env", ""))
-                hmac_secret = env.get(cfg.get("secret_env", ""))
                 if not url:
                     raise RuntimeError(f"{cfg['url_env']} not set")
-                if channel == "cnt" and not archive_key:
-                    raise RuntimeError(f"{cfg['archive_key_env']} not set")
-                if channel == "fgb" and not (archive_key or hmac_secret):
-                    raise RuntimeError("FGB_ARCHIVE_API_KEY/FGB_TRANSPORT_HEARTBEAT_SECRET not set")
-                fetch = lambda body: signed_post(  # noqa: E731
-                    url, cfg["prefix"], body,
-                    archive_key=archive_key,
-                    hmac_secret=None if archive_key else hmac_secret,
-                )
+                auth_headers(channel, env, "{}")  # fail closed before any request
+                fetch = lambda body: signed_post(url, channel, env, body)  # noqa: E731
             receipts = fetch_receipts(fetch)
         except Exception as exc:  # any failure => delete nothing
             status["error"] = f"receipts: {str(exc)[:200]}"
