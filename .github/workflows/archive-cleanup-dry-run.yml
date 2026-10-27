@@ -37,7 +37,8 @@ jobs:
         run: |
           set -euo pipefail
           opts='-o BatchMode=yes -o UserKnownHostsFile=~/.ssh/archive_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/archive_key'
-          scp $opts -r ops/archive-cleanup "ubuntu@$OVH_HOST:/tmp/epic-archive-cleanup-release"
+          scp $opts ops/archive-cleanup/archive-cleanup.py "ubuntu@$OVH_HOST:/tmp/epic-archive-cleanup.py"
+          scp $opts ops/archive-cleanup/systemd/epic-archive-cleanup-fgb.service ops/archive-cleanup/systemd/epic-archive-cleanup-fgb.timer ops/archive-cleanup/systemd/epic-archive-cleanup-cnt.service ops/archive-cleanup/systemd/epic-archive-cleanup-cnt.timer "ubuntu@$OVH_HOST:/tmp/"
       - name: Install scheduled dry-run for FGB and CNT
         shell: bash
         run: |
@@ -50,14 +51,12 @@ jobs:
           test "$(sudo docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
 
           sudo install -d -m 755 /opt/epic-archive-cleanup
-          sudo install -m 755 /tmp/epic-archive-cleanup-release/archive-cleanup.py /opt/epic-archive-cleanup/archive-cleanup.py
+          sudo install -m 755 /tmp/epic-archive-cleanup.py /opt/epic-archive-cleanup/archive-cleanup.py
           sudo install -d -m 700 /etc/epic-archive-cleanup
-          sudo install -m 644 /tmp/epic-archive-cleanup-release/systemd/epic-archive-cleanup-fgb.service /tmp/epic-archive-cleanup-release/systemd/epic-archive-cleanup-fgb.timer /tmp/epic-archive-cleanup-release/systemd/epic-archive-cleanup-cnt.service /tmp/epic-archive-cleanup-release/systemd/epic-archive-cleanup-cnt.timer /etc/systemd/system/
+          sudo install -m 644 /tmp/epic-archive-cleanup-fgb.service /tmp/epic-archive-cleanup-fgb.timer /tmp/epic-archive-cleanup-cnt.service /tmp/epic-archive-cleanup-cnt.timer /etc/systemd/system/
 
-          fgb_secret=$(sudo docker inspect fgb-transport-archive_uploader-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^FGB_TRANSPORT_HEARTBEAT_SECRET=//p' | head -1)
-          fgb_archive_key=$(sudo docker inspect fgb-transport-archive_uploader-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^FGB_ARCHIVE_API_KEY=//p' | head -1)
+          fgb_archive_key=$(sudo sed -n 's/^FGB_ARCHIVE_API_KEY=//p' /opt/fgb-transport/.env | head -1)
           cnt_secret=$(sudo cat /etc/epic-cnt/archive-key)
-          test -n "$fgb_secret"
           test -n "$fgb_archive_key"
           test -n "$cnt_secret"
           umask 077
@@ -67,7 +66,6 @@ jobs:
             echo RETENTION_HOURS=3
             echo CLEANUP_ROOT=/srv/fgb-archive
             echo ARCHIVE_URL=https://epiccontentcreatorgrants.org/api/public/fgbears/archive
-            printf 'FGB_TRANSPORT_HEARTBEAT_SECRET=%s\n' "$fgb_secret"
             printf 'FGB_ARCHIVE_API_KEY=%s\n' "$fgb_archive_key"
             echo CLEANUP_REQUIRE_HOLDS=false
             echo CLEANUP_HOLD_FILES=
