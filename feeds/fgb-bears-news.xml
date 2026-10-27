@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 26 Oct 2026 22:58:26 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 27 Oct 2026 01:49:30 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -15,16 +15,6 @@
       <link>https://sports.yahoo.com/articles/nfl-trade-rumors-bears-connected-220000457.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-7ca047a47b039432a778</guid>
       <pubDate>Mon, 26 Oct 2026 22:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Patriots-Bears racks up 19.86 million on Thursday night</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Patriots-Bears racks up 19.86 million on Thursday night</description>
-      <link>https://sports.yahoo.com/articles/patriots-bears-racks-19-86-202752969.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e3277b82c7e16e1de30b</guid>
-      <pubDate>Mon, 26 Oct 2026 20:27:52 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -47,6 +37,16 @@
       <pubDate>Mon, 26 Oct 2026 14:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Ben Johnson discusses what makes Bears WR Luther Burden such a threat</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ben Johnson discusses what makes Bears WR Luther Burden such a threat</description>
+      <link>https://sports.yahoo.com/articles/ben-johnson-discusses-makes-bears-191702355.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-08f3e27f8ecbc4205c75</guid>
+      <pubDate>Mon, 26 Oct 2026 12:17:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
