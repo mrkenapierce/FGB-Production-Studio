@@ -6,3 +6,5 @@ Retry after archive-key header fix: 2026-10-27T19:12Z
 Retry after source-format repair: 2026-10-27T19:15Z
 
 Retry after matching live FGB/CNT auth contracts: 2026-10-27T19:17Z
+
+Approved paired-key dry run: 2026-10-27T19:37Z
