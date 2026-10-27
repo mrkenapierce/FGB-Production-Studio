@@ -5,46 +5,56 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 27 Oct 2026 07:01:44 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 27 Oct 2026 13:09:41 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears Trade Pitch Swipes Projected $54 Million Sack Artist From Buccaneers</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Trade Pitch Swipes Projected $54 Million Sack Artist From Buccaneers</description>
-      <link>https://sports.yahoo.com/articles/bears-trade-pitch-swipes-projected-043413851.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-37a227b0c0a8253c8e8a</guid>
-      <pubDate>Mon, 26 Oct 2026 17:00:00 GMT</pubDate>
+      <title>The Bear’s Den: The Chicago Bears open as dogs to the Seattle Seahawks</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: The Chicago Bears open as dogs to the Seattle Seahawks</description>
+      <link>https://sports.yahoo.com/articles/bear-den-chicago-bears-open-100000479.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-09077cd48d146aa2cb7f</guid>
+      <pubDate>Tue, 27 Oct 2026 10:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears Catch a Huge Break on Seahawks Week 8 Injury Report</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Catch a Huge Break on Seahawks Week 8 Injury Report</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-catch-a-huge-break-on-seahawks-week-8-injury-report</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-53057ef890fafa4f4428</guid>
-      <pubDate>Mon, 26 Oct 2026 15:00:00 GMT</pubDate>
+      <title>Will Kyle Monangai Return in Week 8? Latest Injury Update on Chicago Bears RB</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Will Kyle Monangai Return in Week 8? Latest Injury Update on Chicago Bears RB</description>
+      <link>https://www.si.com/nfl/bears/onsi/will-kyle-monangai-return-in-week-8-latest-injury-update-on-chicago-bears-rb</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-265adb73f9a9a94746ae</guid>
+      <pubDate>Tue, 27 Oct 2026 05:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Ranking the Top Trade Candidates for the Bears as Deadline Looms</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ranking the Top Trade Candidates for the Bears as Deadline Looms</description>
-      <link>https://www.si.com/nfl/bears/onsi/ranking-the-top-trade-candidates-for-the-bears-as-deadline-looms</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0e405caea2ce81873b46</guid>
-      <pubDate>Mon, 26 Oct 2026 14:00:00 GMT</pubDate>
+      <title>Why the Bears Are Undervalued Against Seahawks After the Chiefs Blowout</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why the Bears Are Undervalued Against Seahawks After the Chiefs Blowout</description>
+      <link>https://www.si.com/nfl/bears/onsi/why-the-bears-are-undervalued-against-seahawks-after-the-chiefs-blowout</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-43bd36da6d9f607de2d8</guid>
+      <pubDate>Tue, 27 Oct 2026 04:33:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Ben Johnson discusses what makes Bears WR Luther Burden such a threat</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ben Johnson discusses what makes Bears WR Luther Burden such a threat</description>
-      <link>https://sports.yahoo.com/articles/ben-johnson-discusses-makes-bears-191702355.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-08f3e27f8ecbc4205c75</guid>
-      <pubDate>Mon, 26 Oct 2026 12:17:00 GMT</pubDate>
+      <title>The Bears waited months for Kyler Gordon. Now he’s making quarterbacks pay</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: The Bears waited months for Kyler Gordon. Now he’s making quarterbacks pay</description>
+      <link>https://www.nytimes.com/athletic/7726580/2026/10/27/kyler-gordon-sacks-chicago-bears/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7d5e23f16e1737eaced0</guid>
+      <pubDate>Tue, 27 Oct 2026 04:07:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>‘Ubiquitous’ Mike Ditka middle-finger photo remains a bit of a Bears mystery. Who snapped Da Finger?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: ‘Ubiquitous’ Mike Ditka middle-finger photo remains a bit of a Bears mystery. Who snapped Da Finger?</description>
+      <link>https://sports.yahoo.com/articles/ubiquitous-mike-ditka-middle-finger-093000919.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a4d203f8a395a1862846</guid>
+      <pubDate>Tue, 27 Oct 2026 02:31:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -70,23 +80,13 @@
     </item>
 
     <item>
-      <title>What the Chicago Bears will miss without ‘Mr. Dependable’ Cole Kmet</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: What the Chicago Bears will miss without ‘Mr. Dependable’ Cole Kmet</description>
-      <link>https://www.nytimes.com/athletic/7723584/2026/10/26/bears-cole-kmet-mr-dependable/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-589e3dff9338d4a97144</guid>
-      <pubDate>Mon, 26 Oct 2026 04:30:00 GMT</pubDate>
+      <title>5 things that stood out to Bears coach Ben Johnson in Week 7 win</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 5 things that stood out to Bears coach Ben Johnson in Week 7 win</description>
+      <link>https://www.chicagobears.com/news/5-things-that-stood-out-to-bears-coach-ben-johnson-in-week-7-win-patriots</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-767a383e6f1efa01e97e</guid>
+      <pubDate>Fri, 23 Oct 2026 20:31:59 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Bears vs. Seahawks (Nov 2, 2026) Odds and Spread</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears vs. Seahawks (Nov 2, 2026) Odds and Spread</description>
-      <link>https://www.espn.com/nfl/odds/_/gameId/401873036</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-332d2dcc6fae6d9725b4</guid>
-      <pubDate>Mon, 26 Oct 2026 01:38:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
