@@ -1,0 +1,60 @@
+name: CNT First Episode Status Audit
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-first-episode-status-audit-20261026.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Set up SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Read-only CNT first episode diagnostics
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo 'CNT_EPISODE_AUDIT_START'
+          date -u +%FT%TZ
+          echo 'SERVICES'
+          sudo docker ps --filter name=epic-cnt --format '{{.Names}} {{.Status}}'
+          sudo docker ps --filter name=fgb-transport-youtube --format '{{.Names}} {{.Status}}'
+          echo 'CUTTER_PROCESS'
+          sudo docker exec epic-cnt-archive-worker bash -lc 'ps -eo pid,comm,args | grep -E "episode-cutter|cnt-rolling|cnt-air-observer|ffmpeg" | grep -v grep | head -11 | cut -c1-140' || true
+          echo 'RECENT_WORKER_EVENTS'
+          sudo docker logs --since 25m --tail 140 epic-cnt-archive-worker 2>&1 | grep -E 'episode:cnt|cnt-rolling|cnt-daily|failed|upload|waiting|error|held|CUT|FFMPEG|no token|CUTTER|jobs|DEPENDENCY' | tail -60 || true
+          echo 'ARCHIVE_SEGMENT_COUNT'
+          find /srv/cnt-archive/rolling -maxdepth 1 -type f -name 'live-*.ts' -printf '%f %s bytes %TY-%Tm-%TdT%TH:%TM:%TS\n' | sort | tail -18
+          echo 'EPISODE_STATE'
+          sudo find /srv/cnt-archive/episodes -maxdepth 1 -type f -printf '%f %s bytes\n' | sort | tail -16
+          echo 'EPISODE_PENDING_DEPENDENCY_FILE'
+          sudo python3 - <<'PY'
+          import glob,json,os
+          for p in glob.glob('/srv/cnt-archive/state/dependencies/episode-*.json'):
+            try:
+              x=json.load(open(p))
+              print({'episode':x.get('id'),'status':x.get('status'),'start':x.get('start'),'end':x.get('end'),'evidence':x.get('evidence')})
+            except Exception as e: print('bad dependency',type(e).__name__)
+          p='/srv/cnt-archive/state/episode_hold'
+          print('hold_file_present',os.path.exists(p))
+          if os.path.isfile(p):
+            print('hold_file_age_seconds',int(__import__('time').time()-os.stat(p).st_mtime))
+            print('hold_file_segments',len(open(p).read().splitlines()))
+          PY
+          echo 'FREE_DISK'
+          df -h /srv/cnt-archive
+          echo 'NO_MUTATIONS=true'
+          echo 'CNT_EPISODE_AUDIT_END'
+          REMOTE
