@@ -123,10 +123,60 @@ class Tests(unittest.TestCase):
             ac.check_root("fgb", "/cnt-archive")
 
     def test_cnt_uses_cnt_credentials_only(self):
-        self.assertEqual(ac.CHANNELS["cnt"]["secret_env"], "CNT_ARCHIVE_HMAC_SECRET")
+        self.assertEqual(ac.CHANNELS["cnt"]["archive_key_env"], "CNT_ARCHIVE_HMAC_SECRET")
+        self.assertNotIn("secret_env", ac.CHANNELS["cnt"])
+        self.assertEqual(ac.CHANNELS["fgb"]["archive_key_env"], "FGB_ARCHIVE_API_KEY")
         self.assertEqual(ac.CHANNELS["fgb"]["secret_env"], "FGB_TRANSPORT_HEARTBEAT_SECRET")
         e = Env("cnt"); s = e.run(None, CNT_ARCHIVE_URL="", FGB_TRANSPORT_HEARTBEAT_SECRET="x")
         self.assertIn("CNT_ARCHIVE", s["error"])
+
+    def _capture_request(self, **auth):
+        import io
+        captured = {}
+        class Resp(io.BytesIO):
+            def __enter__(self): return self
+            def __exit__(self, *args): return False
+        def fake_urlopen(req, timeout=None):
+            captured["headers"] = {k.lower(): v for k, v in req.header_items()}
+            captured["body"] = req.data.decode()
+            return Resp(b'{"ok":true}')
+        original = ac.urllib.request.urlopen
+        ac.urllib.request.urlopen = fake_urlopen
+        try:
+            ac.signed_post("https://example.invalid/archive", auth.pop("prefix"),
+                           '{"action":"cleanup"}', **auth)
+        finally:
+            ac.urllib.request.urlopen = original
+        return captured
+
+    def test_fgb_static_key_request_is_key_only(self):
+        r = self._capture_request(prefix="x-fgb", archive_key="fgb-static-key",
+                                  hmac_secret="must-not-be-sent")
+        h = r["headers"]
+        self.assertEqual(h["x-fgb-archive-key"], "fgb-static-key")
+        self.assertNotIn("x-fgb-timestamp", h)
+        self.assertNotIn("x-fgb-signature", h)
+        self.assertNotIn("x-cnt-archive-key", h)
+
+    def test_fgb_hmac_request_signs_timestamp_dot_body(self):
+        import hashlib, hmac
+        secret = "fgb-hmac-only"
+        r = self._capture_request(prefix="x-fgb", hmac_secret=secret)
+        h = r["headers"]
+        expected = hmac.new(secret.encode(),
+                            f'{h["x-fgb-timestamp"]}.{r["body"]}'.encode(),
+                            hashlib.sha256).hexdigest()
+        self.assertEqual(h["x-fgb-signature"], expected)
+        self.assertNotIn("x-fgb-archive-key", h)
+        self.assertNotIn(secret, h.values())
+
+    def test_cnt_request_is_archive_key_only_and_separate(self):
+        r = self._capture_request(prefix="x-cnt", archive_key="cnt-key-only")
+        h = r["headers"]
+        self.assertEqual(h["x-cnt-archive-key"], "cnt-key-only")
+        self.assertNotIn("x-cnt-timestamp", h)
+        self.assertNotIn("x-cnt-signature", h)
+        self.assertFalse(any(k.startswith("x-fgb-") for k in h))
 
     def _age(self, seconds):
         e = Env(); os.utime(e.scan / OLD, (NOW - seconds, NOW - seconds))
