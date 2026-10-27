@@ -5,36 +5,66 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 27 Oct 2026 13:09:41 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 27 Oct 2026 18:40:15 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>The Bear’s Den: The Chicago Bears open as dogs to the Seattle Seahawks</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: The Chicago Bears open as dogs to the Seattle Seahawks</description>
-      <link>https://sports.yahoo.com/articles/bear-den-chicago-bears-open-100000479.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-09077cd48d146aa2cb7f</guid>
-      <pubDate>Tue, 27 Oct 2026 10:00:00 GMT</pubDate>
+      <title>Position grades from the Patriots’ loss to the Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Position grades from the Patriots’ loss to the Bears</description>
+      <link>https://sports.yahoo.com/articles/position-grades-patriots-loss-bears-182738526.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9c3cbd25e63f9c66cea3</guid>
+      <pubDate>Tue, 27 Oct 2026 18:27:38 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Will Kyle Monangai Return in Week 8? Latest Injury Update on Chicago Bears RB</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Will Kyle Monangai Return in Week 8? Latest Injury Update on Chicago Bears RB</description>
-      <link>https://www.si.com/nfl/bears/onsi/will-kyle-monangai-return-in-week-8-latest-injury-update-on-chicago-bears-rb</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-265adb73f9a9a94746ae</guid>
-      <pubDate>Tue, 27 Oct 2026 05:30:00 GMT</pubDate>
+      <title>Chicago Bears Stock Watch: Wide Receivers Up, Defensive Backs Down</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Stock Watch: Wide Receivers Up, Defensive Backs Down</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-stock-watch-wide-180000621.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a60eb8131d98135aebd1</guid>
+      <pubDate>Tue, 27 Oct 2026 18:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears pay tribute to legendary Mike Ditka Thursday at Soldier Field</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears pay tribute to legendary Mike Ditka Thursday at Soldier Field</description>
+      <link>https://www.chicagobears.com/news/bears-pay-tribute-to-legendary-mike-ditka-thursday-soldier-field</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7e96a09520bfc32ab9fa</guid>
+      <pubDate>Tue, 27 Oct 2026 13:45:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Los Bears rinden homenaje al legendario Mike Ditka el jueves en el Soldier Field</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Los Bears rinden homenaje al legendario Mike Ditka el jueves en el Soldier Field</description>
+      <link>https://www.chicagobears.com/news/los-bears-rinden-homenaje-al-legendario-mike-ditka-el-jueves-en-el-soldier-field</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ece4998cc3f9db4d5e66</guid>
+      <pubDate>Tue, 27 Oct 2026 13:44:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears Surprisingly Showed Interest in Quenton Nelson Trade Before Seahawks-Colts Deal</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Surprisingly Showed Interest in Quenton Nelson Trade Before Seahawks-Colts Deal</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-quenton-nelson-trade-colts-seahawks</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a9a833a6d3979f904aa9</guid>
+      <pubDate>Tue, 27 Oct 2026 11:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Why the Bears Are Undervalued Against Seahawks After the Chiefs Blowout</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why the Bears Are Undervalued Against Seahawks After the Chiefs Blowout</description>
-      <link>https://www.si.com/nfl/bears/onsi/why-the-bears-are-undervalued-against-seahawks-after-the-chiefs-blowout</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-43bd36da6d9f607de2d8</guid>
-      <pubDate>Tue, 27 Oct 2026 04:33:00 GMT</pubDate>
+      <title>Quentin Nelson Trade Should be Green Light for Bears to Take a Big Swing</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Quentin Nelson Trade Should be Green Light for Bears to Take a Big Swing</description>
+      <link>https://www.si.com/nfl/bears/onsi/quentin-nelson-trade-should-be-green-light-for-bears-to-take-a-big-swing</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ef42d70167c2f66d5d95</guid>
+      <pubDate>Tue, 27 Oct 2026 10:25:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -47,46 +77,6 @@
       <pubDate>Tue, 27 Oct 2026 04:07:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>‘Ubiquitous’ Mike Ditka middle-finger photo remains a bit of a Bears mystery. Who snapped Da Finger?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: ‘Ubiquitous’ Mike Ditka middle-finger photo remains a bit of a Bears mystery. Who snapped Da Finger?</description>
-      <link>https://sports.yahoo.com/articles/ubiquitous-mike-ditka-middle-finger-093000919.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a4d203f8a395a1862846</guid>
-      <pubDate>Tue, 27 Oct 2026 02:31:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Patriots-Bears racks up 19.86 million on Thursday night</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Patriots-Bears racks up 19.86 million on Thursday night</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/patriots-bears-racks-up-19-86-million-on-thursday-night</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c573f020681701ba94f0</guid>
-      <pubDate>Mon, 26 Oct 2026 09:28:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
-      <title>Baylor football coaching search 2026: Candidates, hot board, names to watch from Bears experts</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Baylor football coaching search 2026: Candidates, hot board, names to watch from Bears experts</description>
-      <link>https://www.cbssports.com/college-football/news/baylor-football-coaching-search-2026-candidates-hot-board-names-to-watch/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-50cee57e9272a873e5df</guid>
-      <pubDate>Mon, 26 Oct 2026 08:51:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>5 things that stood out to Bears coach Ben Johnson in Week 7 win</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 5 things that stood out to Bears coach Ben Johnson in Week 7 win</description>
-      <link>https://www.chicagobears.com/news/5-things-that-stood-out-to-bears-coach-ben-johnson-in-week-7-win-patriots</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-767a383e6f1efa01e97e</guid>
-      <pubDate>Fri, 23 Oct 2026 20:31:59 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
