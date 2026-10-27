@@ -88,7 +88,7 @@ def signed_post(url, secret, prefix, body, timeout=30):
     ts = str(int(time.time()))
     sig = hmac.new(secret.encode(), f"{ts}.{body}".encode(), hashlib.sha256).hexdigest()
     req = urllib.request.Request(url, data=body.encode(), method="POST", headers={
-        "content-type": "application/json", f"{prefix}-timestamp": ts, f"{prefix}-signature": sig,
+        "content-type": "application/json", f"{prefix}-archive-key": secret,\n        f"{prefix}-timestamp": ts, f"{prefix}-signature": sig,
     })
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 (fixed configured URL)
         return json.loads(resp.read(2_000_000))
