@@ -1,0 +1,118 @@
+name: Three-hour archive cleanup dry-run
+on:
+  push:
+    branches: [cnt-ingest-preflight-20261025]
+    paths:
+      - ops/archive-cleanup/DEPLOY-DRY-RUN.txt
+permissions:
+  contents: read
+concurrency:
+  group: archive-cleanup-production
+  cancel-in-progress: false
+jobs:
+  dry-run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      OVH_HOST: 40.160.144.185
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      ORACLE_SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run cleanup safety tests
+        run: python3 -m unittest ops/archive-cleanup/tests/test_archive_cleanup.py
+      - name: Connect to OVH
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"; [ -n "$key" ] || key="$ORACLE_SSH_KEY"
+          test -n "$key"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/archive_key
+          chmod 600 ~/.ssh/archive_key
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/archive_known_hosts 2>/dev/null
+          ssh -o BatchMode=yes -o UserKnownHostsFile=~/.ssh/archive_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/archive_key "ubuntu@$OVH_HOST" 'printf ARCHIVE_SSH_AUTH=OK'
+      - name: Stage cleanup package
+        shell: bash
+        run: |
+          set -euo pipefail
+          opts='-o BatchMode=yes -o UserKnownHostsFile=~/.ssh/archive_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/archive_key'
+          scp $opts -r ops/archive-cleanup "ubuntu@$OVH_HOST:/tmp/epic-archive-cleanup-release"
+      - name: Install scheduled dry-run for FGB and CNT
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o UserKnownHostsFile=~/.ssh/archive_known_hosts -o StrictHostKeyChecking=yes -i ~/.ssh/archive_key "ubuntu@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          youtube_before=$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)
+          cnt_before=$(sudo docker inspect -f '{{.Id}}' epic-cnt-capture)
+          test "$(sudo docker inspect -f '{{.State.Running}}' fgb-transport-youtube-1)" = true
+          test "$(sudo docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
+
+          sudo install -d -m 755 /opt/epic-archive-cleanup
+          sudo install -m 755 /tmp/epic-archive-cleanup-release/archive-cleanup.py /opt/epic-archive-cleanup/archive-cleanup.py
+          sudo install -d -m 700 /etc/epic-archive-cleanup
+          sudo install -m 644 /tmp/epic-archive-cleanup-release/systemd/epic-archive-cleanup-fgb.service /tmp/epic-archive-cleanup-release/systemd/epic-archive-cleanup-fgb.timer /tmp/epic-archive-cleanup-release/systemd/epic-archive-cleanup-cnt.service /tmp/epic-archive-cleanup-release/systemd/epic-archive-cleanup-cnt.timer /etc/systemd/system/
+
+          fgb_secret=$(sudo docker inspect fgb-transport-archive_uploader-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | sed -n 's/^FGB_ARCHIVE_API_KEY=//p' | head -1)
+          cnt_secret=$(sudo cat /etc/epic-cnt/archive-key)
+          test -n "$fgb_secret"
+          test -n "$cnt_secret"
+          umask 077
+          {
+            echo DRY_RUN=true
+            echo CLEANUP_CONFIRM_DELETE=no
+            echo RETENTION_HOURS=3
+            echo CLEANUP_ROOT=/srv/fgb-archive
+            echo ARCHIVE_URL=https://epiccontentcreatorgrants.org/api/public/fgbears/archive
+            printf 'FGB_TRANSPORT_HEARTBEAT_SECRET=%s\n' "$fgb_secret"
+            echo CLEANUP_REQUIRE_HOLDS=false
+            echo CLEANUP_HOLD_FILES=
+          } > /tmp/fgb-cleanup.env
+          {
+            echo DRY_RUN=true
+            echo CLEANUP_CONFIRM_DELETE=no
+            echo RETENTION_HOURS=3
+            echo CLEANUP_ROOT=/srv/cnt-archive
+            echo CNT_ARCHIVE_URL=https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/archive
+            printf 'CNT_ARCHIVE_HMAC_SECRET=%s\n' "$cnt_secret"
+            echo CLEANUP_REQUIRE_HOLDS=true
+            echo 'CLEANUP_HOLD_FILES=episode_hold daily_hold'
+          } > /tmp/cnt-cleanup.env
+          sudo install -m 600 /tmp/fgb-cleanup.env /etc/epic-archive-cleanup/fgb.env
+          sudo install -m 600 /tmp/cnt-cleanup.env /etc/epic-archive-cleanup/cnt.env
+          rm -f /tmp/fgb-cleanup.env /tmp/cnt-cleanup.env
+
+          sudo systemctl daemon-reload
+          sudo systemctl enable --now epic-archive-cleanup-fgb.timer epic-archive-cleanup-cnt.timer
+          sudo systemctl start epic-archive-cleanup-fgb.service
+          sudo systemctl start epic-archive-cleanup-cnt.service
+
+          sudo python3 - <<'PY'
+          import json
+          paths = {
+              "fgb": "/srv/fgb-archive/state/cleanup-status.json",
+              "cnt": "/srv/cnt-archive/state/cleanup-status.json",
+          }
+          for channel, path in paths.items():
+              with open(path) as f:
+                  s = json.load(f)
+              assert s["mode"] == "dry-run", (channel, s)
+              assert s["retention_hours"] == 3, (channel, s)
+              assert not s["error"], (channel, s["error"])
+              print("CLEANUP_DRY_RUN", channel,
+                    "candidates="+str(s["candidate_count"]),
+                    "protected="+str(s["protected_count"]),
+                    "overdue="+str(s["overdue_count"]),
+                    "deleted="+str(s["deleted_count"]),
+                    "disk_free_mb="+str(s["disk_free_mb"]))
+          PY
+
+          test "$(sudo docker inspect -f '{{.Id}}' fgb-transport-youtube-1)" = "$youtube_before"
+          test "$(sudo docker inspect -f '{{.Id}}' epic-cnt-capture)" = "$cnt_before"
+          echo STREAM_CONTAINER_IDS_UNCHANGED=YES
+          echo FGB_TIMER="$(sudo systemctl is-active epic-archive-cleanup-fgb.timer)"
+          echo CNT_TIMER="$(sudo systemctl is-active epic-archive-cleanup-cnt.timer)"
+          sudo journalctl -u epic-archive-cleanup-fgb.service -n 30 --no-pager
+          sudo journalctl -u epic-archive-cleanup-cnt.service -n 30 --no-pager
+          REMOTE
