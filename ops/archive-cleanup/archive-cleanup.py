@@ -42,12 +42,13 @@ SEGMENT_RE = re.compile(r"\d{8}T\d{6}[+-]\d{4}")
 CHANNELS = {
     "fgb": {
         "root": "/srv/fgb-archive", "scan": "hourly", "url_env": "ARCHIVE_URL",
-        "secret_env": "FGB_TRANSPORT_HEARTBEAT_SECRET", "prefix": "x-fgb",
+        "secret_env": "FGB_TRANSPORT_HEARTBEAT_SECRET", "archive_key_env": "FGB_ARCHIVE_API_KEY",
+        "prefix": "x-fgb", "signed": True,
         "forbidden": ("/srv/cnt-archive", "/cnt-archive"),
     },
     "cnt": {
         "root": "/cnt-archive", "scan": "rolling", "url_env": "CNT_ARCHIVE_URL",
-        "secret_env": "CNT_ARCHIVE_HMAC_SECRET", "prefix": "x-cnt",
+        "secret_env": "CNT_ARCHIVE_HMAC_SECRET", "prefix": "x-cnt", "signed": False,
         "forbidden": ("/srv/fgb-archive", "/archive"),
     },
 }
@@ -84,13 +85,16 @@ def check_root(channel, root):
     return resolved
 
 
-def signed_post(url, secret, prefix, body, timeout=30):
-    ts = str(int(time.time()))
-    sig = hmac.new(secret.encode(), f"{ts}.{body}".encode(), hashlib.sha256).hexdigest()
-    req = urllib.request.Request(url, data=body.encode(), method="POST", headers={
-        "content-type": "application/json", f"{prefix}-archive-key": secret,
-        f"{prefix}-timestamp": ts, f"{prefix}-signature": sig,
-    })
+def signed_post(url, secret, prefix, body, timeout=30, archive_key=None, signed=True):
+    headers = {
+        "content-type": "application/json",
+        f"{prefix}-archive-key": archive_key or secret,
+    }
+    if signed:
+        ts = str(int(time.time()))
+        sig = hmac.new(secret.encode(), (ts + body).encode(), hashlib.sha256).hexdigest()
+        headers.update({f"{prefix}-timestamp": ts, f"{prefix}-signature": sig})
+    req = urllib.request.Request(url, data=body.encode(), method="POST", headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310 (fixed configured URL)
         return json.loads(resp.read(2_000_000))
 
@@ -201,9 +205,13 @@ def run(channel, env=os.environ, fetch=None, now=None):
         try:
             if fetch is None:
                 url, secret = env.get(cfg["url_env"]), env.get(cfg["secret_env"])
-                if not url or not secret:
-                    raise RuntimeError(f"{cfg['url_env']}/{cfg['secret_env']} not set")
-                fetch = lambda body: signed_post(url, secret, cfg["prefix"], body)  # noqa: E731
+                archive_key = env.get(cfg.get("archive_key_env", "")) or secret
+                if not url or not secret or not archive_key:
+                    raise RuntimeError(f"{cfg['url_env']}/{cfg['secret_env']}/archive key not set")
+                fetch = lambda body: signed_post(  # noqa: E731
+                    url, secret, cfg["prefix"], body,
+                    archive_key=archive_key, signed=cfg.get("signed", True)
+                )
             receipts = fetch_receipts(fetch)
         except Exception as exc:  # any failure => delete nothing
             status["error"] = f"receipts: {str(exc)[:200]}"
