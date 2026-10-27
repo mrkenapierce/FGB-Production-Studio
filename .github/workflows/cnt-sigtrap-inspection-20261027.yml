@@ -1,0 +1,34 @@
+name: CNT renderer crash inspection
+on:
+  push:
+    paths: ['.github/workflows/cnt-sigtrap-inspection-20261027.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Inspect CNT without restart
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          ssh -o BatchMode=yes -o ConnectTimeout=15 -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          date -u
+          free -m
+          df -h /
+          sudo docker inspect -f 'status={{.State.Status}} oom={{.State.OOMKilled}} restarts={{.RestartCount}} shm={{.HostConfig.ShmSize}} memory={{.HostConfig.Memory}} path={{.Path}}' epic-cnt-capture
+          sudo docker inspect -f '{{range .Mounts}}{{.Source}} -> {{.Destination}}{{println}}{{end}}' epic-cnt-capture
+          sudo docker exec epic-cnt-capture sh -c 'df -h /dev/shm; ps -eo comm= | sort | uniq -c; find /opt -maxdepth 3 -type f -name "*cnt*"'
+          sudo docker exec epic-cnt-capture python3 - <<'PY'
+          PY
+          sudo docker logs --since 30m epic-cnt-capture 2>&1 | python3 -c 'import sys,re,collections; rows=collections.deque(maxlen=60); [(rows.append(re.sub(r"(https?|rtmps?)://\\S+","[URL]",s)[:400])) for s in sys.stdin if re.search(r"SIGTRAP|crash|FATAL|memory|renderer|restart chromium|DevTools",s,re.I)]; print("".join(rows))' || true
+          echo INSPECTION_COMPLETE
+          REMOTE
