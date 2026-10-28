@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 27 Oct 2026 22:36:08 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 28 Oct 2026 01:41:42 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -20,13 +20,23 @@
     </item>
 
     <item>
-      <title>Can Kyler Gordon continue making a big impact for the Chicago Bears?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Can Kyler Gordon continue making a big impact for the Chicago Bears?</description>
-      <link>https://sports.yahoo.com/articles/kyler-gordon-continue-making-big-200000573.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0a9b7bab9ad945913b72</guid>
-      <pubDate>Tue, 27 Oct 2026 20:00:00 GMT</pubDate>
+      <title>Bears QB Caleb Williams Gets $11,941 ‘Payback’ Update After Controversial Cleat Choice</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears QB Caleb Williams Gets $11,941 ‘Payback’ Update After Controversial Cleat Choice</description>
+      <link>https://sports.yahoo.com/articles/bears-qb-caleb-williams-gets-235449152.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d9f473735043cbb68142</guid>
+      <pubDate>Tue, 27 Oct 2026 16:54:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Zavier Scott: Signed to Bears&apos; active roster</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Zavier Scott: Signed to Bears&apos; active roster</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-zavier-scott-signed-to-bears-active-roster/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-70c951f9590712412e5d</guid>
+      <pubDate>Tue, 27 Oct 2026 16:08:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -50,6 +60,16 @@
     </item>
 
     <item>
+      <title>Montez Sweat striving to move past PED suspension after return to Chicago Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Montez Sweat striving to move past PED suspension after return to Chicago Bears</description>
+      <link>https://sports.yahoo.com/articles/montez-sweat-striving-move-past-201911194.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d3cbf84a51bb37213070</guid>
+      <pubDate>Tue, 27 Oct 2026 13:19:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
       <title>Kyle Monangai Tuesday Injury Update, Bears&apos; Roster Move Are Bad Signs for RB&apos;s Week 8 Status</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyle Monangai Tuesday Injury Update, Bears&apos; Roster Move Are Bad Signs for RB&apos;s Week 8 Status</description>
       <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-tuesday-bears-roster-move-bad-signs-week-8</link>
@@ -57,16 +77,6 @@
       <pubDate>Tue, 27 Oct 2026 12:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>TNF Odds: Patriots at Bears Spread, Moneyline, Total, Props</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: TNF Odds: Patriots at Bears Spread, Moneyline, Total, Props</description>
-      <link>https://sports.yahoo.com/articles/tnf-odds-patriots-bears-spread-175511824.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b6ebd3a7e6e53c3ffcee</guid>
-      <pubDate>Tue, 27 Oct 2026 10:55:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
