@@ -1,0 +1,35 @@
+name: CNT Storage Read-only Audit
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-storage-details-20261028.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Set up OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          mkdir -p -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Capture CNT deployment facts without secrets or mutations
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          sudo systemctl cat epic-archive-cleanup-cnt.service epic-archive-cleanup-cnt.timer
+          sudo cat /srv/cnt-archive/state/cleanup-status.json
+          sudo docker exec epic-cnt-archive-worker sh -lc 'ls -l /opt/cnt; cat /opt/cnt/cnt-archive-retention.sh'
+          sudo find /usr/local/bin /opt -maxdepth 3 -type f -iname '*cleanup*' -print
+          sudo docker exec epic-cnt-archive-worker bash -lc 'export EPISODE_CHANNEL=cnt; . /opt/cnt/episode-lib.sh; ep_api "{\"action\":\"episode_jobs\"}"'
+          sudo docker exec epic-cnt-archive-worker bash -lc 'export EPISODE_CHANNEL=cnt; . /opt/cnt/episode-lib.sh; ep_api "{\"action\":\"status\"}"'
+          REMOTE
