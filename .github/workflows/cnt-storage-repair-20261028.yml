@@ -23,7 +23,7 @@ jobs:
           ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
       - uses: actions/checkout@v4
         with:
-          ref: 5d0cc972807842ae810f321632cae1e63f9584a1
+          ref: e7e2923ad90b1c83284ee254b45cf08bd7d5cbbc
       - name: Test and stage CNT-only cleanup
         run: |
           python3 ops/cnt-phase2/cnt-buffer-cleanup.py --test
