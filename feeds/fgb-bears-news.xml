@@ -5,38 +5,78 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 28 Oct 2026 19:33:04 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 28 Oct 2026 23:30:57 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears vs Seahawks: Who can help limit Seattle’s Jaxon Smith-Njigba?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs Seahawks: Who can help limit Seattle’s Jaxon Smith-Njigba?</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-seahawks-help-limit-190000801.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a54e64a3b91b48eda100</guid>
-      <pubDate>Wed, 28 Oct 2026 19:00:00 GMT</pubDate>
+      <title>Chicago Bears NFL Trade Deadline Targets</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears NFL Trade Deadline Targets</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-nfl-trade-deadline-223000781.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-282f1cf6385f7ed92db9</guid>
+      <pubDate>Wed, 28 Oct 2026 22:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Seahawks Reacts Survey: Call your shot on Seahawks vs. Bears!</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Seahawks Reacts Survey: Call your shot on Seahawks vs. Bears!</description>
-      <link>https://sports.yahoo.com/articles/seahawks-reacts-survey-call-shot-180107451.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fa9589eb6b159fab568e</guid>
-      <pubDate>Wed, 28 Oct 2026 18:01:07 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>How to watch, listen to, stream Bears-Seahawks Monday Night Football Week 8 game</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: How to watch, listen to, stream Bears-Seahawks Monday Night Football Week 8 game</description>
-      <link>https://www.chicagobears.com/news/how-to-watch-chicago-bears-seattle-seahawks-monday-night-football-2026-week-8-listen-stream-tv-radio-online-nfl</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-178d6c84299c3fe579a8</guid>
-      <pubDate>Wed, 28 Oct 2026 13:54:00 GMT</pubDate>
+      <title>Bears embrace stepping into national spotlight</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears embrace stepping into national spotlight</description>
+      <link>https://www.chicagobears.com/news/bears-embrace-stepping-into-national-spotlight</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-647e6730e68d69e1c456</guid>
+      <pubDate>Wed, 28 Oct 2026 21:39:49 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears and Jewel-Osco kick off 38th annual Coat Drive to help keep Chicagoland warm</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears and Jewel-Osco kick off 38th annual Coat Drive to help keep Chicagoland warm</description>
+      <link>https://www.chicagobears.com/news/chicago-bears-and-jewel-osco-kick-off-38th-annual-coat-drive-to-help-keep-chicagoland-warm</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e9ae636531f564411c40</guid>
+      <pubDate>Wed, 28 Oct 2026 21:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Reviewing the Bears’ PFN grades from Week 7 vs. Patriots</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Reviewing the Bears’ PFN grades from Week 7 vs. Patriots</description>
+      <link>https://sports.yahoo.com/articles/reviewing-bears-pfn-grades-week-210000142.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b2211c5891cb7e44c176</guid>
+      <pubDate>Wed, 28 Oct 2026 21:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Jeffrey Simmons Isn&apos;t the Only Titans Star the Bears Have Rumored Interest in</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Jeffrey Simmons Isn&apos;t the Only Titans Star the Bears Have Rumored Interest in</description>
+      <link>https://www.si.com/nfl/bears/onsi/jeffrey-simmons-isn-t-the-only-titans-star-the-bears-have-rumored-interest-in</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-178a8ee306b7e5cabfc0</guid>
+      <pubDate>Wed, 28 Oct 2026 15:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Kyle Monangai Injury Update From Practice Confirms Minor Progress For Bears RB</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyle Monangai Injury Update From Practice Confirms Minor Progress For Bears RB</description>
+      <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-from-practice-confirms-minor-progress-for-bears-rb</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-77059d9c0414e769b046</guid>
+      <pubDate>Wed, 28 Oct 2026 13:42:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Ben Johnson highlights challenges anticipated by Bears in upcoming Week 8 matchup vs. Seahawks</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Ben Johnson highlights challenges anticipated by Bears in upcoming Week 8 matchup vs. Seahawks</description>
+      <link>https://www.nfl.com/videos/ben-johnson-highlights-challenges-anticipated-by-bears-in-upcoming-week-8-matchup-vs-seahawks</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2b5cfd699b8d63ec4052</guid>
+      <pubDate>Wed, 28 Oct 2026 12:23:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
@@ -47,46 +87,6 @@
       <pubDate>Wed, 28 Oct 2026 12:10:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Kyle Monangai Injury Update From ESPN Gives Bears RB Shred of Hope For Week 8 Return</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyle Monangai Injury Update From ESPN Gives Bears RB Shred of Hope For Week 8 Return</description>
-      <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-from-espn-gives-bears-rb-shred-of-hope-for-week-8-return</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cdf12e85bfd8f4e03ab3</guid>
-      <pubDate>Wed, 28 Oct 2026 11:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>NFL Insider Projects Khalil Mack Trade Price For Bears as Rumors Continue to Swirl</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: NFL Insider Projects Khalil Mack Trade Price For Bears as Rumors Continue to Swirl</description>
-      <link>https://www.si.com/nfl/bears/onsi/nfl-insider-projects-khalil-mack-trade-price-for-bears-as-rumors-continue-to-swirl</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-328e376617dda8b83a16</guid>
-      <pubDate>Wed, 28 Oct 2026 10:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Luther Burden put on a show in primetime. The Bears say it’s only the beginning</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Luther Burden put on a show in primetime. The Bears say it’s only the beginning</description>
-      <link>https://www.nytimes.com/athletic/7729855/2026/10/28/bears-luther-burden-run-after-catch-potential/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d24ce1b03f95f67c33e5</guid>
-      <pubDate>Wed, 28 Oct 2026 04:12:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Bears believe Sam Roush will help pick up slack at tight end</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears believe Sam Roush will help pick up slack at tight end</description>
-      <link>https://www.chicagobears.com/news/bears-believe-sam-roush-will-help-pick-up-slack-at-tight-end</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ebf7adedc1fa25ceecad</guid>
-      <pubDate>Tue, 27 Oct 2026 21:25:22 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
