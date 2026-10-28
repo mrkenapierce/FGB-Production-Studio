@@ -1,0 +1,50 @@
+name: CNT Storage Read-only Audit
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-storage-audit-20261028.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Set up OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          mkdir -p -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Capture CNT deployment facts without secrets or mutations
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          date -u +%FT%TZ
+          df -h /
+          sudo du -xhd2 /srv /var/lib/docker /var/log /opt/cnt-transport 2>/dev/null | sort -h | tail -45
+          sudo docker ps --format '{{.Names}} {{.Status}}'
+          sudo find /srv/cnt-archive/state -maxdepth 2 -type f -printf '%p %s bytes\n' | head -80
+          sudo find /srv/cnt-archive -maxdepth 2 -type f -printf '%TY-%Tm-%Td %TH:%TM %s %p\n' | sort | tail -35
+          sudo docker exec epic-cnt-archive-worker sh -lc 'ls /opt; for f in /opt/cnt-archive-retention.sh /opt/archive-retention.py; do test ! -f "$f" || cat "$f"; done' || true
+          sudo systemctl list-timers --all --no-pager | grep -E 'storage|archive|cnt|backup' || true
+          sudo find /opt/cnt-transport -maxdepth 3 -type f -not -name '*.env' -not -name '*secret*' -printf '%p\n'
+          echo SAFE_STATE
+          sudo python3 - <<'PY'
+          import json,pathlib
+          r=pathlib.Path('/srv/cnt-archive')
+          for p in r.glob('state/dependencies/*.json'):
+           d=json.loads(p.read_text());print(p.name,{k:d.get(k) for k in ('kind','id','start','end','status','videoId','evidence')})
+          for n in ('episode_hold','daily_hold','discovery-ready.json'):
+           p=r/'state'/n
+           if p.exists(): print(n,p.stat().st_mtime,p.read_text()[:15000])
+          for p in r.glob('episodes/*.json'):
+           d=json.loads(p.read_text()); print(p.name,{k:d.get(k) for k in ('videoId','confirmed','postedReceipt')})
+          PY
+          REMOTE
