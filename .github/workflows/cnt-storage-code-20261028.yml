@@ -1,0 +1,36 @@
+name: CNT Storage Read-only Audit
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-storage-code-20261028.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Set up OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          mkdir -p -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Capture CNT deployment facts without secrets or mutations
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          sudo cat /opt/epic-archive-cleanup/archive-cleanup.py
+          sudo docker exec epic-cnt-archive-worker cat /opt/cnt/cnt-rolling-recorder.sh
+          sudo python3 - <<'PY'
+          from pathlib import Path
+          for line in Path('/etc/epic-archive-cleanup/cnt.env').read_text().splitlines():
+           if any(line.startswith(k+'=') for k in ['CLEANUP_APPLY','RETENTION_HOURS','ARCHIVE_ROOT','CHANNEL','CNT_ARCHIVE_DIR']): print(line)
+          PY
+          REMOTE
