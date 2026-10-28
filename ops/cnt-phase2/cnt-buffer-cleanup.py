@@ -31,6 +31,7 @@ def run():
         fcntl.flock(outer,fcntl.LOCK_EX|fcntl.LOCK_NB)
         fcntl.flock(lock,fcntl.LOCK_EX)
         now=time.time()
+        subprocess.run(["docker","exec","epic-cnt-archive-worker","ffprobe","-version"],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=10)
         data=legacy.signed_post(os.environ["CNT_ARCHIVE_URL"],"cnt",os.environ,json.dumps({"action":"episode_jobs"}))
         windows=pending_windows(data)
         held,ok=legacy.read_holds(state,["episode_hold","daily_hold"],now,600)
@@ -51,7 +52,7 @@ def run():
             if start is None or start==newest or p.name in held or now-st.st_mtime<10800:
                 status["protected_count"]+=1;continue
             try:
-                length=float(subprocess.check_output(["ffprobe","-v","error","-show_entries","format=duration","-of","csv=p=0",str(p)],timeout=20,stderr=subprocess.DEVNULL))
+                length=float(subprocess.check_output(["docker","exec","epic-cnt-archive-worker","ffprobe","-v","error","-show_entries","format=duration","-of","csv=p=0","/cnt-archive/rolling/"+p.name],timeout=20,stderr=subprocess.DEVNULL))
             except Exception:
                 status["protected_count"]+=1;continue
             if not 0<length<7200 or not eligible(start,start+length,st.st_mtime,now,False,False,windows):
