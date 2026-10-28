@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 28 Oct 2026 01:41:42 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 28 Oct 2026 07:24:28 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>‘He’s Definitely Special,’ ‘The 2 Most Dynamic QBs’ — NFL Legend Terrell Owens Compares Caleb Williams to Patrick Mahomes After Bears’ Resurgence</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: ‘He’s Definitely Special,’ ‘The 2 Most Dynamic QBs’ — NFL Legend Terrell Owens Compares Caleb Williams to Patrick Mahomes After Bears’ Resurgence</description>
+      <link>https://sports.yahoo.com/articles/definitely-special-2-most-dynamic-063418186.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0132187514c66b9cb34a</guid>
+      <pubDate>Tue, 27 Oct 2026 23:34:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears believe Sam Roush will help pick up slack at tight end</title>
@@ -20,11 +30,11 @@
     </item>
 
     <item>
-      <title>Bears QB Caleb Williams Gets $11,941 ‘Payback’ Update After Controversial Cleat Choice</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears QB Caleb Williams Gets $11,941 ‘Payback’ Update After Controversial Cleat Choice</description>
-      <link>https://sports.yahoo.com/articles/bears-qb-caleb-williams-gets-235449152.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d9f473735043cbb68142</guid>
-      <pubDate>Tue, 27 Oct 2026 16:54:00 GMT</pubDate>
+      <title>Bears’ Montez Sweat makes humbling admission on PED suspension</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Montez Sweat makes humbling admission on PED suspension</description>
+      <link>https://sports.yahoo.com/articles/bears-montez-sweat-makes-humbling-052339475.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2d1d7742468f2aa23482</guid>
+      <pubDate>Tue, 27 Oct 2026 17:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -57,16 +67,6 @@
       <pubDate>Tue, 27 Oct 2026 13:45:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Montez Sweat striving to move past PED suspension after return to Chicago Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Montez Sweat striving to move past PED suspension after return to Chicago Bears</description>
-      <link>https://sports.yahoo.com/articles/montez-sweat-striving-move-past-201911194.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d3cbf84a51bb37213070</guid>
-      <pubDate>Tue, 27 Oct 2026 13:19:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
