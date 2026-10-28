@@ -1,0 +1,54 @@
+name: Repair CNT rolling storage retention
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/cnt-storage-repair-20261028.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Set up OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          mkdir -p -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - uses: actions/checkout@v4
+        with:
+          ref: 5d0cc972807842ae810f321632cae1e63f9584a1
+      - name: Test and stage CNT-only cleanup
+        run: |
+          python3 ops/cnt-phase2/cnt-buffer-cleanup.py --test
+          python3 -m py_compile ops/cnt-phase2/cnt-buffer-cleanup.py
+          scp -q -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ops/cnt-phase2/cnt-buffer-cleanup.py ubuntu@40.160.144.185:/tmp/cnt-buffer-cleanup.py
+      - name: Install, clean and verify without restarting streams
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          before=$(sudo docker inspect -f '{{.Id}} {{.State.StartedAt}}' epic-cnt-capture fgb-transport-youtube-1)
+          sudo python3 /tmp/cnt-buffer-cleanup.py --test
+          sudo install -m 755 /tmp/cnt-buffer-cleanup.py /opt/epic-archive-cleanup/cnt-buffer-cleanup.py
+          sudo mkdir -p /etc/systemd/system/epic-archive-cleanup-cnt.service.d /etc/systemd/system/epic-archive-cleanup-cnt.timer.d
+          printf '[Service]\nExecStart=\nExecStart=/usr/bin/python3 /opt/epic-archive-cleanup/cnt-buffer-cleanup.py\n' | sudo tee /etc/systemd/system/epic-archive-cleanup-cnt.service.d/buffer.conf >/dev/null
+          printf '[Timer]\nOnUnitActiveSec=\nOnUnitActiveSec=5min\nRandomizedDelaySec=15\n' | sudo tee /etc/systemd/system/epic-archive-cleanup-cnt.timer.d/buffer.conf >/dev/null
+          sudo systemctl daemon-reload
+          sudo systemctl restart epic-archive-cleanup-cnt.timer
+          sudo systemctl start epic-archive-cleanup-cnt.service
+          sudo cat /srv/cnt-archive/state/cleanup-status.json
+          df -h /
+          sudo du -sh /srv/cnt-archive/rolling
+          test "$before" = "$(sudo docker inspect -f '{{.Id}} {{.State.StartedAt}}' epic-cnt-capture fgb-transport-youtube-1)"
+          echo STREAMS_UNCHANGED=true
+          sleep 25
+          sudo find /srv/cnt-archive/rolling -type f -mmin -1 -printf '%f %s bytes\n'
+          if sudo test -f /srv/cnt-archive/state/low_disk; then echo RECORDER_LOW_DISK_STILL_SET; else echo RECORDER_LOW_DISK_CLEARED; fi
+          sudo systemctl is-active epic-archive-cleanup-cnt.timer
+          REMOTE
