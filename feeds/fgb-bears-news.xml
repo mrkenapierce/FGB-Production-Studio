@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 28 Oct 2026 23:30:57 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 29 Oct 2026 02:51:00 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -40,18 +40,28 @@
     </item>
 
     <item>
-      <title>Reviewing the Bears’ PFN grades from Week 7 vs. Patriots</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Reviewing the Bears’ PFN grades from Week 7 vs. Patriots</description>
-      <link>https://sports.yahoo.com/articles/reviewing-bears-pfn-grades-week-210000142.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b2211c5891cb7e44c176</guid>
-      <pubDate>Wed, 28 Oct 2026 21:00:00 GMT</pubDate>
+      <title>Titans’ Jeffery Simmons Breaks Silence on Trade Rumors Amid Bears Speculation</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Titans’ Jeffery Simmons Breaks Silence on Trade Rumors Amid Bears Speculation</description>
+      <link>https://sports.yahoo.com/articles/titans-jeffery-simmons-breaks-silence-011052310.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-dd897a94c442d6dc2441</guid>
+      <pubDate>Wed, 28 Oct 2026 17:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Jeffrey Simmons Isn&apos;t the Only Titans Star the Bears Have Rumored Interest in</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Jeffrey Simmons Isn&apos;t the Only Titans Star the Bears Have Rumored Interest in</description>
+      <title>Bucky Brooks breaks down Week 8 Bears vs. Seahawks</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bucky Brooks breaks down Week 8 Bears vs. Seahawks</description>
+      <link>https://www.nfl.com/videos/bucky-brooks-breaks-down-week-8-bears-vs-seahawks</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0b547588e8e5e9cb639d</guid>
+      <pubDate>Wed, 28 Oct 2026 16:32:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
+      <title>Jeffery Simmons Isn&apos;t the Only Titans Star the Bears Have Rumored Interest in</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Jeffery Simmons Isn&apos;t the Only Titans Star the Bears Have Rumored Interest in</description>
       <link>https://www.si.com/nfl/bears/onsi/jeffrey-simmons-isn-t-the-only-titans-star-the-bears-have-rumored-interest-in</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-178a8ee306b7e5cabfc0</guid>
       <pubDate>Wed, 28 Oct 2026 15:00:00 GMT</pubDate>
@@ -75,16 +85,6 @@
       <link>https://www.nfl.com/videos/ben-johnson-highlights-challenges-anticipated-by-bears-in-upcoming-week-8-matchup-vs-seahawks</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-2b5cfd699b8d63ec4052</guid>
       <pubDate>Wed, 28 Oct 2026 12:23:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Bears vs. Seahawks preview | Week 8</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bears vs. Seahawks preview | Week 8</description>
-      <link>https://www.nfl.com/videos/bears-vs-seahawks-preview-week-8</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dee766f157188a6c7b2c</guid>
-      <pubDate>Wed, 28 Oct 2026 12:10:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
