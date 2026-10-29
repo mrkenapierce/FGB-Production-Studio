@@ -5,88 +5,88 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 29 Oct 2026 09:06:11 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 29 Oct 2026 16:04:05 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears QB Caleb Williams hums during games. Here’s the science behind it</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Chicago Bears QB Caleb Williams hums during games. Here’s the science behind it</description>
-      <link>https://www.nytimes.com/athletic/7733877/2026/10/29/caleb-williams-humming-science-calm/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4acf964c9a1d39154ba8</guid>
-      <pubDate>Thu, 29 Oct 2026 02:00:00 GMT</pubDate>
+      <title>Grading the trade: Bears closer to a Super Bowl with Simmons, but the cost was steep</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Grading the trade: Bears closer to a Super Bowl with Simmons, but the cost was steep</description>
+      <link>https://sports.yahoo.com/nfl/article/grading-the-trade-bears-closer-to-a-super-bowl-with-simmons-but-the-cost-was-steep-155800939.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-318aa07bedd4c801c234</guid>
+      <pubDate>Thu, 29 Oct 2026 15:58:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Jeffery Simmons trade grades: Bears earn high marks by going all-in, Titans start yet another rebuild</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Jeffery Simmons trade grades: Bears earn high marks by going all-in, Titans start yet another rebuild</description>
+      <link>https://www.cbssports.com/nfl/news/jeffery-simmons-trade-grades-bears-titans-nfl-draft/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e600cac540ee66b6fb40</guid>
+      <pubDate>Thu, 29 Oct 2026 15:50:14 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears acquire Jeffery Simmons ahead of Week 8 matchup with Seahawks</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears acquire Jeffery Simmons ahead of Week 8 matchup with Seahawks</description>
+      <link>https://sports.yahoo.com/articles/bears-acquire-jeffery-simmons-ahead-151544022.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-116a2314f5723693bd98</guid>
+      <pubDate>Thu, 29 Oct 2026 15:15:44 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Jeffery Simmons trade: Titans deal All-Pro defensive tackle to the Bears, per CBS Sports insider</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Jeffery Simmons trade: Titans deal All-Pro defensive tackle to the Bears, per CBS Sports insider</description>
+      <link>https://www.cbssports.com/nfl/news/titans-trade-jeffery-simmons-to-chicago-bears-grades/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-786d503f022db73394df</guid>
+      <pubDate>Thu, 29 Oct 2026 14:37:21 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears provide members of armed forces &apos;really unique and special opportunity&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears provide members of armed forces &apos;really unique and special opportunity&apos;</description>
+      <link>https://www.chicagobears.com/news/bears-provide-members-of-armed-forces-really-unique-and-special-opportunity</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-080238576f49a315451b</guid>
+      <pubDate>Thu, 29 Oct 2026 12:17:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Video: Chicago Bears trade for Jeffery Simmons is &apos;about the next two years&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Video: Chicago Bears trade for Jeffery Simmons is &apos;about the next two years&apos;</description>
+      <link>https://www.nytimes.com/athletic/video/kzCxKP4176Tvo8d/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-83ea48b376eeddb3fa92</guid>
+      <pubDate>Thu, 29 Oct 2026 08:36:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
-      <title>Chicago Bears NFL Trade Deadline Targets</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears NFL Trade Deadline Targets</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-nfl-trade-deadline-223000781.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-282f1cf6385f7ed92db9</guid>
-      <pubDate>Wed, 28 Oct 2026 22:30:00 GMT</pubDate>
+      <title>Video: Chicago Bears trade for Tennessee Titans All-Pro DT Jeffery Simmons</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Video: Chicago Bears trade for Tennessee Titans All-Pro DT Jeffery Simmons</description>
+      <link>https://www.nytimes.com/athletic/video/U3VMbTxcJVuPy2a/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-42e8dcf2d1370be3392f</guid>
+      <pubDate>Thu, 29 Oct 2026 08:35:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
-      <title>Seattle Seahawks Tryout Two Wideouts Ahead Of Bears Game</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Seattle Seahawks Tryout Two Wideouts Ahead Of Bears Game</description>
-      <link>https://sports.yahoo.com/articles/seattle-seahawks-tryout-two-wideouts-052751655.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f180606ff8fadd9be726</guid>
-      <pubDate>Wed, 28 Oct 2026 22:27:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears embrace stepping into national spotlight</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears embrace stepping into national spotlight</description>
-      <link>https://www.chicagobears.com/news/bears-embrace-stepping-into-national-spotlight</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-647e6730e68d69e1c456</guid>
-      <pubDate>Wed, 28 Oct 2026 21:39:49 GMT</pubDate>
+      <title>Peter King on new book, Bears-Seahawks preview | Bears, etc. Podcast</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Peter King on new book, Bears-Seahawks preview | Bears, etc. Podcast</description>
+      <link>https://www.chicagobears.com/audio/peter-king-on-new-book-bears-seahawks-preview-bears-etc-podcast</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-24dc09c5a63f48facd0c</guid>
+      <pubDate>Thu, 29 Oct 2026 06:14:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears and Jewel-Osco kick off 38th annual Coat Drive to help keep Chicagoland warm</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears and Jewel-Osco kick off 38th annual Coat Drive to help keep Chicagoland warm</description>
-      <link>https://www.chicagobears.com/news/chicago-bears-and-jewel-osco-kick-off-38th-annual-coat-drive-to-help-keep-chicagoland-warm</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e9ae636531f564411c40</guid>
-      <pubDate>Wed, 28 Oct 2026 21:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bucky Brooks breaks down Week 8 Bears vs. Seahawks</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Bucky Brooks breaks down Week 8 Bears vs. Seahawks</description>
-      <link>https://www.nfl.com/videos/bucky-brooks-breaks-down-week-8-bears-vs-seahawks</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0b547588e8e5e9cb639d</guid>
-      <pubDate>Wed, 28 Oct 2026 16:32:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Jeffery Simmons Isn&apos;t the Only Titans Star the Bears Have Rumored Interest in</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Jeffery Simmons Isn&apos;t the Only Titans Star the Bears Have Rumored Interest in</description>
-      <link>https://www.si.com/nfl/bears/onsi/jeffrey-simmons-isn-t-the-only-titans-star-the-bears-have-rumored-interest-in</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-178a8ee306b7e5cabfc0</guid>
-      <pubDate>Wed, 28 Oct 2026 15:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Kyle Monangai Injury Update From Practice Confirms Minor Progress For Bears RB</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyle Monangai Injury Update From Practice Confirms Minor Progress For Bears RB</description>
-      <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-from-practice-confirms-minor-progress-for-bears-rb</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-77059d9c0414e769b046</guid>
-      <pubDate>Wed, 28 Oct 2026 13:42:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
