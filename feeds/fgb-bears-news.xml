@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 30 Oct 2026 00:55:36 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 30 Oct 2026 06:39:17 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>New monster in the Midway: Why Jeffery Simmons could be worth the price for Bears in a wide-open NFL</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: New monster in the Midway: Why Jeffery Simmons could be worth the price for Bears in a wide-open NFL</description>
+      <link>https://sports.yahoo.com/nfl/article/new-monster-in-the-midway-why-jeffery-simmons-could-be-worth-the-price-for-bears-in-a-wide-open-nfl-045335275.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8d75e63be8df6c16957f</guid>
+      <pubDate>Fri, 30 Oct 2026 04:53:35 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>It’s Official: Chicago Bears Announce Jeffery Simmons Trade</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: It’s Official: Chicago Bears Announce Jeffery Simmons Trade</description>
+      <link>https://sports.yahoo.com/articles/official-chicago-bears-announce-jeffery-021113257.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-49d9a34b2cd1a753308a</guid>
+      <pubDate>Fri, 30 Oct 2026 02:11:13 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Chicago Bears acquire All-Pro DL Jeffery Simmons via trade | Roster Moves</title>
@@ -17,26 +37,6 @@
       <pubDate>Fri, 30 Oct 2026 00:40:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>The Bears now have the best DT in the NFL</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bears now have the best DT in the NFL</description>
-      <link>https://sports.yahoo.com/articles/bears-now-best-dt-nfl-220000850.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ea7e43cb1c6c83b2899c</guid>
-      <pubDate>Thu, 29 Oct 2026 22:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Roster Moves: Jamree Kromah waived</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Roster Moves: Jamree Kromah waived</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-roster-moves-jamree-213000074.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0aa71c1b6155fd584507</guid>
-      <pubDate>Thu, 29 Oct 2026 21:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -60,6 +60,16 @@
     </item>
 
     <item>
+      <title>Chicago Bears vs. Seattle Seahawks NFL Pro Week 8 Preview</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Chicago Bears vs. Seattle Seahawks NFL Pro Week 8 Preview</description>
+      <link>https://www.nfl.com/videos/chicago-bears-vs-seattle-seahawks-nfl-pro-week-8-preview</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-500693a25531da9ab388</guid>
+      <pubDate>Thu, 29 Oct 2026 17:51:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
       <title>Revisiting Panthers&apos; blockbuster trade with Bears to draft Bryce Young: Chicago, Caleb Williams won big</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Revisiting Panthers&apos; blockbuster trade with Bears to draft Bryce Young: Chicago, Caleb Williams won big</description>
       <link>https://www.cbssports.com/nfl/news/revisiting-panthers-trade-bears-to-draft-bryce-young-caleb-williams/</link>
@@ -77,16 +87,6 @@
       <pubDate>Thu, 29 Oct 2026 17:32:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Who Are the Experts Picking in Bears vs. Seahawks Week 8 Matchup?</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Who Are the Experts Picking in Bears vs. Seahawks Week 8 Matchup?</description>
-      <link>https://www.si.com/nfl/bears/onsi/who-are-the-experts-picking-in-bears-vs-seahawks-week-8-matchup</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-cd64d9d8bc1a5878293a</guid>
-      <pubDate>Thu, 29 Oct 2026 16:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
