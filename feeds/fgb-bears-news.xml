@@ -5,9 +5,69 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 30 Oct 2026 18:50:59 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 30 Oct 2026 22:43:36 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Hot Take Friday: Super Bears, Super Bowl</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Hot Take Friday: Super Bears, Super Bowl</description>
+      <link>https://sports.yahoo.com/articles/hot-friday-super-bears-super-201500455.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-568c849f8ec4a665c996</guid>
+      <pubDate>Fri, 30 Oct 2026 20:15:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Colston Loveland limited at Bears practice with a neck injury</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Colston Loveland limited at Bears practice with a neck injury</description>
+      <link>https://sports.yahoo.com/articles/colston-loveland-limited-bears-practice-194102471.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-764743d04de5d34e2359</guid>
+      <pubDate>Fri, 30 Oct 2026 19:41:02 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears view Jeffery Simmons as difference maker on field, in locker room</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears view Jeffery Simmons as difference maker on field, in locker room</description>
+      <link>https://www.chicagobears.com/news/bears-view-jeffery-simmons-as-difference-maker-on-field-in-locker-room</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7cf207733f30ec6c4106</guid>
+      <pubDate>Fri, 30 Oct 2026 18:44:26 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>This Time Ryan Poles Might Really Have True Bears Defensive Multiplier</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: This Time Ryan Poles Might Really Have True Bears Defensive Multiplier</description>
+      <link>https://www.si.com/nfl/bears/onsi/this-time-ryan-poles-might-really-have-true-bears-defensive-multiplier</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8e7ba9028b40d29c6e95</guid>
+      <pubDate>Fri, 30 Oct 2026 15:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Quenton Nelson Laments Inability to Escape Jeffery Simmons Ahead of Bears-Seahawks</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Quenton Nelson Laments Inability to Escape Jeffery Simmons Ahead of Bears-Seahawks</description>
+      <link>https://www.si.com/nfl/bears/onsi/quenton-nelson-laments-inability-to-escape-jeffery-simmons-ahead-of-bears-seahawks</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cf103b760823af25dbfd</guid>
+      <pubDate>Fri, 30 Oct 2026 15:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears vs. Seahawks: Where to watch &apos;Monday Night Football&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears vs. Seahawks: Where to watch &apos;Monday Night Football&apos;</description>
+      <link>https://www.espn.com/nba/story/_/id/1336921...</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2da45bdc1cadbdbea9d6</guid>
+      <pubDate>Fri, 30 Oct 2026 13:24:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
 
     <item>
       <title>NFL odds: Week 8 parlays featuring favorites, underdogs include Bills-Ravens, Bears-Seahawks</title>
@@ -20,73 +80,13 @@
     </item>
 
     <item>
-      <title>3 causes for concern as the Bears face the Seahawks in Week 8</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 3 causes for concern as the Bears face the Seahawks in Week 8</description>
-      <link>https://sports.yahoo.com/articles/3-causes-concern-bears-face-183032192.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c543c112141feeffa313</guid>
-      <pubDate>Fri, 30 Oct 2026 11:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Bears confident Jeffery Simmons will help them ‘take the next step’</title>
       <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears confident Jeffery Simmons will help them ‘take the next step’</description>
       <link>https://www.nytimes.com/athletic/7739053/2026/10/30/bears-jeffery-simmons-trade-ryan-poles/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-92769a1ede7a3fea37c7</guid>
-      <pubDate>Fri, 30 Oct 2026 11:13:00 GMT</pubDate>
+      <pubDate>Fri, 30 Oct 2026 11:58:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Bears’ Ryan Poles explains Super Bowl reasoning for Jeffery Simmons trade</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Ryan Poles explains Super Bowl reasoning for Jeffery Simmons trade</description>
-      <link>https://sports.yahoo.com/articles/bears-ryan-poles-explains-super-175352055.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-330f98c99b17ef270d2a</guid>
-      <pubDate>Fri, 30 Oct 2026 10:54:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>What Jeffery Simmons brings to Bears defense | Bears Weekly</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: What Jeffery Simmons brings to Bears defense | Bears Weekly</description>
-      <link>https://www.chicagobears.com/audio/what-jeffery-simmons-brings-to-bears-defense-bears-weekly</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9c1d5c238a89cdf25f98</guid>
-      <pubDate>Fri, 30 Oct 2026 10:36:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Jeffery Simmons Gets New Jersey Number with Bears After Blockbuster Trade</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Jeffery Simmons Gets New Jersey Number with Bears After Blockbuster Trade</description>
-      <link>https://www.si.com/nfl/bears/onsi/jeffery-simmons-jersey-number-bears-blockbuster-trade</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dad22d5d0cd1ca66165e</guid>
-      <pubDate>Fri, 30 Oct 2026 10:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Ryan Poles talks Jeffery Simmons trade, impact on Bears moving forward | Press Conference</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Ryan Poles talks Jeffery Simmons trade, impact on Bears moving forward | Press Conference</description>
-      <link>https://www.chicagobears.com/video/ryan-poles-talks-jeffery-simmons-trade-impact-on-bears-moving-forward-press-conference</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d2314d563d9e527ac828</guid>
-      <pubDate>Fri, 30 Oct 2026 08:58:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Will Jeffery Simmons Play in Week 8? Ryan Poles Shares Expectation for New Bears DT</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Will Jeffery Simmons Play in Week 8? Ryan Poles Shares Expectation for New Bears DT</description>
-      <link>https://www.si.com/nfl/bears/onsi/will-jeffery-simmons-play-week-8-ryan-poles-expectation-bears-dt</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b1da5c2e55f452f957b1</guid>
-      <pubDate>Fri, 30 Oct 2026 08:58:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
