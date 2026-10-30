@@ -5,28 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 30 Oct 2026 06:39:17 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 30 Oct 2026 13:32:34 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>New monster in the Midway: Why Jeffery Simmons could be worth the price for Bears in a wide-open NFL</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: New monster in the Midway: Why Jeffery Simmons could be worth the price for Bears in a wide-open NFL</description>
-      <link>https://sports.yahoo.com/nfl/article/new-monster-in-the-midway-why-jeffery-simmons-could-be-worth-the-price-for-bears-in-a-wide-open-nfl-045335275.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8d75e63be8df6c16957f</guid>
-      <pubDate>Fri, 30 Oct 2026 04:53:35 GMT</pubDate>
+      <title>NFL Predictions: Can the Bears’ defense slow down the Seahawks’ offense?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Predictions: Can the Bears’ defense slow down the Seahawks’ offense?</description>
+      <link>https://sports.yahoo.com/articles/nfl-predictions-bears-defense-slow-130000600.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3db826ae104e8acdfd4a</guid>
+      <pubDate>Fri, 30 Oct 2026 13:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>It’s Official: Chicago Bears Announce Jeffery Simmons Trade</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: It’s Official: Chicago Bears Announce Jeffery Simmons Trade</description>
-      <link>https://sports.yahoo.com/articles/official-chicago-bears-announce-jeffery-021113257.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-49d9a34b2cd1a753308a</guid>
-      <pubDate>Fri, 30 Oct 2026 02:11:13 GMT</pubDate>
+      <title>NFL odds: Week 8 parlays featuring favorites, underdogs include Bills-Ravens, Bears-Seahawks</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL odds: Week 8 parlays featuring favorites, underdogs include Bills-Ravens, Bears-Seahawks</description>
+      <link>https://www.cbssports.com/betting/news/nfl-odds-week-8-parlays-featuring-favorites-underdogs-include-bills-ravens-bears-seahawks/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d984428d7f389dc6fe01</guid>
+      <pubDate>Fri, 30 Oct 2026 12:01:21 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>The Bears acted like a Super Bowl contender with the Jeffery Simmons trade. It’s about time</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bears acted like a Super Bowl contender with the Jeffery Simmons trade. It’s about time</description>
+      <link>https://sports.yahoo.com/articles/bears-acted-super-bowl-contender-120000364.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-26ad71ce2b4d237c1863</guid>
+      <pubDate>Fri, 30 Oct 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>The Winners and Losers from Chicago Bears&apos; Trade for Jeffery Simmons</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Winners and Losers from Chicago Bears&apos; Trade for Jeffery Simmons</description>
+      <link>https://www.si.com/nfl/bears/onsi/the-winners-and-losers-from-chicago-bears-trade-for-jeffery-simmons</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b35d5ddcf02a7796fbd9</guid>
+      <pubDate>Fri, 30 Oct 2026 06:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>3 Nightmarish NFC North Rival Trades the Chicago Bears Would Not Want to See</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 3 Nightmarish NFC North Rival Trades the Chicago Bears Would Not Want to See</description>
+      <link>https://www.si.com/nfl/bears/onsi/3-nfc-north-rival-trades-that-d-be-nightmares-for-the-chicago-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-aa99945a1c3ac2a0fb49</guid>
+      <pubDate>Fri, 30 Oct 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Jeffery Simmons, Quenton Nelson will renew their rivalry at Bears-Seahawks Monday night</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Jeffery Simmons, Quenton Nelson will renew their rivalry at Bears-Seahawks Monday night</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/jeffery-simmons-quenton-nelson-will-renew-their-rivalry-at-bears-seahawks-monday-night</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f96098cc62353fd311c9</guid>
+      <pubDate>Fri, 30 Oct 2026 00:41:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
@@ -47,46 +87,6 @@
       <pubDate>Thu, 29 Oct 2026 21:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Source: Bears quarterback Caleb Williams fined again for cleats</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Source: Bears quarterback Caleb Williams fined again for cleats</description>
-      <link>https://www.espn.com/tennis/story/_/id/74353682012-1-7</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6b0b9a7abe5a34511776</guid>
-      <pubDate>Thu, 29 Oct 2026 17:53:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears vs. Seattle Seahawks NFL Pro Week 8 Preview</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Chicago Bears vs. Seattle Seahawks NFL Pro Week 8 Preview</description>
-      <link>https://www.nfl.com/videos/chicago-bears-vs-seattle-seahawks-nfl-pro-week-8-preview</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-500693a25531da9ab388</guid>
-      <pubDate>Thu, 29 Oct 2026 17:51:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Revisiting Panthers&apos; blockbuster trade with Bears to draft Bryce Young: Chicago, Caleb Williams won big</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Revisiting Panthers&apos; blockbuster trade with Bears to draft Bryce Young: Chicago, Caleb Williams won big</description>
-      <link>https://www.cbssports.com/nfl/news/revisiting-panthers-trade-bears-to-draft-bryce-young-caleb-williams/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-de9a808653818f6a5e40</guid>
-      <pubDate>Thu, 29 Oct 2026 17:47:55 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams plans to defy NFL: Bears QB to stick with unapproved cleat also worn by former Super Bowl MVP</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Caleb Williams plans to defy NFL: Bears QB to stick with unapproved cleat also worn by former Super Bowl MVP</description>
-      <link>https://www.cbssports.com/nfl/news/caleb-williams-defy-nfl-stick-with-unapproved-caddix-cleat/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6e14c40e3f055b13c7d0</guid>
-      <pubDate>Thu, 29 Oct 2026 17:32:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
