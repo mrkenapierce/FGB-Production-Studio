@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 31 Oct 2026 21:28:54 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 01 Nov 2026 00:17:26 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears rule out RB Kyle Monangai</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears rule out RB Kyle Monangai</description>
+      <link>https://sports.yahoo.com/articles/bears-rule-rb-kyle-monangai-212650697.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4c4381bd4f6b093c3ca7</guid>
+      <pubDate>Sat, 31 Oct 2026 21:26:50 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Quenton Nelson arrives as Seahawks RBs cleared to return vs Bears</title>
@@ -15,16 +25,6 @@
       <link>https://sports.yahoo.com/articles/quenton-nelson-arrives-seahawks-rbs-210349124.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-2da0cf23f346e4ca0ec9</guid>
       <pubDate>Sat, 31 Oct 2026 21:03:49 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears vs. Seahawks Injury Report: Kyle Monangai is out for Chicago</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Seahawks Injury Report: Kyle Monangai is out for Chicago</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-seahawks-injury-report-192455283.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b3e016edde17aea6401d</guid>
-      <pubDate>Sat, 31 Oct 2026 19:24:55 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -40,13 +40,43 @@
     </item>
 
     <item>
-      <title>Bears-Seahawks Monday Night Football hype trailer | Bears Buzz</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears-Seahawks Monday Night Football hype trailer | Bears Buzz</description>
-      <link>https://www.chicagobears.com/video/bears-seahawks-monday-night-football-hype-trailer-bears-buzz</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8bdae317acff3667d359</guid>
-      <pubDate>Sat, 31 Oct 2026 12:22:00 GMT</pubDate>
+      <title>Seahawks getting Zach Charbonnet, possibly Jadarian Price back for Monday vs. Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Seahawks getting Zach Charbonnet, possibly Jadarian Price back for Monday vs. Bears</description>
+      <link>https://www.nytimes.com/athletic/7742247/2026/10/31/zach-charbonnet-jadarian-price-seahawks/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7cf0b63e61cdc005637c</guid>
+      <pubDate>Sat, 31 Oct 2026 15:05:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>What to Expect From Bears&apos; Jeffery Simmons Against the Seattle Seahawks</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: What to Expect From Bears&apos; Jeffery Simmons Against the Seattle Seahawks</description>
+      <link>https://www.si.com/nfl/bears/onsi/what-to-expect-from-bears-jeffery-simmons-against-the-seattle-seahawks</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-86ccf4a0defc6c5d7489</guid>
+      <pubDate>Sat, 31 Oct 2026 14:50:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears Defensive Coordinator Dennis Allen Has Huge Problem to Solve Even After Trade</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Defensive Coordinator Dennis Allen Has Huge Problem to Solve Even After Trade</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-defensive-coordinator-dennis-allen-has-huge-problem-to-solve-even-after-trade</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-bbfd967cda394e33682f</guid>
+      <pubDate>Sat, 31 Oct 2026 13:20:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears rule out RB Kyle Monangai</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears rule out RB Kyle Monangai</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-rule-out-rb-kyle-monangai</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-924292fdada3eb6359ed</guid>
+      <pubDate>Sat, 31 Oct 2026 10:26:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
@@ -57,26 +87,6 @@
       <pubDate>Sat, 31 Oct 2026 03:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Adding Jeffery Simmons shows GM Ryan Poles, Bears have realistic Super Bowl hopes</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Adding Jeffery Simmons shows GM Ryan Poles, Bears have realistic Super Bowl hopes</description>
-      <link>https://www.nfl.com/news/adding-jeffery-simmons-shows-gm-ryan-poles-bears-have-realistic-super-bowl-hopes</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-403a45e6851a8a20d27c</guid>
-      <pubDate>Fri, 30 Oct 2026 20:46:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Titans trade DT Jeffery Simmons to Bears | &apos;The NFL Report&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Titans trade DT Jeffery Simmons to Bears | &apos;The NFL Report&apos;</description>
-      <link>https://www.nfl.com/videos/titans-trade-dt-jeffery-simmons-to-bears-the-nfl-report</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-488f7e3020adf099e01b</guid>
-      <pubDate>Fri, 30 Oct 2026 16:33:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
   </channel>
 </rss>
