@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 01 Nov 2026 00:17:26 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 01 Nov 2026 06:31:04 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -40,53 +40,33 @@
     </item>
 
     <item>
-      <title>Seahawks getting Zach Charbonnet, possibly Jadarian Price back for Monday vs. Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Seahawks getting Zach Charbonnet, possibly Jadarian Price back for Monday vs. Bears</description>
-      <link>https://www.nytimes.com/athletic/7742247/2026/10/31/zach-charbonnet-jadarian-price-seahawks/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7cf0b63e61cdc005637c</guid>
-      <pubDate>Sat, 31 Oct 2026 15:05:00 GMT</pubDate>
+      <title>Bears-Seahawks Monday Night Football hype trailer | Bears Buzz</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears-Seahawks Monday Night Football hype trailer | Bears Buzz</description>
+      <link>https://www.chicagobears.com/video/bears-seahawks-monday-night-football-hype-trailer-bears-buzz</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8bdae317acff3667d359</guid>
+      <pubDate>Sat, 31 Oct 2026 12:22:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
-      <title>What to Expect From Bears&apos; Jeffery Simmons Against the Seattle Seahawks</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: What to Expect From Bears&apos; Jeffery Simmons Against the Seattle Seahawks</description>
-      <link>https://www.si.com/nfl/bears/onsi/what-to-expect-from-bears-jeffery-simmons-against-the-seattle-seahawks</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-86ccf4a0defc6c5d7489</guid>
-      <pubDate>Sat, 31 Oct 2026 14:50:00 GMT</pubDate>
+      <title>NFL news roundup: Broncos places RJ Harvey (knee) on IR; Bears RB Kyle Monangai out again</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: NFL news roundup: Broncos places RJ Harvey (knee) on IR; Bears RB Kyle Monangai out again</description>
+      <link>https://www.nfl.com/news/nfl-news-roundup-latest-league-updates-from-saturday-oct-31</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-460654d6471bee4c6b5e</guid>
+      <pubDate>Sat, 31 Oct 2026 07:19:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
-      <title>Bears Defensive Coordinator Dennis Allen Has Huge Problem to Solve Even After Trade</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Defensive Coordinator Dennis Allen Has Huge Problem to Solve Even After Trade</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-defensive-coordinator-dennis-allen-has-huge-problem-to-solve-even-after-trade</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-bbfd967cda394e33682f</guid>
-      <pubDate>Sat, 31 Oct 2026 13:20:00 GMT</pubDate>
+      <title>Seahawks RB Zach Charbonnet (knee) off injury report, set for season debut vs. Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Seahawks RB Zach Charbonnet (knee) off injury report, set for season debut vs. Bears</description>
+      <link>https://www.nfl.com/news/seahawks-rb-zach-charbonnet-knee-off-injury-report-set-for-season-debut-vs-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c6e87c01654b1db1568c</guid>
+      <pubDate>Sat, 31 Oct 2026 07:15:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears rule out RB Kyle Monangai</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears rule out RB Kyle Monangai</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-rule-out-rb-kyle-monangai</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-924292fdada3eb6359ed</guid>
-      <pubDate>Sat, 31 Oct 2026 10:26:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
-      <title>Adding Jeffery Simmons shows GM Ryan Poles, Bears have realistic Super Bowl hopes</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Adding Jeffery Simmons shows GM Ryan Poles, Bears have realistic Super Bowl hopes</description>
-      <link>https://www.nytimes.com/athletic/7740017/2026/10/31/bears-jeffery-simmons-ryan-poles-super-bowl/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5fc6e4a83c0a313801aa</guid>
-      <pubDate>Sat, 31 Oct 2026 03:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
   </channel>
 </rss>
