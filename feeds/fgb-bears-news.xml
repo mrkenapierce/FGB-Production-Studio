@@ -5,28 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 01 Nov 2026 06:31:04 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 01 Nov 2026 13:46:17 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears rule out RB Kyle Monangai</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears rule out RB Kyle Monangai</description>
-      <link>https://sports.yahoo.com/articles/bears-rule-rb-kyle-monangai-212650697.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4c4381bd4f6b093c3ca7</guid>
-      <pubDate>Sat, 31 Oct 2026 21:26:50 GMT</pubDate>
+      <title>Fan confidence in the Bears is still high</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Fan confidence in the Bears is still high</description>
+      <link>https://sports.yahoo.com/articles/fan-confidence-bears-still-high-130000359.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7e249ae54871af33dee0</guid>
+      <pubDate>Sun, 01 Nov 2026 13:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Quenton Nelson arrives as Seahawks RBs cleared to return vs Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Quenton Nelson arrives as Seahawks RBs cleared to return vs Bears</description>
-      <link>https://sports.yahoo.com/articles/quenton-nelson-arrives-seahawks-rbs-210349124.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2da0cf23f346e4ca0ec9</guid>
-      <pubDate>Sat, 31 Oct 2026 21:03:49 GMT</pubDate>
+      <title>3 offensive guard prospects who could fit in with the Chicago Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 3 offensive guard prospects who could fit in with the Chicago Bears</description>
+      <link>https://sports.yahoo.com/articles/3-offensive-guard-prospects-could-134023695.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a0028e78f649e6b3cfba</guid>
+      <pubDate>Sun, 01 Nov 2026 05:40:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Do Chicago Bears Play Today? Start Time and TV Schedule for Week 8 vs. Seahawks</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Do Chicago Bears Play Today? Start Time and TV Schedule for Week 8 vs. Seahawks</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-play-today-start-time-tv-schedule-week-8-seahawks</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e7cc90fe0335af35e81b</guid>
+      <pubDate>Sun, 01 Nov 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Sources: Bears, Titans used Myles Garrett deal as framework for Simmons trade</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Sources: Bears, Titans used Myles Garrett deal as framework for Simmons trade</description>
+      <link>https://www.espn.com/nfl/story/_/id/50343678/bears-trade-jeffery-simmons-based-myles-garrett-deal</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-13d4c6f712656d8fc9cf</guid>
+      <pubDate>Sun, 01 Nov 2026 04:46:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Bears QB Caleb Williams won&apos;t &apos;spat&apos; custom cleats out of principle, source says</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears QB Caleb Williams won&apos;t &apos;spat&apos; custom cleats out of principle, source says</description>
+      <link>https://www.espn.com/nfl/story/_/id/50343312/source-caleb-williams-spat-cleats-principle</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ca790b6b85ec2935c35c</guid>
+      <pubDate>Sun, 01 Nov 2026 04:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Jeffery Simmons Explains Taking New Jersey Number Despite Opportunity to Get 98</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Jeffery Simmons Explains Taking New Jersey Number Despite Opportunity to Get 98</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-jeffery-simmons-new-jersey-number-opportunity-98</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4705ca58f1ac6f5ee02a</guid>
+      <pubDate>Sun, 01 Nov 2026 03:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -40,33 +80,13 @@
     </item>
 
     <item>
-      <title>Bears-Seahawks Monday Night Football hype trailer | Bears Buzz</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears-Seahawks Monday Night Football hype trailer | Bears Buzz</description>
-      <link>https://www.chicagobears.com/video/bears-seahawks-monday-night-football-hype-trailer-bears-buzz</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8bdae317acff3667d359</guid>
-      <pubDate>Sat, 31 Oct 2026 12:22:00 GMT</pubDate>
+      <title>Seahawks getting Zach Charbonnet, possibly Jadarian Price back for Monday vs. Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Seahawks getting Zach Charbonnet, possibly Jadarian Price back for Monday vs. Bears</description>
+      <link>https://www.nytimes.com/athletic/7742247/2026/10/31/zach-charbonnet-jadarian-price-seahawks/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7cf0b63e61cdc005637c</guid>
+      <pubDate>Sat, 31 Oct 2026 15:05:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>NFL news roundup: Broncos places RJ Harvey (knee) on IR; Bears RB Kyle Monangai out again</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: NFL news roundup: Broncos places RJ Harvey (knee) on IR; Bears RB Kyle Monangai out again</description>
-      <link>https://www.nfl.com/news/nfl-news-roundup-latest-league-updates-from-saturday-oct-31</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-460654d6471bee4c6b5e</guid>
-      <pubDate>Sat, 31 Oct 2026 07:19:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Seahawks RB Zach Charbonnet (knee) off injury report, set for season debut vs. Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Seahawks RB Zach Charbonnet (knee) off injury report, set for season debut vs. Bears</description>
-      <link>https://www.nfl.com/news/seahawks-rb-zach-charbonnet-knee-off-injury-report-set-for-season-debut-vs-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c6e87c01654b1db1568c</guid>
-      <pubDate>Sat, 31 Oct 2026 07:15:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
