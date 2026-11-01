@@ -5,19 +5,9 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 01 Nov 2026 18:40:37 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 01 Nov 2026 22:25:09 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
-
-    <item>
-      <title>Bears vs. Seahawks: How to Watch, Odds, Previews, Love and Hate</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Seahawks: How to Watch, Odds, Previews, Love and Hate</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-seahawks-watch-odds-180000760.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-192ef0c53cc27c24c4c0</guid>
-      <pubDate>Sun, 01 Nov 2026 18:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
 
     <item>
       <title>NFL Thanksgiving schedule: Lions announce halftime show performer for game vs. Bears</title>
@@ -50,21 +40,21 @@
     </item>
 
     <item>
-      <title>NFL rumors: Ian Rapoport teases Khalil Mack Bears reunion trade after Jeffery Simmons blockbuster</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL rumors: Ian Rapoport teases Khalil Mack Bears reunion trade after Jeffery Simmons blockbuster</description>
-      <link>https://sports.yahoo.com/articles/nfl-rumors-ian-rapoport-teases-175026978.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ca05eaf1a0348e7784ad</guid>
-      <pubDate>Sun, 01 Nov 2026 09:49:00 GMT</pubDate>
+      <title>NFC North Standings: Where Bears Sit After Packers, Lions &amp; Vikings Games in Week 8</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: NFC North Standings: Where Bears Sit After Packers, Lions &amp; Vikings Games in Week 8</description>
+      <link>https://www.si.com/nfl/bears/onsi/nfc-north-standings-where-bears-sit-packers-lions-vikings-games-week-8</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7b1a29c0d10c1089a74b</guid>
+      <pubDate>Sun, 01 Nov 2026 13:11:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Bold Predictions For the Bears Week 8 Matchup Against the Seahawks</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bold Predictions For the Bears Week 8 Matchup Against the Seahawks</description>
-      <link>https://www.si.com/nfl/bears/onsi/bold-predictions-for-the-bears-week-8-matchup-against-the-seahawks</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e0fffbcc464fb5c17c0e</guid>
-      <pubDate>Sun, 01 Nov 2026 09:30:00 GMT</pubDate>
+      <title>Considering Bears&apos; Track Record After Overpayment for Jeffery Simmons</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Considering Bears&apos; Track Record After Overpayment for Jeffery Simmons</description>
+      <link>https://www.si.com/nfl/bears/onsi/consider-bears-track-record-after-overpayment-for-jeffery-simmons</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-45a87c0f8a14fbed9047</guid>
+      <pubDate>Sun, 01 Nov 2026 11:59:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -80,13 +70,23 @@
     </item>
 
     <item>
-      <title>Bears Trade Rumor Details Deadline Focus, Latest on Possible Khalil Mack Deal</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Trade Rumor Details Deadline Focus, Latest on Possible Khalil Mack Deal</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-trade-rumor-deadline-focus-latest-khalil-mack-deal</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a044c8f923af30e739e7</guid>
-      <pubDate>Sun, 01 Nov 2026 08:18:00 GMT</pubDate>
+      <title>Sources: Bears, Titans used Myles Garrett deal as framework for Simmons trade</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Sources: Bears, Titans used Myles Garrett deal as framework for Simmons trade</description>
+      <link>https://www.espn.com/nfl/story/_/id/50343678/bears-trade-jeffery-simmons-based-myles-garrett-deal</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-13d4c6f712656d8fc9cf</guid>
+      <pubDate>Sun, 01 Nov 2026 04:46:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Bears QB Caleb Williams won&apos;t &apos;spat&apos; custom cleats out of principle, source says</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears QB Caleb Williams won&apos;t &apos;spat&apos; custom cleats out of principle, source says</description>
+      <link>https://www.espn.com/nfl/story/_/id/50343312/source-caleb-williams-spat-cleats-principle</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ca790b6b85ec2935c35c</guid>
+      <pubDate>Sun, 01 Nov 2026 04:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
