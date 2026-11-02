@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 02 Nov 2026 01:38:32 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 02 Nov 2026 08:16:59 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears Trade Deadline Rumors on Khalil Mack and Tyson Bagent</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Trade Deadline Rumors on Khalil Mack and Tyson Bagent</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-trade-deadline-rumors-031556538.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-bb182f9b96a6ada77beb</guid>
+      <pubDate>Mon, 02 Nov 2026 03:15:56 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears vs. Seahawks prediction, odds, pick for Week 8 Monday Night Football</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Seahawks prediction, odds, pick for Week 8 Monday Night Football</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-seahawks-prediction-odds-070823925.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c3ffc16e73c785300b53</guid>
+      <pubDate>Mon, 02 Nov 2026 00:06:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>NFL Thanksgiving schedule: Lions announce halftime show performer for game vs. Bears</title>
@@ -47,26 +67,6 @@
       <pubDate>Sun, 01 Nov 2026 16:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears player gets punished by the NFL before critical Seahawks game</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears player gets punished by the NFL before critical Seahawks game</description>
-      <link>https://sports.yahoo.com/articles/bears-player-gets-punished-nfl-220527443.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5cbe70c017e790ddd3e7</guid>
-      <pubDate>Sun, 01 Nov 2026 14:05:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears State Line Predictions Week 8: Jeffery Simmons Debut Could Tilt Prime-Time Clash</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears State Line Predictions Week 8: Jeffery Simmons Debut Could Tilt Prime-Time Clash</description>
-      <link>https://sports.yahoo.com/articles/bears-state-line-predictions-week-210000464.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-31aeddee8107aa87843a</guid>
-      <pubDate>Sun, 01 Nov 2026 13:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
