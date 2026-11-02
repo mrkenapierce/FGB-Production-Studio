@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 01 Nov 2026 22:25:09 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 02 Nov 2026 01:38:32 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -15,16 +15,6 @@
       <link>https://www.cbssports.com/nfl/news/nfl-thanksgiving-schedule-lions-halftime-show-performer-wu-tang-clan/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-91fc958cfc0510d8c5a6</guid>
       <pubDate>Sun, 01 Nov 2026 17:33:10 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>NFL odds, picks, predictions: Favorites, underdogs parlays for Week 8 feature Bills-Ravens, Bears-Seahawks</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL odds, picks, predictions: Favorites, underdogs parlays for Week 8 feature Bills-Ravens, Bears-Seahawks</description>
-      <link>https://www.cbssports.com/betting/news/nfl-odds-picks-predictions-favorites-underdogs-parlays-for-week-8-feature-bills-ravens-bears-seahawks/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ad6aa98d99616b0e1515</guid>
-      <pubDate>Sun, 01 Nov 2026 16:50:36 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
@@ -40,23 +30,53 @@
     </item>
 
     <item>
-      <title>NFC North Standings: Where Bears Sit After Packers, Lions &amp; Vikings Games in Week 8</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: NFC North Standings: Where Bears Sit After Packers, Lions &amp; Vikings Games in Week 8</description>
-      <link>https://www.si.com/nfl/bears/onsi/nfc-north-standings-where-bears-sit-packers-lions-vikings-games-week-8</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7b1a29c0d10c1089a74b</guid>
-      <pubDate>Sun, 01 Nov 2026 13:11:00 GMT</pubDate>
+      <title>Seahawks&apos; Quenton Nelson Trade Gives Bears Unexpected Advantage in Week 8</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Seahawks&apos; Quenton Nelson Trade Gives Bears Unexpected Advantage in Week 8</description>
+      <link>https://www.si.com/nfl/bears/onsi/seahawks-quentin-nelson-trade-gives-bears-unexpected-advantage-in-week-8</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8fe905344d12a132f3b1</guid>
+      <pubDate>Sun, 01 Nov 2026 16:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Considering Bears&apos; Track Record After Overpayment for Jeffery Simmons</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Considering Bears&apos; Track Record After Overpayment for Jeffery Simmons</description>
-      <link>https://www.si.com/nfl/bears/onsi/consider-bears-track-record-after-overpayment-for-jeffery-simmons</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-45a87c0f8a14fbed9047</guid>
-      <pubDate>Sun, 01 Nov 2026 11:59:00 GMT</pubDate>
+      <title>What Jeffery Simmons Trade Can Mean for the Future of Bears Roster</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: What Jeffery Simmons Trade Can Mean for the Future of Bears Roster</description>
+      <link>https://www.si.com/nfl/bears/onsi/what-jeffery-simmons-trade-can-mean-for-the-future-of-bears-roster</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c37d8d857707402c794e</guid>
+      <pubDate>Sun, 01 Nov 2026 16:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears player gets punished by the NFL before critical Seahawks game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears player gets punished by the NFL before critical Seahawks game</description>
+      <link>https://sports.yahoo.com/articles/bears-player-gets-punished-nfl-220527443.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5cbe70c017e790ddd3e7</guid>
+      <pubDate>Sun, 01 Nov 2026 14:05:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears State Line Predictions Week 8: Jeffery Simmons Debut Could Tilt Prime-Time Clash</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears State Line Predictions Week 8: Jeffery Simmons Debut Could Tilt Prime-Time Clash</description>
+      <link>https://sports.yahoo.com/articles/bears-state-line-predictions-week-210000464.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-31aeddee8107aa87843a</guid>
+      <pubDate>Sun, 01 Nov 2026 13:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears vs. Seahawks prediction, odds, time: &apos;Monday Night Football&apos; picks from proven model</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears vs. Seahawks prediction, odds, time: &apos;Monday Night Football&apos; picks from proven model</description>
+      <link>https://www.cbssports.com/betting/news/bears-seahawks-prediction-spread-odds-time-monday-night-football-picks/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8563a02d3a01c5d49abc</guid>
+      <pubDate>Sun, 01 Nov 2026 10:10:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -67,26 +87,6 @@
       <pubDate>Sun, 01 Nov 2026 09:10:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Sources: Bears, Titans used Myles Garrett deal as framework for Simmons trade</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Sources: Bears, Titans used Myles Garrett deal as framework for Simmons trade</description>
-      <link>https://www.espn.com/nfl/story/_/id/50343678/bears-trade-jeffery-simmons-based-myles-garrett-deal</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-13d4c6f712656d8fc9cf</guid>
-      <pubDate>Sun, 01 Nov 2026 04:46:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Bears QB Caleb Williams won&apos;t &apos;spat&apos; custom cleats out of principle, source says</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears QB Caleb Williams won&apos;t &apos;spat&apos; custom cleats out of principle, source says</description>
-      <link>https://www.espn.com/nfl/story/_/id/50343312/source-caleb-williams-spat-cleats-principle</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ca790b6b85ec2935c35c</guid>
-      <pubDate>Sun, 01 Nov 2026 04:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
