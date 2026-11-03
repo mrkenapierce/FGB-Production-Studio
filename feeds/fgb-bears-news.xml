@@ -5,38 +5,28 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 03 Nov 2026 15:39:24 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 03 Nov 2026 21:15:24 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Seahawks Droppings: Forget repeat, Seahawks might miss playoffs after faceplant vs. Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Seahawks Droppings: Forget repeat, Seahawks might miss playoffs after faceplant vs. Bears</description>
-      <link>https://sports.yahoo.com/articles/seahawks-droppings-forget-repeat-seahawks-150000149.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2ea25dfd4845d34c8bd0</guid>
-      <pubDate>Tue, 03 Nov 2026 15:00:00 GMT</pubDate>
+      <title>By the Numbers: Bears&apos; Week 8 win over Seahawks</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: By the Numbers: Bears&apos; Week 8 win over Seahawks</description>
+      <link>https://www.chicagobears.com/news/by-the-numbers-bears-week-8-win-over-seahawks</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0ad1d9a4efa61c0395f2</guid>
+      <pubDate>Tue, 03 Nov 2026 20:32:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
-      <title>NFL Week 9 betting: 5 biggest storylines, including the Bears and Jaguars creeping up Super Bowl odds</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Week 9 betting: 5 biggest storylines, including the Bears and Jaguars creeping up Super Bowl odds</description>
-      <link>https://sports.yahoo.com/nfl/betting/article/nfl-week-9-betting-5-biggest-storylines-including-the-bears-and-jaguars-creeping-up-super-bowl-odds-141305471.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6d52c02c63084060cd3c</guid>
-      <pubDate>Tue, 03 Nov 2026 14:13:05 GMT</pubDate>
+      <title>The Best Team in the NFL is the Chicago Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Best Team in the NFL is the Chicago Bears</description>
+      <link>https://sports.yahoo.com/articles/best-team-nfl-chicago-bears-203000109.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8b9dca7699ad6819f1ab</guid>
+      <pubDate>Tue, 03 Nov 2026 20:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears crash the Super Bowl conversation by beating Seahawks; Miami up to No. 1 in CFB Power Rankings</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears crash the Super Bowl conversation by beating Seahawks; Miami up to No. 1 in CFB Power Rankings</description>
-      <link>https://www.cbssports.com/nfl/news/bears-seahawks-super-bowl-nfl-mnf-miami-cfb-college-football-rankings/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0baf87700413c685ffb4</guid>
-      <pubDate>Tue, 03 Nov 2026 13:42:46 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -44,7 +34,27 @@
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Six lessons from Week 8: Bears emerge as top-tier Super Bowl contenders, Chiefs must address glaring flaws</description>
       <link>https://www.cbssports.com/nfl/news/nfl-week-8-lessons-bears-super-bowl-chiefs-kicker/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-e30da3ad00f77a015538</guid>
-      <pubDate>Tue, 03 Nov 2026 12:46:13 GMT</pubDate>
+      <pubDate>Tue, 03 Nov 2026 20:09:06 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>10 Thoughts on the NFL Week 8: No more ‘Bad News Bears’</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 10 Thoughts on the NFL Week 8: No more ‘Bad News Bears’</description>
+      <link>https://sports.yahoo.com/articles/10-thoughts-nfl-week-8-193000735.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7298b691c659cd26fdd0</guid>
+      <pubDate>Tue, 03 Nov 2026 19:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>2026 NFL trade deadline tracker: Latest deals, grades as Bears land Jeffery Simmons, Colts enter rebuild</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: 2026 NFL trade deadline tracker: Latest deals, grades as Bears land Jeffery Simmons, Colts enter rebuild</description>
+      <link>https://www.cbssports.com/nfl/news/2026-nfl-trade-deadline-tracker-latest-deals-grades/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e15adfe80be80ae461d6</guid>
+      <pubDate>Tue, 03 Nov 2026 17:37:09 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
@@ -55,36 +65,6 @@
       <link>https://www.chicagobears.com/news/jeffery-simmons-wreaks-havoc-in-bears-debut</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-0cce52e05931ca4b5acc</guid>
       <pubDate>Tue, 03 Nov 2026 07:30:31 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Khalil Mack Trade Chances Take Hit With Jim Harbaugh&apos;s Comment on Rumors</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Khalil Mack Trade Chances Take Hit With Jim Harbaugh&apos;s Comment on Rumors</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-khalil-mack-trade-chances-take-hit-jim-harbaugh-comment-rumors</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3a24d4caafdf455ff655</guid>
-      <pubDate>Tue, 03 Nov 2026 06:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Stamp the Bears True Title Contenders With Sweep of Super Bowl Teams</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Stamp the Bears True Title Contenders With Sweep of Super Bowl Teams</description>
-      <link>https://www.si.com/nfl/bears/onsi/stamp-the-bears-true-title-contenders-with-sweep-of-super-bowl-teams</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-44762fc2993a3e2586ec</guid>
-      <pubDate>Tue, 03 Nov 2026 06:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Game Recap: Bears make statement with impressive prime-time win in Seattle</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Recap: Bears make statement with impressive prime-time win in Seattle</description>
-      <link>https://www.chicagobears.com/news/game-recap-bears-make-statement-with-impressive-prime-time-win-in-seattle</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c709e7567006b26b03f0</guid>
-      <pubDate>Tue, 03 Nov 2026 05:13:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
