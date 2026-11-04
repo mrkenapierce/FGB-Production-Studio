@@ -5,9 +5,39 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 03 Nov 2026 21:15:24 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 04 Nov 2026 01:23:53 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>This time is different for the Chicago Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: This time is different for the Chicago Bears</description>
+      <link>https://sports.yahoo.com/articles/time-different-chicago-bears-233000069.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e8884241e7c062444c12</guid>
+      <pubDate>Tue, 03 Nov 2026 23:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears week 9 power rankings roundup: Among the best</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears week 9 power rankings roundup: Among the best</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-week-9-power-230000740.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a27058d0cb56e82729ec</guid>
+      <pubDate>Tue, 03 Nov 2026 23:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Why Bears&apos; Caleb Williams gave up his fight against the NFL over his unapproved cleats</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Why Bears&apos; Caleb Williams gave up his fight against the NFL over his unapproved cleats</description>
+      <link>https://www.cbssports.com/nfl/news/why-bears-caleb-williams-gave-fight-against-nfl-over-cleats/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ade71407a64baa24dc3a</guid>
+      <pubDate>Tue, 03 Nov 2026 21:02:18 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
 
     <item>
       <title>By the Numbers: Bears&apos; Week 8 win over Seahawks</title>
@@ -20,41 +50,11 @@
     </item>
 
     <item>
-      <title>The Best Team in the NFL is the Chicago Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Best Team in the NFL is the Chicago Bears</description>
-      <link>https://sports.yahoo.com/articles/best-team-nfl-chicago-bears-203000109.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8b9dca7699ad6819f1ab</guid>
-      <pubDate>Tue, 03 Nov 2026 20:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Six lessons from Week 8: Bears emerge as top-tier Super Bowl contenders, Chiefs must address glaring flaws</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Six lessons from Week 8: Bears emerge as top-tier Super Bowl contenders, Chiefs must address glaring flaws</description>
       <link>https://www.cbssports.com/nfl/news/nfl-week-8-lessons-bears-super-bowl-chiefs-kicker/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-e30da3ad00f77a015538</guid>
       <pubDate>Tue, 03 Nov 2026 20:09:06 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>10 Thoughts on the NFL Week 8: No more ‘Bad News Bears’</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 10 Thoughts on the NFL Week 8: No more ‘Bad News Bears’</description>
-      <link>https://sports.yahoo.com/articles/10-thoughts-nfl-week-8-193000735.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7298b691c659cd26fdd0</guid>
-      <pubDate>Tue, 03 Nov 2026 19:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>2026 NFL trade deadline tracker: Latest deals, grades as Bears land Jeffery Simmons, Colts enter rebuild</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: 2026 NFL trade deadline tracker: Latest deals, grades as Bears land Jeffery Simmons, Colts enter rebuild</description>
-      <link>https://www.cbssports.com/nfl/news/2026-nfl-trade-deadline-tracker-latest-deals-grades/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e15adfe80be80ae461d6</guid>
-      <pubDate>Tue, 03 Nov 2026 17:37:09 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
