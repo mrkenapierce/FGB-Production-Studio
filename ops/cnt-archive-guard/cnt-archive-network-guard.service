@@ -1,0 +1,10 @@
+[Unit]
+Description=Reconcile CNT archive worker network after capture replacement
+Wants=docker.service
+After=docker.service
+ConditionPathExists=/opt/cnt-transport/docker-compose.phase2.yml
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/cnt-archive-network-reconcile
+TimeoutStartSec=90

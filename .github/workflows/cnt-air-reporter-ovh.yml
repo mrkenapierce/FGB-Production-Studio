@@ -1,0 +1,447 @@
+name: Audit CNT on-air reporter on OVH (no changes)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/cnt-air-reporter-ovh.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cnt-air-reporter-audit
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      OVH_HOST: 40.160.144.185
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Verify existing OVH SSH credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"
+          source="OVH_SSH_KEY"
+          if [ -z "$key" ]; then key="$LEGACY_KEY"; source="ORACLE_SSH_KEY fallback"; fi
+          if [ -z "$key" ]; then
+            echo "::error::Neither OVH_SSH_KEY nor the existing ORACLE_SSH_KEY fallback is configured for this GitHub repository."
+            exit 1
+          fi
+          echo "SSH_KEY_SOURCE=$source"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          unset key OVH_SSH_KEY LEGACY_KEY
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/ovh_known_hosts 2>/dev/null
+          test -s ~/.ssh/ovh_known_hosts
+          echo "OVH host public-key fingerprints (compare with trusted baseline before making changes):"
+          ssh-keygen -lf ~/.ssh/ovh_known_hosts
+
+      - name: Inspect reporter only (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          opts=(-o UserKnownHostsFile=$HOME/.ssh/ovh_known_hosts
+                -o StrictHostKeyChecking=yes
+                -o BatchMode=yes
+                -o PasswordAuthentication=no
+                -o ConnectTimeout=8
+                -i "$HOME/.ssh/ovh_key")
+          user=""
+          for candidate in ubuntu admin debian root; do
+            if ssh "${opts[@]}" "$candidate@$OVH_HOST" 'printf OVH_CONNECTED' 2>/dev/null | grep -q OVH_CONNECTED; then
+              user="$candidate"
+              break
+            fi
+          done
+          test -n "$user" || { echo "::error::No GitHub-to-OVH SSH login accepted"; exit 1; }
+          echo "OVH_SSH_CONNECTED=true"
+          echo "OVH_LOGIN_USER=$user"
+          ssh "${opts[@]}" "$user@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          printf 'HOSTNAME=%s\n' "$(hostname)"
+          if [ "$(id -u)" -eq 0 ]; then
+            SUDO=""
+          elif sudo -n true 2>/dev/null; then
+            SUDO="sudo -n"
+          else
+            SUDO=""
+            echo "SUDO_AVAILABLE=false"
+          fi
+          echo 'CNT_RELATED_SYSTEMD_UNITS_BEGIN'
+          systemctl list-units --all --type=service --no-legend --no-pager 2>/dev/null |
+            awk 'tolower($0) ~ /cnt|air.observer|air.reporter/ {print $1, $3, $4}' || true
+          echo 'CNT_RELATED_SYSTEMD_UNITS_END'
+          echo 'OBSERVER_PROCESSES_BEGIN'
+          found=0
+          for pid in $(pgrep -f '[/]cnt-air-observer[.]py' || true); do
+            found=1
+            echo "OBSERVER_PID=$pid"
+            if [ -n "$SUDO" ]; then
+              $SUDO cat "/proc/$pid/environ" 2>/dev/null |
+                tr '\0' '\n' | grep -E '^CNT_AIR_(LOG|STATE)=' || true
+            elif [ -r "/proc/$pid/environ" ]; then
+              tr '\0' '\n' < "/proc/$pid/environ" |
+                grep -E '^CNT_AIR_(LOG|STATE)=' || true
+            fi
+            echo "OBSERVER_PROCESS_OWNER=$(ps -o user= -p "$pid" | xargs)"
+          done
+          [ "$found" = 1 ] || echo 'OBSERVER_RUNNING=false'
+          echo 'OBSERVER_PROCESSES_END'
+          echo 'CNT_LOG_FILES_BEGIN'
+          for f in /var/lib/docker/volumes/epic-cnt-capture-state/_data/watchdog/chromium.log /cnt-state/watchdog/chromium.log; do
+            if [ -n "$SUDO" ]; then
+              $SUDO stat -c 'LOG_FILE=%n SIZE=%s MTIME=%y' "$f" 2>/dev/null || true
+            else
+              stat -c 'LOG_FILE=%n SIZE=%s MTIME=%y' "$f" 2>/dev/null || true
+            fi
+          done
+          echo 'CNT_LOG_FILES_END'
+          echo 'STREAM_CONTAINERS_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then
+              $SUDO docker ps --format '{{.Names}} {{.Status}}' |
+                grep -E '^(epic-cnt-capture|epic-cnt-archive-worker|fgb-transport-youtube-1) ' || true
+            else
+              docker ps --format '{{.Names}} {{.Status}}' 2>/dev/null |
+                grep -E '^(epic-cnt-capture|epic-cnt-archive-worker|fgb-transport-youtube-1) ' || true
+            fi
+          fi
+          echo 'STREAM_CONTAINERS_END'
+
+          echo 'OBSERVER_PROCESS_TREE_BEGIN'
+          for pid in $(pgrep -f '[/]cnt-air-observer[.]py' || true); do
+            ps -o pid=,ppid=,comm= -p "$pid" 2>/dev/null || true
+            if command -v pstree >/dev/null; then pstree -sp "$pid" 2>/dev/null || true; fi
+            if [ -n "$SUDO" ]; then
+              $SUDO stat -c 'REPORTER_LOG=%n SIZE=%s MTIME=%y' "/proc/$pid/root/cnt-archive/state/chrome.log" 2>/dev/null || true
+              $SUDO stat -c 'REPORTER_LOG=%n SIZE=%s MTIME=%y' "/proc/$pid/root/cnt-state/watchdog/chromium.log" 2>/dev/null || true
+            fi
+            printf 'PROCESS_CGROUP='; cat "/proc/$pid/cgroup" 2>/dev/null | head -c 250 || true; printf '\n'
+          done
+          echo 'OBSERVER_PROCESS_TREE_END'
+          echo 'CNT_DOCKER_LOG_CHECK_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D inspect --format '{{range .Mounts}}{{println .Destination .Type .Name}}{{end}}' epic-cnt-capture 2>/dev/null || true
+            $D exec epic-cnt-capture sh -c '
+              for f in /cnt-state/watchdog/chromium.log /cnt-archive/state/chrome.log; do
+                if [ -f "$f" ]; then
+                  stat -c "CONTAINER_LOG=%n SIZE=%s MTIME=%y" "$f"
+                  grep -c EPIC_AIR_BOUNDARY "$f" 2>/dev/null || true
+                fi
+              done' 2>/dev/null || true
+            $D inspect --format '{{range .Mounts}}{{println .Destination .Type .Name}}{{end}}' epic-cnt-archive-worker 2>/dev/null || true
+            $D exec epic-cnt-archive-worker sh -c '
+              for f in /cnt-archive/state/chrome.log /cnt-state/watchdog/chromium.log; do
+                if [ -f "$f" ]; then
+                  stat -c "ARCHIVE_WORKER_LOG=%n SIZE=%s MTIME=%y" "$f"
+                  grep -c EPIC_AIR_BOUNDARY "$f" 2>/dev/null || true
+                fi
+              done' 2>/dev/null || true
+          fi
+          echo 'CNT_DOCKER_LOG_CHECK_END'
+          echo 'USER_SYSTEMD_BEGIN'
+          systemctl --user list-units --all --type=service --no-legend --no-pager 2>/dev/null |
+            awk 'tolower($0) ~ /cnt|air|observer|archive/ {print $1,$3,$4}' || true
+          echo 'USER_SYSTEMD_END'
+
+
+          echo 'REPORTER_LAUNCH_INSPECT_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D exec epic-cnt-capture sh -c '
+              pid=$(pgrep -f "^python3 .*cnt-air-observer[.]py" | head -1 || true)
+              if [ -z "$pid" ]; then
+                pid=$(ps -eo pid,args | awk "/python3.*cnt-air-observer[.]py/ && !/awk/ {print \\$1;exit}")
+              fi
+              if [ -n "$pid" ]; then
+                parent=$(ps -o ppid= -p "$pid" | xargs)
+                echo "REPORTER_CONTAINER_PID=$pid PARENT_PID=$parent"
+                ps -o pid=,ppid=,comm= -p "$pid","$parent" || true
+                for p in "$pid" "$parent" 1; do
+                  echo "PROCESS=$p SCRIPT_ARGUMENTS:"
+                  tr "\\0" "\\n" < "/proc/$p/cmdline" 2>/dev/null |
+                    grep -E "(^|/)[^/ ]+\\.(sh|py)$" || true
+                  echo "PROCESS=$p WORKDIR=$(readlink "/proc/$p/cwd" || true)"
+                done
+              fi
+              for f in /run-cnt.sh /app/run-cnt.sh /opt/cnt-transport/run-cnt.sh /app/entrypoint.sh; do
+                if [ -f "$f" ]; then
+                  echo "SCRIPT_FILE=$f"
+                  grep -n -C 3 "cnt-air-observer[.]py" "$f" || true
+                fi
+              done
+              command -v python3 || true
+            ' 2>/dev/null || true
+            echo 'REPORTER_SCRIPT_PATHS_BEGIN'
+            $D exec epic-cnt-capture sh -c 'find /app /opt /usr/local/bin -maxdepth 5 -name "cnt-air-observer.py" -o -name "*cnt*entry*.sh" 2>/dev/null | head -30' 2>/dev/null || true
+            echo 'REPORTER_SCRIPT_PATHS_END'
+          fi
+          echo 'REPORTER_LAUNCH_INSPECT_END'
+
+
+          echo 'REPORTER_SUPERVISION_SOURCE_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D exec epic-cnt-capture sh -c '
+              echo "Observer references in CNT scripts:"
+              grep -R -n -C 3 --include="*.sh" -E "cnt-air-observer[.]py|CNT_AIR_LOG" /opt/cnt 2>/dev/null | head -90 || true
+              echo "CNT script file names:"
+              find /opt/cnt -maxdepth 2 -type f -name "*.sh" 2>/dev/null | head -30 || true
+              echo "Observer python processes:"
+              ps -eo pid=,ppid=,comm= | grep python3 || true
+            ' 2>/dev/null || true
+          fi
+          echo 'REPORTER_SUPERVISION_SOURCE_END'
+
+
+          echo 'REPORTER_PARENT_CONTRACT_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D exec epic-cnt-capture python3 -c '
+          import os,re
+          from pathlib import Path
+          lines = Path("/proc/7/cmdline").read_bytes().split(b"\0")
+          parts = [b.decode("utf-8","replace") for b in lines if b]
+          print("PARENT_CMD_ARGC=",len(parts))
+          print("PARENT_EXE_NAME=",os.path.basename(parts[0]) if parts else "unknown")
+          s=" ".join(parts[1:])
+          for term in ["cnt-air-observer.py","wait -n","wait ","trap ","exec ","while ","nohup ","setsid ","python3 ","CNT_AIR_LOG","CNT_ARCHIVE_HMAC_SECRET"]:
+              print("PARENT_CONTAINS_"+term.replace(" ","_").replace(".","_").replace("-","_")+"=",term in s)
+          needle="cnt-air-observer.py"
+          i=s.find(needle)
+          if i>=0:
+              nearby=s[max(0,i-75):i+len(needle)+90]
+              nearby=re.sub(r"[A-Za-z0-9+/]{40,}","[REDACTED]",nearby)
+              nearby=re.sub(r"([A-Za-z_]*(?:KEY|SECRET|TOKEN|PASSWORD)[A-Za-z_]*=)[^ ;]+",r"\\1[REDACTED]",nearby,re.I)
+              print("OBSERVER_LAUNCH_CONTEXT=",nearby)
+          print("PYTHON_PROCESS_CNT=",sum(1 for p in os.listdir("/proc") if p.isdigit() and Path("/proc/"+p+"/comm").exists() and Path("/proc/"+p+"/comm").read_text().strip()=="python3"))
+          ' 2>/dev/null || true
+            $D inspect --format '{{json .Config.Env}}' epic-cnt-capture |
+              python3 -c 'import json,sys; env=json.load(sys.stdin); print("CONFIG_HAS_CNT_ARCHIVE_HMAC_SECRET="+str(any(s.startswith("CNT_ARCHIVE_HMAC_SECRET=") for s in env)));print("CONFIG_HAS_CNT_AIR_LOG="+str(any(s.startswith("CNT_AIR_LOG=") for s in env)))' || true
+          fi
+          echo 'REPORTER_PARENT_CONTRACT_END'
+
+
+          echo 'PYTHON_PROCESS_IDENTITIES_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            for box in epic-cnt-capture epic-cnt-archive-worker; do
+              echo "CONTAINER=$box"
+              $D exec "$box" python3 -c '
+          import os
+          from pathlib import Path
+          for p in sorted((x for x in os.listdir("/proc") if x.isdigit()), key=int):
+              try:
+                  argv=Path("/proc/"+p+"/cmdline").read_bytes().split(b"\0")
+                  argv=[x.decode("utf-8","replace") for x in argv if x]
+                  if argv and os.path.basename(argv[0]).startswith("python"):
+                      script=next((os.path.basename(x) for x in argv[1:4] if x.endswith(".py")),"no-script")
+                      print("PYTHON_PID="+p+" SCRIPT="+script)
+              except OSError:
+                  pass
+          ' 2>/dev/null || true
+            done
+          fi
+          echo 'PYTHON_PROCESS_IDENTITIES_END'
+
+
+          echo 'ARCHIVE_OBSERVER_SUPERVISOR_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D exec epic-cnt-archive-worker python3 -c '
+          import os
+          from pathlib import Path
+          def args(pid):
+              try: return [x.decode("utf-8","replace") for x in Path("/proc/"+str(pid)+"/cmdline").read_bytes().split(b"\0") if x]
+              except OSError: return []
+          for pid in [1,9]:
+              a=args(pid)
+              if not a: continue
+              ppid=Path("/proc/"+str(pid)+"/stat").read_text().split(") ")[1].split()[1]
+              print("PROC=",pid,"PPID=",ppid,"EXE=",os.path.basename(a[0]),"SCRIPT=",next((os.path.basename(x) for x in a[1:3] if x.endswith((".sh",".py"))),"none"))
+              s=" ".join(a[1:])
+              for term in ["cnt-air-observer.py", "wait -n","wait ","while ","trap ","exec ","python3 "]:
+                  print("PID"+str(pid)+"_HAS_"+term.replace(" ","_").replace(".","_").replace("-","_")+"=",term in s)
+          ' 2>/dev/null || true
+            $D exec epic-cnt-archive-worker sh -c '
+              echo "OBSERVER_SCRIPT_LOCATION:"
+              find /opt /usr/local/bin -maxdepth 4 -name "cnt-air-observer.py" 2>/dev/null | head -10 || true
+              echo "LAUNCH_SCRIPT_REFERENCES:"
+              grep -R -n -C 2 --include="*.sh" "cnt-air-observer[.]py" /opt 2>/dev/null | head -70 || true
+              echo "RUNNING_PID1_AND_REPORTER:"
+              ps -o pid=,ppid=,comm= -p 1,9 || true
+            ' 2>/dev/null || true
+          fi
+          echo 'ARCHIVE_OBSERVER_SUPERVISOR_END'
+
+
+          echo 'OBSERVER_HEALTH_STATE_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D exec epic-cnt-archive-worker python3 -c '
+          import os,json,time
+          path=os.environ.get("CNT_AIR_STATE","/cnt-archive/state/air-observer.json")
+          print("OBSERVER_CONFIG_LOG="+os.environ.get("CNT_AIR_LOG","unset"))
+          print("OBSERVER_STATE_PATH="+path)
+          try:
+              with open(path) as fh: s=json.load(fh)
+              print("OBSERVER_STATE_AGE_SECONDS="+str(round(time.time()-os.stat(path).st_mtime,1)))
+              print("OBSERVER_SENT_COUNT="+str(len(s.get("sent",[]))))
+              print("OBSERVER_PENDING_COUNT="+str(len(s.get("pending",[]))))
+              print("OBSERVER_OPEN_PLAY="+str(bool(s.get("open"))))
+          except (OSError,ValueError) as e: print("OBSERVER_STATE_UNAVAILABLE="+type(e).__name__)
+          ' 2>/dev/null || true
+          fi
+          echo 'OBSERVER_HEALTH_STATE_END'
+
+
+          echo 'OBSERVER_DELIVERY_READONLY_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D exec epic-cnt-archive-worker python3 -c '
+          import os,urllib.request,urllib.error,json
+          from pathlib import Path
+          proc=Path("/proc/9/environ").read_bytes().split(b"\0")
+          env={}
+          for v in proc:
+              if b"=" in v:
+                  k,val=v.split(b"=",1)
+                  if k.decode("utf-8","replace") in ("CNT_ARCHIVE_HMAC_SECRET","CNT_ARCHIVE_URL","CNT_AIR_LOG"): env[k.decode()]=val.decode("utf-8","replace")
+          print("REPORTER_SECRET_PRESENT=",bool(env.get("CNT_ARCHIVE_HMAC_SECRET")))
+          url=env.get("CNT_ARCHIVE_URL","https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/archive")
+          print("ARCHIVE_ENDPOINT_HOST=",urllib.request.urlparse(url).hostname if hasattr(urllib.request,"urlparse") else url.split("/")[2])
+          try:
+              with urllib.request.urlopen(urllib.request.Request(url,method="GET"),timeout=8) as r: print("ARCHIVE_GET_STATUS=",r.status)
+          except urllib.error.HTTPError as e: print("ARCHIVE_GET_STATUS=",e.code)
+          except Exception as e: print("ARCHIVE_GET_ERROR=",type(e).__name__)
+          try:
+              s=json.load(open(os.environ.get("CNT_AIR_STATE","/cnt-archive/state/air-observer.json")))
+              q=s.get("pending",[])
+              print("OBSERVER_PENDING_TOTAL=",len(q))
+              if q:
+                  print("OBSERVER_OLDEST_PENDING_EVENT=",q[0].get("event","unknown"))
+                  print("OBSERVER_OLDEST_PENDING_AT=",q[0].get("occurredAt","unknown"))
+          except Exception as e: print("STATE_READ_ERROR=",type(e).__name__)
+          ' 2>/dev/null || true
+          fi
+          echo 'OBSERVER_DELIVERY_READONLY_END'
+
+
+          echo 'OBSERVER_CONNECTIVITY_CAUSE_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D inspect --format 'ARCHIVE_WORKER_NETWORK_MODE={{.HostConfig.NetworkMode}}' epic-cnt-archive-worker 2>/dev/null || true
+            $D inspect --format 'CNT_CAPTURE_NETWORK_MODE={{.HostConfig.NetworkMode}}' epic-cnt-capture 2>/dev/null || true
+            $D exec epic-cnt-archive-worker python3 -c '
+          import os,socket,urllib.request,urllib.error
+          from pathlib import Path
+          try:
+              r=socket.getaddrinfo("epiccontentcreatorgrants.org",443)
+              print("DNS_LOOKUP=OK COUNT="+str(len(r)))
+          except Exception as e: print("DNS_LOOKUP_ERROR="+type(e).__name__+" REASON="+str(e)[:160])
+          try:
+              with urllib.request.urlopen("https://epiccontentcreatorgrants.org/",timeout=5) as x: print("SITE_HTTP="+str(x.status))
+          except urllib.error.HTTPError as e: print("SITE_HTTP="+str(e.code))
+          except urllib.error.URLError as e: print("SITE_URL_ERROR="+type(e.reason).__name__+" REASON="+str(e.reason)[:160])
+          try:
+              p=Path("/proc/9/environ").read_bytes().split(b"\0")
+              names=[x.split(b"=",1)[0].decode("utf-8","replace") for x in p if b"=" in x]
+              print("REPORTER_EP_DRY_RUN_PRESENT="+str("EP_DRY_RUN" in names))
+              print("REPORTER_SECRET_FILE_VAR="+str(any("SECRET_FILE" in x for x in names)))
+          except Exception as e: print("REPORTER_ENV_READ_ERROR="+type(e).__name__)
+          ' 2>/dev/null || true
+            $D exec epic-cnt-archive-worker sh -c 'grep -n -E "CNT_ARCHIVE_HMAC_SECRET|EP_DRY_RUN|CNT_ARCHIVE_URL" /opt/cnt/cnt-air-observer.py | head -25' 2>/dev/null || true
+          fi
+          echo 'OBSERVER_CONNECTIVITY_CAUSE_END'
+
+
+          echo 'CNT_PRODUCTION_NETWORK_AUDIT_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D inspect --format 'CAPTURE_NET={{.HostConfig.NetworkMode}}' epic-cnt-capture 2>/dev/null || true
+            $D inspect --format 'WORKER_NET={{.HostConfig.NetworkMode}}' epic-cnt-archive-worker 2>/dev/null || true
+            $D inspect --format 'WORKER_RESTART_POLICY={{.HostConfig.RestartPolicy.Name}}' epic-cnt-archive-worker 2>/dev/null || true
+            $D inspect --format 'WORKER_COMPOSE_PROJECT={{index .Config.Labels "com.docker.compose.project"}} SERVICE={{index .Config.Labels "com.docker.compose.service"}}' epic-cnt-archive-worker 2>/dev/null || true
+            $D inspect --format 'CAPTURE_ID={{.Id}}' epic-cnt-capture | cut -c1-40
+            for container in epic-cnt-capture epic-cnt-archive-worker; do
+              echo "NETWORK_TEST_CONTAINER=$container"
+              $D exec "$container" python3 -c '
+          import socket,os,time
+          from pathlib import Path
+          for p in ["/etc/resolv.conf","/etc/hosts"]:
+           try:
+            data=Path(p).read_text()
+            if p.endswith("resolv.conf"):
+             print("RESOLV_CONF_NAMESERVERS=" + ",".join(x.split()[1] for x in data.splitlines() if x.startswith("nameserver ")))
+           except Exception as e: print("READ_CONFIG_ERROR="+str(type(e).__name__))
+          for host in ["epiccontentcreatorgrants.org","example.com"]:
+           try:
+            addrs=socket.getaddrinfo(host,443)
+            print("DNS_"+host+"=OK COUNT="+str(len(addrs)))
+           except Exception as e: print("DNS_"+host+"=FAIL "+str(type(e).__name__)+" "+str(e)[:100])
+          ' 2>/dev/null || true
+            done
+            echo 'HOST_DNS_TEST'
+            getent ahostsv4 epiccontentcreatorgrants.org >/dev/null && echo 'HOST_DNS=OK' || echo 'HOST_DNS=FAIL'
+            echo 'WORKER_OBSERVER_SECRET_STATUS'
+            $D exec epic-cnt-archive-worker python3 -c '
+          import os
+          from pathlib import Path
+          raw=Path("/proc/9/environ").read_bytes().split(b"\0")
+          names={x.split(b"=",1)[0].decode("utf-8","replace") for x in raw if b"=" in x}
+          for n in ["CNT_ARCHIVE_HMAC_SECRET","CNT_AIR_LOG","CNT_ARCHIVE_URL","EP_DRY_RUN"]:
+           print("OBSERVER_"+n+"_PRESENT="+str(n in names))
+          '
+          fi
+          echo 'CNT_PRODUCTION_NETWORK_AUDIT_END'
+
+
+          echo 'CNT_COMPOSE_CONTEXT_BEGIN'
+          if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+          $D inspect --format 'OLD_PEER_NAME={{.Name}} OLD_PEER_STATUS={{.State.Status}} OLD_PEER_NETWORK={{.HostConfig.NetworkMode}}' 9c2265b396da0178a34adfe1af49ee2a8f99cc42a22913ac0f65004546ad1c79 2>/dev/null || echo 'OLD_PEER_NOT_FOUND'
+          $D inspect --format 'CAPTURE_NAME={{.Name}} CAPTURE_ID={{.Id}} CAPTURE_START={{.State.StartedAt}}' epic-cnt-capture 2>/dev/null || true
+          $D inspect --format 'WORKER_START={{.State.StartedAt}} WORKER_ID={{.Id}}' epic-cnt-archive-worker 2>/dev/null || true
+          if [ -f /opt/cnt-transport/docker-compose.phase2.yml ]; then
+            echo 'PHASE2_COMPOSE_PRESENT=true'
+            (cd /opt/cnt-transport && $D compose -p epic-cnt-transport -f docker-compose.phase2.yml config --format json) | python3 -c '
+          import json,sys
+          try:
+           d=json.load(sys.stdin)
+           for name,svc in (d.get("services") or {}).items():
+            if name in ("cnt","archive_worker"):
+             print("SERVICE_NAME="+name+" NETWORK_MODE="+str(svc.get("network_mode","none")))
+             print("SERVICE_"+name+"_ENV_NAMES="+",".join(sorted((svc.get("environment") or {}).keys()))[:600])
+             print("SERVICE_"+name+"_VOLUMES="+",".join(str(x.get("target","")) for x in svc.get("volumes",[]) if isinstance(x,dict)))
+             print("SERVICE_"+name+"_SECRETS="+",".join(str(x.get("target","")) for x in svc.get("secrets",[]) if isinstance(x,dict)))
+          except Exception as e: print("COMPOSE_PARSE_ERROR="+type(e).__name__)
+          ' || true
+          fi
+          $D exec epic-cnt-archive-worker python3 -c '
+          from pathlib import Path
+          p=Path("/opt/cnt/cnt-air-observer.py")
+          s=p.read_text().splitlines()
+          for i,line in enumerate(s):
+           if ("CNT_ARCHIVE_HMAC_SECRET" in line or "CNT_AIR_STATE" in line or "CNT_ARCHIVE_URL" in line):
+            print("OBSERVER_SCRIPT_LINE="+str(i+1)+":"+line[:170])
+          ' 2>/dev/null || true
+          echo 'CNT_COMPOSE_CONTEXT_END'
+
+          echo 'FINAL_GUARD_STATUS_BEGIN'
+          if systemctl is-active --quiet cnt-archive-network-guard.timer; then
+            echo 'CNT_NETWORK_GUARD_TIMER=ACTIVE'
+          else
+            echo 'CNT_NETWORK_GUARD_TIMER=INACTIVE'
+          fi
+          systemctl show cnt-archive-network-guard.service -p Result --no-pager 2>/dev/null || true
+          echo 'FINAL_GUARD_STATUS_END'
+          echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
+          REMOTE
