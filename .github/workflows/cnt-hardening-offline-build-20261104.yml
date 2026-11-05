@@ -1,0 +1,95 @@
+name: CNT Hardened Offline Build and Host Compatibility
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cnt-hardening-offline-build-20261104.yml
+permissions:
+  contents: read
+concurrency:
+  group: cnt-hardening-offline-build
+  cancel-in-progress: false
+jobs:
+  build-validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check hardened source integrity
+        run: |
+          set -euo pipefail
+          cd ops/cnt-phase2
+          bash -n run-cnt-hardened.sh cnt-lifecycle.sh
+          python3 -m py_compile capture-watchdog.py cnt-diagnostics.py cnt-air-observer.py cnt-api-client.py
+          for file in cnt-daily-recorder.sh cnt-rolling-recorder.sh episode-cutter.sh episode-lib.sh cnt-api-client.py; do test -s "$file"; done
+          grep -Fq 'CNT_ARCHIVE_TAP' run-cnt-hardened.sh
+          grep -Fq 'capture-watchdog.py cnt tick' run-cnt-hardened.sh
+          grep -Fq 'cnt-lifecycle.sh' run-cnt-hardened.sh
+          grep -Fq 'CNT_AIR_LOG' run-cnt-hardened.sh
+          ! grep -Fq 'pkill' run-cnt-hardened.sh
+          ! grep -Fq 'rm -rf /tmp/cnt-chrome' run-cnt-hardened.sh
+          echo CNT_OFFLINE_SOURCE_VALID=true
+      - name: Build CNT hardened image, no host or YouTube access
+        run: |
+          set -euo pipefail
+          docker build --pull --file ops/cnt-phase2/Dockerfile.hardened -t epic-cnt-phase2:hardened-20261104 ops/cnt-phase2
+          docker run --rm --entrypoint /bin/bash epic-cnt-phase2:hardened-20261104 -lc '
+            set -e
+            python3 -m py_compile /opt/cnt/capture-watchdog.py /opt/cnt/cnt-diagnostics.py /opt/cnt/cnt-air-observer.py
+            for f in /opt/cnt/run-cnt.sh /opt/cnt/episode-cutter.sh /opt/cnt/cnt-daily-recorder.sh /opt/cnt/cnt-api-client.py; do test -s "$f"; done
+            test "$(id -u)" = 1000
+            echo HARDENED_IMAGE_COMPATIBLE_SOURCE_FILES=true
+          '
+          echo "BUILT_IMAGE_ID=$(docker inspect --format '{{.Id}}' epic-cnt-phase2:hardened-20261104)"
+      - name: Configure OVH read-only SSH
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/cnt
+          chmod 600 ~/.ssh/cnt
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Inspect actual OVH compose topology WITHOUT printing secrets
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/cnt ubuntu@40.160.144.185 'sudo python3 -' <<'PY'
+          import json,subprocess,os,pathlib,sys
+          def run(*a):return subprocess.run(a,check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,timeout=18).stdout
+          try:
+            c=json.loads(run('docker','inspect','epic-cnt-capture'))[0]
+            cw=json.loads(run('docker','inspect','epic-cnt-archive-worker'))[0]
+            fgb=json.loads(run('docker','inspect','fgb-transport-archive_uploader-1'))[0]
+            assert c['State']['Running'] and cw['State']['Running'] and fgb['State']['Running']
+            assert c['Image']=='sha256:c89e2c4e300f20d1b18ab65997dbb3eb69a3a8c4ec4bcdb6807cb10209d4a8b1'
+            assert c['Config']['Labels']['com.docker.compose.project']=='epic-cnt-transport'
+            assert c['Config']['Labels']['com.docker.compose.service']=='cnt'
+            assert c['Config']['Labels']['com.docker.compose.project.config_files']=='/opt/cnt-transport/docker-compose.phase2.yml'
+            cfgpath=pathlib.Path('/opt/cnt-transport/docker-compose.phase2.yml')
+            assert cfgpath.is_file()
+            raw=run('docker','compose','-p','epic-cnt-transport','-f',str(cfgpath),'config','--format','json')
+            obj=json.loads(raw)
+            services=obj['services']
+            assert 'cnt' in services and 'archive_worker' in services
+            a=services['cnt'];b=services['archive_worker']
+            print('SANITIZED_PRODUCTION_COMPOSE='+json.dumps({
+             'services':list(services.keys()),
+             'cnt_image':a.get('image'), 'cnt_build':bool(a.get('build')),
+             'cnt_command':a.get('command'), 'cnt_entrypoint':a.get('entrypoint'),
+             'cnt_user':a.get('user'), 'cnt_restart':a.get('restart'),
+             'cnt_network_mode':a.get('network_mode'),'cnt_networks':list(a.get('networks',{}).keys()) if isinstance(a.get('networks'),dict) else a.get('networks'),
+             'cnt_volumes':[{'target':m.get('target'),'type':m.get('type'),'source':m.get('source')} for m in a.get('volumes',[])],
+             'cnt_capabilities':a.get('cap_add'), 'cnt_shm_size':a.get('shm_size'),
+             'cnt_has_env_file':bool(a.get('env_file')),'cnt_environment_key_names':sorted(a.get('environment',{}).keys()) if isinstance(a.get('environment'),dict) else [],
+             'archive_worker_image':b.get('image'),
+             'archive_worker_volumes':[{'target':m.get('target'),'type':m.get('type')} for m in b.get('volumes',[])],
+             'cnt_mounts_now':[{'target':m.get('Destination'),'source':m.get('Source')} for m in c.get('Mounts',[])],
+             'archive_worker_running':cw['State']['Running'],'fgb_uploader_running':fgb['State']['Running'],
+            },sort_keys=True))
+            print('COMPATIBILITY_READONLY_PASS=true')
+          except Exception as e:
+            print('COMPATIBILITY_BLOCKED='+type(e).__name__+':'+str(e)[:130])
+            sys.exit(1)
+          PY
