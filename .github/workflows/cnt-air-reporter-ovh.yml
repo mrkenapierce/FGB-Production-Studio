@@ -115,5 +115,43 @@ jobs:
             fi
           fi
           echo 'STREAM_CONTAINERS_END'
+
+          echo 'OBSERVER_PROCESS_TREE_BEGIN'
+          for pid in $(pgrep -f '[/]cnt-air-observer[.]py' || true); do
+            ps -o pid=,ppid=,comm= -p "$pid" 2>/dev/null || true
+            if command -v pstree >/dev/null; then pstree -sp "$pid" 2>/dev/null || true; fi
+            if [ -n "$SUDO" ]; then
+              $SUDO stat -c 'REPORTER_LOG=%n SIZE=%s MTIME=%y' "/proc/$pid/root/cnt-archive/state/chrome.log" 2>/dev/null || true
+              $SUDO stat -c 'REPORTER_LOG=%n SIZE=%s MTIME=%y' "/proc/$pid/root/cnt-state/watchdog/chromium.log" 2>/dev/null || true
+            fi
+            printf 'PROCESS_CGROUP='; cat "/proc/$pid/cgroup" 2>/dev/null | head -c 250 || true; printf '\n'
+          done
+          echo 'OBSERVER_PROCESS_TREE_END'
+          echo 'CNT_DOCKER_LOG_CHECK_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D inspect --format '{{range .Mounts}}{{println .Destination .Type .Name}}{{end}}' epic-cnt-capture 2>/dev/null || true
+            $D exec epic-cnt-capture sh -c '
+              for f in /cnt-state/watchdog/chromium.log /cnt-archive/state/chrome.log; do
+                if [ -f "$f" ]; then
+                  stat -c "CONTAINER_LOG=%n SIZE=%s MTIME=%y" "$f"
+                  grep -c EPIC_AIR_BOUNDARY "$f" 2>/dev/null || true
+                fi
+              done' 2>/dev/null || true
+            $D inspect --format '{{range .Mounts}}{{println .Destination .Type .Name}}{{end}}' epic-cnt-archive-worker 2>/dev/null || true
+            $D exec epic-cnt-archive-worker sh -c '
+              for f in /cnt-archive/state/chrome.log /cnt-state/watchdog/chromium.log; do
+                if [ -f "$f" ]; then
+                  stat -c "ARCHIVE_WORKER_LOG=%n SIZE=%s MTIME=%y" "$f"
+                  grep -c EPIC_AIR_BOUNDARY "$f" 2>/dev/null || true
+                fi
+              done' 2>/dev/null || true
+          fi
+          echo 'CNT_DOCKER_LOG_CHECK_END'
+          echo 'USER_SYSTEMD_BEGIN'
+          systemctl --user list-units --all --type=service --no-legend --no-pager 2>/dev/null |
+            awk 'tolower($0) ~ /cnt|air|observer|archive/ {print $1,$3,$4}' || true
+          echo 'USER_SYSTEMD_END'
+
           echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
           REMOTE
