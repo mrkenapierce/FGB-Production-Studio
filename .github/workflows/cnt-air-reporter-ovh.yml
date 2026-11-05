@@ -437,3 +437,47 @@ jobs:
 
           echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
           REMOTE
+
+      - name: Checkout guarded CNT-only reconciliation files
+        uses: actions/checkout@v4
+
+      - name: Install and verify two-minute CNT archive network guard only
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n ops/cnt-archive-guard/reconcile.sh
+          ssh-keygen -lf ~/.ssh/ovh_known_hosts | grep -Fq 'SHA256:c5LtvpUTpd6dzoKFjnLxhiiEmlwBi6iKNfM/YNOHLJI'
+          opts=(-o UserKnownHostsFile=$HOME/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/ovh_key")
+          host="ubuntu@$OVH_HOST"
+          ssh -o UserKnownHostsFile=$HOME/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/ovh_key" "$host" 'mkdir -p -m 700 /home/ubuntu/.cnt-guard-staging-20261105'
+          scp -q -o UserKnownHostsFile=$HOME/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/ovh_key" ops/cnt-archive-guard/reconcile.sh "$host:/home/ubuntu/.cnt-guard-staging-20261105/reconcile.sh"
+          scp -q -o UserKnownHostsFile=$HOME/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/ovh_key" ops/cnt-archive-guard/cnt-archive-network-guard.service "$host:/home/ubuntu/.cnt-guard-staging-20261105/cnt-archive-network-guard.service"
+          scp -q -o UserKnownHostsFile=$HOME/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/ovh_key" ops/cnt-archive-guard/cnt-archive-network-guard.timer "$host:/home/ubuntu/.cnt-guard-staging-20261105/cnt-archive-network-guard.timer"
+          ssh -o UserKnownHostsFile=$HOME/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/ovh_key" "$host" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(hostname -s)" = vps-a13eee97 ]
+          d() { sudo -n docker "$@"; }
+          before_capture=$(d inspect -f '{{.Id}}' epic-cnt-capture)
+          before_capture_start=$(d inspect -f '{{.State.StartedAt}}' epic-cnt-capture)
+          before_worker=$(d inspect -f '{{.Id}}' epic-cnt-archive-worker)
+          before_fgb=$(d ps -a --filter name=fgb --format '{{.ID}} {{.Status}}' | sort)
+          staging=/home/ubuntu/.cnt-guard-staging-20261105
+          sudo -n install -m 0750 "$staging/reconcile.sh" /usr/local/sbin/cnt-archive-network-reconcile
+          sudo -n install -m 0644 "$staging/cnt-archive-network-guard.service" /etc/systemd/system/cnt-archive-network-guard.service
+          sudo -n install -m 0644 "$staging/cnt-archive-network-guard.timer" /etc/systemd/system/cnt-archive-network-guard.timer
+          sudo -n systemctl daemon-reload
+          sudo -n systemctl enable --now cnt-archive-network-guard.timer
+          sudo -n systemctl start cnt-archive-network-guard.service
+          sudo -n systemctl is-active --quiet cnt-archive-network-guard.timer
+          test "$(d inspect -f '{{.Id}}' epic-cnt-capture)" = "$before_capture"
+          test "$(d inspect -f '{{.State.StartedAt}}' epic-cnt-capture)" = "$before_capture_start"
+          test "$(d inspect -f '{{.Id}}' epic-cnt-archive-worker)" = "$before_worker"
+          test "$(d ps -a --filter name=fgb --format '{{.ID}} {{.Status}}' | sort)" = "$before_fgb"
+          test "$(d inspect -f '{{.HostConfig.NetworkMode}}' epic-cnt-archive-worker)" = "container:$before_capture"
+          sudo -n rm -f "$staging/reconcile.sh" "$staging/cnt-archive-network-guard.service" "$staging/cnt-archive-network-guard.timer"
+          rmdir "$staging"
+          echo 'CNT_ARCHIVE_RECONCILIATION_TIMER=ACTIVE'
+          echo 'CNT_CAPTURE_UNCHANGED=PASS'
+          echo 'CNT_ARCHIVE_WORKER_UNCHANGED_ON_INSTALL=PASS'
+          echo 'FGB_UNCHANGED=PASS'
+          REMOTE
