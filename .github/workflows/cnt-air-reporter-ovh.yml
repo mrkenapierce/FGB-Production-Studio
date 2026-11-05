@@ -1,10 +1,6 @@
 name: Audit CNT on-air reporter on OVH (no changes)
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - .github/workflows/cnt-air-reporter-ovh.yml
   workflow_dispatch:
 
 permissions:
