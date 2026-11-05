@@ -73,6 +73,19 @@ jobs:
           set -euo pipefail
           echo "CAPTURE_IMAGE=$(docker inspect -f '{{.Config.Image}}' epic-cnt-capture)"
           echo "CAPTURE_HEALTH=$(docker inspect -f '{{.State.Health.Status}}' epic-cnt-capture)"
+          echo 'CRAWL_DOM_RELEASE_PROBE'
+          docker exec -i epic-cnt-capture python3 - <<'PYDOM'
+          import importlib.util,json
+          spec=importlib.util.spec_from_file_location('wd','/opt/cnt/capture-watchdog.py')
+          wd=importlib.util.module_from_spec(spec);spec.loader.exec_module(wd)
+          try:
+              targets=wd.http_json('http://127.0.0.1:9223/json/list',3)
+              page=next(x for x in targets if x.get('type')=='page' and '/channels/cruisenewstrivia/broadcast' in x.get('url',''))
+              data=wd.ws_eval(page['webSocketDebuggerUrl'],"(() => {let e=document.querySelector('[data-testid=crawl]');return e?{willChange:getComputedStyle(e).willChange,backfaceVisibility:getComputedStyle(e).backfaceVisibility,animation:getComputedStyle(e).animationName}:null;})()",4)
+              print('LIVE_CRAWL_DOM_STYLE='+json.dumps(data,sort_keys=True))
+          except Exception as e:
+              print('LIVE_CRAWL_DOM_PROBE_UNAVAILABLE='+type(e).__name__+':'+str(e)[:90])
+          PYDOM
           echo 'CURRENT_WATCHDOG_STATUS'
           docker exec epic-cnt-capture python3 /opt/cnt/capture-watchdog.py cnt status | python3 -c 'import json,sys; x=json.load(sys.stdin); print({k:x.get(k) for k in ("action","reason","restarts_total","consecutive_failures","alert")})'
           REMOTE
