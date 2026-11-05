@@ -363,5 +363,46 @@ jobs:
           fi
           echo 'OBSERVER_CONNECTIVITY_CAUSE_END'
 
+
+          echo 'CNT_PRODUCTION_NETWORK_AUDIT_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D inspect --format 'CAPTURE_NET={{.HostConfig.NetworkMode}}' epic-cnt-capture 2>/dev/null || true
+            $D inspect --format 'WORKER_NET={{.HostConfig.NetworkMode}}' epic-cnt-archive-worker 2>/dev/null || true
+            $D inspect --format 'WORKER_RESTART_POLICY={{.HostConfig.RestartPolicy.Name}}' epic-cnt-archive-worker 2>/dev/null || true
+            $D inspect --format 'WORKER_COMPOSE_PROJECT={{index .Config.Labels "com.docker.compose.project"}} SERVICE={{index .Config.Labels "com.docker.compose.service"}}' epic-cnt-archive-worker 2>/dev/null || true
+            $D inspect --format 'CAPTURE_ID={{.Id}}' epic-cnt-capture | cut -c1-40
+            for container in epic-cnt-capture epic-cnt-archive-worker; do
+              echo "NETWORK_TEST_CONTAINER=$container"
+              $D exec "$container" python3 -c '
+          import socket,os,time
+          from pathlib import Path
+          for p in ["/etc/resolv.conf","/etc/hosts"]:
+           try:
+            data=Path(p).read_text()
+            if p.endswith("resolv.conf"):
+             print("RESOLV_CONF_NAMESERVERS=" + ",".join(x.split()[1] for x in data.splitlines() if x.startswith("nameserver ")))
+           except Exception as e: print("READ_CONFIG_ERROR="+str(type(e).__name__))
+          for host in ["epiccontentcreatorgrants.org","example.com"]:
+           try:
+            addrs=socket.getaddrinfo(host,443)
+            print("DNS_"+host+"=OK COUNT="+str(len(addrs)))
+           except Exception as e: print("DNS_"+host+"=FAIL "+str(type(e).__name__)+" "+str(e)[:100])
+          ' 2>/dev/null || true
+            done
+            echo 'HOST_DNS_TEST'
+            getent ahostsv4 epiccontentcreatorgrants.org >/dev/null && echo 'HOST_DNS=OK' || echo 'HOST_DNS=FAIL'
+            echo 'WORKER_OBSERVER_SECRET_STATUS'
+            $D exec epic-cnt-archive-worker python3 -c '
+          import os
+          from pathlib import Path
+          raw=Path("/proc/9/environ").read_bytes().split(b"\0")
+          names={x.split(b"=",1)[0].decode("utf-8","replace") for x in raw if b"=" in x}
+          for n in ["CNT_ARCHIVE_HMAC_SECRET","CNT_AIR_LOG","CNT_ARCHIVE_URL","EP_DRY_RUN"]:
+           print("OBSERVER_"+n+"_PRESENT="+str(n in names))
+          '
+          fi
+          echo 'CNT_PRODUCTION_NETWORK_AUDIT_END'
+
           echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
           REMOTE
