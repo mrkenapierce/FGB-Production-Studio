@@ -21,19 +21,24 @@ jobs:
     env:
       OVH_HOST: 40.160.144.185
       OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
     steps:
       - name: Verify existing OVH SSH credential
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "$OVH_SSH_KEY" ]; then
-            echo "::error::OVH_SSH_KEY is not configured for this GitHub repository."
+          key="$OVH_SSH_KEY"
+          source="OVH_SSH_KEY"
+          if [ -z "$key" ]; then key="$LEGACY_KEY"; source="ORACLE_SSH_KEY fallback"; fi
+          if [ -z "$key" ]; then
+            echo "::error::Neither OVH_SSH_KEY nor the existing ORACLE_SSH_KEY fallback is configured for this GitHub repository."
             exit 1
           fi
+          echo "SSH_KEY_SOURCE=$source"
           install -d -m 700 ~/.ssh
-          printf '%s\n' "$OVH_SSH_KEY" > ~/.ssh/ovh_key
+          printf '%s\n' "$key" > ~/.ssh/ovh_key
           chmod 600 ~/.ssh/ovh_key
-          unset OVH_SSH_KEY
+          unset key OVH_SSH_KEY LEGACY_KEY
           ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/ovh_known_hosts 2>/dev/null
           test -s ~/.ssh/ovh_known_hosts
           echo "OVH host public-key fingerprints (compare with trusted baseline before making changes):"
