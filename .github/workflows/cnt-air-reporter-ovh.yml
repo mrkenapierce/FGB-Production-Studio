@@ -303,5 +303,37 @@ jobs:
           fi
           echo 'OBSERVER_HEALTH_STATE_END'
 
+
+          echo 'OBSERVER_DELIVERY_READONLY_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D exec epic-cnt-archive-worker python3 -c '
+          import os,urllib.request,urllib.error,json
+          from pathlib import Path
+          proc=Path("/proc/9/environ").read_bytes().split(b"\0")
+          env={}
+          for v in proc:
+              if b"=" in v:
+                  k,val=v.split(b"=",1)
+                  if k.decode("utf-8","replace") in ("CNT_ARCHIVE_HMAC_SECRET","CNT_ARCHIVE_URL","CNT_AIR_LOG"): env[k.decode()]=val.decode("utf-8","replace")
+          print("REPORTER_SECRET_PRESENT=",bool(env.get("CNT_ARCHIVE_HMAC_SECRET")))
+          url=env.get("CNT_ARCHIVE_URL","https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/archive")
+          print("ARCHIVE_ENDPOINT_HOST=",urllib.request.urlparse(url).hostname if hasattr(urllib.request,"urlparse") else url.split("/")[2])
+          try:
+              with urllib.request.urlopen(urllib.request.Request(url,method="GET"),timeout=8) as r: print("ARCHIVE_GET_STATUS=",r.status)
+          except urllib.error.HTTPError as e: print("ARCHIVE_GET_STATUS=",e.code)
+          except Exception as e: print("ARCHIVE_GET_ERROR=",type(e).__name__)
+          try:
+              s=json.load(open(os.environ.get("CNT_AIR_STATE","/cnt-archive/state/air-observer.json")))
+              q=s.get("pending",[])
+              print("OBSERVER_PENDING_TOTAL=",len(q))
+              if q:
+                  print("OBSERVER_OLDEST_PENDING_EVENT=",q[0].get("event","unknown"))
+                  print("OBSERVER_OLDEST_PENDING_AT=",q[0].get("occurredAt","unknown"))
+          except Exception as e: print("STATE_READ_ERROR=",type(e).__name__)
+          ' 2>/dev/null || true
+          fi
+          echo 'OBSERVER_DELIVERY_READONLY_END'
+
           echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
           REMOTE
