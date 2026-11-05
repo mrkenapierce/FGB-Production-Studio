@@ -187,5 +187,20 @@ jobs:
           fi
           echo 'REPORTER_LAUNCH_INSPECT_END'
 
+
+          echo 'REPORTER_SUPERVISION_SOURCE_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D exec epic-cnt-capture sh -c '
+              echo "Observer references in CNT scripts:"
+              grep -R -n -C 3 --include="*.sh" -E "cnt-air-observer[.]py|CNT_AIR_LOG" /opt/cnt 2>/dev/null | head -90 || true
+              echo "CNT script file names:"
+              find /opt/cnt -maxdepth 2 -type f -name "*.sh" 2>/dev/null | head -30 || true
+              echo "Observer python processes:"
+              ps -eo pid=,ppid=,comm= | grep python3 || true
+            ' 2>/dev/null || true
+          fi
+          echo 'REPORTER_SUPERVISION_SOURCE_END'
+
           echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
           REMOTE
