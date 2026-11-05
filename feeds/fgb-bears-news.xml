@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 05 Nov 2026 01:47:15 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 05 Nov 2026 08:43:37 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Buccaneers at Bears: Initial injury report for Week 9</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Buccaneers at Bears: Initial injury report for Week 9</description>
+      <link>https://sports.yahoo.com/articles/buccaneers-bears-initial-injury-report-022403354.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6751c2e9aa33c344d402</guid>
+      <pubDate>Thu, 05 Nov 2026 02:24:03 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears Over Beers: Big Jeff and Bears Prepare For Prime Time vs. Bucs</title>
@@ -40,16 +50,6 @@
     </item>
 
     <item>
-      <title>Reviewing the Bears’ PFN grades from Week 8 vs. Seahawks</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Reviewing the Bears’ PFN grades from Week 8 vs. Seahawks</description>
-      <link>https://sports.yahoo.com/articles/reviewing-bears-pfn-grades-week-230000245.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b98dad080eabdf4de8a9</guid>
-      <pubDate>Wed, 04 Nov 2026 23:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Roster Moves: Chicago Bears place Kentavius Street on IR</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Roster Moves: Chicago Bears place Kentavius Street on IR</description>
       <link>https://www.chicagobears.com/news/roster-moves-chicago-bears-place-kentavius-street-on-ir</link>
@@ -60,13 +60,23 @@
     </item>
 
     <item>
-      <title>Top Trade Destinations for Khalil Mack: Chicago Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Top Trade Destinations for Khalil Mack: Chicago Bears</description>
-      <link>https://www.cbssports.com/watch/nfl/video/top-trade-destinations-for-khalil-mack-chicago-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a4c4adb6e189eea38481</guid>
-      <pubDate>Wed, 04 Nov 2026 16:38:00 GMT</pubDate>
+      <title>Bears&apos; Kentavius Street: Sent to IR</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kentavius Street: Sent to IR</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-kentavius-street-sent-to-ir/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0eccd7cdaeb99b17a5a7</guid>
+      <pubDate>Wed, 04 Nov 2026 20:55:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Kyle Monangai Injury Update, Another LT Issue &amp; More From Bears&apos; Wednesday Practice Report</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyle Monangai Injury Update, Another LT Issue &amp; More From Bears&apos; Wednesday Practice Report</description>
+      <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-lt-issue-bears-wednesday-practice-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d0c04948bc31f30e15e4</guid>
+      <pubDate>Wed, 04 Nov 2026 15:59:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -74,16 +84,6 @@
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Add Earnest Brown IV After Kentavius Street Injury Leaves DT Depth Thin</description>
       <link>https://www.si.com/nfl/bears/onsi/bears-add-earnest-brown-iv-kentavius-street-injury-dt-depth</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-dd710db1733d90e57056</guid>
-      <pubDate>Wed, 04 Nov 2026 15:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears Coach Ben Johnson Reacts to Seahawks Win, Prepares for Buccaneers</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Coach Ben Johnson Reacts to Seahawks Win, Prepares for Buccaneers</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-coach-ben-johnson-reacts-to-seahawks-win-prepares-for-buccaneers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5a55dee907ade37ffc05</guid>
       <pubDate>Wed, 04 Nov 2026 15:59:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
