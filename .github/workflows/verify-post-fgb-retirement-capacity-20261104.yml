@@ -1,0 +1,61 @@
+name: Verify FGB Retirement and CNT Capacity
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/verify-post-fgb-retirement-capacity-20261104.yml
+permissions:
+  contents: read
+jobs:
+  audit-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: SSH using existing protected key
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_audit
+          chmod 600 ~/.ssh/ovh_audit
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Inspect stopped FGB and remaining host capacity without any modification
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -i ~/.ssh/ovh_audit ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo "SAMPLE_UTC=$(date -u +%FT%TZ)"
+          sudo docker inspect -f 'FGB_RUNNING={{.State.Running}} FGB_DOCKER_RESTART={{.HostConfig.RestartPolicy.Name}}' fgb-transport-youtube-1
+          sudo docker inspect -f 'CNT_RUNNING={{.State.Running}} CNT_HEALTH={{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' epic-cnt-capture
+          sudo docker inspect -f 'FGB_ARCHIVE_UPLOADER_RUNNING={{.State.Running}}' fgb-transport-archive_uploader-1
+          printf 'FGB_SYSTEMD_ENABLED='
+          systemctl is-enabled fgb-transport.service || true
+          echo 'HOST_MEMORY_DISK'
+          free -m | head -2
+          df -h / /tmp
+          echo 'HOST_CPU_TOP_COMM_ONLY'
+          ps -eo pid,comm,pcpu,pmem --sort=-pcpu | head -20
+          for n in 1 2 3; do
+            echo "HOST_LOAD_SAMPLE_$n=$(cat /proc/loadavg)"
+            sleep 12
+          done
+          echo 'CNT_AND_UPLOADER_STATS'
+          sudo docker stats --no-stream --format '{{.Name}} cpu={{.CPUPerc}} mem={{.MemUsage}}' epic-cnt-capture fgb-transport-archive_uploader-1
+          python3 - <<'PY'
+          import os,shutil,json,pathlib
+          mem=0
+          for line in pathlib.Path('/proc/meminfo').read_text().splitlines():
+            if line.startswith('MemAvailable:'):mem=int(line.split()[1])//1024
+          load=os.getloadavg()[0]
+          cpus=os.cpu_count() or 1
+          disk=shutil.disk_usage('/').free/1024**3
+          results={'available_memory_mib':mem,'disk_free_gib':round(disk,2),'cpu_count':cpus,'load1':round(load,2),'cnt_default_memory_gate':mem>=4096,'cnt_default_disk_gate':disk>=12,'cnt_default_cpu_count_gate':cpus>=3,'cnt_default_cpu_load_gate':load<=cpus-2}
+          results['cnt_default_preflight_pass']=all(results[k] for k in results if k.endswith('_gate'))
+          print('CNT_PREFLIGHT_SNAPSHOT='+json.dumps(results,sort_keys=True))
+          PY
+          REMOTE
