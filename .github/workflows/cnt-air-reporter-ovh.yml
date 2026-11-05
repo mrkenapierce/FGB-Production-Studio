@@ -153,5 +153,39 @@ jobs:
             awk 'tolower($0) ~ /cnt|air|observer|archive/ {print $1,$3,$4}' || true
           echo 'USER_SYSTEMD_END'
 
+
+          echo 'REPORTER_LAUNCH_INSPECT_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D exec epic-cnt-capture sh -c '
+              pid=$(pgrep -f "^python3 .*cnt-air-observer[.]py" | head -1 || true)
+              if [ -z "$pid" ]; then
+                pid=$(ps -eo pid,args | awk "/python3.*cnt-air-observer[.]py/ && !/awk/ {print \\$1;exit}")
+              fi
+              if [ -n "$pid" ]; then
+                parent=$(ps -o ppid= -p "$pid" | xargs)
+                echo "REPORTER_CONTAINER_PID=$pid PARENT_PID=$parent"
+                ps -o pid=,ppid=,comm= -p "$pid","$parent" || true
+                for p in "$pid" "$parent" 1; do
+                  echo "PROCESS=$p SCRIPT_ARGUMENTS:"
+                  tr "\\0" "\\n" < "/proc/$p/cmdline" 2>/dev/null |
+                    grep -E "(^|/)[^/ ]+\\.(sh|py)$" || true
+                  echo "PROCESS=$p WORKDIR=$(readlink "/proc/$p/cwd" || true)"
+                done
+              fi
+              for f in /run-cnt.sh /app/run-cnt.sh /opt/cnt-transport/run-cnt.sh /app/entrypoint.sh; do
+                if [ -f "$f" ]; then
+                  echo "SCRIPT_FILE=$f"
+                  grep -n -C 3 "cnt-air-observer[.]py" "$f" || true
+                fi
+              done
+              command -v python3 || true
+            ' 2>/dev/null || true
+            echo 'REPORTER_SCRIPT_PATHS_BEGIN'
+            $D exec epic-cnt-capture sh -c 'find /app /opt /usr/local/bin -maxdepth 5 -name "cnt-air-observer.py" -o -name "*cnt*entry*.sh" 2>/dev/null | head -30' 2>/dev/null || true
+            echo 'REPORTER_SCRIPT_PATHS_END'
+          fi
+          echo 'REPORTER_LAUNCH_INSPECT_END'
+
           echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
           REMOTE
