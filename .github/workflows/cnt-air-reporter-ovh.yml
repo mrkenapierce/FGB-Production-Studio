@@ -437,3 +437,85 @@ jobs:
 
           echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
           REMOTE
+
+      - name: Repair only the CNT archive worker stale network namespace
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh-keygen -lf ~/.ssh/ovh_known_hosts | grep -Fq 'SHA256:c5LtvpUTpd6dzoKFjnLxhiiEmlwBi6iKNfM/YNOHLJI' || {
+            echo "::error::OVH host fingerprint mismatch; refusing changes."
+            exit 1
+          }
+          ssh -o UserKnownHostsFile=$HOME/.ssh/ovh_known_hosts -o StrictHostKeyChecking=yes -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/ovh_key" "ubuntu@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(hostname -s)" = "vps-a13eee97" ]
+          cd /opt/cnt-transport
+          d() { sudo -n docker "$@"; }
+          d info >/dev/null
+          capture_before=$(d inspect --format '{{.Id}}' epic-cnt-capture)
+          started_before=$(d inspect --format '{{.State.StartedAt}}' epic-cnt-capture)
+          worker_before=$(d inspect --format '{{.Id}}' epic-cnt-archive-worker)
+          worker_net_before=$(d inspect --format '{{.HostConfig.NetworkMode}}' epic-cnt-archive-worker)
+          fgb_before=$(d ps -a --filter name=fgb --format '{{.ID}} {{.Status}}' | sort)
+          dir_before=$(d inspect --format '{{range .Mounts}}{{if eq .Destination "/cnt-archive"}}{{.Source}}{{end}}{{end}}' epic-cnt-archive-worker)
+          test "$(d inspect --format '{{.State.Running}}' epic-cnt-capture)" = true
+          test -n "$dir_before"
+          sudo -n test -s "$dir_before/state/air-observer.json"
+          sudo -n test -s "$dir_before/state/chrome.log"
+          d exec epic-cnt-archive-worker test -s /run/secrets/cnt_archive_key
+          d compose -p epic-cnt-transport -f docker-compose.phase2.yml config --format json | python3 -c '
+          import json,sys
+          s=json.load(sys.stdin)["services"]["archive_worker"]
+          assert s.get("network_mode")=="service:cnt"
+          assert any(v.get("target")=="/cnt-archive" for v in s.get("volumes",[]))
+          assert any(v.get("target")=="/run/secrets/cnt_archive_key" for v in s.get("volumes",[]))
+          print("COMPOSE_SCOPE_GUARDS=PASS")
+          '
+          echo "WORKER_NETWORK_BEFORE=$worker_net_before"
+          echo "CAPTURE_ID_BEFORE=$capture_before"
+          sudo -n cp -p "$dir_before/state/air-observer.json" "$dir_before/state/air-observer.pre-network-repair-20261105.json"
+          if [ "$worker_net_before" != "container:$capture_before" ]; then
+            case "$worker_net_before" in
+              container:*)
+                echo "RECREATE_TARGET=archive_worker_ONLY"
+                d compose -p epic-cnt-transport -f docker-compose.phase2.yml up -d --no-deps --no-build --force-recreate archive_worker
+                ;;
+              *) echo "UNEXPECTED_NETWORK_MODE"; exit 1 ;;
+            esac
+          fi
+          test "$(d inspect --format '{{.Id}}' epic-cnt-capture)" = "$capture_before"
+          test "$(d inspect --format '{{.State.StartedAt}}' epic-cnt-capture)" = "$started_before"
+          test "$(d ps -a --filter name=fgb --format '{{.ID}} {{.Status}}' | sort)" = "$fgb_before"
+          echo "NO_CAPTURE_OR_FGB_RESTART=PASS"
+          worker_after=$(d inspect --format '{{.Id}}' epic-cnt-archive-worker)
+          worker_net_after=$(d inspect --format '{{.HostConfig.NetworkMode}}' epic-cnt-archive-worker)
+          dir_after=$(d inspect --format '{{range .Mounts}}{{if eq .Destination "/cnt-archive"}}{{.Source}}{{end}}{{end}}' epic-cnt-archive-worker)
+          test "$dir_before" = "$dir_after"
+          test "$worker_net_after" = "container:$capture_before"
+          echo "WORKER_NETWORK_AFTER=$worker_net_after"
+          echo "WORKER_ID_CHANGED=$(test "$worker_before" != "$worker_after" && echo true || echo false)"
+          echo "PERSISTENT_ARCHIVE_VOLUME_PRESERVED=PASS"
+          ready=0
+          for n in $(seq 1 12); do
+            if d exec epic-cnt-archive-worker python3 -c '
+          import socket,json,time,sys
+          from pathlib import Path
+          socket.getaddrinfo("epiccontentcreatorgrants.org",443)
+          p=Path("/cnt-archive/state/air-observer.json")
+          q=len(json.loads(p.read_text()).get("pending",[]))
+          age=round(time.time()-p.stat().st_mtime,1)
+          print("PENDING_REPORTS="+str(q)+" REPORTER_STATE_AGE_SECONDS="+str(age),flush=True)
+          sys.exit(0 if q==0 and age<8 else 3)
+          ' 2>/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          test "$(d inspect --format '{{.Id}}' epic-cnt-capture)" = "$capture_before"
+          test "$(d inspect --format '{{.State.StartedAt}}' epic-cnt-capture)" = "$started_before"
+          test "$(d ps -a --filter name=fgb --format '{{.ID}} {{.Status}}' | sort)" = "$fgb_before"
+          echo "FINAL_STREAM_CONTAINER_CONTINUITY=PASS"
+          [ "$ready" -eq 1 ] || { echo "REPORTER_QUEUE_NOT_YET_DRAINED"; exit 1; }
+          echo "CNT_REPORTER_REPAIR_VERIFIED=PASS"
+          REMOTE
