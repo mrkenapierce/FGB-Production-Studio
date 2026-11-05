@@ -209,7 +209,7 @@ jobs:
             $D exec epic-cnt-capture python3 -c '
           import os,re
           from pathlib import Path
-          lines = Path("/proc/7/cmdline").read_bytes().split(b"\\0")
+          lines = Path("/proc/7/cmdline").read_bytes().split(b"\0")
           parts = [b.decode("utf-8","replace") for b in lines if b]
           print("PARENT_CMD_ARGC=",len(parts))
           print("PARENT_EXE_NAME=",os.path.basename(parts[0]) if parts else "unknown")
@@ -241,7 +241,7 @@ jobs:
           from pathlib import Path
           for p in sorted((x for x in os.listdir("/proc") if x.isdigit()), key=int):
               try:
-                  argv=Path("/proc/"+p+"/cmdline").read_bytes().split(b"\\0")
+                  argv=Path("/proc/"+p+"/cmdline").read_bytes().split(b"\0")
                   argv=[x.decode("utf-8","replace") for x in argv if x]
                   if argv and os.path.basename(argv[0]).startswith("python"):
                       script=next((os.path.basename(x) for x in argv[1:4] if x.endswith(".py")),"no-script")
