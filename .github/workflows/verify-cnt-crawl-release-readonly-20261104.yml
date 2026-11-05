@@ -45,6 +45,27 @@ jobs:
               for token in (b'crawlMotionContinuity',b'tickerRebaseTimeMs',b'backfaceVisibility',b'cnt-broadcast'):
                 if token in b:found[token.decode()]=True
             print('RELEASE_MARKERS='+json.dumps(found,sort_keys=True))
+          # Vite splits routes into dynamically imported chunks; inspect script graph read-only.
+          import collections
+          queue=collections.deque(urljoin(page,x) for x in scripts)
+          seen=set()
+          founddeep={}
+          while queue and len(seen)<90:
+            url=queue.popleft()
+            if url in seen or not url.startswith('https://epiccontentcreatorgrants.org/assets/'):continue
+            seen.add(url)
+            try:
+              with urllib.request.urlopen(urllib.request.Request(url,headers={'User-Agent':'CNT-Verification/1.0'}),timeout=10) as resp:
+                b=resp.read(6000000)
+              for token in (b'crawlMotionContinuity',b'backfaceVisibility',b'cnt-broadcast',b'tickerRebaseTimeMs'):
+                if token in b:founddeep[token.decode()]=True
+              for child in re.findall(rb'["\\\'](\\.?/assets/[^"\\\']+?\\.js)["\\\']',b):
+                queue.append(urljoin(page,child.decode()))
+              for child in re.findall(rb'["\\\'](\\.?/[^"\\\']+?\\.js)["\\\']',b):
+                queue.append(urljoin(url,child.decode()))
+            except Exception:pass
+          print('SCANNED_ASSET_COUNT='+str(len(seen)))
+          print('RELEASE_MARKERS_DEEP='+json.dumps(founddeep,sort_keys=True))
           except Exception as e:
             print('SITE_ASSET_CHECK_UNAVAILABLE='+type(e).__name__+':'+str(e)[:200])
           PY
