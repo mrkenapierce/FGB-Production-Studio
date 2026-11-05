@@ -335,5 +335,33 @@ jobs:
           fi
           echo 'OBSERVER_DELIVERY_READONLY_END'
 
+
+          echo 'OBSERVER_CONNECTIVITY_CAUSE_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D inspect --format 'ARCHIVE_WORKER_NETWORK_MODE={{.HostConfig.NetworkMode}}' epic-cnt-archive-worker 2>/dev/null || true
+            $D inspect --format 'CNT_CAPTURE_NETWORK_MODE={{.HostConfig.NetworkMode}}' epic-cnt-capture 2>/dev/null || true
+            $D exec epic-cnt-archive-worker python3 -c '
+          import os,socket,urllib.request,urllib.error
+          from pathlib import Path
+          try:
+              r=socket.getaddrinfo("epiccontentcreatorgrants.org",443)
+              print("DNS_LOOKUP=OK COUNT="+str(len(r)))
+          except Exception as e: print("DNS_LOOKUP_ERROR="+type(e).__name__+" REASON="+str(e)[:160])
+          try:
+              with urllib.request.urlopen("https://epiccontentcreatorgrants.org/",timeout=5) as x: print("SITE_HTTP="+str(x.status))
+          except urllib.error.HTTPError as e: print("SITE_HTTP="+str(e.code))
+          except urllib.error.URLError as e: print("SITE_URL_ERROR="+type(e.reason).__name__+" REASON="+str(e.reason)[:160])
+          try:
+              p=Path("/proc/9/environ").read_bytes().split(b"\0")
+              names=[x.split(b"=",1)[0].decode("utf-8","replace") for x in p if b"=" in x]
+              print("REPORTER_EP_DRY_RUN_PRESENT="+str("EP_DRY_RUN" in names))
+              print("REPORTER_SECRET_FILE_VAR="+str(any("SECRET_FILE" in x for x in names)))
+          except Exception as e: print("REPORTER_ENV_READ_ERROR="+type(e).__name__)
+          ' 2>/dev/null || true
+            $D exec epic-cnt-archive-worker sh -c 'grep -n -E "CNT_ARCHIVE_HMAC_SECRET|EP_DRY_RUN|CNT_ARCHIVE_URL" /opt/cnt/cnt-air-observer.py | head -25' 2>/dev/null || true
+          fi
+          echo 'OBSERVER_CONNECTIVITY_CAUSE_END'
+
           echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
           REMOTE
