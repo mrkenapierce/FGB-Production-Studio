@@ -1,0 +1,12 @@
+# CNT isolated hardening overlay on exactly the production phase2 image.
+# Before build, assert the image ID and tag it epic-cnt-phase2:rollback-20261104.
+# No package upgrades or replacements of the archived episode toolchain.
+FROM epic-cnt-phase2:rollback-20261104
+USER root
+RUN install -d -o 1000 -g 1000 -m 0700 /cnt-state /cnt-state/watchdog
+COPY --chown=1000:1000 run-cnt-hardened.sh /opt/cnt/run-cnt.sh
+COPY --chown=1000:1000 capture-watchdog.py cnt-lifecycle.sh cnt-diagnostics.py /opt/cnt/
+RUN chmod 0755 /opt/cnt/run-cnt.sh /opt/cnt/capture-watchdog.py /opt/cnt/cnt-lifecycle.sh /opt/cnt/cnt-diagnostics.py
+USER cnt
+HEALTHCHECK --interval=30s --timeout=7s --start-period=90s --retries=3 \
+  CMD python3 /opt/cnt/capture-watchdog.py cnt health
