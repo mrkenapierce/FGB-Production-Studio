@@ -1,0 +1,114 @@
+name: Audit CNT on-air reporter on OVH (no changes)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/cnt-air-reporter-ovh.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cnt-air-reporter-audit
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      OVH_HOST: 40.160.144.185
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+    steps:
+      - name: Verify existing OVH SSH credential
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$OVH_SSH_KEY" ]; then
+            echo "::error::OVH_SSH_KEY is not configured for this GitHub repository."
+            exit 1
+          fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$OVH_SSH_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          unset OVH_SSH_KEY
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/ovh_known_hosts 2>/dev/null
+          test -s ~/.ssh/ovh_known_hosts
+          echo "OVH host public-key fingerprints (compare with trusted baseline before making changes):"
+          ssh-keygen -lf ~/.ssh/ovh_known_hosts
+
+      - name: Inspect reporter only (read-only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          opts=(-o UserKnownHostsFile=$HOME/.ssh/ovh_known_hosts
+                -o StrictHostKeyChecking=yes
+                -o BatchMode=yes
+                -o PasswordAuthentication=no
+                -o ConnectTimeout=8
+                -i "$HOME/.ssh/ovh_key")
+          user=""
+          for candidate in ubuntu admin debian root; do
+            if ssh "${opts[@]}" "$candidate@$OVH_HOST" 'printf OVH_CONNECTED' 2>/dev/null | grep -q OVH_CONNECTED; then
+              user="$candidate"
+              break
+            fi
+          done
+          test -n "$user" || { echo "::error::No GitHub-to-OVH SSH login accepted"; exit 1; }
+          echo "OVH_SSH_CONNECTED=true"
+          echo "OVH_LOGIN_USER=$user"
+          ssh "${opts[@]}" "$user@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          printf 'HOSTNAME=%s\n' "$(hostname)"
+          if [ "$(id -u)" -eq 0 ]; then
+            SUDO=""
+          elif sudo -n true 2>/dev/null; then
+            SUDO="sudo -n"
+          else
+            SUDO=""
+            echo "SUDO_AVAILABLE=false"
+          fi
+          echo 'CNT_RELATED_SYSTEMD_UNITS_BEGIN'
+          systemctl list-units --all --type=service --no-legend --no-pager 2>/dev/null |
+            awk 'tolower($0) ~ /cnt|air.observer|air.reporter/ {print $1, $3, $4}' || true
+          echo 'CNT_RELATED_SYSTEMD_UNITS_END'
+          echo 'OBSERVER_PROCESSES_BEGIN'
+          found=0
+          for pid in $(pgrep -f '[/]cnt-air-observer[.]py' || true); do
+            found=1
+            echo "OBSERVER_PID=$pid"
+            if [ -n "$SUDO" ]; then
+              $SUDO cat "/proc/$pid/environ" 2>/dev/null |
+                tr '\0' '\n' | grep -E '^CNT_AIR_(LOG|STATE)=' || true
+            elif [ -r "/proc/$pid/environ" ]; then
+              tr '\0' '\n' < "/proc/$pid/environ" |
+                grep -E '^CNT_AIR_(LOG|STATE)=' || true
+            fi
+            echo "OBSERVER_PROCESS_OWNER=$(ps -o user= -p "$pid" | xargs)"
+          done
+          [ "$found" = 1 ] || echo 'OBSERVER_RUNNING=false'
+          echo 'OBSERVER_PROCESSES_END'
+          echo 'CNT_LOG_FILES_BEGIN'
+          for f in /var/lib/docker/volumes/epic-cnt-capture-state/_data/watchdog/chromium.log /cnt-state/watchdog/chromium.log; do
+            if [ -n "$SUDO" ]; then
+              $SUDO stat -c 'LOG_FILE=%n SIZE=%s MTIME=%y' "$f" 2>/dev/null || true
+            else
+              stat -c 'LOG_FILE=%n SIZE=%s MTIME=%y' "$f" 2>/dev/null || true
+            fi
+          done
+          echo 'CNT_LOG_FILES_END'
+          echo 'STREAM_CONTAINERS_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then
+              $SUDO docker ps --format '{{.Names}} {{.Status}}' |
+                grep -E '^(epic-cnt-capture|epic-cnt-archive-worker|fgb-transport-youtube-1) ' || true
+            else
+              docker ps --format '{{.Names}} {{.Status}}' 2>/dev/null |
+                grep -E '^(epic-cnt-capture|epic-cnt-archive-worker|fgb-transport-youtube-1) ' || true
+            fi
+          fi
+          echo 'STREAM_CONTAINERS_END'
+          echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
+          REMOTE
