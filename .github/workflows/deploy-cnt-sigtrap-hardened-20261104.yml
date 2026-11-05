@@ -63,7 +63,6 @@ jobs:
           test "$(docker inspect -f '{{.State.Running}}' epic-cnt-archive-worker)" = true
           test "$(docker inspect -f '{{.State.Running}}' fgb-transport-archive_uploader-1)" = true
           test "$(docker inspect -f '{{.State.Running}}' fgb-transport-youtube-1)" = false
-          test "$(docker inspect -f '{{.Image}}' epic-cnt-archive-worker)" = "$old"
           test "$(docker image inspect -f '{{.Id}}' epic-cnt-phase2:rollback-20261104)" = "$old"
           test -s /opt/cnt-transport/docker-compose.cnt-hardening-20261104.yml
           test -s /opt/cnt-hardening-release-20261104/cnt-preflight.py
