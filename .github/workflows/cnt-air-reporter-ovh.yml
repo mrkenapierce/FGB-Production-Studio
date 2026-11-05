@@ -435,5 +435,13 @@ jobs:
           ' 2>/dev/null || true
           echo 'CNT_COMPOSE_CONTEXT_END'
 
+          echo 'FINAL_GUARD_STATUS_BEGIN'
+          if systemctl is-active --quiet cnt-archive-network-guard.timer; then
+            echo 'CNT_NETWORK_GUARD_TIMER=ACTIVE'
+          else
+            echo 'CNT_NETWORK_GUARD_TIMER=INACTIVE'
+          fi
+          systemctl show cnt-archive-network-guard.service -p Result --no-pager 2>/dev/null || true
+          echo 'FINAL_GUARD_STATUS_END'
           echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
           REMOTE
