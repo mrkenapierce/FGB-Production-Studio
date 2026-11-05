@@ -1,0 +1,117 @@
+name: Retire FGB Livestream - Preserve Videos and CNT
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/retire-fgb-livestream-preserve-videos-20261104.yml
+permissions:
+  contents: read
+concurrency:
+  group: retire-fgb-live-20261104
+  cancel-in-progress: false
+jobs:
+  retire-fgb-live:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Configure protected OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+          OVH_HOST: 40.160.144.185
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY" || { echo "::error::No authorized OVH SSH key is available"; exit 1; }
+          install -d -m 0700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_fgb_retire
+          chmod 0600 ~/.ssh/ovh_fgb_retire
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+          for candidate in ubuntu admin debian root; do
+            if [ "$(ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=6 -i ~/.ssh/ovh_fgb_retire "$candidate@$OVH_HOST" 'printf __FGB_RETIRE_SSH_OK__' 2>/dev/null || true)" = "__FGB_RETIRE_SSH_OK__" ]; then
+              echo "REMOTE_USER=$candidate" >> "$GITHUB_ENV"
+              echo "Authenticated as $candidate"
+              exit 0
+            fi
+          done
+          echo "::error::Existing GitHub SSH credential did not authenticate to OVH; no production changes"
+          exit 1
+
+      - name: Retire only confirmed FGB continuous sender (fail closed)
+        env:
+          OVH_HOST: 40.160.144.185
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -i ~/.ssh/ovh_fgb_retire "$REMOTE_USER@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          if [ "$(id -u)" -eq 0 ]; then SUDO=(); else SUDO=(sudo -n); fi
+          dock() { "${SUDO[@]}" docker "$@"; }
+          sys() { "${SUDO[@]}" systemctl "$@"; }
+          FGB=fgb-transport-youtube-1
+          CNT=epic-cnt-capture
+          UPL=fgb-transport-archive_uploader-1
+          echo "INSPECTION_UTC=$(date -u +%FT%TZ)"
+          echo 'SCOPE=FGB_continuous_stream_only'
+          for c in "$FGB" "$CNT" "$UPL"; do
+            dock inspect -f 'container={{.Name}} state={{.State.Status}} restart={{.HostConfig.RestartPolicy.Name}}' "$c"
+          done
+          test "$(dock inspect -f '{{.State.Running}}' "$CNT")" = true || { echo 'ABORT_CNT_NOT_RUNNING'; exit 1; }
+          test "$(dock inspect -f '{{.State.Running}}' "$UPL")" = true || { echo 'ABORT_VIDEO_ARCHIVE_UPLOADER_NOT_RUNNING'; exit 1; }
+          fgb_image="$(dock inspect -f '{{.Config.Image}}' "$FGB")"
+          case "$fgb_image" in
+            transport-ovh-youtube|transport-ovh-youtube:*) ;;
+            *) echo "ABORT_UNRECOGNIZED_FGB_IMAGE"; exit 1 ;;
+          esac
+          before_cnt_id="$(dock inspect -f '{{.Id}}' "$CNT")"
+          before_cnt_restarts="$(dock inspect -f '{{.RestartCount}}' "$CNT")"
+          before_up_id="$(dock inspect -f '{{.Id}}' "$UPL")"
+          if [ "$(dock inspect -f '{{.State.Running}}' "$FGB")" = true ]; then
+            dock exec "$FGB" sh -c 'pgrep -x ffmpeg >/dev/null' || { echo 'ABORT_FGB_BROADCAST_NOT_POSITIVELY_IDENTIFIED'; exit 1; }
+          fi
+          # The combined FGB service starts both youtube AND archive_uploader.
+          # NEVER stop/restart this unit: its ExecStop runs compose down, killing video publishing.
+          unit_text="$(sys cat fgb-transport.service 2>/dev/null || true)"
+          if [ -n "$unit_text" ]; then
+            printf '%s\n' "$unit_text" | grep -Eq 'ExecStart=.*docker compose up -d youtube archive_uploader' || { echo 'ABORT_UNRECOGNIZED_FGB_SERVICE_WIRING'; exit 1; }
+            printf '%s\n' "$unit_text" | grep -Eq 'ExecStop=.*docker compose down' || { echo 'ABORT_UNRECOGNIZED_FGB_STOP_WIRING'; exit 1; }
+          fi
+          echo 'BEFORE_HOST_LOAD='$(cat /proc/loadavg)
+          echo 'BEFORE_FGB_CPU_RAM='
+          dock stats --no-stream --format '{{.Name}} cpu={{.CPUPerc}} ram={{.MemUsage}}' "$FGB" "$CNT" "$UPL" || true
+          # Only stop dedicated FGB renderer timer(s). Never touch CNT or backup/uploader/storage timers.
+          for timer in fgb-browser-guard.timer fgb-browser-watchdog.timer; do
+            if sys list-unit-files "$timer" --no-legend --no-pager | grep -q "^$timer"; then
+              sys disable --now "$timer"
+              echo "FGB_BROWSER_TIMER_DISABLED=$timer"
+            fi
+          done
+          if [ -n "$unit_text" ]; then
+            sys disable fgb-transport.service
+            echo 'FGB_COMBINED_BOOT_SERVICE_DISABLED=true'
+            # Deliberately do NOT use systemctl stop; that invokes docker compose down and kills uploader.
+          fi
+          dock update --restart=no "$FGB"
+          if [ "$(dock inspect -f '{{.State.Running}}' "$FGB")" = true ]; then
+            dock stop --time 40 "$FGB"
+          fi
+          test "$(dock inspect -f '{{.State.Running}}' "$FGB")" = false
+          test "$(dock inspect -f '{{.HostConfig.RestartPolicy.Name}}' "$FGB")" = no
+          test "$(dock inspect -f '{{.State.Running}}' "$CNT")" = true
+          test "$(dock inspect -f '{{.Id}}' "$CNT")" = "$before_cnt_id"
+          test "$(dock inspect -f '{{.RestartCount}}' "$CNT")" = "$before_cnt_restarts"
+          test "$(dock inspect -f '{{.State.Running}}' "$UPL")" = true
+          test "$(dock inspect -f '{{.Id}}' "$UPL")" = "$before_up_id"
+          echo 'FGB_LIVE_STOP_CONFIRMED=true'
+          echo 'FGB_LIVE_AUTO_RESTART_DISABLED=true'
+          echo 'CNT_CONTAINER_UNCHANGED=true'
+          echo 'FGB_VIDEO_UPLOADER_UNCHANGED=true'
+          sleep 25
+          echo 'AFTER_HOST_LOAD='$(cat /proc/loadavg)
+          echo 'AFTER_HOST_MEMORY='
+          free -m | awk 'NR==1 || NR==2 {print}'
+          echo 'AFTER_CNT_AND_UPLOADER_CPU_RAM='
+          dock stats --no-stream --format '{{.Name}} cpu={{.CPUPerc}} ram={{.MemUsage}}' "$CNT" "$UPL" || true
+          echo 'CNT_DOCKER_HEALTH='$(dock inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}not_configured{{end}}' "$CNT")
+          REMOTE
