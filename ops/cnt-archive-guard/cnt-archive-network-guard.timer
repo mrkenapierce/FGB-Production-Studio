@@ -1,0 +1,11 @@
+[Unit]
+Description=Safely check CNT archive worker network binding every two minutes
+
+[Timer]
+OnBootSec=120s
+OnUnitInactiveSec=120s
+AccuracySec=15s
+Unit=cnt-archive-network-guard.service
+
+[Install]
+WantedBy=timers.target
