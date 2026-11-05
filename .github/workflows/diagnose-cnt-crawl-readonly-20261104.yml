@@ -1,0 +1,83 @@
+name: Diagnose CNT Crawl Motion - Read Only
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/diagnose-cnt-crawl-readonly-20261104.yml]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - name: Configure OVH SSH
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Inspect CNT renderer, crawl CSS animation, and encoder progress without modifying stream
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo "AUDIT_UTC=$(date -u +%FT%TZ)"
+          echo "HOST_LOAD=$(cat /proc/loadavg)"
+          echo 'DOCKER_RESOURCE_SAMPLE'
+          docker stats --no-stream --format '{{.Name}} cpu={{.CPUPerc}} memory={{.MemUsage}} pids={{.PIDs}}' epic-cnt-capture epic-cnt-archive-worker
+          echo "CAPTURE_HEALTH=$(docker inspect -f '{{.State.Health.Status}}' epic-cnt-capture)"
+          echo 'ENCODER_PROGRESS_SNAPSHOT'
+          docker exec epic-cnt-capture sh -c "grep -E '^(frame|fps|drop_frames|dup_frames|speed|out_time_ms|progress)=' /tmp/cnt-ffmpeg.progress || true"
+          echo 'CHROMIUM_DEVTOOLS_CRAWL_MOTION'
+          docker exec -i epic-cnt-capture python3 - <<'PY'
+          import json,urllib.request,importlib.util,sys
+          spec=importlib.util.spec_from_file_location('wd','/opt/cnt/capture-watchdog.py')
+          wd=importlib.util.module_from_spec(spec);spec.loader.exec_module(wd)
+          try:
+            targets=wd.http_json('http://127.0.0.1:9223/json/list',3.0)
+            pages=[x for x in targets if x.get('type')=='page' and '/channels/cruisenewstrivia/broadcast' in x.get('url','')]
+            assert len(pages)==1
+            w=pages[0]['webSocketDebuggerUrl']
+            expr=r"""(async () => {
+              const terms=/crawl|ticker|marquee|scroll|lower.third|breaking|news.feed/i;
+              const nodes=[...document.querySelectorAll('*')].filter(e=>
+                terms.test(String(e.id||''))||terms.test(String(e.className?.baseVal||e.className||''))||
+                terms.test(String(e.getAttribute('data-testid')||''))).slice(0,25);
+              const get=e=>{const c=getComputedStyle(e);const r=e.getBoundingClientRect();
+                return {tag:e.tagName,id:String(e.id||'').slice(0,80),className:String(e.className?.baseVal||e.className||'').slice(0,150),
+                 testid:e.getAttribute('data-testid'),anim:c.animationName,duration:c.animationDuration,timing:c.animationTimingFunction,
+                 transform:c.transform,willChange:c.willChange,left:+r.left.toFixed(1),width:+r.width.toFixed(1),top:+r.top.toFixed(1),
+                 overflow:c.overflow,whiteSpace:c.whiteSpace};};
+              const allAnimations=document.getAnimations({subtree:true}).slice(0,30);
+              const anims=allAnimations.map(a=>({state:a.playState,time:a.currentTime,rate:a.playbackRate,
+                target:a.effect?.target?get(a.effect.target):null})).slice(0,20);
+              const candidate=nodes.find(n=>getComputedStyle(n).animationName!=='none')||
+                allAnimations.find(a=>terms.test(String(a.effect?.target?.className||'')))?.effect?.target||
+                allAnimations.find(a=>a.effect?.target)?.effect?.target||nodes[0];
+              const samples=[];
+              if(candidate){const until=performance.now()+1500;
+                while(performance.now()<until && samples.length<105){
+                  await new Promise(r=>requestAnimationFrame(r));const b=candidate.getBoundingClientRect();
+                  samples.push([Math.round(performance.now()),+b.left.toFixed(2),+b.top.toFixed(2)]);
+                }}
+              const ds=samples.slice(1).map((p,i)=>[p[0]-samples[i][0],p[1]-samples[i][1]]);
+              const gaps=ds.map(x=>x[0]), dx=ds.map(x=>x[1]);
+              const stat=v=>v.length?{n:v.length,min:+Math.min(...v).toFixed(2),max:+Math.max(...v).toFixed(2),
+                 mean:+(v.reduce((a,b)=>a+b,0)/v.length).toFixed(2)}:null;
+              return {urlPath:location.pathname,readyState:document.readyState,matches:nodes.map(get),
+               animations:anims,sampledTarget:candidate?get(candidate):null,frameGapsMs:stat(gaps),
+               frameGapsAbove32ms:gaps.filter(x=>x>32).length,frameGapsAbove50ms:gaps.filter(x=>x>50).length,
+               leftDeltas:stat(dx),firstPositions:samples.slice(0,8),lastPositions:samples.slice(-8)};
+            })()"""
+            result=wd.ws_eval(w,expr,7.0)
+            print('CRAWL_DEVTOOLS_DIAGNOSTIC='+json.dumps(result,sort_keys=True)[:16000])
+          except Exception as e:
+            print('CRAWL_DEVTOOLS_ERROR='+type(e).__name__+':'+str(e)[:250])
+          PY
+          echo 'CLEAN_READONLY_AUDIT_COMPLETE=true'
+          REMOTE
