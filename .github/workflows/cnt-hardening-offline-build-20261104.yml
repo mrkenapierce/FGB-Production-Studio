@@ -36,7 +36,7 @@ jobs:
           docker build --pull --file ops/cnt-phase2/Dockerfile.hardened -t epic-cnt-phase2:hardened-20261104 ops/cnt-phase2
           docker run --rm --entrypoint /bin/bash epic-cnt-phase2:hardened-20261104 -lc '
             set -e
-            python3 -m py_compile /opt/cnt/capture-watchdog.py /opt/cnt/cnt-diagnostics.py /opt/cnt/cnt-air-observer.py
+            PYTHONPYCACHEPREFIX=/tmp/cnt-pycache python3 -m py_compile /opt/cnt/capture-watchdog.py /opt/cnt/cnt-diagnostics.py /opt/cnt/cnt-air-observer.py
             for f in /opt/cnt/run-cnt.sh /opt/cnt/episode-cutter.sh /opt/cnt/cnt-daily-recorder.sh /opt/cnt/cnt-api-client.py; do test -s "$f"; done
             test "$(id -u)" = 1000
             echo HARDENED_IMAGE_COMPATIBLE_SOURCE_FILES=true
