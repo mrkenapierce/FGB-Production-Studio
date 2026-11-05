@@ -5,38 +5,48 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 05 Nov 2026 16:51:25 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 05 Nov 2026 22:27:12 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Caleb Williams Week 8 QB Grade: Bears @ Seahawks Film Breakdown</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Caleb Williams Week 8 QB Grade: Bears @ Seahawks Film Breakdown</description>
-      <link>https://sports.yahoo.com/articles/caleb-williams-week-8-qb-163000764.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-91e65b59e318ca0a1b1c</guid>
-      <pubDate>Thu, 05 Nov 2026 16:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>NFL trade rumor updates on Colts, Cowboys, Bears, Steelers, and more</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL trade rumor updates on Colts, Cowboys, Bears, Steelers, and more</description>
-      <link>https://sports.yahoo.com/articles/nfl-trade-rumor-updates-colts-162941790.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9cef495ab7dfecbc3edd</guid>
-      <pubDate>Thu, 05 Nov 2026 16:29:41 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; quick starts have fueled three-game win streak</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears&apos; quick starts have fueled three-game win streak</description>
-      <link>https://www.chicagobears.com/news/bears-quick-starts-have-fueled-three-game-win-streak</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1c4591d9ad94f61b576d</guid>
-      <pubDate>Thu, 05 Nov 2026 15:50:04 GMT</pubDate>
+      <title>Bears DC Dennis Allen expects Jeffery Simmons to be gift that keeps on giving</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears DC Dennis Allen expects Jeffery Simmons to be gift that keeps on giving</description>
+      <link>https://www.chicagobears.com/news/bears-dc-dennis-allen-expects-jeffery-simmons-to-be-gift-that-keeps-on-giving</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-cdbaa8447f0a364d17a9</guid>
+      <pubDate>Thu, 05 Nov 2026 21:29:17 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears vs. Bucs Injury Report: Monangai DNP, Benedet and Jarrett Upgraded</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Bucs Injury Report: Monangai DNP, Benedet and Jarrett Upgraded</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-bucs-injury-report-210800648.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4ca5b3c3c7b20ad1d8e6</guid>
+      <pubDate>Thu, 05 Nov 2026 21:08:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears nominate Josh Blackwell for 2026 Salute to Service Award presented by USAA</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears nominate Josh Blackwell for 2026 Salute to Service Award presented by USAA</description>
+      <link>https://www.chicagobears.com/news/chicago-bears-nominate-josh-blackwell-for-2026-salute-to-service-award-presented-by-usaa</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5b652d7e9c47ca4d695c</guid>
+      <pubDate>Thu, 05 Nov 2026 18:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Week 9 NFL picks against the spread, predictions for every game: Bears have momentum going into Sunday night vs. Buccaneers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Week 9 NFL picks against the spread, predictions for every game: Bears have momentum going into Sunday night vs. Buccaneers</description>
+      <link>https://sports.yahoo.com/nfl/betting/article/week-9-nfl-picks-against-the-spread-predictions-for-every-game-bears-have-momentum-going-into-sunday-night-vs-buccaneers-151416985.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-14dca168c26a2dab4da8</guid>
+      <pubDate>Thu, 05 Nov 2026 15:14:16 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -60,33 +70,23 @@
     </item>
 
     <item>
-      <title>What Jeffery Simmons Did After Monday&apos;s Win Told Caleb Williams Plenty About the Bears DT</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: What Jeffery Simmons Did After Monday&apos;s Win Told Caleb Williams Plenty About the Bears DT</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-jeffery-simmons-caleb-williams-locker-room-clean-up</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ec666e2809c6d98ddea9</guid>
-      <pubDate>Thu, 05 Nov 2026 08:00:00 GMT</pubDate>
+      <title>Kyle Monangai Injury Update &amp; Everything Else From Bears&apos; Thursday Practice Report</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyle Monangai Injury Update &amp; Everything Else From Bears&apos; Thursday Practice Report</description>
+      <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-everything-else-bears-thursday-practice-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-33eda707727ea5b02611</guid>
+      <pubDate>Thu, 05 Nov 2026 13:05:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Grading the Chicago Bears 2026 NFL Draft Class at Midseason</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Grading the Chicago Bears 2026 NFL Draft Class at Midseason</description>
-      <link>https://www.si.com/nfl/bears/onsi/grading-the-chicago-bears-2026-nfl-draft-class-at-midseason</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0a59e2d776305a23a97c</guid>
-      <pubDate>Thu, 05 Nov 2026 07:00:00 GMT</pubDate>
+      <title>Bill Barnwell Confirms the Bears Have One More Hole to Fill After Jeffery Simmons Trade</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bill Barnwell Confirms the Bears Have One More Hole to Fill After Jeffery Simmons Trade</description>
+      <link>https://www.si.com/nfl/bears/onsi/espn-bears-jeffery-simmons-trade-needs</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-90f3ae401b923dee5439</guid>
+      <pubDate>Thu, 05 Nov 2026 12:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>5 things we learned from Bears coach Ben Johnson</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 5 things we learned from Bears coach Ben Johnson</description>
-      <link>https://www.chicagobears.com/news/5-things-we-learned-from-bears-coach-ben-johnson-seahawks-week-8-win</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ae9c25375361b2da6b0e</guid>
-      <pubDate>Thu, 05 Nov 2026 00:09:20 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
