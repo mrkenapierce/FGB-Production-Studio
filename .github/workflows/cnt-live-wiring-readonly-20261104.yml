@@ -1,0 +1,69 @@
+name: CNT Live Wiring Readonly Inspection
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cnt-live-wiring-readonly-20261104.yml
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Configure protected OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Inspect CNT container, deployment mounts, and preserving publication workflows (no changes)
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/ovh ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo "UTC=$(date -u +%FT%TZ)"
+          echo 'CNT_CTR_METADATA_SAFE'
+          sudo docker inspect epic-cnt-capture epic-cnt-archive-worker fgb-transport-archive_uploader-1 |
+          python3 -c '
+          import json,sys
+          for c in json.load(sys.stdin):
+            labels=c.get("Config",{}).get("Labels") or {}
+            env=c.get("Config",{}).get("Env") or []
+            print(json.dumps({
+              "name":c.get("Name"),"imageTag":c.get("Config",{}).get("Image"),"imageDigest":c.get("Image"),
+              "project":labels.get("com.docker.compose.project"),"projectDir":labels.get("com.docker.compose.project.working_dir"),
+              "composeConfig":labels.get("com.docker.compose.project.config_files"),"service":labels.get("com.docker.compose.service"),
+              "created":c.get("Created"),"state":c.get("State",{}).get("Status"),
+              "mounts":[{"destination":m.get("Destination"),"type":m.get("Type"),"source":m.get("Source")} for m in c.get("Mounts",[])],
+              "envNAMES":[e.split("=",1)[0] for e in env],
+              "resources":{"memory":c.get("HostConfig",{}).get("Memory"),"cpuQuota":c.get("HostConfig",{}).get("CpuQuota"),"shmSize":c.get("HostConfig",{}).get("ShmSize")},
+              "networks":list((c.get("NetworkSettings",{}).get("Networks") or {}).keys())
+            },sort_keys=True))
+          '
+          echo 'DEPLOYMENT_FILES_EXISTENCE_SHA_NO_SECRETS'
+          for dir in /opt/cnt-transport /opt/cnt-phase2-staging /opt/fgb-transport; do
+            if [ -d "$dir" ]; then
+              echo "DIR=$dir"
+              for file in docker-compose.yml Dockerfile.cnt run-cnt.sh capture-watchdog.py cnt-lifecycle.sh cnt-diagnostics.py cnt-preflight.py CNT-HARDENING.md archive-recorder.sh archive-uploader.py cnt-rolling-recorder.sh; do
+                if [ -f "$dir/$file" ]; then sha256sum "$dir/$file"; fi
+              done
+            fi
+          done
+          echo 'SUPERVISORS_AND_UNIT_ENABLE_STATUS'
+          for unit in fgb-transport.service epic-cnt-transport.service epic-cnt-capture.service epic-cnt-renderer.timer cnt-trivia-watchdog.timer epic-archive-cleanup-cnt.timer epic-archive-cleanup-fgb.timer fgb-browser-guard.timer fgb-storage-health.timer; do
+            echo "$unit enabled=$(systemctl is-enabled "$unit" 2>/dev/null || true) active=$(systemctl is-active "$unit" 2>/dev/null || true)"
+          done
+          echo 'FGBCNT_DIRECT_SERVICES_IMAGE_AND_HEALTH'
+          sudo docker ps --format 'container={{.Names}} image={{.Image}} status={{.Status}}'
+          echo 'CNT_RECENT_CRASH_KEYWORD_COUNTS_48H'
+          sudo docker logs --since 48h epic-cnt-capture 2>&1 | python3 -c 'import sys,re,collections; c=collections.Counter(); pat=re.compile("SIGTRAP|AW.?SNAP|renderer|FATAL|OOM|restart chromium|watchdog",re.I); [(c.update([pat.search(s).group(0).upper()])) for s in sys.stdin if pat.search(s)];print(dict(c))'
+          echo 'HOST_LOAD_NOW'
+          cat /proc/loadavg
+          echo 'END_READONLY=true'
+          REMOTE
