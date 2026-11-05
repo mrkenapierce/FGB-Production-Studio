@@ -1,0 +1,74 @@
+name: CNT cgroup CPU Preflight Readonly Evidence
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/cnt-cgroup-readonly-20261104.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Configure protected SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Read-only production cgroup evidence and CPU headroom
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo python3 -' <<'PY'
+          import json,subprocess,pathlib,time,os,shutil,sys
+          def cmd(*args):
+              return subprocess.run(args,check=True,capture_output=True,text=True,timeout=12).stdout
+          try:
+              c=json.loads(cmd('docker','inspect','epic-cnt-capture'))[0]
+              cid=c['Id']; labels=c['Config']['Labels'] or {}
+              assert c['State']['Running'] and c['State']['Pid']>0
+              assert c['Name']=='/epic-cnt-capture' and labels.get('com.docker.compose.project')=='epic-cnt-transport' and labels.get('com.docker.compose.service')=='cnt'
+              assert c['Image']=='sha256:c89e2c4e300f20d1b18ab65997dbb3eb69a3a8c4ec4bcdb6807cb10209d4a8b1'
+              containers=json.loads(cmd('docker','ps','-q','--no-trunc','--filter','label=com.docker.compose.service=cnt','--format','{{.ID}}') or '[]') if False else cmd('docker','ps','-q','--no-trunc','--filter','label=com.docker.compose.service=cnt').split()
+              assert containers==[cid], 'sender count not exactly one'
+              paths=[pathlib.Path('/sys/fs/cgroup/system.slice/docker-'+cid+'.scope/cpu.stat'),pathlib.Path('/sys/fs/cgroup/docker/'+cid+'/cpu.stat')]
+              path=next((p for p in paths if p.is_file()),None)
+              if path is None:
+                  print('CGROUP_CANDIDATES_NOT_FOUND=true')
+                  for p in pathlib.Path('/sys/fs/cgroup').glob('**/cpu.stat'):
+                      if cid[:12] in str(p):
+                          print('MATCHED_CGROUP_RELATIVE='+str(p).replace(cid,'[CID]'))
+                  raise ValueError('cgroup cpu.stat missing; do not bypass')
+              def sample():
+                  p=[int(v) for v in pathlib.Path('/proc/stat').read_text().splitlines()[0].split()[1:]]
+                  count=next(int(row.split()[1]) for row in path.read_text().splitlines() if row.startswith('usage_usec '))
+                  return time.monotonic(),sum(p[:8]),p[3]+p[4],count
+              old=sample(); windows=[]; cpus=os.cpu_count() or 1
+              for i in range(3):
+                  time.sleep(10)
+                  now=sample()
+                  sec=now[0]-old[0]; dt=now[1]-old[1]
+                  host=(dt-(now[2]-old[2]))/dt*cpus
+                  cnt=(now[3]-old[3])/1e6/sec
+                  windows.append({'host_busy_cores':round(host,3),'cnt_busy_cores':round(cnt,3),'other_busy_cores':round(max(0,host-cnt),3)})
+                  old=now
+              after=json.loads(cmd('docker','inspect','epic-cnt-capture'))[0]
+              assert after['Id']==cid and after['State']['Running']
+              assert cmd('docker','ps','-q','--no-trunc','--filter','label=com.docker.compose.service=cnt').split()==[cid]
+              maxother=max(x['other_busy_cores'] for x in windows)
+              maxcnt=max(x['cnt_busy_cores'] for x in windows)
+              required=2+maxother+1+0.5
+              avail=next(int(row.split()[1])//1024 for row in pathlib.Path('/proc/meminfo').read_text().splitlines() if row.startswith('MemAvailable:'))
+              disk=shutil.disk_usage('/var/lib/docker').free/1024**3
+              r={'windows':windows,'required_cores':round(required,3),'total_cores':cpus,'memory_available_mib':avail,'disk_free_gib':round(disk,2),'capacity_cpu_pass':required<=cpus and maxcnt<=1.8,'memory_pass':avail>=4096,'disk_pass':disk>=12}
+              print('READONLY_REPLACEMENT_CAPACITY='+json.dumps(r,sort_keys=True))
+              print('OVERALL_PASS='+str(all(r[k] for k in ['capacity_cpu_pass','memory_pass','disk_pass'])).lower())
+          except Exception as e:
+              print('SAFE_PREFLIGHT_FAILED='+type(e).__name__+':'+str(e)[:140])
+              sys.exit(1)
+          PY
