@@ -253,5 +253,35 @@ jobs:
           fi
           echo 'PYTHON_PROCESS_IDENTITIES_END'
 
+
+          echo 'ARCHIVE_OBSERVER_SUPERVISOR_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D exec epic-cnt-archive-worker python3 -c '
+          import os
+          from pathlib import Path
+          def args(pid):
+              try: return [x.decode("utf-8","replace") for x in Path("/proc/"+str(pid)+"/cmdline").read_bytes().split(b"\0") if x]
+              except OSError: return []
+          for pid in [1,9]:
+              a=args(pid)
+              if not a: continue
+              ppid=Path("/proc/"+str(pid)+"/stat").read_text().split(") ")[1].split()[1]
+              print("PROC=",pid,"PPID=",ppid,"EXE=",os.path.basename(a[0]),"SCRIPT=",next((os.path.basename(x) for x in a[1:3] if x.endswith((".sh",".py"))),"none"))
+              s=" ".join(a[1:])
+              for term in ["cnt-air-observer.py", "wait -n","wait ","while ","trap ","exec ","python3 "]:
+                  print("PID"+str(pid)+"_HAS_"+term.replace(" ","_").replace(".","_").replace("-","_")+"=",term in s)
+          ' 2>/dev/null || true
+            $D exec epic-cnt-archive-worker sh -c '
+              echo "OBSERVER_SCRIPT_LOCATION:"
+              find /opt /usr/local/bin -maxdepth 4 -name "cnt-air-observer.py" 2>/dev/null | head -10 || true
+              echo "LAUNCH_SCRIPT_REFERENCES:"
+              grep -R -n -C 2 --include="*.sh" "cnt-air-observer[.]py" /opt 2>/dev/null | head -70 || true
+              echo "RUNNING_PID1_AND_REPORTER:"
+              ps -o pid=,ppid=,comm= -p 1,9 || true
+            ' 2>/dev/null || true
+          fi
+          echo 'ARCHIVE_OBSERVER_SUPERVISOR_END'
+
           echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
           REMOTE
