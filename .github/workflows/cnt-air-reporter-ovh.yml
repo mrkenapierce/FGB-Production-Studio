@@ -230,5 +230,28 @@ jobs:
           fi
           echo 'REPORTER_PARENT_CONTRACT_END'
 
+
+          echo 'PYTHON_PROCESS_IDENTITIES_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            for box in epic-cnt-capture epic-cnt-archive-worker; do
+              echo "CONTAINER=$box"
+              $D exec "$box" python3 -c '
+          import os
+          from pathlib import Path
+          for p in sorted((x for x in os.listdir("/proc") if x.isdigit()), key=int):
+              try:
+                  argv=Path("/proc/"+p+"/cmdline").read_bytes().split(b"\\0")
+                  argv=[x.decode("utf-8","replace") for x in argv if x]
+                  if argv and os.path.basename(argv[0]).startswith("python"):
+                      script=next((os.path.basename(x) for x in argv[1:4] if x.endswith(".py")),"no-script")
+                      print("PYTHON_PID="+p+" SCRIPT="+script)
+              except OSError:
+                  pass
+          ' 2>/dev/null || true
+            done
+          fi
+          echo 'PYTHON_PROCESS_IDENTITIES_END'
+
           echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
           REMOTE
