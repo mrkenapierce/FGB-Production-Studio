@@ -1,0 +1,122 @@
+name: CNT SIGTRAP Post-deployment 48h Stability Monitor
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cnt-hardening-48h-soak-20261104.yml
+  schedule:
+    - cron: '*/15 * * * *'
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: cnt-hardening-soak-20261104
+  cancel-in-progress: false
+jobs:
+  monitor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - name: Check monitoring window
+        id: window
+        shell: bash
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          from datetime import datetime,timezone
+          now=datetime.now(timezone.utc)
+          start=datetime.fromisoformat("2026-11-05T01:12:47+00:00")
+          end=datetime.fromisoformat("2026-11-07T01:12:47+00:00")
+          print("active="+str(start<=now<=end).lower())
+          print("window_end_utc="+end.isoformat())
+          PY
+      - name: Configure protected OVH key
+        if: steps.window.outputs.active == 'true'
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Check health, OOM, and publishing services with no restart
+        if: steps.window.outputs.active == 'true'
+        id: health
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo python3 -' > /tmp/cnt-soak-health.json <<'PY'
+          import json,subprocess,datetime,pathlib,time,sys
+          new_id='sha256:0fc522700f6589be7cf58b2b48323e793938f5c5c77e765b8c43d9480bcfc440'
+          def call(*args):
+            return subprocess.run(args,check=True,capture_output=True,text=True,timeout=12).stdout
+          def inspect(name):
+            return json.loads(call('docker','inspect',name))[0]
+          out={'checkedAt':datetime.datetime.now(datetime.timezone.utc).isoformat(),'checks':{}}
+          ck=out['checks']
+          try:
+            c=inspect('epic-cnt-capture');a=inspect('epic-cnt-archive-worker');f=inspect('fgb-transport-archive_uploader-1')
+            old=inspect('fgb-transport-youtube-1')
+            ck['cnt_running']=bool(c['State']['Running'])
+            ck['expected_image']=c['Image']==new_id
+            ck['docker_health']=c['State'].get('Health',{}).get('Status')=='healthy'
+            ck['archive_worker_running']=bool(a['State']['Running'])
+            ck['fgb_video_uploader_running']=bool(f['State']['Running'])
+            ck['fgb_live_stopped']=not old['State']['Running']
+            ck['cnt_cpu_cap']=c['HostConfig'].get('NanoCpus')==2000000000
+            ck['cnt_memory_cap']=c['HostConfig'].get('Memory')==3221225472
+            ck['cnt_process_cap']=c['HostConfig'].get('PidsLimit')==256
+            ck['single_sender']=len(call('docker','ps','-q','--no-trunc','--filter','label=com.docker.compose.service=cnt').split())==1
+            env=call('docker','exec','epic-cnt-capture','sh','-c',"test -f /tmp/cnt-ffmpeg.progress && date +%s && stat -c %Y /tmp/cnt-ffmpeg.progress && pgrep -x ffmpeg | head -1 && pgrep -x chromium | head -1").splitlines()
+            ck['encoder_progress_fresh']=len(env)>=4 and 0<=int(env[0])-int(env[1])<=30
+            state=json.loads(call('docker','exec','epic-cnt-capture','python3','/opt/cnt/capture-watchdog.py','cnt','status'))
+            out['watchdog']={k:state.get(k) for k in ('action','reason','consecutive_failures','restarts_total','origin_outage','alert')}
+            ck['browser_page_healthy']=state.get('action')=='ok' and state.get('reason')=='ok' and not state.get('alert')
+            events=call('docker','exec','epic-cnt-capture','cat','/sys/fs/cgroup/memory.events')
+            memory=dict((l.split()[0],int(l.split()[1])) for l in events.splitlines() if len(l.split())==2)
+            out['memoryEvents']={k:memory.get(k,0) for k in ('oom','oom_kill','oom_group_kill','max')}
+            ck['no_cgroup_oom_kill']=memory.get('oom_kill',0)==0
+            out['restartCount']=c['RestartCount']
+            out['failures']=[k for k,v in ck.items() if not v]
+          except Exception as e:
+            out['failures']=['monitor_failed_'+type(e).__name__]
+          print(json.dumps(out,sort_keys=True))
+          sys.exit(0)
+          PY
+          cat /tmp/cnt-soak-health.json
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          x=json.load(open('/tmp/cnt-soak-health.json'))
+          print('healthy='+str(not x['failures']).lower())
+          print('failures='+','.join(x['failures'])[:200])
+          PY
+      - name: Keep one GitHub issue for significant stability failures
+        if: always() && steps.window.outputs.active == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          IS_HEALTHY: ${{ steps.health.outputs.healthy }}
+          FAILURES: ${{ steps.health.outputs.failures }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh label create cnt-sigtrap-soak --color D93F0B --description 'CNT production capture 48-hour SIGTRAP soak issue' --force
+          issue=$(gh issue list --state open --label cnt-sigtrap-soak --json number --jq '.[0].number // empty')
+          if [ "$IS_HEALTHY" = true ]; then
+            echo "CNT_48H_MONITOR_RESULT=healthy"
+            if [ -n "$issue" ]; then
+              gh issue close "$issue" --comment "CNT recovered after failure. Verification: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            fi
+          else
+            echo "CNT_48H_MONITOR_RESULT=failed"
+            body="CNT SIGTRAP deployment observation failed at $(date -u +%FT%TZ). Checks: ${FAILURES:-SSH_or_workflow_error}. Inspection only; no automatic restart was attempted. GitHub run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            if [ -z "$issue" ]; then
+              gh issue create --title '[CNT SIGTRAP] Production stability monitoring requires intervention' --label cnt-sigtrap-soak --body "$body"
+            else
+              gh issue comment "$issue" --body "$body"
+            fi
+            exit 1
+          fi
