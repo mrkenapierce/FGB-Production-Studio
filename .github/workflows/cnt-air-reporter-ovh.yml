@@ -404,5 +404,36 @@ jobs:
           fi
           echo 'CNT_PRODUCTION_NETWORK_AUDIT_END'
 
+
+          echo 'CNT_COMPOSE_CONTEXT_BEGIN'
+          if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+          $D inspect --format 'OLD_PEER_NAME={{.Name}} OLD_PEER_STATUS={{.State.Status}} OLD_PEER_NETWORK={{.HostConfig.NetworkMode}}' 9c2265b396da0178a34adfe1af49ee2a8f99cc42a22913ac0f65004546ad1c79 2>/dev/null || echo 'OLD_PEER_NOT_FOUND'
+          $D inspect --format 'CAPTURE_NAME={{.Name}} CAPTURE_ID={{.Id}} CAPTURE_START={{.State.StartedAt}}' epic-cnt-capture 2>/dev/null || true
+          $D inspect --format 'WORKER_START={{.State.StartedAt}} WORKER_ID={{.Id}}' epic-cnt-archive-worker 2>/dev/null || true
+          if [ -f /opt/cnt-transport/docker-compose.phase2.yml ]; then
+            echo 'PHASE2_COMPOSE_PRESENT=true'
+            (cd /opt/cnt-transport && $D compose -p epic-cnt-transport -f docker-compose.phase2.yml config --format json) | python3 -c '
+          import json,sys
+          try:
+           d=json.load(sys.stdin)
+           for name,svc in (d.get("services") or {}).items():
+            if name in ("cnt","archive_worker"):
+             print("SERVICE_NAME="+name+" NETWORK_MODE="+str(svc.get("network_mode","none")))
+             print("SERVICE_"+name+"_ENV_NAMES="+",".join(sorted((svc.get("environment") or {}).keys()))[:600])
+             print("SERVICE_"+name+"_VOLUMES="+",".join(str(x.get("target","")) for x in svc.get("volumes",[]) if isinstance(x,dict)))
+             print("SERVICE_"+name+"_SECRETS="+",".join(str(x.get("target","")) for x in svc.get("secrets",[]) if isinstance(x,dict)))
+          except Exception as e: print("COMPOSE_PARSE_ERROR="+type(e).__name__)
+          ' || true
+          fi
+          $D exec epic-cnt-archive-worker python3 -c '
+          from pathlib import Path
+          p=Path("/opt/cnt/cnt-air-observer.py")
+          s=p.read_text().splitlines()
+          for i,line in enumerate(s):
+           if ("CNT_ARCHIVE_HMAC_SECRET" in line or "CNT_AIR_STATE" in line or "CNT_ARCHIVE_URL" in line):
+            print("OBSERVER_SCRIPT_LINE="+str(i+1)+":"+line[:170])
+          ' 2>/dev/null || true
+          echo 'CNT_COMPOSE_CONTEXT_END'
+
           echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
           REMOTE
