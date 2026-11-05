@@ -283,5 +283,25 @@ jobs:
           fi
           echo 'ARCHIVE_OBSERVER_SUPERVISOR_END'
 
+
+          echo 'OBSERVER_HEALTH_STATE_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D exec epic-cnt-archive-worker python3 -c '
+          import os,json,time
+          path=os.environ.get("CNT_AIR_STATE","/cnt-archive/state/air-observer.json")
+          print("OBSERVER_CONFIG_LOG="+os.environ.get("CNT_AIR_LOG","unset"))
+          print("OBSERVER_STATE_PATH="+path)
+          try:
+              with open(path) as fh: s=json.load(fh)
+              print("OBSERVER_STATE_AGE_SECONDS="+str(round(time.time()-os.stat(path).st_mtime,1)))
+              print("OBSERVER_SENT_COUNT="+str(len(s.get("sent",[]))))
+              print("OBSERVER_PENDING_COUNT="+str(len(s.get("pending",[]))))
+              print("OBSERVER_OPEN_PLAY="+str(bool(s.get("open"))))
+          except (OSError,ValueError) as e: print("OBSERVER_STATE_UNAVAILABLE="+type(e).__name__)
+          ' 2>/dev/null || true
+          fi
+          echo 'OBSERVER_HEALTH_STATE_END'
+
           echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
           REMOTE
