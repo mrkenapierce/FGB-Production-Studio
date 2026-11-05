@@ -1,0 +1,27 @@
+# CNT SIGTRAP hardening image; preserves the deployed phase2 archive toolchain.
+# Deliberately built from the existing ops/cnt-phase2 context, not generic Lovable compose.
+FROM debian:bookworm-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium xvfb pulseaudio ffmpeg curl ca-certificates procps \
+    fonts-dejavu-core fonts-liberation fonts-noto-color-emoji tini tzdata \
+    python3 jq openssl util-linux \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN useradd -m -u 1000 cnt \
+  && install -d -o cnt -g cnt -m 700 /cnt-state /cnt-state/watchdog
+
+WORKDIR /opt/cnt
+# ALL existing phase2 archive/publishing files are retained.
+COPY episode-lib.sh episode-cutter.sh cnt-rolling-recorder.sh cnt-daily-recorder.sh \
+     cnt-archive-retention.sh archive-retention.py cnt-air-observer.py cnt-api-client.py \
+     capture-watchdog.py cnt-lifecycle.sh cnt-diagnostics.py ./
+COPY run-cnt-hardened.sh ./run-cnt.sh
+RUN chmod +x *.sh cnt-air-observer.py capture-watchdog.py cnt-diagnostics.py
+
+USER cnt
+HEALTHCHECK --interval=30s --timeout=7s --start-period=90s --retries=3 \
+  CMD python3 ./capture-watchdog.py cnt health
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["./run-cnt.sh"]
