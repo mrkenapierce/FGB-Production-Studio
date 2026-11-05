@@ -1,0 +1,138 @@
+name: Deploy CNT SIGTRAP Hardened Capture - Production
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/deploy-cnt-sigtrap-hardened-20261104.yml
+permissions:
+  contents: read
+concurrency:
+  group: cnt-production-rollout-20261104
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Authenticate with protected OVH credential
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Execute scoped CNT cutover and automatic rollback on failed validation
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          exec 9>/run/lock/cnt-hardening-deploy-20261104.lock
+          flock -n 9
+          cd /opt/cnt-transport
+          old='sha256:c89e2c4e300f20d1b18ab65997dbb3eb69a3a8c4ec4bcdb6807cb10209d4a8b1'
+          base=(docker compose -p epic-cnt-transport -f /opt/cnt-transport/docker-compose.phase2.yml)
+          upgraded=(docker compose -p epic-cnt-transport -f /opt/cnt-transport/docker-compose.phase2.yml -f /opt/cnt-transport/docker-compose.cnt-hardening-20261104.yml)
+          archive_before="$(docker inspect -f '{{.Id}}' epic-cnt-archive-worker)"
+          uploader_before="$(docker inspect -f '{{.Id}}' fgb-transport-archive_uploader-1)"
+          old_container="$(docker inspect -f '{{.Id}}' epic-cnt-capture)"
+          NEED_ROLLBACK=0
+          rollback() {
+            code="$?"
+            trap - ERR
+            if [ "$NEED_ROLLBACK" = 1 ]; then
+              echo "CUTOVER_FAILURE_AUTO_ROLLBACK_BEGIN code=$code"
+              "${upgraded[@]}" stop cnt >/dev/null 2>&1 || true
+              if "${base[@]}" up -d --no-deps --no-build cnt >/dev/null 2>&1; then
+                if [ "$(docker inspect -f '{{.Image}}' epic-cnt-capture 2>/dev/null)" = "$old" ] && [ "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture 2>/dev/null)" = true ]; then
+                  echo 'ROLLBACK_OLD_IMAGE_RESTORED=true'
+                else echo 'ROLLBACK_FAILED_NEEDS_OPERATOR=true'; fi
+              else echo 'ROLLBACK_COMPOSE_FAILED_NEEDS_OPERATOR=true'; fi
+              echo "ROLLBACK_ARCHIVE_WORKER_RUNNING=$(docker inspect -f '{{.State.Running}}' epic-cnt-archive-worker 2>/dev/null || true)"
+            else echo 'CUTOVER_ABORTED_BEFORE_CHANGING_LIVE_CNT=true'; fi
+            exit "$code"
+          }
+          trap rollback ERR
+          echo "CUTOVER_START_UTC=$(date -u +%FT%TZ)"
+          test "$(docker inspect -f '{{.Image}}' epic-cnt-capture)" = "$old"
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-archive-worker)" = true
+          test "$(docker inspect -f '{{.State.Running}}' fgb-transport-archive_uploader-1)" = true
+          test "$(docker inspect -f '{{.State.Running}}' fgb-transport-youtube-1)" = false
+          test "$(docker inspect -f '{{.Image}}' epic-cnt-archive-worker)" = "$old"
+          test "$(docker image inspect -f '{{.Id}}' epic-cnt-phase2:rollback-20261104)" = "$old"
+          test -s /opt/cnt-transport/docker-compose.cnt-hardening-20261104.yml
+          test -s /opt/cnt-hardening-release-20261104/cnt-preflight.py
+          new_image="$(docker image inspect -f '{{.Id}}' epic-cnt-phase2:hardened-20261104)"
+          test -n "$new_image" && test "$new_image" != "$old"
+          test "$(docker ps -q --no-trunc --filter label=com.docker.compose.service=cnt | wc -l)" -eq 1
+          echo "NEW_IMAGE_READY=true"
+          # Re-run exact production preflight BEFORE brief CNT-only interruption.
+          env CNT_REPLACE_EXPECTED_IMAGE_ID="$old" CNT_CPUS=2 CNT_MEMORY_MB=3072 CNT_SHM_MB=1024 CNT_CPU_WINDOWS=3 CNT_CPU_WINDOW_SECONDS=10 \
+            python3 /opt/cnt-hardening-release-20261104/cnt-preflight.py --replace-existing /var/lib/docker
+          echo "PRE_CUTOVER_SAFETY_GATES=PASSED"
+          NEED_ROLLBACK=1
+          "${base[@]}" stop cnt >/dev/null
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = false
+          test -z "$(docker ps -q --no-trunc --filter label=com.docker.compose.service=cnt)"
+          echo 'EXISTING_CNT_SENDER_STOPPED=true'
+          "${upgraded[@]}" up -d --no-deps --no-build cnt >/dev/null
+          test "$(docker inspect -f '{{.Image}}' epic-cnt-capture)" = "$new_image"
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
+          test "$(docker ps -q --no-trunc --filter label=com.docker.compose.service=cnt | wc -l)" -eq 1
+          echo 'HARDENED_CNT_IMAGE_ACTIVE=true'
+          echo 'WAIT_FOR_WATCHDOG_AND_FFMPEG'
+          ok=false
+          for n in $(seq 1 24); do
+            health="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' epic-cnt-capture)"
+            if [ "$health" = healthy ] && docker exec epic-cnt-capture sh -c '
+                test -w /cnt-state/watchdog &&
+                pgrep -x ffmpeg >/dev/null &&
+                pgrep -x chromium >/dev/null &&
+                test -s /tmp/cnt-ffmpeg.progress &&
+                test $(( $(date +%s) - $(stat -c %Y /tmp/cnt-ffmpeg.progress) )) -le 20
+              ' >/dev/null 2>&1; then
+              ok=true
+              break
+            fi
+            if [ "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)" != true ]; then
+              echo 'HARDENED_CNT_EXITED_DURING_STARTUP=true'; break
+            fi
+            sleep 10
+          done
+          test "$ok" = true
+          echo 'HARDENED_CNT_FFMPEG_PROGRESS_AND_BROWSER_HEALTH=PASSED'
+          # Preserve independent publishing, records, networking, and FGB disabled state.
+          test "$(docker inspect -f '{{.Id}}' epic-cnt-archive-worker)" = "$archive_before"
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-archive-worker)" = true
+          test "$(docker inspect -f '{{.Id}}' fgb-transport-archive_uploader-1)" = "$uploader_before"
+          test "$(docker inspect -f '{{.State.Running}}' fgb-transport-archive_uploader-1)" = true
+          test "$(docker inspect -f '{{.State.Running}}' fgb-transport-youtube-1)" = false
+          docker inspect epic-cnt-capture | python3 -c '
+          import json,sys
+          d=json.load(sys.stdin)[0]
+          m={x["Destination"]:x["Source"] for x in d["Mounts"]}
+          assert m.get("/cnt-archive")=="/srv/cnt-archive", "recording bind missing"
+          assert m.get("/cnt-state") is not None, "watchdog state volume missing"
+          assert "epic-cnt-transport_cnt-only" in d["NetworkSettings"]["Networks"]
+          assert d["HostConfig"]["Memory"]==3072*1024*1024
+          assert d["HostConfig"]["NanoCpus"]==2_000_000_000
+          assert d["HostConfig"]["PidsLimit"]==256
+          assert d["HostConfig"]["ShmSize"]==1024*1024*1024
+          print("CNT_MOUNTS_NETWORK_CAPACITY_LIMITS=PASS")
+          '
+          docker exec epic-cnt-capture python3 /opt/cnt/capture-watchdog.py cnt status |
+            python3 -c 'import json,sys;d=json.load(sys.stdin);print("CNT_WATCHDOG_STATUS="+str({k:d.get(k) for k in ("action","reason","consecutive_failures","restarts_total","origin_outage","alert")}))'
+          NEED_ROLLBACK=0
+          echo "PRODUCTION_CUTOVER_SUCCESS_UTC=$(date -u +%FT%TZ)"
+          echo "CNT_NEW_IMAGE_ID=$new_image"
+          echo 'CNT_ORIGINAL_ARCHIVE_WORKER_PRESERVED=true'
+          echo 'FGB_PUBLISHING_UPLOADER_PRESERVED=true'
+          echo 'FGB_CONTINUOUS_LIVESTREAM_STILL_STOPPED=true'
+          echo 'CNT_DOCKER_HEALTH=healthy'
+          echo 'NEXT_REQUIRED=external_youtube_ingest_verification_and_48h_soak'
+          REMOTE
