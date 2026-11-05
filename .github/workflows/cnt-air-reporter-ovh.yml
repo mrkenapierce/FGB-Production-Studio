@@ -202,5 +202,33 @@ jobs:
           fi
           echo 'REPORTER_SUPERVISION_SOURCE_END'
 
+
+          echo 'REPORTER_PARENT_CONTRACT_BEGIN'
+          if command -v docker >/dev/null 2>&1; then
+            if [ -n "$SUDO" ]; then D="$SUDO docker"; else D="docker"; fi
+            $D exec epic-cnt-capture python3 -c '
+import os,re
+from pathlib import Path
+lines = Path("/proc/7/cmdline").read_bytes().split(b"\\0")
+parts = [b.decode("utf-8","replace") for b in lines if b]
+print("PARENT_CMD_ARGC=",len(parts))
+print("PARENT_EXE_NAME=",os.path.basename(parts[0]) if parts else "unknown")
+s=" ".join(parts[1:])
+for term in ["cnt-air-observer.py","wait -n","wait ","trap ","exec ","while ","nohup ","setsid ","python3 ","CNT_AIR_LOG","CNT_ARCHIVE_HMAC_SECRET"]:
+    print("PARENT_CONTAINS_"+term.replace(" ","_").replace(".","_").replace("-","_")+"=",term in s)
+needle="cnt-air-observer.py"
+i=s.find(needle)
+if i>=0:
+    nearby=s[max(0,i-75):i+len(needle)+90]
+    nearby=re.sub(r"[A-Za-z0-9+/]{40,}","[REDACTED]",nearby)
+    nearby=re.sub(r"([A-Za-z_]*(?:KEY|SECRET|TOKEN|PASSWORD)[A-Za-z_]*=)[^ ;]+",r"\\1[REDACTED]",nearby,re.I)
+    print("OBSERVER_LAUNCH_CONTEXT=",nearby)
+print("PYTHON_PROCESS_CNT=",sum(1 for p in os.listdir("/proc") if p.isdigit() and Path("/proc/"+p+"/comm").exists() and Path("/proc/"+p+"/comm").read_text().strip()=="python3"))
+' 2>/dev/null || true
+            $D inspect --format '{{json .Config.Env}}' epic-cnt-capture |
+              python3 -c 'import json,sys; env=json.load(sys.stdin); print("CONFIG_HAS_CNT_ARCHIVE_HMAC_SECRET="+str(any(s.startswith("CNT_ARCHIVE_HMAC_SECRET=") for s in env)));print("CONFIG_HAS_CNT_AIR_LOG="+str(any(s.startswith("CNT_AIR_LOG=") for s in env)))' || true
+          fi
+          echo 'REPORTER_PARENT_CONTRACT_END'
+
           echo 'AUDIT_COMPLETE=NO_REMOTE_CHANGES'
           REMOTE
