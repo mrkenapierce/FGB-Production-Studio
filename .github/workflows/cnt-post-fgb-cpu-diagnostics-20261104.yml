@@ -1,0 +1,105 @@
+name: CNT CPU and Production Headroom Diagnostics
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cnt-post-fgb-cpu-diagnostics-20261104.yml
+permissions:
+  contents: read
+concurrency:
+  group: cnt-production-readonly-cpu-audit
+  cancel-in-progress: false
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    steps:
+      - name: Configure direct OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Read-only host and CNT performance audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -i ~/.ssh/ovh ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo "AUDIT_UTC=$(date -u +%FT%TZ)"
+          echo "HOST_CORES=$(nproc)"
+          echo "HOST_LOAD_1_5_15=$(cat /proc/loadavg)"
+          for f in /proc/pressure/cpu /proc/pressure/memory /proc/pressure/io; do
+            echo "PSI_FILE=$f"; cat "$f" || true
+          done
+          echo 'MEMORY_DISK'
+          free -m | head -3
+          df -h / /tmp /dev/shm
+          echo 'DOCKER_CONTAINERS'
+          sudo docker ps --format 'container={{.Names}} status={{.Status}}'
+          echo 'DOCKER_STATS_ALL'
+          sudo timeout 20 docker stats --no-stream --format 'container={{.Name}} cpu={{.CPUPerc}} memory={{.MemUsage}} pids={{.PIDs}}' || true
+          echo 'TOP_CPU_PROCESSES_NO_ARGUMENTS'
+          ps -eo pid,ppid,stat,comm,pcpu,pmem,wchan:16 --sort=-pcpu | head -24
+          echo 'TOP_THREAD_STATES_NO_ARGUMENTS'
+          ps -eLo stat=,comm= | awk '{s=substr($1,1,1);count[s]++} END{for(s in count) print "thread_state=" s " count=" count[s]}'
+          echo 'STREAM_CONTAINERS_AND_CPU_LIMITS'
+          for c in epic-cnt-capture fgb-transport-youtube-1 fgb-transport-archive_uploader-1; do
+            sudo docker inspect -f 'name={{.Name}} running={{.State.Running}} oom={{.State.OOMKilled}} restart={{.HostConfig.RestartPolicy.Name}} cpuquota={{.HostConfig.CpuQuota}} cpushares={{.HostConfig.CpuShares}} memorycap={{.HostConfig.Memory}} health={{if .State.Health}}{{.State.Health.Status}}{{else}}n/a{{end}}' "$c" || true
+          done
+          echo 'LIVESTREAM_TIMERS_AND_SERVICES_NAMES_ONLY'
+          systemctl list-timers --all --no-legend --no-pager | awk '{for(i=1;i<=NF;i++) if($i ~ /(fgb|cnt|archive|stream)/) print $i}' | sort -u | head -60 || true
+          systemctl list-units --all --no-pager --no-legend 'fgb*' 'epic-cnt*' | awk '{print $1,$3,$4}' | head -55 || true
+          echo 'PERFORMANCE_TIME_DELTA_BEGIN'
+          python3 - <<'PY'
+          import time,os,json
+          def cpu():
+            rows=open('/proc/stat').read().splitlines()
+            vals={}
+            for line in rows:
+              a=line.split()
+              if a[0]=='cpu' or (a[0].startswith('cpu') and a[0][3:].isdigit()):
+                n=list(map(int,a[1:]))
+                vals[a[0]]={'total':sum(n),'idle':n[3]+n[4],'iowait':n[4],'steal':n[7] if len(n)>7 else 0}
+            return vals
+          def proc():
+            out={}
+            for pid in [p for p in os.listdir('/proc') if p.isdigit()]:
+              try:
+                raw=open('/proc/'+pid+'/stat').read()
+                cut=raw.rindex(')')
+                numbers=raw[cut+2:].split()
+                t=int(numbers[11])+int(numbers[12])
+                name=raw[raw.index('(')+1:cut]
+                out[pid]=(name,t)
+              except (OSError,ValueError,IndexError):pass
+            return out
+          a,b=cpu(),proc()
+          t0=time.monotonic()
+          time.sleep(25)
+          c,d=cpu(),proc()
+          elapsed=time.monotonic()-t0
+          util={}
+          for k,x in c.items():
+            if k not in a:continue
+            dt=x['total']-a[k]['total']
+            if dt<=0: continue
+            util[k]={'busyPct':round(100*(1-(x['idle']-a[k]['idle'])/dt),1),'iowaitPct':round(100*(x['iowait']-a[k]['iowait'])/dt,1),'stealPct':round(100*(x['steal']-a[k]['steal'])/dt,1)}
+          clk=os.sysconf('SC_CLK_TCK')
+          per=[]
+          for pid,(name,used) in d.items():
+            if pid in b:
+              ticks=used-b[pid][1]
+              if ticks>0:per.append({'comm':name[:28],'pid':pid,'cpuPctOfOneCore':round(100*ticks/clk/elapsed,1)})
+          per.sort(key=lambda x:x['cpuPctOfOneCore'],reverse=True)
+          print('CPU_INTERVAL_RESULT='+json.dumps({'durationSeconds':round(elapsed,1),'cpu':util,'topProcesses':per[:20]},sort_keys=True))
+          PY
+          echo 'PERFORMANCE_TIME_DELTA_END'
+          echo 'AUDIT_DONE=true'
+          REMOTE
