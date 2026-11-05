@@ -1,0 +1,129 @@
+name: CNT Hardened Host Staging and Safe Preflight
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cnt-hardening-stage-20261104.yml
+permissions:
+  contents: read
+concurrency:
+  group: cnt-production-rollout-20261104
+  cancel-in-progress: false
+jobs:
+  stage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate source and prepare scoped package
+        run: |
+          set -euo pipefail
+          cd ops/cnt-phase2
+          bash -n run-cnt-hardened.sh cnt-lifecycle.sh
+          python3 -m py_compile capture-watchdog.py cnt-diagnostics.py cnt-preflight.py
+          test -s Dockerfile.hardened-overlay
+          tar -czf /tmp/cnt-hardening-20261104.tar.gz -- Dockerfile.hardened-overlay run-cnt-hardened.sh capture-watchdog.py cnt-lifecycle.sh cnt-diagnostics.py cnt-preflight.py
+          echo "STAGING_SOURCE_SHA=$(sha256sum /tmp/cnt-hardening-20261104.tar.gz | cut -d' ' -f1)"
+      - name: Configure protected production SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Stage exact CNT image overlay, with no production restart
+        run: |
+          set -euo pipefail
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh /tmp/cnt-hardening-20261104.tar.gz ubuntu@40.160.144.185:/tmp/cnt-hardening-20261104.tar.gz
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          exec 9>/run/lock/cnt-hardening-deploy-20261104.lock
+          flock -n 9
+          old='sha256:c89e2c4e300f20d1b18ab65997dbb3eb69a3a8c4ec4bcdb6807cb10209d4a8b1'
+          test "$(docker inspect -f '{{.Image}}' epic-cnt-capture)" = "$old"
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-archive-worker)" = true
+          test "$(docker inspect -f '{{.State.Running}}' fgb-transport-archive_uploader-1)" = true
+          test "$(docker inspect -f '{{.State.Running}}' fgb-transport-youtube-1)" = false
+          test "$(docker ps -q --no-trunc --filter label=com.docker.compose.service=cnt | wc -l)" -eq 1
+          echo 'CNT_OLD_IMAGE_VERIFIED=true'
+          install -d -o root -g root -m 0700 /opt/cnt-hardening-release-20261104
+          tar -xzf /tmp/cnt-hardening-20261104.tar.gz -C /opt/cnt-hardening-release-20261104
+          chmod 0700 /opt/cnt-hardening-release-20261104
+          cd /opt/cnt-hardening-release-20261104
+          echo 'RUNNING_MEASURED_REPLACEMENT_PREFLIGHT'
+          env CNT_REPLACE_EXPECTED_IMAGE_ID="$old" CNT_CPUS=2 CNT_MEMORY_MB=3072 CNT_SHM_MB=1024 CNT_CPU_WINDOWS=3 CNT_CPU_WINDOW_SECONDS=10 python3 ./cnt-preflight.py --replace-existing /var/lib/docker
+          echo 'MEASURED_REPLACEMENT_PREFLIGHT_PASSED=true'
+          # Freeze the proven rollback image under an additional tag, without touching the live container.
+          docker image tag "$old" epic-cnt-phase2:rollback-20261104
+          docker image inspect --format '{{.Id}}' epic-cnt-phase2:rollback-20261104 | grep -Fx "$old"
+          docker build --pull=false -f Dockerfile.hardened-overlay -t epic-cnt-phase2:hardened-20261104 .
+          docker run --rm --entrypoint sh epic-cnt-phase2:hardened-20261104 -c '
+            set -eu
+            test "$(id -u)" = 1000
+            for f in run-cnt.sh capture-watchdog.py cnt-diagnostics.py cnt-lifecycle.sh cnt-api-client.py cnt-air-observer.py cnt-daily-recorder.sh cnt-rolling-recorder.sh episode-cutter.sh; do test -s "/opt/cnt/$f"; done
+            PYTHONPYCACHEPREFIX=/tmp/cnt-pycache python3 -m py_compile /opt/cnt/capture-watchdog.py /opt/cnt/cnt-diagnostics.py
+            echo HARDENED_IMAGE_CONTENT_VERIFIED=true
+          '
+          # Write a narrow override ONLY, preserving the real phase2 compose file.
+          cat > /opt/cnt-transport/docker-compose.cnt-hardening-20261104.yml <<'YAML'
+          services:
+            cnt:
+              image: epic-cnt-phase2:hardened-20261104
+              cpus: "2"
+              mem_limit: 3072m
+              memswap_limit: 3072m
+              pids_limit: 256
+              shm_size: 1024m
+              environment:
+                CNT_WATCHDOG_DIR: /cnt-state/watchdog
+              volumes:
+                - epic-cnt-capture-state:/cnt-state
+              healthcheck:
+                test: ["CMD", "python3", "/opt/cnt/capture-watchdog.py", "cnt", "health"]
+                interval: 30s
+                timeout: 7s
+                start_period: 90s
+                retries: 3
+          volumes:
+            epic-cnt-capture-state:
+              name: epic-cnt-capture-state
+          YAML
+          chmod 0644 /opt/cnt-transport/docker-compose.cnt-hardening-20261104.yml
+          echo 'ASSERT_COMPOSE_TOPOLOGY_PRESERVED'
+          python3 - <<'PY'
+          import subprocess,json,sys
+          root='/opt/cnt-transport/'
+          base=['docker','compose','-p','epic-cnt-transport','-f',root+'docker-compose.phase2.yml']
+          def config(args):
+            return json.loads(subprocess.run(args+['config','--format','json'],capture_output=True,text=True,check=True,timeout=25).stdout)
+          before=config(base);after=config(base+['-f',root+'docker-compose.cnt-hardening-20261104.yml'])
+          b=before['services'];a=after['services']
+          assert set(a)==set(b) and 'cnt' in b and 'archive_worker' in b
+          assert a['archive_worker']==b['archive_worker'], 'archive worker changed'
+          for key in ('networks','network_mode','ports','depends_on','command','entrypoint','user','privileged','env_file'):
+            assert a['cnt'].get(key)==b['cnt'].get(key),f'CNT {key} changed'
+          def volumes(s):return {v['target']:v for v in s.get('volumes',[])}
+          bv=volumes(b['cnt']);av=volumes(a['cnt'])
+          assert '/cnt-archive' in bv and bv['/cnt-archive']==av['/cnt-archive'], 'CNT archive mount not preserved'
+          assert '/cnt-state' in av and av['/cnt-state']['source']=='epic-cnt-capture-state'
+          assert all(av.get(k)==v for k,v in bv.items()), 'other original volume changed'
+          assert a['cnt'].get('image')=='epic-cnt-phase2:hardened-20261104'
+          assert a['cnt'].get('pids_limit')==256
+          assert 'capture-watchdog.py' in str(a['cnt'].get('healthcheck',{}).get('test',''))
+          assert set(a['cnt'].get('environment',{}))==set(b['cnt'].get('environment',{}))|{'CNT_WATCHDOG_DIR'}
+          assert all(a['cnt']['environment'][k]==v for k,v in b['cnt'].get('environment',{}).items())
+          print('COMPOSE_ARCHIVE_WORKER_UNCHANGED=true')
+          print('COMPOSE_CNT_ORIGINAL_ARCHIVES_SECRETS_NETWORK_PRESERVED=true')
+          print('COMPOSE_WATCHDOG_HEALTHCHECK_AND_LIMITS=present')
+          PY
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-archive-worker)" = true
+          test "$(docker inspect -f '{{.State.Running}}' fgb-transport-archive_uploader-1)" = true
+          echo 'READY_FOR_CNT_ONLY_CUTOVER=true'
+          REMOTE
