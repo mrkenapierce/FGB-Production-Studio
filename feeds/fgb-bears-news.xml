@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 06 Nov 2026 02:41:11 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 06 Nov 2026 09:52:44 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -17,6 +17,16 @@
       <pubDate>Thu, 05 Nov 2026 21:29:17 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears’ Malik Muhammad Doesn’t Hold Back on Jaylon Johnson Amid Struggles</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Malik Muhammad Doesn’t Hold Back on Jaylon Johnson Amid Struggles</description>
+      <link>https://sports.yahoo.com/articles/bears-malik-muhammad-doesn-t-043143692.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f6ee1effe7eaa0556706</guid>
+      <pubDate>Thu, 05 Nov 2026 20:31:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -40,21 +50,11 @@
     </item>
 
     <item>
-      <title>What blew Dennis Allen away about coaching Jeffery Simmons in Bears debut</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: What blew Dennis Allen away about coaching Jeffery Simmons in Bears debut</description>
-      <link>https://sports.yahoo.com/articles/blew-dennis-allen-away-coaching-002747467.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-046f4e1d6fd81b0b1a83</guid>
-      <pubDate>Thu, 05 Nov 2026 16:27:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears linked to former Pro Bowler in an unexpected trade move</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears linked to former Pro Bowler in an unexpected trade move</description>
-      <link>https://sports.yahoo.com/articles/bears-linked-former-pro-bowler-234610927.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e093d72b4cc82287f639</guid>
-      <pubDate>Thu, 05 Nov 2026 15:46:00 GMT</pubDate>
+      <title>Seahawks OC Clears Up Quenton Nelson Mystery After Bears Loss</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Seahawks OC Clears Up Quenton Nelson Mystery After Bears Loss</description>
+      <link>https://sports.yahoo.com/articles/seahawks-oc-clears-quenton-nelson-035122789.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-72c160d38983ed27fbb0</guid>
+      <pubDate>Thu, 05 Nov 2026 16:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
