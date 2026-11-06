@@ -5,18 +5,38 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 06 Nov 2026 17:01:26 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 06 Nov 2026 22:04:07 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>2027 Bears mock draft: Post-Jeffery Simmons trade picks</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 2027 Bears mock draft: Post-Jeffery Simmons trade picks</description>
-      <link>https://sports.yahoo.com/articles/2027-bears-mock-draft-post-163000308.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e8ea1acb87b00a5e3f63</guid>
-      <pubDate>Fri, 06 Nov 2026 16:30:00 GMT</pubDate>
+      <title>Bears vs. Buccaneers Injury Report: Kyle Monangai is 1 of 3 questionable for Chicago</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Buccaneers Injury Report: Kyle Monangai is 1 of 3 questionable for Chicago</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-buccaneers-injury-report-214000929.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-615dcb9e514fe98b14aa</guid>
+      <pubDate>Fri, 06 Nov 2026 21:40:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Mannelly: The Chicago Bears are a Complete Team</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Mannelly: The Chicago Bears are a Complete Team</description>
+      <link>https://sports.yahoo.com/articles/mannelly-chicago-bears-complete-team-210000054.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ec658dc9a6297a7ee545</guid>
+      <pubDate>Fri, 06 Nov 2026 21:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears, Alice &amp; Wonder celebrate collaboration with exclusive preview event</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears, Alice &amp; Wonder celebrate collaboration with exclusive preview event</description>
+      <link>https://www.chicagobears.com/news/bears-alice-wonder-celebrate-collaboration-with-exclusive-preview-event</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-702d08b4f3babe1d658e</guid>
+      <pubDate>Fri, 06 Nov 2026 18:47:08 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
@@ -30,16 +50,6 @@
     </item>
 
     <item>
-      <title>Seahawks All-22 review: The good and bad from an ugly loss to the Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Seahawks All-22 review: The good and bad from an ugly loss to the Bears</description>
-      <link>https://sports.yahoo.com/articles/seahawks-22-review-good-bad-150000386.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-09a53994cdcf515acf56</guid>
-      <pubDate>Fri, 06 Nov 2026 15:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>NFL Week 9 expert picks, best bets: Bears beat down Bucs, Saints get on track with a win</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 9 expert picks, best bets: Bears beat down Bucs, Saints get on track with a win</description>
       <link>https://www.cbssports.com/nfl/news/nfl-week-9-picks-odds-best-bets-expert-picks/</link>
@@ -50,43 +60,23 @@
     </item>
 
     <item>
-      <title>The Perfect Deadline Trade for Each of Chicago Bears&apos; 3 Biggest Needs</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: The Perfect Deadline Trade for Each of Chicago Bears&apos; 3 Biggest Needs</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-trade-deadline-biggest-needs-fits</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-53779989b91b1b9bbd6a</guid>
-      <pubDate>Fri, 06 Nov 2026 08:01:00 GMT</pubDate>
+      <title>Bears&apos; Biggest Roadblock for Khalil Mack Trade Might Not Be the Chargers After All</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Biggest Roadblock for Khalil Mack Trade Might Not Be the Chargers After All</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-biggest-roadblock-khalil-mack-trade-not-chargers-after-all</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-86500e4771f8736c7b17</guid>
+      <pubDate>Thu, 05 Nov 2026 16:50:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Baker Mayfield&apos;s Tender Thumb Means Bears AlterJeffery Simmons&apos; Role</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Baker Mayfield&apos;s Tender Thumb Means Bears AlterJeffery Simmons&apos; Role</description>
-      <link>https://www.si.com/nfl/bears/onsi/baker-mayfield-s-tender-thumb-means-bears-alterjeffery-simmons-role</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-db66e42454c17ff3ba7e</guid>
-      <pubDate>Fri, 06 Nov 2026 07:00:00 GMT</pubDate>
+      <title>Bucs Just Ran for 324 Yards, But Baker Mayfield Is Worried About One Bears Defender</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bucs Just Ran for 324 Yards, But Baker Mayfield Is Worried About One Bears Defender</description>
+      <link>https://www.si.com/nfl/bears/onsi/bucs-bears-baker-mayfield-nfl-week-9</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4bfa290b19dec40af65f</guid>
+      <pubDate>Thu, 05 Nov 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>&apos;GMFB&apos; previews Bucs-Bears Week 9 matchup</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: &apos;GMFB&apos; previews Bucs-Bears Week 9 matchup</description>
-      <link>https://www.nfl.com/videos/gmfb-previews-bucs-bears-week-9-matchup</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a6ccdb2818f681826de7</guid>
-      <pubDate>Fri, 06 Nov 2026 06:33:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>The Bears wanted a defensive difference-maker. Jeffery Simmons is already showing them more</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: The Bears wanted a defensive difference-maker. Jeffery Simmons is already showing them more</description>
-      <link>https://www.nytimes.com/athletic/7757687/2026/11/06/bears-jeffery-simmons-instant-impact/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-051f22a0bfaf939a41b0</guid>
-      <pubDate>Fri, 06 Nov 2026 03:28:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
