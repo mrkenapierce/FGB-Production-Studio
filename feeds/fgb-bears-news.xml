@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 07 Nov 2026 19:03:41 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 07 Nov 2026 22:41:35 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>A Bears win on Sunday could catapult Caleb Williams back into the MVP race</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: A Bears win on Sunday could catapult Caleb Williams back into the MVP race</description>
+      <link>https://sports.yahoo.com/articles/bears-win-sunday-could-catapult-203000082.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9614e6d931091e905392</guid>
+      <pubDate>Sat, 07 Nov 2026 20:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears-Buccaneers game preview | 2026 Week 9</title>
@@ -20,23 +30,33 @@
     </item>
 
     <item>
-      <title>Chicago Bears vs. Tampa Bay Buccaneers: Week 9 Players to Watch</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. Tampa Bay Buccaneers: Week 9 Players to Watch</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-vs-tampa-bay-164450071.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dc38ad5b300c6364e5b5</guid>
-      <pubDate>Sat, 07 Nov 2026 16:44:50 GMT</pubDate>
+      <title>Bears Urged to Trade for Super Bowl-Winning Cornerback</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Urged to Trade for Super Bowl-Winning Cornerback</description>
+      <link>https://sports.yahoo.com/articles/bears-urged-trade-super-bowl-213215192.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2c8b72a9c4e67a209095</guid>
+      <pubDate>Sat, 07 Nov 2026 13:32:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>3 keys for Bears defense vs. Bucs in Week 9</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 3 keys for Bears defense vs. Bucs in Week 9</description>
-      <link>https://sports.yahoo.com/articles/3-keys-bears-defense-vs-182927952.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9639c52c4cab13528b05</guid>
-      <pubDate>Sat, 07 Nov 2026 10:29:00 GMT</pubDate>
+      <title>Buccaneers vs. Bears prediction, odds, time: NFL Week 9 &apos;Sunday Night Football&apos; picks from proven model</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Buccaneers vs. Bears prediction, odds, time: NFL Week 9 &apos;Sunday Night Football&apos; picks from proven model</description>
+      <link>https://www.cbssports.com/betting/news/buccaneers-bears-prediction-odds-time-nfl-week-9-sunday-night-football-picks/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6908b4e46ddf2f58e12f</guid>
+      <pubDate>Sat, 07 Nov 2026 11:37:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>4 Edge Rushers Chicago Bears Should Target With Khalil Mack Trade Unlikely</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 4 Edge Rushers Chicago Bears Should Target With Khalil Mack Trade Unlikely</description>
+      <link>https://www.si.com/nfl/bears/onsi/4-edge-rushers-chicago-bears-should-target-khalil-mack-unlikely</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ebab79abc223134a6734</guid>
+      <pubDate>Sat, 07 Nov 2026 11:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -50,21 +70,11 @@
     </item>
 
     <item>
-      <title>How Iceman Handles Bucs&apos; Heat Seems the Big Unanswered Bears Question</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: How Iceman Handles Bucs&apos; Heat Seems the Big Unanswered Bears Question</description>
-      <link>https://www.si.com/nfl/bears/onsi/how-iceman-handles-bucs-heat-seems-the-big-unanswered-bears-question</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2d0e05faf3849687eef9</guid>
-      <pubDate>Sat, 07 Nov 2026 09:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears in Badalona: Postcard with Roberto Garza | Friday, Nov. 6</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears in Badalona: Postcard with Roberto Garza | Friday, Nov. 6</description>
-      <link>https://www.chicagobears.com/news/bears-in-badalona-postcards-with-roberto-garza-friday-nov-6</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-988688945570885add90</guid>
-      <pubDate>Fri, 06 Nov 2026 20:43:00 GMT</pubDate>
+      <title>Bears-Buccaneers Sunday Night Football hype trailer | Bears Buzz</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears-Buccaneers Sunday Night Football hype trailer | Bears Buzz</description>
+      <link>https://www.chicagobears.com/video/bears-buccaneers-sunday-night-football-hype-trailer-bears-buzz</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3fd0fc8fe00cb3d72f1d</guid>
+      <pubDate>Sat, 07 Nov 2026 05:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
