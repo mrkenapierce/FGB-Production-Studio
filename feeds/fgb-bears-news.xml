@@ -5,28 +5,38 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 06 Nov 2026 22:04:07 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 07 Nov 2026 01:52:55 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears vs. Buccaneers Injury Report: Kyle Monangai is 1 of 3 questionable for Chicago</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Buccaneers Injury Report: Kyle Monangai is 1 of 3 questionable for Chicago</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-buccaneers-injury-report-214000929.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-615dcb9e514fe98b14aa</guid>
-      <pubDate>Fri, 06 Nov 2026 21:40:00 GMT</pubDate>
+      <title>Seahawks All-22 review: Where the Bears found success against Seattle’s defense</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Seahawks All-22 review: Where the Bears found success against Seattle’s defense</description>
+      <link>https://sports.yahoo.com/articles/seahawks-22-review-where-bears-002203622.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5d967d7ed1306a741e09</guid>
+      <pubDate>Sat, 07 Nov 2026 00:22:03 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Mannelly: The Chicago Bears are a Complete Team</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Mannelly: The Chicago Bears are a Complete Team</description>
-      <link>https://sports.yahoo.com/articles/mannelly-chicago-bears-complete-team-210000054.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ec658dc9a6297a7ee545</guid>
-      <pubDate>Fri, 06 Nov 2026 21:00:00 GMT</pubDate>
+      <title>Bucs at Bears: 3 Props to Play</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bucs at Bears: 3 Props to Play</description>
+      <link>https://sports.yahoo.com/articles/bucs-bears-3-props-play-230000696.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-bd656a8d03b896334650</guid>
+      <pubDate>Fri, 06 Nov 2026 23:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears in Badalona: Postcard with Roberto Garza | Friday, Nov. 6</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears in Badalona: Postcard with Roberto Garza | Friday, Nov. 6</description>
+      <link>https://www.chicagobears.com/news/bears-in-badalona-postcards-with-roberto-garza-friday-nov-6</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-988688945570885add90</guid>
+      <pubDate>Fri, 06 Nov 2026 20:43:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
@@ -40,13 +50,23 @@
     </item>
 
     <item>
-      <title>Chicago Bears and Alice &amp; Wonder launch limited-edition apparel collection</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears and Alice &amp; Wonder launch limited-edition apparel collection</description>
-      <link>https://www.chicagobears.com/news/chicago-bears-and-alice-wonder-launch-limited-edition-apparel-collection</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1773179ac8734ee302a0</guid>
-      <pubDate>Fri, 06 Nov 2026 15:00:00 GMT</pubDate>
+      <title>Donte Whitner Picks Bucs to Serve Caleb Williams, Bears &apos;Humble Pie&apos; in Week 9</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Donte Whitner Picks Bucs to Serve Caleb Williams, Bears &apos;Humble Pie&apos; in Week 9</description>
+      <link>https://www.si.com/nfl/bears/onsi/donte-whitner-picks-bucs-to-serve-caleb-williams-bears-humble-pie-in-week-9</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b6c4966a7013547a343b</guid>
+      <pubDate>Fri, 06 Nov 2026 13:59:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Best and Worst Options Bears Have Available Before NFL Trade Deadline</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Best and Worst Options Bears Have Available Before NFL Trade Deadline</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-trade-deadline-best-worst-options-available</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c407bb8d423a0fbf536c</guid>
+      <pubDate>Fri, 06 Nov 2026 13:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -60,23 +80,13 @@
     </item>
 
     <item>
-      <title>Bears&apos; Biggest Roadblock for Khalil Mack Trade Might Not Be the Chargers After All</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Biggest Roadblock for Khalil Mack Trade Might Not Be the Chargers After All</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-biggest-roadblock-khalil-mack-trade-not-chargers-after-all</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-86500e4771f8736c7b17</guid>
-      <pubDate>Thu, 05 Nov 2026 16:50:00 GMT</pubDate>
+      <title>Ben Johnson: Jeffery Simmons has had a dramatic impact on the Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Ben Johnson: Jeffery Simmons has had a dramatic impact on the Bears</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/ben-johnson-jeffery-simmons-has-had-a-dramatic-impact-on-the-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0c0b36fc1d38b955ecf4</guid>
+      <pubDate>Fri, 06 Nov 2026 06:58:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bucs Just Ran for 324 Yards, But Baker Mayfield Is Worried About One Bears Defender</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bucs Just Ran for 324 Yards, But Baker Mayfield Is Worried About One Bears Defender</description>
-      <link>https://www.si.com/nfl/bears/onsi/bucs-bears-baker-mayfield-nfl-week-9</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4bfa290b19dec40af65f</guid>
-      <pubDate>Thu, 05 Nov 2026 15:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
