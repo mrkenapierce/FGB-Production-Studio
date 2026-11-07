@@ -5,46 +5,56 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 07 Nov 2026 14:44:35 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 07 Nov 2026 19:03:41 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears Week 9 Flashbacks: A Pair of Wins Against Rivals and a Defensive Masterclass</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Week 9 Flashbacks: A Pair of Wins Against Rivals and a Defensive Masterclass</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-week-9-flashbacks-130000178.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-39c24e16b04eaf09c798</guid>
-      <pubDate>Sat, 07 Nov 2026 13:00:00 GMT</pubDate>
+      <title>Bears-Buccaneers game preview | 2026 Week 9</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears-Buccaneers game preview | 2026 Week 9</description>
+      <link>https://www.chicagobears.com/news/bears-buccaneers-game-preview-2026-week-9</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1fa15b3c5e76cea75d2e</guid>
+      <pubDate>Sat, 07 Nov 2026 18:12:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears vs. Tampa Bay Buccaneers: Week 9 Players to Watch</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. Tampa Bay Buccaneers: Week 9 Players to Watch</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-vs-tampa-bay-164450071.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-dc38ad5b300c6364e5b5</guid>
+      <pubDate>Sat, 07 Nov 2026 16:44:50 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Ben Johnson sounds off on Bears RB Kyle Monangai&apos;s absence</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ben Johnson sounds off on Bears RB Kyle Monangai&apos;s absence</description>
-      <link>https://sports.yahoo.com/articles/ben-johnson-sounds-off-bears-141027692.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-acf0229b21912b79bd65</guid>
-      <pubDate>Sat, 07 Nov 2026 06:10:00 GMT</pubDate>
+      <title>3 keys for Bears defense vs. Bucs in Week 9</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 3 keys for Bears defense vs. Bucs in Week 9</description>
+      <link>https://sports.yahoo.com/articles/3-keys-bears-defense-vs-182927952.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9639c52c4cab13528b05</guid>
+      <pubDate>Sat, 07 Nov 2026 10:29:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Governors&apos; Comments Reflect Significant Change in Bears Stadium Saga</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Governors&apos; Comments Reflect Significant Change in Bears Stadium Saga</description>
-      <link>https://www.si.com/nfl/bears/onsi/governors-comments-reflect-significant-change-in-bears-stadium-saga</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d2149547934114283741</guid>
-      <pubDate>Sat, 07 Nov 2026 06:00:00 GMT</pubDate>
+      <title>Chicago Bears and Tampa Bay Buccaneers: Who Wins and Why for Week 9</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears and Tampa Bay Buccaneers: Who Wins and Why for Week 9</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-tampa-bay-buccaneers-week-9-who-wins</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f8c8c59cc5b6af99deba</guid>
+      <pubDate>Sat, 07 Nov 2026 10:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Khalil Mack Trade Rumor Slams Door Shut on Chicago Bears Reunion</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Khalil Mack Trade Rumor Slams Door Shut on Chicago Bears Reunion</description>
-      <link>https://www.si.com/nfl/bears/onsi/khalil-mack-trade-rumor-slam-door-shut-chicago-bears-reunion</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6ccdb141777771a50c52</guid>
-      <pubDate>Sat, 07 Nov 2026 04:57:00 GMT</pubDate>
+      <title>How Iceman Handles Bucs&apos; Heat Seems the Big Unanswered Bears Question</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: How Iceman Handles Bucs&apos; Heat Seems the Big Unanswered Bears Question</description>
+      <link>https://www.si.com/nfl/bears/onsi/how-iceman-handles-bucs-heat-seems-the-big-unanswered-bears-question</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2d0e05faf3849687eef9</guid>
+      <pubDate>Sat, 07 Nov 2026 09:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -57,36 +67,6 @@
       <pubDate>Fri, 06 Nov 2026 20:43:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears, Alice &amp; Wonder celebrate collaboration with exclusive preview event</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears, Alice &amp; Wonder celebrate collaboration with exclusive preview event</description>
-      <link>https://www.chicagobears.com/news/bears-alice-wonder-celebrate-collaboration-with-exclusive-preview-event</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-702d08b4f3babe1d658e</guid>
-      <pubDate>Fri, 06 Nov 2026 18:47:08 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>NFL Week 9 expert picks, best bets: Bears beat down Bucs, Saints get on track with a win</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 9 expert picks, best bets: Bears beat down Bucs, Saints get on track with a win</description>
-      <link>https://www.cbssports.com/nfl/news/nfl-week-9-picks-odds-best-bets-expert-picks/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-bce538e90daea6b835de</guid>
-      <pubDate>Fri, 06 Nov 2026 11:00:51 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson: Jeffery Simmons has had a dramatic impact on the Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Ben Johnson: Jeffery Simmons has had a dramatic impact on the Bears</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/ben-johnson-jeffery-simmons-has-had-a-dramatic-impact-on-the-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0c0b36fc1d38b955ecf4</guid>
-      <pubDate>Fri, 06 Nov 2026 06:58:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
