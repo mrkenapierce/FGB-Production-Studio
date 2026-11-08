@@ -5,18 +5,18 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 08 Nov 2026 15:26:18 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 08 Nov 2026 19:50:44 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Use FanDuel promo code to get $200 bonus bets for Buccaneers-Bears, Packers-Patriots, NFL Week 9 betting</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Use FanDuel promo code to get $200 bonus bets for Buccaneers-Bears, Packers-Patriots, NFL Week 9 betting</description>
-      <link>https://www.cbssports.com/betting/news/use-fanduel-promo-code-to-get-200-bonus-bets-buccaneers-bears-packers-patriots-nfl-week-9-betting/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d3842993f2cab10b204c</guid>
-      <pubDate>Sun, 08 Nov 2026 14:37:03 GMT</pubDate>
+      <title>Mike Tirico to miss Bucs-Bears ‘Sunday Night Football’ due to health issue</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Mike Tirico to miss Bucs-Bears ‘Sunday Night Football’ due to health issue</description>
+      <link>https://sports.yahoo.com/articles/mike-tirico-miss-bucs-bears-184207191.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-489f03432a9f9efd4ab4</guid>
+      <pubDate>Sun, 08 Nov 2026 18:42:07 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
@@ -30,6 +30,46 @@
     </item>
 
     <item>
+      <title>Buccaneers vs. Bears odds, predictions: Use Polymarket promo code CBSSPORTS to get a $25 bonus for NFL Week 9</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Buccaneers vs. Bears odds, predictions: Use Polymarket promo code CBSSPORTS to get a $25 bonus for NFL Week 9</description>
+      <link>https://www.cbssports.com/prediction/news/buccaneers-vs-bears-odds-predictions-use-polymarket-promo-code-cbssports-to-get-a-25-bonus-for-nfl-week-9/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a92f703aadd701d73899</guid>
+      <pubDate>Sun, 08 Nov 2026 14:25:23 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>NBC&apos;s Mike Tirico to miss Week 9&apos;s Buccaneers-Bears &apos;Sunday Night Football&apos; broadcast &apos;due to a health issue&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NBC&apos;s Mike Tirico to miss Week 9&apos;s Buccaneers-Bears &apos;Sunday Night Football&apos; broadcast &apos;due to a health issue&apos;</description>
+      <link>https://sports.yahoo.com/nfl/article/nbcs-mike-tirico-to-miss-week-9s-buccaneers-bears-sunday-night-football-broadcast-due-to-a-health-issue-183422927.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-93fab460a881779fbabb</guid>
+      <pubDate>Sun, 08 Nov 2026 11:02:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Stat Predictions for Bears vs Bucs Includes Three Takeaways for Bears DBs</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Stat Predictions for Bears vs Bucs Includes Three Takeaways for Bears DBs</description>
+      <link>https://www.si.com/nfl/bears/onsi/stat-predictions-bears-bucs-week-9</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d71e7502fad0042115ae</guid>
+      <pubDate>Sun, 08 Nov 2026 10:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>&apos;NFL GameDay Preview&apos; takes closer look at Bucs-Bears Week 9 matchup</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: &apos;NFL GameDay Preview&apos; takes closer look at Bucs-Bears Week 9 matchup</description>
+      <link>https://www.nfl.com/videos/nfl-gameday-preview-takes-closer-look-at-bucs-bears-week-9-matchup</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-df9cd1efe2fd4377d89b</guid>
+      <pubDate>Sun, 08 Nov 2026 09:09:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
       <title>Chicago Bears Week 9 Keys to Victory: Can Caleb Williams Sink the Buccaneers?</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Week 9 Keys to Victory: Can Caleb Williams Sink the Buccaneers?</description>
       <link>https://www.si.com/nfl/bears/onsi/chicago-bears-week-9-keys-to-victory-caleb-williams-buccaneers</link>
@@ -40,53 +80,13 @@
     </item>
 
     <item>
-      <title>Bears Trade Deadline Big Board: What Other Moves Could Chicago Make?</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Trade Deadline Big Board: What Other Moves Could Chicago Make?</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-trade-deadline-big-board</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5614b692b261ad07aeb9</guid>
-      <pubDate>Sun, 08 Nov 2026 05:00:00 GMT</pubDate>
+      <title>How to bet Buccaneers-Bears: Tips, analysis and our top prop plays</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: How to bet Buccaneers-Bears: Tips, analysis and our top prop plays</description>
+      <link>https://www.espn.com/espn/betting/story/_/id/50408146/nfl-week-9-odds-betting-picks-buccaneers-bears-preview</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d30c15e9a3ff39eca5da</guid>
+      <pubDate>Sun, 08 Nov 2026 06:01:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>What channel is Bears vs. Bucs on today? Time, TV schedule</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: What channel is Bears vs. Bucs on today? Time, TV schedule</description>
-      <link>https://sports.yahoo.com/articles/channel-bears-vs-bucs-today-120242515.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-365c590f265715b4636f</guid>
-      <pubDate>Sun, 08 Nov 2026 04:02:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Prediction For Buccaneers&apos; Sunday Night Showdown With the Chicago Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Prediction For Buccaneers&apos; Sunday Night Showdown With the Chicago Bears</description>
-      <link>https://sports.yahoo.com/articles/prediction-buccaneers-sunday-night-showdown-120038385.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-467f3bd9ff8801a457c1</guid>
-      <pubDate>Sun, 08 Nov 2026 04:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears-Buccaneers game preview | 2026 Week 9</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears-Buccaneers game preview | 2026 Week 9</description>
-      <link>https://www.chicagobears.com/news/bears-buccaneers-game-preview-2026-week-9</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1fa15b3c5e76cea75d2e</guid>
-      <pubDate>Sat, 07 Nov 2026 18:12:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears in Badalona: Postcard with Roberto Garza | Friday, Nov. 6</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears in Badalona: Postcard with Roberto Garza | Friday, Nov. 6</description>
-      <link>https://www.chicagobears.com/news/bears-in-badalona-postcards-with-roberto-garza-friday-nov-6</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-988688945570885add90</guid>
-      <pubDate>Fri, 06 Nov 2026 20:43:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
