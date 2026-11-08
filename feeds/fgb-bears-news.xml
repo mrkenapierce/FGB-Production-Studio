@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 08 Nov 2026 01:49:55 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 08 Nov 2026 08:18:10 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears vs. Buccaneers: Chicago looks to tame Tampa&apos;s running game while staying atop the NFC North</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears vs. Buccaneers: Chicago looks to tame Tampa&apos;s running game while staying atop the NFC North</description>
+      <link>https://www.cbssports.com/nfl/news/bears-vs-buccaneers-odds-prediction-where-to-watch/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-10c401662f853761fe68</guid>
+      <pubDate>Sun, 08 Nov 2026 03:00:52 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
 
     <item>
       <title>Bears vs. Buccaneers: Game Picks and Predictions</title>
@@ -30,10 +40,10 @@
     </item>
 
     <item>
-      <title>Bucs secondary faces toughest challenge yet with Bears receivers</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bucs secondary faces toughest challenge yet with Bears receivers</description>
-      <link>https://sports.yahoo.com/articles/bucs-secondary-faces-toughest-challenge-003530267.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-44420d57405c6add17de</guid>
+      <title>5 Keys to a Buccaneers’ Victory Over the Chicago Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 5 Keys to a Buccaneers’ Victory Over the Chicago Bears</description>
+      <link>https://sports.yahoo.com/articles/5-keys-buccaneers-victory-over-040443468.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-55805ba867562fdccaec</guid>
       <pubDate>Sat, 07 Nov 2026 15:59:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
@@ -55,16 +65,6 @@
       <link>https://www.cbssports.com/fantasy/football/news/bears-salvon-ahmed-elevated-to-active-roster/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-2402e75aef357c15ae60</guid>
       <pubDate>Sat, 07 Nov 2026 15:35:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Buccaneers vs. Bears prediction, odds, time: NFL Week 9 &apos;Sunday Night Football&apos; picks from proven model</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Buccaneers vs. Bears prediction, odds, time: NFL Week 9 &apos;Sunday Night Football&apos; picks from proven model</description>
-      <link>https://www.cbssports.com/betting/news/buccaneers-bears-prediction-odds-time-nfl-week-9-sunday-night-football-picks/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6908b4e46ddf2f58e12f</guid>
-      <pubDate>Sat, 07 Nov 2026 11:37:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
