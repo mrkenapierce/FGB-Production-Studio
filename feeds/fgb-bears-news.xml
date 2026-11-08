@@ -5,16 +5,16 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 07 Nov 2026 22:41:35 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 08 Nov 2026 01:49:55 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>A Bears win on Sunday could catapult Caleb Williams back into the MVP race</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: A Bears win on Sunday could catapult Caleb Williams back into the MVP race</description>
-      <link>https://sports.yahoo.com/articles/bears-win-sunday-could-catapult-203000082.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9614e6d931091e905392</guid>
-      <pubDate>Sat, 07 Nov 2026 20:30:00 GMT</pubDate>
+      <title>Bears vs. Buccaneers: Game Picks and Predictions</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Buccaneers: Game Picks and Predictions</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-buccaneers-game-picks-011643382.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8e3cda92bfa71c71a5fb</guid>
+      <pubDate>Sun, 08 Nov 2026 01:16:43 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -30,13 +30,33 @@
     </item>
 
     <item>
-      <title>Bears Urged to Trade for Super Bowl-Winning Cornerback</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Urged to Trade for Super Bowl-Winning Cornerback</description>
-      <link>https://sports.yahoo.com/articles/bears-urged-trade-super-bowl-213215192.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2c8b72a9c4e67a209095</guid>
-      <pubDate>Sat, 07 Nov 2026 13:32:00 GMT</pubDate>
+      <title>Bucs secondary faces toughest challenge yet with Bears receivers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bucs secondary faces toughest challenge yet with Bears receivers</description>
+      <link>https://sports.yahoo.com/articles/bucs-secondary-faces-toughest-challenge-003530267.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-44420d57405c6add17de</guid>
+      <pubDate>Sat, 07 Nov 2026 15:59:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>In a Bad Sign for Kyle Monangai&apos;s Status, Bears Elevate Salvon Ahmed From Practice Squad</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: In a Bad Sign for Kyle Monangai&apos;s Status, Bears Elevate Salvon Ahmed From Practice Squad</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-kyle-monangai-status-bears-salvon-ahmed-practice-squad</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8a67f85f372f18692cc2</guid>
+      <pubDate>Sat, 07 Nov 2026 15:36:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Salvon Ahmed: Elevated to active roster</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Salvon Ahmed: Elevated to active roster</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-salvon-ahmed-elevated-to-active-roster/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2402e75aef357c15ae60</guid>
+      <pubDate>Sat, 07 Nov 2026 15:35:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -55,16 +75,6 @@
       <link>https://www.si.com/nfl/bears/onsi/4-edge-rushers-chicago-bears-should-target-khalil-mack-unlikely</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-ebab79abc223134a6734</guid>
       <pubDate>Sat, 07 Nov 2026 11:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears and Tampa Bay Buccaneers: Who Wins and Why for Week 9</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears and Tampa Bay Buccaneers: Who Wins and Why for Week 9</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-tampa-bay-buccaneers-week-9-who-wins</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f8c8c59cc5b6af99deba</guid>
-      <pubDate>Sat, 07 Nov 2026 10:01:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
