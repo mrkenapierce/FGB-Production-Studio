@@ -1,0 +1,102 @@
+name: CNT DevTools probe cadence A/B (temporary, auto-restore)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cnt-cdp-rate-test-20261108.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: cnt-cdp-rate-ab
+  cancel-in-progress: false
+jobs:
+  experiment:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    env:
+      OVH_HOST: 40.160.144.185
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate code, authenticate to OVH
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ops/cnt-sigtrap-20261108/cdp-frequency-ab.py
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$LEGACY_KEY"; fi
+          test -n "$key"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset key OVH_SSH_KEY LEGACY_KEY
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/hosts 2>/dev/null
+          test -s ~/.ssh/hosts
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/hosts" -o StrictHostKeyChecking=yes
+            -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/ovh")
+          for u in ubuntu admin debian root; do
+            if ssh "${opts[@]}" "$u@$OVH_HOST" 'printf OK' 2>/dev/null | grep -q OK; then
+              printf '%s' "$u" > /tmp/cnt_user
+              echo 'OVH_AUTH=true'
+              exit 0
+            fi
+          done
+          echo 'ERROR=OVH_AUTH_REJECTED'; exit 1
+      - name: Capture CNT and archive worker identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          u=$(cat /tmp/cnt_user)
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/hosts" -o StrictHostKeyChecking=yes
+            -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/ovh")
+          if [ "$u" = root ]; then D=docker; else D='sudo -n docker'; fi
+          ssh "${opts[@]}" "$u@$OVH_HOST" "$D inspect --format 'CONTAINER={{.Name}} ID={{.Id}} IMAGE={{.Image}}' epic-cnt-capture epic-cnt-archive-worker; $D exec epic-cnt-capture sh -c 'ps -C ffmpeg -o pid=,comm= || true'" | tee /tmp/initial_id.txt
+      - name: Reaffirm CNT-only FD soft-limit headroom without restart
+        shell: bash
+        run: |
+          set -euo pipefail
+          u=$(cat /tmp/cnt_user)
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/hosts" -o StrictHostKeyChecking=yes
+            -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/ovh")
+          if [ "$u" = root ]; then D=docker; else D='sudo -n docker'; fi
+          ssh "${opts[@]}" "$u@$OVH_HOST" "$D exec -i -u 1000 epic-cnt-capture python3 - headroom" < ops/cnt-sigtrap-20261108/targeted-cdp-probe-fix.py | tee /tmp/headroom2.txt
+      - name: Test lower CDP cadence for 80 seconds then automatically restore original source
+        shell: bash
+        run: |
+          set -euo pipefail
+          u=$(cat /tmp/cnt_user)
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/hosts" -o StrictHostKeyChecking=yes
+            -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/ovh")
+          if [ "$u" = root ]; then D=docker; else D='sudo -n docker'; fi
+          ssh "${opts[@]}" "$u@$OVH_HOST" "$D exec -i -u 0 epic-cnt-capture python3 -" < ops/cnt-sigtrap-20261108/cdp-frequency-ab.py | tee /tmp/cdp_rate_trial.txt
+      - name: Verify CNT identities and watchdog
+        if: always()
+        shell: bash
+        run: |
+          test -s /tmp/cnt_user || exit 0
+          set -euo pipefail
+          u=$(cat /tmp/cnt_user)
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/hosts" -o StrictHostKeyChecking=yes
+            -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/ovh")
+          if [ "$u" = root ]; then D=docker; else D='sudo -n docker'; fi
+          ssh "${opts[@]}" "$u@$OVH_HOST" "$D inspect --format 'CONTAINER={{.Name}} ID={{.Id}} IMAGE={{.Image}}' epic-cnt-capture epic-cnt-archive-worker; $D exec epic-cnt-capture sh -c 'ps -C ffmpeg -o pid=,comm= || true'; $D exec epic-cnt-capture python3 ./capture-watchdog.py cnt status" |
+            python3 -c 'import sys,json;raw=sys.stdin.read();print(raw[:450] if len(raw)<450 else raw[:450]);'
+      - name: Add result to existing CNT incident
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          {
+            echo '## CNT DevTools frequency A/B trial'
+            echo
+            echo 'Temporary 40-second CDP sampling rate, with immediate full-speed probing after any failure and source rollback after 80 seconds.'
+            echo '~~~text'
+            for f in /tmp/initial_id.txt /tmp/headroom2.txt /tmp/cdp_rate_trial.txt; do
+              if [ -f "$f" ]; then cat "$f"; fi
+            done
+            echo '~~~'
+          } > /tmp/cdp_report.md
+          gh issue comment 108 --repo "$GITHUB_REPOSITORY" --body-file /tmp/cdp_report.md
