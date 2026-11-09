@@ -6,6 +6,7 @@ on:
     paths: [.github/workflows/cnt-sigtrap-readonly-20261108.yml]
 permissions:
   contents: read
+  issues: write
 concurrency:
   group: cnt-sigtrap-audit-readonly
   cancel-in-progress: false
@@ -52,7 +53,7 @@ jobs:
                 -o StrictHostKeyChecking=yes -o BatchMode=yes
                 -o PasswordAuthentication=no -o ConnectTimeout=8
                 -i "$HOME/.ssh/ovh_key")
-          ssh "${opts[@]}" "$u@$OVH_HOST" 'bash -s' <<'REMOTE'
+          ssh "${opts[@]}" "$u@$OVH_HOST" 'bash -s' <<'REMOTE' | tee /tmp/cnt_sigtrap_evidence.txt
           set -euo pipefail
           if [ "$(id -u)" -eq 0 ]; then D=(docker);
           elif sudo -n docker info >/dev/null 2>&1; then D=(sudo -n docker);
@@ -128,3 +129,27 @@ jobs:
           PY
           echo 'AUDIT_COMPLETE=READ_ONLY'
           REMOTE
+      - name: Record sanitized CNT diagnostic result in GitHub
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -s /tmp/cnt_sigtrap_evidence.txt ]; then
+            echo 'No authenticated OVH report was collected.'
+            exit 0
+          fi
+          {
+            echo '## Read-only CNT production diagnostic'
+            echo
+            echo 'Triggered for November 8, 2026 Chromium/SIGTRAP incident. Existing encoder, capture and archive worker not restarted or redeployed.'
+            echo
+            echo 'Sanitized output (no credentials or raw browser crash text):'
+            echo '~~~text'
+            head -n 140 /tmp/cnt_sigtrap_evidence.txt
+            echo '~~~'
+            echo
+            echo 'If SIGTRAP is absent, this report does not prove that the viewer Chrome tab did not crash locally.'
+          } > /tmp/cnt_diagnostic_issue.md
+          gh issue create --repo "$GITHUB_REPOSITORY" --title '[CNT SIGTRAP] OVH read-only crash evidence — 2026-11-08' --body-file /tmp/cnt_diagnostic_issue.md
