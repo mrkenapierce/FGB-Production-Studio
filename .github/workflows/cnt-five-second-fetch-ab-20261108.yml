@@ -1,0 +1,83 @@
+name: CNT only creative/sponsor refresh A/B test (self-restoring)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cnt-five-second-fetch-ab-20261108.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: cnt-fetch-ab
+  cancel-in-progress: false
+jobs:
+  experiment:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 7
+    env:
+      OVH_HOST: 40.160.144.185
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify script and OVH connection
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ops/cnt-sigtrap-20261108/cnt-fetch-interval-ab.py
+          key="$OVH_SSH_KEY"; if [ -z "$key" ]; then key="$LEGACY_KEY"; fi
+          test -n "$key"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/key
+          chmod 600 ~/.ssh/key
+          unset key OVH_SSH_KEY LEGACY_KEY
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o StrictHostKeyChecking=yes
+            -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/key")
+          for u in ubuntu admin debian root; do
+            if ssh "${opts[@]}" "$u@$OVH_HOST" 'printf OVH_OK' 2>/dev/null | grep -q OVH_OK; then
+              printf '%s' "$u" > /tmp/ovh_user
+              exit 0
+            fi
+          done
+          echo 'ERROR=SSH_AUTH'; exit 1
+      - name: CNT-only browser-side temporary feed A/B
+        shell: bash
+        run: |
+          set -euo pipefail
+          u=$(cat /tmp/ovh_user)
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o StrictHostKeyChecking=yes
+            -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/key")
+          if [ "$u" = root ]; then D=docker; else D='sudo -n docker'; fi
+          ssh "${opts[@]}" "$u@$OVH_HOST" "$D inspect --format 'BEFORE_CNT={{.Id}}' epic-cnt-capture; $D inspect --format 'BEFORE_WORKER={{.Id}}' epic-cnt-archive-worker; $D exec epic-cnt-capture sh -c 'ps -C ffmpeg -o pid=,comm= || true'" | tee /tmp/fetch_before.txt
+          ssh "${opts[@]}" "$u@$OVH_HOST" "$D exec -i -u 0 epic-cnt-capture python3 -" < ops/cnt-sigtrap-20261108/cnt-fetch-interval-ab.py | tee /tmp/fetch_test.txt
+      - name: Verify original container identities and heartbeat
+        if: always()
+        shell: bash
+        run: |
+          test -s /tmp/ovh_user || exit 0
+          set -euo pipefail
+          u=$(cat /tmp/ovh_user)
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o StrictHostKeyChecking=yes
+            -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/key")
+          if [ "$u" = root ]; then D=docker; else D='sudo -n docker'; fi
+          ssh "${opts[@]}" "$u@$OVH_HOST" "$D inspect --format 'AFTER_CNT={{.Id}}' epic-cnt-capture; $D inspect --format 'AFTER_WORKER={{.Id}}' epic-cnt-archive-worker; $D exec epic-cnt-capture sh -c 'ps -C ffmpeg -o pid=,comm= || true'; $D exec epic-cnt-capture python3 ./capture-watchdog.py cnt status" | python3 -c 'import sys; s=sys.stdin.read(); print(s[:750]);' | tee /tmp/fetch_after.txt
+      - name: Record A/B findings in CNT incident 108
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          {
+            echo '## CNT 5-second creatives/sponsors fetch A/B'
+            echo
+            echo 'Only two CNT broadcast polling URLs were temporarily suppressed; trivia and audio preserved. Browser auto-restores original fetch after 90 seconds.'
+            echo '~~~text'
+            for f in /tmp/fetch_before.txt /tmp/fetch_test.txt /tmp/fetch_after.txt; do
+              if [ -f "$f" ]; then cat "$f"; fi
+            done
+            echo '~~~'
+          } > /tmp/cnt_fetch_report.md
+          gh issue comment 108 --repo "$GITHUB_REPOSITORY" --body-file /tmp/cnt_fetch_report.md
