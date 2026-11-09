@@ -1,0 +1,115 @@
+name: CNT renderer CDP leak mitigation and rollback trial (CNT only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cnt-sigtrap-live-test-20261108.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: cnt-sigtrap-live-repair
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      OVH_HOST: 40.160.144.185
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify target file and protected SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s ops/cnt-sigtrap-20261108/targeted-cdp-probe-fix.py
+          python3 -m py_compile ops/cnt-sigtrap-20261108/targeted-cdp-probe-fix.py
+          key="$OVH_SSH_KEY"
+          if [ -z "$key" ]; then key="$LEGACY_KEY"; fi
+          test -n "$key" || { echo 'ERROR=SSH_CREDENTIAL_MISSING'; exit 1; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/cnt_key
+          chmod 600 ~/.ssh/cnt_key
+          unset key OVH_SSH_KEY LEGACY_KEY
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o StrictHostKeyChecking=yes
+            -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8
+            -i "$HOME/.ssh/cnt_key")
+          for u in ubuntu admin debian root; do
+            if ssh "${opts[@]}" "$u@$OVH_HOST" 'printf CONNECTED' 2>/dev/null | grep -q CONNECTED; then
+              printf '%s' "$u" > /tmp/cnt_host_user
+              echo "OVH_CONNECTED=true"
+              exit 0
+            fi
+          done
+          echo 'ERROR=SSH_AUTH_FAILED'; exit 1
+      - name: Preserve production identity and preflight (no changes)
+        shell: bash
+        run: |
+          set -euo pipefail
+          u=$(cat /tmp/cnt_host_user)
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o StrictHostKeyChecking=yes
+            -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/cnt_key")
+          ssh "${opts[@]}" "$u@$OVH_HOST" 'bash -s' <<'REMOTE' | tee /tmp/cnt_precheck.txt
+          set -euo pipefail
+          if [ "$(id -u)" -eq 0 ]; then D=(docker); else D=(sudo -n docker); fi
+          "${D[@]}" inspect --format 'CONTAINER={{.Name}} ID={{.Id}} IMAGE={{.Image}} RUNNING={{.State.Running}}' epic-cnt-capture epic-cnt-archive-worker
+          "${D[@]}" exec epic-cnt-capture sh -c 'test -f /opt/cnt/capture-watchdog.py && test -d /cnt-state/watchdog && echo WATCHDOG_SOURCE_PRESENT=true'
+          "${D[@]}" exec epic-cnt-capture sh -c 'ps -C ffmpeg -o pid=,comm= || true'
+          REMOTE
+      - name: Raise only vulnerable CNT Chromium subprocess FD soft limit without restart
+        shell: bash
+        run: |
+          set -euo pipefail
+          u=$(cat /tmp/cnt_host_user)
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o StrictHostKeyChecking=yes
+            -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/cnt_key")
+          if [ "$u" = root ]; then D="docker"; else D="sudo -n docker"; fi
+          ssh "${opts[@]}" "$u@$OVH_HOST" "$D exec -i -u 1000 epic-cnt-capture python3 - headroom" < ops/cnt-sigtrap-20261108/targeted-cdp-probe-fix.py | tee /tmp/cnt_headroom.txt
+      - name: Apply guarded source change and evaluate FD growth (auto rollback on failure)
+        shell: bash
+        run: |
+          set -euo pipefail
+          u=$(cat /tmp/cnt_host_user)
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o StrictHostKeyChecking=yes
+            -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/cnt_key")
+          if [ "$u" = root ]; then D="docker"; else D="sudo -n docker"; fi
+          ssh "${opts[@]}" "$u@$OVH_HOST" "$D exec -i -u 0 epic-cnt-capture python3 - fix" < ops/cnt-sigtrap-20261108/targeted-cdp-probe-fix.py | tee /tmp/cnt_trial.txt
+      - name: Verify original container identities and health (no restarts)
+        if: always()
+        shell: bash
+        run: |
+          test -s /tmp/cnt_host_user || exit 0
+          set -euo pipefail
+          u=$(cat /tmp/cnt_host_user)
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o StrictHostKeyChecking=yes
+            -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/cnt_key")
+          ssh "${opts[@]}" "$u@$OVH_HOST" 'bash -s' <<'REMOTE' | tee /tmp/cnt_postcheck.txt
+          if [ "$(id -u)" -eq 0 ]; then D=(docker); else D=(sudo -n docker); fi
+          "${D[@]}" inspect --format 'CONTAINER={{.Name}} ID={{.Id}} IMAGE={{.Image}} RUNNING={{.State.Running}}' epic-cnt-capture epic-cnt-archive-worker
+          "${D[@]}" exec epic-cnt-capture sh -c 'ps -C ffmpeg -o pid=,comm= || true'
+          "${D[@]}" exec epic-cnt-capture python3 ./capture-watchdog.py cnt status | python3 -c 'import json,sys;d=json.load(sys.stdin);print("WATCHDOG_ACTION="+str(d.get("action")));print("WATCHDOG_LAST_RESTART="+str(d.get("last_restart")))'
+          REMOTE
+          diff -u <(grep '^CONTAINER=' /tmp/cnt_precheck.txt) <(grep '^CONTAINER=' /tmp/cnt_postcheck.txt) || { echo 'ALERT_CONTAINER_IDENTITY_CHANGED'; exit 1; }
+      - name: Record results to incident 108
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          {
+            echo '## CNT-only production CDP resource-leak trial'
+            echo
+            echo 'A guarded A/B test of removing the repeated Inspector.enable call. If health or FD-growth checks fail, the original script is restored automatically.'
+            echo
+            echo '~~~text'
+            for name in /tmp/cnt_precheck.txt /tmp/cnt_headroom.txt /tmp/cnt_trial.txt /tmp/cnt_postcheck.txt; do
+              if [ -f "$name" ]; then echo "RESULT_FILE=$(basename "$name")"; cat "$name"; fi
+            done
+            echo '~~~'
+          } > /tmp/cnt_hotfix_summary.md
+          gh issue comment 108 --repo "$GITHUB_REPOSITORY" --body-file /tmp/cnt_hotfix_summary.md
