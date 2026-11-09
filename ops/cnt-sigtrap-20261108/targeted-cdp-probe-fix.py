@@ -29,7 +29,12 @@ def fd_processes():
                 continue
             uid = (p / "status").read_text()
             fd = sum(1 for _ in (p / "fd").iterdir())
-            soft, hard = resource.prlimit(int(name), resource.RLIMIT_NOFILE)
+            limits = (p / "limits").read_text()
+            line = next((x for x in limits.splitlines() if x.startswith("Max open files")), "")
+            parts = line.split()
+            if len(parts) < 5 or not parts[3].isdigit() or not parts[4].isdigit():
+                continue
+            soft, hard = int(parts[3]), int(parts[4])
             found.append((int(name), fd, soft, hard))
         except (OSError, ValueError, PermissionError):
             continue
