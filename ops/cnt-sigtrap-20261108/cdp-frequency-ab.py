@@ -13,7 +13,7 @@ import time
 TARGET=Path("/opt/cnt/capture-watchdog.py")
 BACKUP=Path("/cnt-state/watchdog/capture-watchdog.before-cdp-rate-trial.py")
 NEEDLE="        reason, detail = probe_fn(c, process_exited)"
-REPLACE="""        if channel == "cnt" and not process_exited and now - st.get("cdp_rate_trial_last_at", 0) < 40:
+REPLACE="""        if channel == "cnt" and not process_exited and st.get("last_reason", "ok") == "ok" and now - st.get("cdp_rate_trial_last_at", 0) < 40:
             reason, detail = "ok", {"bounded_cdp_rate_test": True}
         else:
             reason, detail = probe_fn(c, process_exited)
