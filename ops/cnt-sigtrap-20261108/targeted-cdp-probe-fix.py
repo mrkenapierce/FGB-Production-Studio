@@ -29,7 +29,7 @@ def fd_processes():
                 continue
             uid = (p / "status").read_text()
             fd = sum(1 for _ in (p / "fd").iterdir())
-            soft, hard = resource.prlimit(int(name))
+            soft, hard = resource.prlimit(int(name), resource.RLIMIT_NOFILE)
             found.append((int(name), fd, soft, hard))
         except (OSError, ValueError, PermissionError):
             continue
@@ -45,8 +45,8 @@ def headroom():
         return 0
     pid, count, soft, hard = candidates[0]
     try:
-        resource.prlimit(pid, (8192, hard))
-        newsoft, newhard = resource.prlimit(pid)
+        resource.prlimit(pid, resource.RLIMIT_NOFILE, (8192, hard))
+        newsoft, newhard = resource.prlimit(pid, resource.RLIMIT_NOFILE)
         if newsoft != 8192 or newhard != hard:
             raise RuntimeError("limit confirmation failed")
         print("HEADROOM=RAISED_TARGET_ONLY pid=" + str(pid) +
