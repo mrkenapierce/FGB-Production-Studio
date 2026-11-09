@@ -80,6 +80,7 @@ def fix():
     if not TARGET.is_file() or not BACKUP.parent.is_dir():
         raise RuntimeError("production source or durable state volume missing")
     original = TARGET.read_text()
+    print("PATCH_GUARDS=" + json.dumps({"matches": original.count(NEEDLE), "backup_exists": BACKUP.exists(), "health_ok": status_ok(), "chrome_processes": len(fd_processes())}), flush=True)
     if original.count(NEEDLE) != 1:
         raise RuntimeError("deployed code does not match exact guarded source")
     if BACKUP.exists():
@@ -137,7 +138,7 @@ def main():
     try:
         return headroom() if args.action == "headroom" else fix()
     except Exception as e:
-        print("TRIAL=BLOCKED_" + type(e).__name__, flush=True)
+        print("TRIAL=BLOCKED_" + type(e).__name__ + "_" + str(e)[:100], flush=True)
         return 1
 
 
