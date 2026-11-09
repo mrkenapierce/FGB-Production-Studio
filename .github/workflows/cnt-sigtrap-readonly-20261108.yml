@@ -1,0 +1,130 @@
+name: CNT SIGTRAP evidence collection (read-only)
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: [.github/workflows/cnt-sigtrap-readonly-20261108.yml]
+permissions:
+  contents: read
+concurrency:
+  group: cnt-sigtrap-audit-readonly
+  cancel-in-progress: false
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      OVH_HOST: 40.160.144.185
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Authenticate to existing OVH host
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"
+          if [ -z "$key" ]; then key="$LEGACY_KEY"; fi
+          if [ -z "$key" ]; then echo 'ERROR=SSH_KEY_MISSING'; exit 1; fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          unset key OVH_SSH_KEY LEGACY_KEY
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/ovh_known_hosts 2>/dev/null
+          test -s ~/.ssh/ovh_known_hosts
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/ovh_known_hosts"
+                -o StrictHostKeyChecking=yes -o BatchMode=yes
+                -o PasswordAuthentication=no -o ConnectTimeout=8
+                -i "$HOME/.ssh/ovh_key")
+          for u in ubuntu admin debian root; do
+            if ssh "${opts[@]}" "$u@$OVH_HOST" 'printf CNT_AUTH_OK' 2>/dev/null | grep -q CNT_AUTH_OK; then
+              printf '%s\n' "$u" > /tmp/cnt_audit_user
+              echo 'OVH_SSH_AUTHENTICATED=true'
+              exit 0
+            fi
+          done
+          echo 'ERROR=SSH_AUTH_FAILED'; exit 1
+      - name: Inspect CNT image and crash evidence without changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          u=$(cat /tmp/cnt_audit_user)
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/ovh_known_hosts"
+                -o StrictHostKeyChecking=yes -o BatchMode=yes
+                -o PasswordAuthentication=no -o ConnectTimeout=8
+                -i "$HOME/.ssh/ovh_key")
+          ssh "${opts[@]}" "$u@$OVH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          if [ "$(id -u)" -eq 0 ]; then D=(docker);
+          elif sudo -n docker info >/dev/null 2>&1; then D=(sudo -n docker);
+          else echo 'ERROR=DOCKER_PERMISSION_DENIED'; exit 1; fi
+          echo "UTC_CHECK=$(date -u +%FT%TZ)"
+          for name in epic-cnt-capture epic-cnt-archive-worker; do
+            "${D[@]}" inspect --format 'CONTAINER={{.Name}} IMAGE={{.Image}} STARTED={{.State.StartedAt}} STATE={{.State.Status}} OOM_KILLED={{.State.OOMKilled}} RESTARTS={{.RestartCount}}' "$name" || true
+          done
+          "${D[@]}" exec epic-cnt-capture sh -c 'chromium --version 2>/dev/null || true'
+          "${D[@]}" exec -i epic-cnt-capture python3 - <<'PY'
+          import collections, datetime, json, re
+          from pathlib import Path
+          root=Path("/cnt-state/watchdog")
+          print("WATCHDOG_DIR_EXISTS="+str(root.is_dir()))
+          status=root/"status.json"
+          if status.exists():
+              try:
+                  s=json.loads(status.read_text())
+                  for k in ("last_probe","last_ok","action","reason","why","restarts_last_hour","restarts_total","last_restart","alert","origin_outage","consecutive_failures"):
+                      print("WATCHDOG_"+k.upper()+"="+str(s.get(k,"missing"))[:120])
+              except Exception as e: print("WATCHDOG_STATUS_ERROR="+type(e).__name__)
+          else: print("WATCHDOG_STATUS_MISSING=true")
+          evt=root/"events.jsonl"
+          try:
+              lines=evt.read_text(errors="replace").splitlines()[-4000:]
+          except OSError:
+              lines=[]; print("WATCHDOG_EVENTS_MISSING=true")
+          incident_start=datetime.datetime.fromisoformat("2026-11-08T23:50:00+00:00")
+          incident_end=datetime.datetime.fromisoformat("2026-11-09T00:15:00+00:00")
+          reasons=collections.Counter()
+          crash_types=collections.Counter()
+          matches=0
+          for line in lines:
+              try:
+                  e=json.loads(line)
+                  at=e.get("at","")
+                  ts=datetime.datetime.fromisoformat(at.replace("Z","+00:00"))
+              except (ValueError,TypeError,AttributeError): continue
+              reason=str(e.get("reason",""))
+              if reason: reasons[reason]+=1
+              if not incident_start <= ts <= incident_end: continue
+              matches+=1
+              evidence=e.get("evidence") or {}
+              for crash in evidence.get("crash_lines",[]):
+                  low=str(crash).lower()
+                  for cat in ("sigtrap","sigsegv","check failed","fatal","gpu process","out of memory","renderer","shared memory"):
+                      if cat in low: crash_types[cat]+=1
+              memevents=evidence.get("cgroup_memory_events") or {}
+              safe={k:e.get(k) for k in ("at","event","action","reason","why") if e.get(k) is not None}
+              for k in ("oom","oom_kill","oom_group_kill"):
+                  if k in memevents: safe[k]=memevents[k]
+              for k in ("cgroup_memory_mb","chromium_rss_mb","tmp_free_mb","shm_free_mb","minidumps"):
+                  if k in evidence: safe[k]=evidence[k]
+              print("INCIDENT_EVENT="+json.dumps(safe,separators=(",",":"))[:650])
+          print("INCIDENT_EVENT_COUNT="+str(matches))
+          print("LAST_4000_EVENT_REASONS="+json.dumps(reasons.most_common(10)))
+          print("INCIDENT_CRASH_SIGNATURE_COUNTS="+json.dumps(crash_types))
+          log=root/"chromium.log"
+          print("CHROME_LOG_PRESENT="+str(log.exists()))
+          if log.exists():
+              try:
+                  t=log.read_text(errors="replace")[-200000:]
+                  pats=["SIGTRAP","SIGSEGV","Check failed","FATAL","OOM","Out of memory","GPU process","Renderer process"]
+                  print("RECENT_CHROME_SIGNATURE_COUNTS="+json.dumps({p:len(re.findall(re.escape(p),t,re.I)) for p in pats}))
+              except OSError: print("CHROME_LOG_READABLE=false")
+          try:
+              for f in ("memory.current","memory.max","memory.events","cpu.stat"):
+                  p=Path("/sys/fs/cgroup")/f
+                  if p.exists():
+                      vals=p.read_text().strip().splitlines()
+                      print("CGROUP_"+f.replace(".","_").upper()+"="+(";".join(vals[:10]))[:350])
+          except OSError: print("CGROUP_UNAVAILABLE=true")
+          PY
+          echo 'AUDIT_COMPLETE=READ_ONLY'
+          REMOTE
