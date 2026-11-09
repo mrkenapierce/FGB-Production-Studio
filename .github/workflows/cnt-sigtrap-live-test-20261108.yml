@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/cnt-sigtrap-live-test-20261108.yml
+      - ops/cnt-sigtrap-20261108/targeted-cdp-probe-fix.py
   workflow_dispatch:
 permissions:
   contents: read
