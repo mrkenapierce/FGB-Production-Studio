@@ -1,0 +1,106 @@
+name: CNT renderer FD limits and watchdog correlation (read-only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cnt-fd-confirmation-20261108.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+jobs:
+  investigate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      OVH_HOST: 40.160.144.185
+      OVH_SSH_KEY: ${{ secrets.OVH_SSH_KEY }}
+      LEGACY_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+    steps:
+      - name: Inspect live CNT with no modifications
+        shell: bash
+        run: |
+          set -euo pipefail
+          key="$OVH_SSH_KEY"
+          if [ -z "$key" ]; then key="$LEGACY_KEY"; fi
+          if [ -z "$key" ]; then echo "ERROR=no_ovh_ssh_key"; exit 1; fi
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$key" > ~/.ssh/audit
+          chmod 600 ~/.ssh/audit
+          unset key OVH_SSH_KEY LEGACY_KEY
+          ssh-keyscan -T 8 -H "$OVH_HOST" > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+          opts=(-o UserKnownHostsFile="$HOME/.ssh/known_hosts" -o StrictHostKeyChecking=yes
+            -o BatchMode=yes -o PasswordAuthentication=no -o ConnectTimeout=8 -i "$HOME/.ssh/audit")
+          u=""
+          for candidate in ubuntu admin debian root; do
+            if ssh "${opts[@]}" "$candidate@$OVH_HOST" 'printf CONNECTED' 2>/dev/null | grep -q CONNECTED; then u="$candidate"; break; fi
+          done
+          test -n "$u" || { echo "ERROR=ssh_auth_failure"; exit 1; }
+          ssh "${opts[@]}" "$u@$OVH_HOST" 'bash -s' <<'REMOTE' | tee /tmp/cnt_fd_output.txt
+          set -euo pipefail
+          if [ "$(id -u)" -eq 0 ]; then D=(docker);
+          else D=(sudo -n docker); fi
+          "${D[@]}" inspect --format 'CNT_IMAGE={{.Image}} CNT_STARTED={{.State.StartedAt}} CNT_RESTARTS={{.RestartCount}}' epic-cnt-capture
+          "${D[@]}" exec -i epic-cnt-capture python3 - <<'PY'
+          import os,time,json,re
+          from pathlib import Path
+          def sample():
+              out=[]
+              for n in os.listdir('/proc'):
+                  if not n.isdigit(): continue
+                  p=Path('/proc')/n
+                  try:
+                      if (p/'comm').read_text().strip()!='chromium': continue
+                      args=(p/'cmdline').read_bytes().split(bytes([0]))
+                      role='browser'
+                      for v in args:
+                          if v.startswith(b'--type='): role=v.split(b'=',1)[1].decode('ascii','replace')
+                      lim=(p/'limits').read_text()
+                      limit_line=next((v for v in lim.splitlines() if v.startswith('Max open files')),'')
+                      limit_fields=limit_line.split()
+                      soft=limit_fields[3] if len(limit_fields)>4 else 'unknown'
+                      hard=limit_fields[4] if len(limit_fields)>4 else 'unknown'
+                      fdpath=p/'fd'
+                      cnt=0; memfd=0
+                      for ent in fdpath.iterdir():
+                          cnt+=1
+                          try:
+                              if 'memfd:' in os.readlink(ent): memfd+=1
+                          except OSError: pass
+                      out.append({'pid':int(n),'role':role,'fds':cnt,'memfds':memfd,'soft':soft,'hard':hard})
+                  except (OSError,ValueError): continue
+              return sorted(out,key=lambda d:-d['fds'])
+          for i in range(7):
+              rows=sample()
+              print('SAMPLE='+json.dumps({'number':i,'utc':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()),'top':rows[:2]},separators=(',',':')),flush=True)
+              if i<6: time.sleep(5)
+          p=Path('/cnt-state/watchdog/status.json')
+          try:
+              st=json.loads(p.read_text())
+              print('WATCHDOG='+json.dumps({x:st.get(x) for x in ('last_probe','action','reason','restarts_total','last_restart')},separators=(',',':')))
+          except (OSError,ValueError): print('WATCHDOG_STATUS=missing')
+          src=Path('/opt/cnt/capture-watchdog.py')
+          if src.exists():
+              t=src.read_text()
+              print('WATCHDOG_INSPECTOR_ENABLE='+str('"method": "Inspector.enable"' in t))
+              print('WATCHDOG_RUNTIME_EVALUATE='+str('"method": "Runtime.evaluate"' in t))
+          print('FD_AUDIT_COMPLETE=true')
+          PY
+          REMOTE
+      - name: Publish sanitized evidence to existing incident
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if [ ! -s /tmp/cnt_fd_output.txt ]; then echo 'No remote output to publish'; exit 0; fi
+          {
+            echo "## CNT FD probe source / limit / sampling"
+            echo
+            echo "Read-only OVH audit; no stream or worker restarts."
+            echo '~~~text'
+            cat /tmp/cnt_fd_output.txt
+            echo '~~~'
+          } > /tmp/cnt_fd_comment.md
+          gh issue comment 108 --repo "$GITHUB_REPOSITORY" --body-file /tmp/cnt_fd_comment.md
