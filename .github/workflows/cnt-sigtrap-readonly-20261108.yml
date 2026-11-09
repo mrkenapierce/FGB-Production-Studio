@@ -111,6 +111,28 @@ jobs:
           print("INCIDENT_EVENT_COUNT="+str(matches))
           print("LAST_4000_EVENT_REASONS="+json.dumps(reasons.most_common(10)))
           print("INCIDENT_CRASH_SIGNATURE_COUNTS="+json.dumps(crash_types))
+          # Extract only sanitized, deduplicated failure signatures, not raw browser logs.
+          excerpts={}
+          shm_free=[]
+          for entry in lines:
+              try:
+                  event=json.loads(entry)
+                  ts=datetime.datetime.fromisoformat(event.get("at","").replace("Z","+00:00"))
+              except (ValueError,TypeError,AttributeError): continue
+              if not incident_start <= ts <= incident_end: continue
+              evd=event.get("evidence") or {}
+              if evd.get("dev_shm_free_mb") is not None: shm_free.append(int(evd["dev_shm_free_mb"]))
+              for raw in evd.get("crash_lines",[]):
+                  s=str(raw)
+                  if not re.search(r"SIGTRAP|FATAL|CHECK failed|shared memory|renderer|GPU process|crash",s,re.I): continue
+                  s=re.sub(r"(?:https?|rtmps?|wss?)://[^\\s]+","[url]",s,flags=re.I)
+                  s=re.sub(r"\\b(?:token|key|secret|password|authorization)\\s*[:=]\\s*[^\\s;]+","[redacted]",s,flags=re.I)
+                  s=re.sub(r"0x[0-9a-fA-F]{5,}","0x[addr]",s)
+                  s=re.sub(r"(?<![A-Za-z0-9])[A-Za-z0-9+/]{48,}={0,2}(?![A-Za-z0-9])","[opaque]",s)
+                  s=s[:220]
+                  excerpts[s]=excerpts.get(s,0)+1
+          print("INCIDENT_DEV_SHM_FREE_MB_MIN="+str(min(shm_free) if shm_free else "unavailable"))
+          print("INCIDENT_SANITIZED_CRASH_EXCERPTS="+json.dumps(sorted(excerpts.items(),key=lambda x:-x[1])[:10]))
           log=root/"chromium.log"
           print("CHROME_LOG_PRESENT="+str(log.exists()))
           if log.exists():
@@ -152,4 +174,4 @@ jobs:
             echo
             echo 'If SIGTRAP is absent, this report does not prove that the viewer Chrome tab did not crash locally.'
           } > /tmp/cnt_diagnostic_issue.md
-          gh issue create --repo "$GITHUB_REPOSITORY" --title '[CNT SIGTRAP] OVH read-only crash evidence — 2026-11-08' --body-file /tmp/cnt_diagnostic_issue.md
+          gh issue comment 108 --repo "$GITHUB_REPOSITORY" --body-file /tmp/cnt_diagnostic_issue.md
