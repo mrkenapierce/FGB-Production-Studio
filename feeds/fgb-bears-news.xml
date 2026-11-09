@@ -5,28 +5,38 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 09 Nov 2026 02:48:56 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 09 Nov 2026 10:37:08 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Luther Burden scores 56-yard touchdown, Bears lead Bucs 14-0</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Luther Burden scores 56-yard touchdown, Bears lead Bucs 14-0</description>
-      <link>https://sports.yahoo.com/articles/luther-burden-scores-56-yard-014757951.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-76ea3a9e9df2a6badfd4</guid>
-      <pubDate>Mon, 09 Nov 2026 01:47:57 GMT</pubDate>
+      <title>Bears overcome Caleb Williams&apos; career-high 4 interceptions, but Bucs give Ben Johnson&apos;s team, QB heat check</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears overcome Caleb Williams&apos; career-high 4 interceptions, but Bucs give Ben Johnson&apos;s team, QB heat check</description>
+      <link>https://sports.yahoo.com/nfl/article/bears-overcome-caleb-williams-career-high-4-interceptions-but-bucs-give-ben-johnsons-team-qb-heat-check-074037316.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-52bb1f08be611e7d5f96</guid>
+      <pubDate>Mon, 09 Nov 2026 07:40:37 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Caleb Williams TD pass gives Bears early 7-0 lead</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Caleb Williams TD pass gives Bears early 7-0 lead</description>
-      <link>https://sports.yahoo.com/articles/caleb-williams-td-pass-gives-013650366.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-644368408a00e57b0754</guid>
-      <pubDate>Mon, 09 Nov 2026 01:36:50 GMT</pubDate>
+      <title>NFL Week 9 INSTANT reactions: are Packers top dogs in the NFC? Bears win ugly, Burrow for MVP?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Week 9 INSTANT reactions: are Packers top dogs in the NFC? Bears win ugly, Burrow for MVP?</description>
+      <link>https://sports.yahoo.com/nfl/article/nfl-week-9-instant-reactions-are-packers-top-dogs-in-the-nfc-bears-win-ugly-burrow-for-mvp-072424680.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f33431525b0709e60f32</guid>
+      <pubDate>Mon, 09 Nov 2026 07:24:24 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears hold off late rally to edge Buccaneers, extend winning streak to four | Game Recap</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears hold off late rally to edge Buccaneers, extend winning streak to four | Game Recap</description>
+      <link>https://www.chicagobears.com/news/bears-hold-off-late-rally-to-edge-buccaneers-extend-winning-streak-to-four-game-recap</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c6efac836654327807ff</guid>
+      <pubDate>Mon, 09 Nov 2026 05:13:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
@@ -50,43 +60,33 @@
     </item>
 
     <item>
-      <title>Buccaneers vs. Bears live score updates: Rome Odunze TD puts Chicago up 7-0 on NFL ‘Sunday Night Football’</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Buccaneers vs. Bears live score updates: Rome Odunze TD puts Chicago up 7-0 on NFL ‘Sunday Night Football’</description>
-      <link>https://www.nytimes.com/athletic/live-blogs/buccaneers-vs-bears-live-score-updates-nfl-snf-result/cwmZISTuZHoP/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-92d9ce72930996d4fcab</guid>
-      <pubDate>Sun, 08 Nov 2026 17:35:00 GMT</pubDate>
+      <title>Buccaneers vs. Bears Week 9 SNF Recap | NFL Daily</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Buccaneers vs. Bears Week 9 SNF Recap | NFL Daily</description>
+      <link>https://www.nfl.com/videos/buccaneers-vs-bears-week-9-snf-recap-nfl-daily</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-34ff34b6dccde1f5da66</guid>
+      <pubDate>Sun, 08 Nov 2026 23:44:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
-      <title>Bears&apos; Jeffery Simmons Trade, Explained: How and Why Chicago Acquired Star DT</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Jeffery Simmons Trade, Explained: How and Why Chicago Acquired Star DT</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-jeffery-simmons-trade-explained-how-why-chicago-acquired-star</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-09ca5d15545f9f1462f3</guid>
-      <pubDate>Sun, 08 Nov 2026 16:00:00 GMT</pubDate>
+      <title>Caleb Williams unfazed by 4 interceptions as Bears pull out win vs. Bucs</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Caleb Williams unfazed by 4 interceptions as Bears pull out win vs. Bucs</description>
+      <link>https://www.espn.com/nfl/story/_/id/50430415/caleb-williams-4-interceptions-bears-win-buccaneers</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-466ec01f19ebaac4a54d</guid>
+      <pubDate>Sun, 08 Nov 2026 23:43:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
-      <title>When is Kyle Monangai Coming Back? Injury Update, Return Timeline For Bears RB</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: When is Kyle Monangai Coming Back? Injury Update, Return Timeline For Bears RB</description>
-      <link>https://www.si.com/nfl/bears/onsi/when-kyle-monangai-coming-back-injury-update-return-timeline-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-929f0096173ca164d716</guid>
-      <pubDate>Sun, 08 Nov 2026 16:00:00 GMT</pubDate>
+      <title>What to make of Bears win over Buccaneers + Packers look DOMINANT | SC with SVP</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: What to make of Bears win over Buccaneers + Packers look DOMINANT | SC with SVP</description>
+      <link>https://www.espn.com/video/clip/_/id/50429834</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1898da004927403acf11</guid>
+      <pubDate>Sun, 08 Nov 2026 22:44:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Luther Burden scores 56-yard touchdown, Bears lead Bucs 14-0</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Luther Burden scores 56-yard touchdown, Bears lead Bucs 14-0</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/luther-burden-scores-56-yard-touchdown-bears-lead-bucs-14-0</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a680b6eb60fa8cd71bc5</guid>
-      <pubDate>Sun, 08 Nov 2026 12:47:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
