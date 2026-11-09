@@ -163,17 +163,83 @@ jobs:
                       if not any(x in comm.lower() for x in ('chrom','chrome','ffmpeg','xvfb','pulse','python')): continue
                       fd=list((p/'fd').iterdir())
                       limits=(p/'limits').read_text()
-                      m=re.search(r'^Max open files\\s+(\\d+)\\s+(\\d+)',limits,re.M)
+                      m=re.search(r'^Max open files\s+(\d+)\s+(\d+)',limits,re.M)
                       soft=int(m.group(1)) if m else None
                       hard=int(m.group(2)) if m else None
+                      role='browser'
+                      try:
+                          av=(p/'cmdline').read_bytes().split(b'\\0')
+                          typ=next((v.split(b'=',1)[1].decode('ascii','ignore') for v in av if v.startswith(b'--type=')),'')
+                          if typ: role=typ[:28]
+                      except OSError: pass
                       kinds=collections.Counter()
+                      memnames=collections.Counter()
                       for x in fd:
                           try:
                               v=os.readlink(x)
                               if v.startswith('socket:'): kind='socket'
                               elif v.startswith('pipe:'): kind='pipe'
                               elif v.startswith('anon_inode:'): kind='anon_inode'
-                              elif 'memfd:' in v: kind='memfd'
+                              elif 'memfd:' in v:
+                                  kind='memfd'
+                                  label=v.split('memfd:',1)[1].split(' (',1)[0].strip()[:50]
+                                  label=re.sub(r'[A-Za-z0-9]{8,}
+                              elif v.startswith('/dev/'): kind='device'
+                              else: kind='other'
+                              kinds[kind]+=1
+                          except OSError: pass
+                      rows.append({'pid':int(name),'process':comm[:28],'role':role,'fds':len(fd),'soft_limit':soft,'hard_limit':hard,'kinds':dict(kinds),'memfd_labels':memnames.most_common(4)})
+                  except (OSError,ValueError): pass
+              return sorted(rows,key=lambda x:-x['fds'])
+          for sample in range(3):
+              rows=scan()
+              print('FD_SAMPLE_'+str(sample+1)+'_UTC='+time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime()))
+              print('FD_PROCESS_COUNT='+str(len(rows)))
+              print('FD_TOP_PROCESSES='+json.dumps(rows[:12],separators=(',',':')))
+              print('FD_CHROMIUM_SUM='+str(sum(r['fds'] for r in rows if 'chrom' in r['process'].lower())))
+              if sample<2: time.sleep(10)
+          print('FD_PROBE_TIMING_BEGIN')
+          for j in range(16):
+              rows=scan()
+              r=next((x for x in rows if x['process']=='chromium' and x['role']=='renderer'),None)
+              try: age=round(time.time()-Path('/cnt-state/watchdog/status.json').stat().st_mtime,1)
+              except OSError: age=-1
+              if r: print('FD_TIMING='+json.dumps({'second':j,'pid':r['pid'],'fds':r['fds'],'memfds':r['kinds'].get('memfd',0),'probe_age_seconds':age},separators=(',',':')))
+              time.sleep(1)
+          print('FD_PROBE_TIMING_END')
+          try:
+              print('SYSTEM_FILE_NR='+Path('/proc/sys/fs/file-nr').read_text().strip().replace('\\t',','))
+          except OSError: print('SYSTEM_FILE_NR=unavailable')
+          PYFD
+          echo 'FD_AUDIT_END'
+          echo 'AUDIT_COMPLETE=READ_ONLY'
+          REMOTE
+      - name: Record sanitized CNT diagnostic result in GitHub
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -s /tmp/cnt_sigtrap_evidence.txt ]; then
+            echo 'No authenticated OVH report was collected.'
+            exit 0
+          fi
+          {
+            echo '## Read-only CNT production diagnostic'
+            echo
+            echo 'Triggered for November 8, 2026 Chromium/SIGTRAP incident. Existing encoder, capture and archive worker not restarted or redeployed.'
+            echo
+            echo 'Sanitized output (no credentials or raw browser crash text):'
+            echo '~~~text'
+            head -n 140 /tmp/cnt_sigtrap_evidence.txt
+            echo '~~~'
+            echo
+            echo 'If SIGTRAP is absent, this report does not prove that the viewer Chrome tab did not crash locally.'
+          } > /tmp/cnt_diagnostic_issue.md
+          gh issue comment 108 --repo "$GITHUB_REPOSITORY" --body-file /tmp/cnt_diagnostic_issue.md
+,'[id]',label)
+                                  memnames[label]+=1
                               elif v.startswith('/tmp/'): kind='tmp'
                               elif v.startswith('/dev/'): kind='device'
                               else: kind='other'
