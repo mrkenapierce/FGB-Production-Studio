@@ -5,38 +5,58 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 10 Nov 2026 03:30:20 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 10 Nov 2026 11:44:44 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears vs. Bucs Game Balls: Some How, Some Way</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Bucs Game Balls: Some How, Some Way</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-bucs-game-balls-014601077.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2a0435563428cc497b16</guid>
-      <pubDate>Tue, 10 Nov 2026 01:46:01 GMT</pubDate>
+      <title>The Bear’s Den: Bears take sole possession of NFC North</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: Bears take sole possession of NFC North</description>
+      <link>https://sports.yahoo.com/articles/bear-den-bears-sole-possession-110000767.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d5c57f3b4afe317c7e15</guid>
+      <pubDate>Tue, 10 Nov 2026 11:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Complementary football allows the Chicago Bears to get to 7-2 at the bye</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Complementary football allows the Chicago Bears to get to 7-2 at the bye</description>
-      <link>https://sports.yahoo.com/articles/complementary-football-allows-chicago-bears-233000089.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-19d978d112e135754d7f</guid>
-      <pubDate>Mon, 09 Nov 2026 23:30:00 GMT</pubDate>
+      <title>NFC Playoff Picture After Week 9: Bears move up to the 2 seed</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFC Playoff Picture After Week 9: Bears move up to the 2 seed</description>
+      <link>https://sports.yahoo.com/articles/nfc-playoff-picture-week-9-043251608.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-bfd9066e90e2c7444ce4</guid>
+      <pubDate>Tue, 10 Nov 2026 04:32:51 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears&apos; Cairo Santos: Hero in win</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Cairo Santos: Hero in win</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-cairo-santos-hero-in-win/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a2b5b3e4036607b7542e</guid>
-      <pubDate>Mon, 09 Nov 2026 18:46:00 GMT</pubDate>
+      <title>Bears’ Caleb Williams gets needed wake-up call: NFL QB stock report, Week 10</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears’ Caleb Williams gets needed wake-up call: NFL QB stock report, Week 10</description>
+      <link>https://www.nytimes.com/athletic/7767884/2026/11/10/qb-rankings-stock-report-caleb-williams-bears/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-011b6a1c58e3e46eae11</guid>
+      <pubDate>Tue, 10 Nov 2026 03:13:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Ben Johnson Sorting Through Ways to Get Bears Offense Churning</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Sorting Through Ways to Get Bears Offense Churning</description>
+      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-sorting-ways-get-bears-offense-churning</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6b9a7b3768e9a3b7c5b6</guid>
+      <pubDate>Tue, 10 Nov 2026 03:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>5 things we learned from Bears coach Ben Johnson in Week 9 win</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 5 things we learned from Bears coach Ben Johnson in Week 9 win</description>
+      <link>https://www.chicagobears.com/news/5-things-we-learned-from-bears-coach-ben-johnson-in-week-9-win</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-67c3d231a4ad50dc93a0</guid>
+      <pubDate>Tue, 10 Nov 2026 00:30:17 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
@@ -60,16 +80,6 @@
     </item>
 
     <item>
-      <title>Defense steps up in crucial situations to propel Bears to fourth consecutive victory</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Defense steps up in crucial situations to propel Bears to fourth consecutive victory</description>
-      <link>https://www.chicagobears.com/news/defense-steps-up-in-crucial-situations-to-propel-bears-to-fourth-consecutive-victory</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ca536f00507d3cb70c60</guid>
-      <pubDate>Mon, 09 Nov 2026 14:49:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
       <title>Bears overcome Caleb Williams&apos; interceptions for &apos;SNF&apos; win; resetting CFP race after Week 10</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears overcome Caleb Williams&apos; interceptions for &apos;SNF&apos; win; resetting CFP race after Week 10</description>
       <link>https://www.cbssports.com/nfl/news/bears-overcome-caleb-williams-interceptions-for-snf-win-resetting-cfp-race-after-week-10/</link>
@@ -77,16 +87,6 @@
       <pubDate>Mon, 09 Nov 2026 13:53:29 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears Trade Rumor Highlights Chicago&apos;s Deadline Focus: Here&apos;s 3 Potential Targets</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Trade Rumor Highlights Chicago&apos;s Deadline Focus: Here&apos;s 3 Potential Targets</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-trade-rumor-chicago-deadline-focus-potential-targets</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-281a69a5e9d108d1326f</guid>
-      <pubDate>Mon, 09 Nov 2026 13:18:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
