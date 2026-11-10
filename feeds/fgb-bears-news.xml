@@ -5,26 +5,46 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 10 Nov 2026 11:44:44 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 10 Nov 2026 18:50:58 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>The Bear’s Den: Bears take sole possession of NFC North</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: Bears take sole possession of NFC North</description>
-      <link>https://sports.yahoo.com/articles/bear-den-bears-sole-possession-110000767.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d5c57f3b4afe317c7e15</guid>
-      <pubDate>Tue, 10 Nov 2026 11:00:00 GMT</pubDate>
+      <title>3 Reasons Why the Chicago Bears Won vs. the Buccaneers</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 3 Reasons Why the Chicago Bears Won vs. the Buccaneers</description>
+      <link>https://sports.yahoo.com/articles/3-reasons-why-chicago-bears-170000988.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e9e20c4d70d37fb7af86</guid>
+      <pubDate>Tue, 10 Nov 2026 17:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>NFC Playoff Picture After Week 9: Bears move up to the 2 seed</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFC Playoff Picture After Week 9: Bears move up to the 2 seed</description>
-      <link>https://sports.yahoo.com/articles/nfc-playoff-picture-week-9-043251608.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-bfd9066e90e2c7444ce4</guid>
-      <pubDate>Tue, 10 Nov 2026 04:32:51 GMT</pubDate>
+      <title>Chargers Trade Rumor Gives Bears Shred of Hope for Khalil Mack Deal</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chargers Trade Rumor Gives Bears Shred of Hope for Khalil Mack Deal</description>
+      <link>https://www.si.com/nfl/bears/onsi/chargers-trade-rumor-bears-shred-hope-khalil-mack-deal</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-52238e4a3c48dc1ebf12</guid>
+      <pubDate>Tue, 10 Nov 2026 10:06:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Ben Johnson Shares Thoughts on Chicago Bears NFL Trade Deadline Plans</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Shares Thoughts on Chicago Bears NFL Trade Deadline Plans</description>
+      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-bears-trade-deadline-plans</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-732800ac3078063b1179</guid>
+      <pubDate>Tue, 10 Nov 2026 08:05:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Everything HC Todd Bowles Said After Bucs&apos; Loss to Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Everything HC Todd Bowles Said After Bucs&apos; Loss to Bears</description>
+      <link>https://sports.yahoo.com/articles/everything-hc-todd-bowles-said-153342259.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c7143cafcd990b8ac78a</guid>
+      <pubDate>Tue, 10 Nov 2026 07:33:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -34,19 +54,29 @@
       <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears’ Caleb Williams gets needed wake-up call: NFL QB stock report, Week 10</description>
       <link>https://www.nytimes.com/athletic/7767884/2026/11/10/qb-rankings-stock-report-caleb-williams-bears/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-011b6a1c58e3e46eae11</guid>
-      <pubDate>Tue, 10 Nov 2026 03:13:00 GMT</pubDate>
+      <pubDate>Tue, 10 Nov 2026 06:20:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
-      <title>Ben Johnson Sorting Through Ways to Get Bears Offense Churning</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ben Johnson Sorting Through Ways to Get Bears Offense Churning</description>
-      <link>https://www.si.com/nfl/bears/onsi/ben-johnson-sorting-ways-get-bears-offense-churning</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6b9a7b3768e9a3b7c5b6</guid>
-      <pubDate>Tue, 10 Nov 2026 03:00:00 GMT</pubDate>
+      <title>Ben Johnson reflects on Week 9, looks ahead to final 8 games | Bears, etc. Podcast</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Ben Johnson reflects on Week 9, looks ahead to final 8 games | Bears, etc. Podcast</description>
+      <link>https://www.chicagobears.com/audio/ben-johnson-reflects-on-week-9-looks-ahead-to-final-8-games-bears-etc-podcast</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b37b500858c6e5df869a</guid>
+      <pubDate>Tue, 10 Nov 2026 05:02:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Report: DT Jordan Elliott to work out for Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Report: DT Jordan Elliott to work out for Bears</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/report-dt-jordan-elliott-to-work-out-for-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4f182fb1226b6cb42513</guid>
+      <pubDate>Tue, 10 Nov 2026 00:35:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
@@ -57,36 +87,6 @@
       <pubDate>Tue, 10 Nov 2026 00:30:17 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>By the Numbers: Bears&apos; Week 9 victory over Buccaneers</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: By the Numbers: Bears&apos; Week 9 victory over Buccaneers</description>
-      <link>https://www.chicagobears.com/news/by-the-numbers-bears-week-9-victory-over-buccaneers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-71ad06dbc9dd4f39559d</guid>
-      <pubDate>Mon, 09 Nov 2026 18:32:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Trade For Jeffery Simmons Looks Like a Landslide Win After Jordan Davis Trade</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Trade For Jeffery Simmons Looks Like a Landslide Win After Jordan Davis Trade</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-trade-jeffery-simmons-landslide-win-jordan-davis-trade</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b8b2212cef28f68a769f</guid>
-      <pubDate>Mon, 09 Nov 2026 16:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears overcome Caleb Williams&apos; interceptions for &apos;SNF&apos; win; resetting CFP race after Week 10</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears overcome Caleb Williams&apos; interceptions for &apos;SNF&apos; win; resetting CFP race after Week 10</description>
-      <link>https://www.cbssports.com/nfl/news/bears-overcome-caleb-williams-interceptions-for-snf-win-resetting-cfp-race-after-week-10/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4100569067db5725248c</guid>
-      <pubDate>Mon, 09 Nov 2026 13:53:29 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
