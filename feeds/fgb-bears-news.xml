@@ -5,26 +5,46 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 11 Nov 2026 11:33:50 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 11 Nov 2026 18:51:47 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>The Bear’s Den: Bears stand pat at trade deadline, Minnesota Vikings don’t</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: Bears stand pat at trade deadline, Minnesota Vikings don’t</description>
-      <link>https://sports.yahoo.com/articles/bear-den-bears-stand-pat-110000409.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c10c6b7c9cfdc1375516</guid>
-      <pubDate>Wed, 11 Nov 2026 11:00:00 GMT</pubDate>
+      <title>Ben Johnson had the best message for Bears after ugly win vs. Bucs</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ben Johnson had the best message for Bears after ugly win vs. Bucs</description>
+      <link>https://sports.yahoo.com/articles/ben-johnson-had-best-message-181922092.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-615542214ab03a24c8f8</guid>
+      <pubDate>Wed, 11 Nov 2026 10:19:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Chicago Bears Bye Week Confidence Check!</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Bye Week Confidence Check!</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-bye-week-confidence-010000141.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3d3e07c204de995cd963</guid>
-      <pubDate>Wed, 11 Nov 2026 01:00:00 GMT</pubDate>
+      <title>Bears Take Look at Former Starting Tackle Among Others With Tryouts</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Take Look at Former Starting Tackle Among Others With Tryouts</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-offensive-tackle-tryout-roster</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3ba56c4af739fce11f18</guid>
+      <pubDate>Wed, 11 Nov 2026 07:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Will the Bears Regret Standing Pat at Cornerback? Malik Muhammad II Is Their Answer</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Will the Bears Regret Standing Pat at Cornerback? Malik Muhammad II Is Their Answer</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-trade-deadline-results-cornerback-malik-muhammad</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-758a561b8e9a6f1a661f</guid>
+      <pubDate>Wed, 11 Nov 2026 06:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Cam Heyward says Chicago Bears have made a trade that is just ‘perfect’</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Cam Heyward says Chicago Bears have made a trade that is just ‘perfect’</description>
+      <link>https://sports.yahoo.com/articles/cam-heyward-says-chicago-bears-142130314.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d658accd0062af080ff4</guid>
+      <pubDate>Wed, 11 Nov 2026 06:21:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -50,43 +70,23 @@
     </item>
 
     <item>
-      <title>Bears Face a New Division Threat After Vikings Reunite With Kirk Cousins at the Deadline</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Face a New Division Threat After Vikings Reunite With Kirk Cousins at the Deadline</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-trade-deadline-moves-nfc-north-kirk-cousins</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4ad94cb6b20b73446216</guid>
-      <pubDate>Tue, 10 Nov 2026 17:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Ranking Bears&apos; Most Important Games Left in Second Half of Season</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ranking Bears&apos; Most Important Games Left in Second Half of Season</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-remaining-schedule-strength</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c18e651e67109fa29cbc</guid>
-      <pubDate>Tue, 10 Nov 2026 16:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Ben Johnson reflects on Week 9, looks ahead to final 8 games | Bears, etc. Podcast</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Ben Johnson reflects on Week 9, looks ahead to final 8 games | Bears, etc. Podcast</description>
-      <link>https://www.chicagobears.com/audio/ben-johnson-reflects-on-week-9-looks-ahead-to-final-8-games-bears-etc-podcast</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b37b500858c6e5df869a</guid>
-      <pubDate>Tue, 10 Nov 2026 05:02:00 GMT</pubDate>
+      <title>5 things we learned from Bears coach Ben Johnson in Week 9 win</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 5 things we learned from Bears coach Ben Johnson in Week 9 win</description>
+      <link>https://www.chicagobears.com/news/5-things-we-learned-from-bears-coach-ben-johnson-in-week-9-win</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-67c3d231a4ad50dc93a0</guid>
+      <pubDate>Tue, 10 Nov 2026 00:30:17 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
-      <title>What Bears left tackle Theo Benedet proved playing every snap in back-to-back wins</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: What Bears left tackle Theo Benedet proved playing every snap in back-to-back wins</description>
-      <link>https://www.nytimes.com/athletic/7768993/2026/11/10/bears-theo-benedet-every-snap-buccaneers/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-27bfb8ac5b42e5c34e4b</guid>
-      <pubDate>Tue, 10 Nov 2026 03:54:00 GMT</pubDate>
+      <title>By the Numbers: Bears&apos; Week 9 victory over Buccaneers</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: By the Numbers: Bears&apos; Week 9 victory over Buccaneers</description>
+      <link>https://www.chicagobears.com/news/by-the-numbers-bears-week-9-victory-over-buccaneers</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-71ad06dbc9dd4f39559d</guid>
+      <pubDate>Mon, 09 Nov 2026 18:32:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
