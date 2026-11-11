@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 11 Nov 2026 03:45:09 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 11 Nov 2026 11:33:50 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>The Bear’s Den: Bears stand pat at trade deadline, Minnesota Vikings don’t</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Bear’s Den: Bears stand pat at trade deadline, Minnesota Vikings don’t</description>
+      <link>https://sports.yahoo.com/articles/bear-den-bears-stand-pat-110000409.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c10c6b7c9cfdc1375516</guid>
+      <pubDate>Wed, 11 Nov 2026 11:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Chicago Bears Bye Week Confidence Check!</title>
@@ -44,7 +54,7 @@
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Face a New Division Threat After Vikings Reunite With Kirk Cousins at the Deadline</description>
       <link>https://www.si.com/nfl/bears/onsi/bears-trade-deadline-moves-nfc-north-kirk-cousins</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-4ad94cb6b20b73446216</guid>
-      <pubDate>Tue, 10 Nov 2026 16:00:00 GMT</pubDate>
+      <pubDate>Tue, 10 Nov 2026 17:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -54,29 +64,9 @@
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ranking Bears&apos; Most Important Games Left in Second Half of Season</description>
       <link>https://www.si.com/nfl/bears/onsi/bears-remaining-schedule-strength</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-c18e651e67109fa29cbc</guid>
-      <pubDate>Tue, 10 Nov 2026 16:00:00 GMT</pubDate>
+      <pubDate>Tue, 10 Nov 2026 16:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Nick Foles believes Bears are team to beat in loaded NFC North: &apos;Something&apos;s brewing in Chicago&apos;</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Nick Foles believes Bears are team to beat in loaded NFC North: &apos;Something&apos;s brewing in Chicago&apos;</description>
-      <link>https://sports.yahoo.com/articles/nick-foles-believes-bears-team-233032501.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f097115c2681309deb5c</guid>
-      <pubDate>Tue, 10 Nov 2026 15:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears’ Caleb Williams gets needed wake-up call: NFL QB stock report, Week 10</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears’ Caleb Williams gets needed wake-up call: NFL QB stock report, Week 10</description>
-      <link>https://www.nytimes.com/athletic/7767884/2026/11/10/qb-rankings-stock-report-caleb-williams-bears/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-011b6a1c58e3e46eae11</guid>
-      <pubDate>Tue, 10 Nov 2026 06:20:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -87,6 +77,16 @@
       <pubDate>Tue, 10 Nov 2026 05:02:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>What Bears left tackle Theo Benedet proved playing every snap in back-to-back wins</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: What Bears left tackle Theo Benedet proved playing every snap in back-to-back wins</description>
+      <link>https://www.nytimes.com/athletic/7768993/2026/11/10/bears-theo-benedet-every-snap-buccaneers/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-27bfb8ac5b42e5c34e4b</guid>
+      <pubDate>Tue, 10 Nov 2026 03:54:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
