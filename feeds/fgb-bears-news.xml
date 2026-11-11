@@ -5,48 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 10 Nov 2026 23:49:09 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 11 Nov 2026 03:45:09 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>The top 5 biggest impact deadline trades, including Jaguars and Bears shooting for a Super Bowl</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The top 5 biggest impact deadline trades, including Jaguars and Bears shooting for a Super Bowl</description>
-      <link>https://sports.yahoo.com/nfl/article/the-top-5-biggest-impact-deadline-trades-including-jaguars-and-bears-shooting-for-a-super-bowl-222036590.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-db5711b0aad88d9cab39</guid>
-      <pubDate>Tue, 10 Nov 2026 22:20:36 GMT</pubDate>
+      <title>Chicago Bears Bye Week Confidence Check!</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Bye Week Confidence Check!</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-bye-week-confidence-010000141.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3d3e07c204de995cd963</guid>
+      <pubDate>Wed, 11 Nov 2026 01:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears stay quiet at trade deadline after Simmons blockbuster</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears stay quiet at trade deadline after Simmons blockbuster</description>
-      <link>https://sports.yahoo.com/articles/bears-stay-quiet-trade-deadline-210057970.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9c3d006b905ba6ddab9b</guid>
-      <pubDate>Tue, 10 Nov 2026 21:18:47 GMT</pubDate>
+      <title>Bears&apos; Zavion Thomas: Catches one pass Sunday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Zavion Thomas: Catches one pass Sunday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-zavion-thomas-catches-one-pass-sunday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7a104d5d85f943886c61</guid>
+      <pubDate>Tue, 10 Nov 2026 18:33:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Ryan Hayes: Tries out with Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Ryan Hayes: Tries out with Bears</description>
+      <link>https://www.cbssports.com/fantasy/football/news/ryan-hayes-tries-out-with-bears/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-343458c2a477d038b443</guid>
+      <pubDate>Tue, 10 Nov 2026 17:51:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears Face a New Division Threat After Vikings Reunite With Kirk Cousins at the Deadline</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Face a New Division Threat After Vikings Reunite With Kirk Cousins at the Deadline</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-trade-deadline-moves-nfc-north-kirk-cousins</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4ad94cb6b20b73446216</guid>
+      <pubDate>Tue, 10 Nov 2026 16:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Ranking Bears&apos; Most Important Games Left in Second Half of Season</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Ranking Bears&apos; Most Important Games Left in Second Half of Season</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-remaining-schedule-strength</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c18e651e67109fa29cbc</guid>
+      <pubDate>Tue, 10 Nov 2026 16:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Nick Foles believes Bears are team to beat in loaded NFC North: &apos;Something&apos;s brewing in Chicago&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Nick Foles believes Bears are team to beat in loaded NFC North: &apos;Something&apos;s brewing in Chicago&apos;</description>
+      <link>https://sports.yahoo.com/articles/nick-foles-believes-bears-team-233032501.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f097115c2681309deb5c</guid>
+      <pubDate>Tue, 10 Nov 2026 15:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Where Ben Johnson Sees Bears Evolving Leaves One Step After Bye</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Where Ben Johnson Sees Bears Evolving Leaves One Step After Bye</description>
-      <link>https://www.si.com/nfl/bears/onsi/where-ben-johnson-sees-bears-evolving-leaves-one-step-after-bye</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c5920634482fe6f4aec6</guid>
-      <pubDate>Tue, 10 Nov 2026 15:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears NFL Power Rankings For Week 10: Chicago Remains on Doorstep of No. 1 Despite Ugly Win</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears NFL Power Rankings For Week 10: Chicago Remains on Doorstep of No. 1 Despite Ugly Win</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-nfl-power-rankings-week-10</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5d093f7d14330b12422a</guid>
-      <pubDate>Tue, 10 Nov 2026 14:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -65,26 +85,6 @@
       <link>https://www.chicagobears.com/audio/ben-johnson-reflects-on-week-9-looks-ahead-to-final-8-games-bears-etc-podcast</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-b37b500858c6e5df869a</guid>
       <pubDate>Tue, 10 Nov 2026 05:02:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Report: DT Jordan Elliott to work out for Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Report: DT Jordan Elliott to work out for Bears</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/report-dt-jordan-elliott-to-work-out-for-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4f182fb1226b6cb42513</guid>
-      <pubDate>Tue, 10 Nov 2026 00:35:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
-      <title>5 things we learned from Bears coach Ben Johnson in Week 9 win</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: 5 things we learned from Bears coach Ben Johnson in Week 9 win</description>
-      <link>https://www.chicagobears.com/news/5-things-we-learned-from-bears-coach-ben-johnson-in-week-9-win</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-67c3d231a4ad50dc93a0</guid>
-      <pubDate>Tue, 10 Nov 2026 00:30:17 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
