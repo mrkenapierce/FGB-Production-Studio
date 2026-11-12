@@ -5,28 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 12 Nov 2026 08:16:29 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 12 Nov 2026 16:55:53 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Chicago Bears-Tampa Bay Bucs stockwatch: Caleb down, Devin Bush up</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears-Tampa Bay Bucs stockwatch: Caleb down, Devin Bush up</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-tampa-bay-bucs-010000101.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3b1ecb11329e32ffb242</guid>
-      <pubDate>Thu, 12 Nov 2026 01:00:00 GMT</pubDate>
+      <title>Chicago Bears open applications for 2027 Collin Wehr Scholarship</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears open applications for 2027 Collin Wehr Scholarship</description>
+      <link>https://www.chicagobears.com/news/chicago-bears-open-applications-collin-wehr-scholarship-2027</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ad8e1628bab3ad46c894</guid>
+      <pubDate>Thu, 12 Nov 2026 17:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears Question of the Day: What adjustment do you want to see after the Bye?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Question of the Day: What adjustment do you want to see after the Bye?</description>
+      <link>https://sports.yahoo.com/articles/bears-day-adjustment-want-see-140000333.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b476b0c8a7deb2544a24</guid>
+      <pubDate>Thu, 12 Nov 2026 14:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bucs-Bears generates 21.5 million on Sunday night</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bucs-Bears generates 21.5 million on Sunday night</description>
-      <link>https://sports.yahoo.com/articles/bucs-bears-generates-21-5-000546191.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1e7d897247e92c4e364c</guid>
-      <pubDate>Thu, 12 Nov 2026 00:05:46 GMT</pubDate>
+      <title>3 Cornerbacks Bears Can Sign Right Now After Not Addressing Need at Trade Deadline</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 3 Cornerbacks Bears Can Sign Right Now After Not Addressing Need at Trade Deadline</description>
+      <link>https://www.si.com/nfl/bears/onsi/cornerbacks-bears-can-sign-free-agency-trade-deadline</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-73157ffa6be2bc9d5a2f</guid>
+      <pubDate>Thu, 12 Nov 2026 08:39:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears Bye Week: Simmons Trade Pays Off While Secondary Waits</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Bye Week: Simmons Trade Pays Off While Secondary Waits</description>
+      <link>https://sports.yahoo.com/articles/bears-bye-week-simmons-trade-154654306.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-56bc6707bfa8d539a3ae</guid>
+      <pubDate>Thu, 12 Nov 2026 07:46:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears&apos; Most Disappointing Players at Halfway Point of 2026 Season</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears&apos; Most Disappointing Players at Halfway Point of 2026 Season</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-most-disappointing-players-halfway-point-2026-season</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d1a4d152b32c7fcc75f7</guid>
+      <pubDate>Thu, 12 Nov 2026 06:43:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Midseason progress report: How Caleb Williams’ growth is providing fuel for 7-2 Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Midseason progress report: How Caleb Williams’ growth is providing fuel for 7-2 Bears</description>
+      <link>https://www.nytimes.com/athletic/7771635/2026/11/12/bears-caleb-williams-progress-report/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-63c50cfa24eda57dd7b7</guid>
+      <pubDate>Thu, 12 Nov 2026 04:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
@@ -47,46 +87,6 @@
       <pubDate>Wed, 11 Nov 2026 19:40:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Honoring former Bears QB Young Bussey, who made ultimate sacrifice in World War II</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Honoring former Bears QB Young Bussey, who made ultimate sacrifice in World War II</description>
-      <link>https://www.chicagobears.com/news/honoring-former-bears-qb-young-bussey-who-made-ultimate-sacrifice-in-world-war-ii</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3cef66fb4532f69b70b4</guid>
-      <pubDate>Wed, 11 Nov 2026 18:10:19 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Jeffery Simmons&apos; Leadership, Trash Talk on Display in Mic&apos;d Up Video From Bears vs. Bucs</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Jeffery Simmons&apos; Leadership, Trash Talk on Display in Mic&apos;d Up Video From Bears vs. Bucs</description>
-      <link>https://www.si.com/nfl/bears/onsi/jeffery-simmons-bears-bucs-leadership</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d3128badcd59153f5a07</guid>
-      <pubDate>Wed, 11 Nov 2026 16:31:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>There&apos;s Actually More to Transformed Bears Defense Than Jeffery Simmons</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: There&apos;s Actually More to Transformed Bears Defense Than Jeffery Simmons</description>
-      <link>https://www.si.com/nfl/bears/onsi/there-s-actually-more-to-transformed-bears-defense-than-jeffery-simmons</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-316e869ffbb517ab5c10</guid>
-      <pubDate>Wed, 11 Nov 2026 12:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bucs-Bears generates 21.5 million on Sunday night</title>
-      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bucs-Bears generates 21.5 million on Sunday night</description>
-      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bucs-bears-generates-21-5-million-on-sunday-night</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0be0861100e27177853c</guid>
-      <pubDate>Wed, 11 Nov 2026 11:05:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
   </channel>
 </rss>
