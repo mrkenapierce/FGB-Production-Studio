@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 12 Nov 2026 01:09:23 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 12 Nov 2026 08:16:29 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Chicago Bears-Tampa Bay Bucs stockwatch: Caleb down, Devin Bush up</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears-Tampa Bay Bucs stockwatch: Caleb down, Devin Bush up</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-tampa-bay-bucs-010000101.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3b1ecb11329e32ffb242</guid>
+      <pubDate>Thu, 12 Nov 2026 01:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bucs-Bears generates 21.5 million on Sunday night</title>
@@ -20,13 +30,23 @@
     </item>
 
     <item>
-      <title>Reviewing the Bears’ PFN grades from Week 9 vs. Buccaneers</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Reviewing the Bears’ PFN grades from Week 9 vs. Buccaneers</description>
-      <link>https://sports.yahoo.com/articles/reviewing-bears-pfn-grades-week-230000060.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f8741e45c6d96b503a76</guid>
-      <pubDate>Wed, 11 Nov 2026 23:00:00 GMT</pubDate>
+      <title>Bears&apos; Jaylon Johnson: Pick-six against Tampa Bay</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Jaylon Johnson: Pick-six against Tampa Bay</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-jaylon-johnson-pick-six-against-tampa-bay/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0fb10d98ca0b70b1dafd</guid>
+      <pubDate>Wed, 11 Nov 2026 19:48:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Jeffery Simmons: Posts another sack for new team</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Jeffery Simmons: Posts another sack for new team</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-jeffery-simmons-posts-another-sack-for-new-team/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-64464cc253600e968970</guid>
+      <pubDate>Wed, 11 Nov 2026 19:40:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -67,16 +87,6 @@
       <pubDate>Wed, 11 Nov 2026 11:05:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
-    </item>
-
-    <item>
-      <title>Bears celebrate Salute to Service with Battle of the Branches tournament</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears celebrate Salute to Service with Battle of the Branches tournament</description>
-      <link>https://www.chicagobears.com/video/bears-celebrate-salute-to-service-with-battle-of-the-branches-tournament</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fed2517cada0266de0c8</guid>
-      <pubDate>Wed, 11 Nov 2026 05:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
