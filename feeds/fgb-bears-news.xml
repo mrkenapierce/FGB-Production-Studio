@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 12 Nov 2026 22:30:09 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 13 Nov 2026 02:49:42 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -30,11 +30,31 @@
     </item>
 
     <item>
-      <title>Micah Parsons Pumped the Brakes on the Bears’ Trade Celebration</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Micah Parsons Pumped the Brakes on the Bears’ Trade Celebration</description>
-      <link>https://sports.yahoo.com/articles/micah-parsons-pumped-brakes-bears-221354495.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-71fd18794a536a520605</guid>
-      <pubDate>Thu, 12 Nov 2026 14:13:00 GMT</pubDate>
+      <title>Another Last-Ditch Stadium Idea to Sell Bears on Hospital Site Arises</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Another Last-Ditch Stadium Idea to Sell Bears on Hospital Site Arises</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-stadium-talks-site-debate</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c771c85b2bc149f72f3a</guid>
+      <pubDate>Thu, 12 Nov 2026 15:01:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>2 Concerns Chicago Bears Must Address During Bye Week Before Their Playoff Push</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: 2 Concerns Chicago Bears Must Address During Bye Week Before Their Playoff Push</description>
+      <link>https://sports.yahoo.com/articles/2-concerns-chicago-bears-must-220000336.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-859c52144b47b9b938d3</guid>
+      <pubDate>Thu, 12 Nov 2026 14:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Trades That Should Have Been Made at the Deadline But Weren&apos;t</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Trades That Should Have Been Made at the Deadline But Weren&apos;t</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-trades-made-deadline-215253671.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-06a8dd73aeaf7a6e9357</guid>
+      <pubDate>Thu, 12 Nov 2026 13:52:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -50,26 +70,6 @@
     </item>
 
     <item>
-      <title>UK Fans Travel Far To Cheer For Chicago Bears And Caleb Williams</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: UK Fans Travel Far To Cheer For Chicago Bears And Caleb Williams</description>
-      <link>https://sports.yahoo.com/articles/uk-fans-travel-far-cheer-214955396.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fdc1e2b84fb80eba8cea</guid>
-      <pubDate>Thu, 12 Nov 2026 13:49:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>4 Bears Offseason Trade Candidates Now That the Deadline Has Passed</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 4 Bears Offseason Trade Candidates Now That the Deadline Has Passed</description>
-      <link>https://www.si.com/nfl/bears/onsi/4-bears-offseason-trade-candidates-now-that-the-deadline-has-passed</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-49c8131b4882b15e5718</guid>
-      <pubDate>Thu, 12 Nov 2026 11:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Midseason progress report: How Caleb Williams’ growth is providing fuel for 7-2 Bears</title>
       <description>Football&apos;s Greatest Bears news brief from The Athletic: Midseason progress report: How Caleb Williams’ growth is providing fuel for 7-2 Bears</description>
       <link>https://www.nytimes.com/athletic/7771635/2026/11/12/bears-caleb-williams-progress-report/</link>
@@ -77,16 +77,6 @@
       <pubDate>Thu, 12 Nov 2026 04:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Jaylon Johnson: Pick-six against Tampa Bay</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Jaylon Johnson: Pick-six against Tampa Bay</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-jaylon-johnson-pick-six-against-tampa-bay/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0fb10d98ca0b70b1dafd</guid>
-      <pubDate>Wed, 11 Nov 2026 19:48:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
   </channel>
 </rss>
