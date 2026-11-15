@@ -5,26 +5,46 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 15 Nov 2026 07:10:34 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 15 Nov 2026 14:42:50 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Keionte Scott receives his first NFL fine from Buccaneers vs. Bears in Week 9</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Keionte Scott receives his first NFL fine from Buccaneers vs. Bears in Week 9</description>
-      <link>https://sports.yahoo.com/articles/keionte-scott-receives-first-nfl-223852070.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-778d91bcb6cacb37f6db</guid>
-      <pubDate>Sat, 14 Nov 2026 22:38:52 GMT</pubDate>
+      <title>How Chicago Bears Can Maintain First Place in NFC North Through Week 10 Bye</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: How Chicago Bears Can Maintain First Place in NFC North Through Week 10 Bye</description>
+      <link>https://www.si.com/nfl/bears/onsi/how-chicago-bears-maintain-first-place-nfc-north-week-10-bye</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ce15901b828f521554b6</guid>
+      <pubDate>Sun, 15 Nov 2026 06:07:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Are the Chicago Bears playing today in Week 10?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Are the Chicago Bears playing today in Week 10?</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-playing-today-week-132023101.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-284c461ee3511c671caf</guid>
+      <pubDate>Sun, 15 Nov 2026 05:20:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears Can Reunite With Once-Promising $4 Million CB After Recent Cut</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Can Reunite With Once-Promising $4 Million CB After Recent Cut</description>
-      <link>https://sports.yahoo.com/articles/bears-reunite-once-promising-4-235703910.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-04f831910a4863f59ef7</guid>
-      <pubDate>Sat, 14 Nov 2026 15:56:00 GMT</pubDate>
+      <title>Do the Chicago Bears Play Today? Schedule, Win-Loss Predictions for Rest of Season</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Do the Chicago Bears Play Today? Schedule, Win-Loss Predictions for Rest of Season</description>
+      <link>https://www.si.com/nfl/bears/onsi/do-chicago-bears-play-today-schedule-win-loss-predictions-rest-season</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b2f7658197a724c34a7a</guid>
+      <pubDate>Sun, 15 Nov 2026 05:07:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Jeffery Simmons Reveals If He Wants to Retire with Bears or Titans</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Jeffery Simmons Reveals If He Wants to Retire with Bears or Titans</description>
+      <link>https://sports.yahoo.com/articles/jeffery-simmons-reveals-wants-retire-120008714.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ec2f1d1ba047c76e9612</guid>
+      <pubDate>Sun, 15 Nov 2026 04:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
