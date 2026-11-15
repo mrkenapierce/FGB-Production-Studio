@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 15 Nov 2026 00:31:54 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 15 Nov 2026 07:10:34 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -27,26 +27,6 @@
       <pubDate>Sat, 14 Nov 2026 15:56:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>One Midseason Poll Consensus Labels Bears as NFC&apos;s Super Bowl Team</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: One Midseason Poll Consensus Labels Bears as NFC&apos;s Super Bowl Team</description>
-      <link>https://www.si.com/nfl/bears/onsi/one-midseason-poll-consensus-labels-bears-as-nfc-super-bowl-team</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7e60a5a8520389989c03</guid>
-      <pubDate>Sat, 14 Nov 2026 14:31:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>How Rome Odunze Rates in Quest for Bears to Pick Up Fifth-Year Option</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: How Rome Odunze Rates in Quest for Bears to Pick Up Fifth-Year Option</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-rome-odunze-fifth-year-option</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4d18e696a38f6a2f79e6</guid>
-      <pubDate>Sat, 14 Nov 2026 14:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
