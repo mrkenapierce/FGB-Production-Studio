@@ -5,48 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 16 Nov 2026 11:04:20 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 16 Nov 2026 20:58:40 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>$10B Bears stadium proposal unveiled as Illinois lawmakers prepare to discuss legislation</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: $10B Bears stadium proposal unveiled as Illinois lawmakers prepare to discuss legislation</description>
-      <link>https://sports.yahoo.com/articles/10b-chicago-stadium-proposal-challenges-034942755.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3bd0016e28a2443d57ea</guid>
-      <pubDate>Sun, 15 Nov 2026 19:49:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>NFC North Predictions 2026: Vikings Lead Lions, Bears and Packers in Division Race</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFC North Predictions 2026: Vikings Lead Lions, Bears and Packers in Division Race</description>
-      <link>https://sports.yahoo.com/videos/nfc-north-predictions-2026-vikings-002449601.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a8080fedf3214d6a7cb7</guid>
-      <pubDate>Sun, 15 Nov 2026 16:24:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears Take Bye-Week Tumble from First Place in NFC North Standings</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Take Bye-Week Tumble from First Place in NFC North Standings</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-bye-week-standings-lions-packers-vikings</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e041b51133806a6d939e</guid>
-      <pubDate>Sun, 15 Nov 2026 15:30:00 GMT</pubDate>
+      <title>Luther Burden Back on Bears Practice Field Following Concussion</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Luther Burden Back on Bears Practice Field Following Concussion</description>
+      <link>https://www.si.com/nfl/bears/onsi/luther-burden-injury-update-week-11-bears</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a0f48cdd72d2ae1d78ea</guid>
+      <pubDate>Mon, 16 Nov 2026 12:38:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Bears&apos; Division-Only Finish Gets Tougher With Micah Parsons Nearing a Return for Packers</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Division-Only Finish Gets Tougher With Micah Parsons Nearing a Return for Packers</description>
-      <link>https://www.si.com/nfl/bears/onsi/nfc-north-standings-bears-bye-week-10</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d0cf207392ec996ff998</guid>
-      <pubDate>Sun, 15 Nov 2026 13:41:00 GMT</pubDate>
+      <title>Bears&apos; Luther Burden: Back at practice Monday</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Luther Burden: Back at practice Monday</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-luther-burden-back-at-practice-monday/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9917a5ef30e13c1c8c36</guid>
+      <pubDate>Mon, 16 Nov 2026 12:25:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Monangai’s Return Boosts Bears Run Game Against Saints</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Monangai’s Return Boosts Bears Run Game Against Saints</description>
+      <link>https://sports.yahoo.com/articles/monangai-return-boosts-bears-run-201140334.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a3a34f3cabc8d3a03eeb</guid>
+      <pubDate>Mon, 16 Nov 2026 12:11:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears Dealt Strong Jeffery Simmons Message After NFL Week 10</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Dealt Strong Jeffery Simmons Message After NFL Week 10</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-dealt-strong-jeffery-191006320.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-06f7e20db6b1f3b09a1a</guid>
+      <pubDate>Mon, 16 Nov 2026 11:10:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Strength of Schedule For Remaining Games Confirms Brutally Tough Path to Playoffs</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Strength of Schedule For Remaining Games Confirms Brutally Tough Path to Playoffs</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-strength-of-schedule-remaining-games</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-00bd2df9d0a61534cf41</guid>
+      <pubDate>Mon, 16 Nov 2026 10:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>What’s next for a Chicago Bears stadium as Illinois lawmakers open key veto session</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: What’s next for a Chicago Bears stadium as Illinois lawmakers open key veto session</description>
+      <link>https://www.nytimes.com/athletic/7785297/2026/11/16/chicago-bears-stadium-questions-illinois-indiana/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ac7dd757a6b5ae5183d2</guid>
+      <pubDate>Mon, 16 Nov 2026 09:41:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
 
     <item>
