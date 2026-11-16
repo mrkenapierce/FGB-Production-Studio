@@ -5,16 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 16 Nov 2026 03:09:06 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 16 Nov 2026 11:04:20 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>NFC Playoff Picture: Chicago Bears in 6th following Sunday’s games</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFC Playoff Picture: Chicago Bears in 6th following Sunday’s games</description>
-      <link>https://sports.yahoo.com/articles/nfc-playoff-picture-chicago-bears-181513487.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-51b365bda80059c79319</guid>
-      <pubDate>Mon, 16 Nov 2026 01:17:03 GMT</pubDate>
+      <title>$10B Bears stadium proposal unveiled as Illinois lawmakers prepare to discuss legislation</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: $10B Bears stadium proposal unveiled as Illinois lawmakers prepare to discuss legislation</description>
+      <link>https://sports.yahoo.com/articles/10b-chicago-stadium-proposal-challenges-034942755.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3bd0016e28a2443d57ea</guid>
+      <pubDate>Sun, 15 Nov 2026 19:49:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>NFC North Predictions 2026: Vikings Lead Lions, Bears and Packers in Division Race</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFC North Predictions 2026: Vikings Lead Lions, Bears and Packers in Division Race</description>
+      <link>https://sports.yahoo.com/videos/nfc-north-predictions-2026-vikings-002449601.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a8080fedf3214d6a7cb7</guid>
+      <pubDate>Sun, 15 Nov 2026 16:24:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -37,16 +47,6 @@
       <pubDate>Sun, 15 Nov 2026 13:41:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>$10 Billion Bronzeville Plan Targets Bears Relocation</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: $10 Billion Bronzeville Plan Targets Bears Relocation</description>
-      <link>https://sports.yahoo.com/articles/10-billion-bronzeville-plan-targets-200444252.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8b7884ceb7abf5115ace</guid>
-      <pubDate>Sun, 15 Nov 2026 12:04:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
