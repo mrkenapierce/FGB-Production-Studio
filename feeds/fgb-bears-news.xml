@@ -5,16 +5,56 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 16 Nov 2026 20:58:40 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 17 Nov 2026 03:25:40 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Luther Burden Back on Bears Practice Field Following Concussion</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Luther Burden Back on Bears Practice Field Following Concussion</description>
-      <link>https://www.si.com/nfl/bears/onsi/luther-burden-injury-update-week-11-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a0f48cdd72d2ae1d78ea</guid>
-      <pubDate>Mon, 16 Nov 2026 12:38:00 GMT</pubDate>
+      <title>Chicago Bears Injury Update for Kyle Monangai, Luther Burden III, and others</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Injury Update for Kyle Monangai, Luther Burden III, and others</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-injury-kyle-monangai-234500800.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-257e033ab1db4918c311</guid>
+      <pubDate>Mon, 16 Nov 2026 23:45:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears hoping to hit the ground running after bye week</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears hoping to hit the ground running after bye week</description>
+      <link>https://www.chicagobears.com/news/bears-hoping-to-hit-the-ground-running-after-bye-week</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-33039afa5f1a2993a29f</guid>
+      <pubDate>Mon, 16 Nov 2026 23:30:45 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears’ Kyle Monangai Breaks Injury Silence Before Saints Matchup</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Kyle Monangai Breaks Injury Silence Before Saints Matchup</description>
+      <link>https://sports.yahoo.com/articles/bears-kyle-monangai-breaks-injury-005921241.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e0ae3937b82b9a0e57ca</guid>
+      <pubDate>Mon, 16 Nov 2026 16:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>This Pet Ben Johnson Look for Bears Offense Keeps Coming Up Short</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: This Pet Ben Johnson Look for Bears Offense Keeps Coming Up Short</description>
+      <link>https://www.si.com/nfl/bears/onsi/this-pet-ben-johnson-look-for-bears-offense-keeps-coming-up-short</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2815dade211a2e5d70b6</guid>
+      <pubDate>Mon, 16 Nov 2026 16:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Kyle Monangai Injury Update From Practice Signals Bears RB Will Play in Week 11</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Kyle Monangai Injury Update From Practice Signals Bears RB Will Play in Week 11</description>
+      <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-injury-update-bears-week-11</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ffa41e3a19ef06c1a824</guid>
+      <pubDate>Mon, 16 Nov 2026 14:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
@@ -27,36 +67,6 @@
       <pubDate>Mon, 16 Nov 2026 12:25:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Monangai’s Return Boosts Bears Run Game Against Saints</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Monangai’s Return Boosts Bears Run Game Against Saints</description>
-      <link>https://sports.yahoo.com/articles/monangai-return-boosts-bears-run-201140334.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a3a34f3cabc8d3a03eeb</guid>
-      <pubDate>Mon, 16 Nov 2026 12:11:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Dealt Strong Jeffery Simmons Message After NFL Week 10</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears Dealt Strong Jeffery Simmons Message After NFL Week 10</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-dealt-strong-jeffery-191006320.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-06f7e20db6b1f3b09a1a</guid>
-      <pubDate>Mon, 16 Nov 2026 11:10:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Strength of Schedule For Remaining Games Confirms Brutally Tough Path to Playoffs</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Strength of Schedule For Remaining Games Confirms Brutally Tough Path to Playoffs</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-strength-of-schedule-remaining-games</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-00bd2df9d0a61534cf41</guid>
-      <pubDate>Mon, 16 Nov 2026 10:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -75,16 +85,6 @@
       <link>https://www.chicagobears.com/news/bears-fans-of-the-united-kingdom</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-da16f49e4b85840c7a13</guid>
       <pubDate>Thu, 12 Nov 2026 17:02:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears open applications for 2027 Collin Wehr Scholarship</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears open applications for 2027 Collin Wehr Scholarship</description>
-      <link>https://www.chicagobears.com/news/chicago-bears-open-applications-collin-wehr-scholarship-2027</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ad8e1628bab3ad46c894</guid>
-      <pubDate>Thu, 12 Nov 2026 16:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
