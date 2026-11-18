@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 18 Nov 2026 02:39:55 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 18 Nov 2026 10:42:24 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears’ Ben Johnson Gets Blunt on Saints’ Defense Before Week 11 Game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Ben Johnson Gets Blunt on Saints’ Defense Before Week 11 Game</description>
+      <link>https://sports.yahoo.com/articles/bears-ben-johnson-gets-blunt-090407573.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ab7185601935241f27d8</guid>
+      <pubDate>Wed, 18 Nov 2026 01:05:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Week 11 Chicago Bears power rankings roundup</title>
@@ -15,16 +25,6 @@
       <link>https://sports.yahoo.com/articles/week-11-chicago-bears-power-234500269.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-c2efc2ac9d656d39f14a</guid>
       <pubDate>Tue, 17 Nov 2026 23:45:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Bears have a tough path to the playoffs, but are focused on 1-0</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears have a tough path to the playoffs, but are focused on 1-0</description>
-      <link>https://sports.yahoo.com/articles/bears-tough-path-playoffs-focused-224500713.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e6ff8f664ceb68051a8e</guid>
-      <pubDate>Tue, 17 Nov 2026 22:45:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -40,6 +40,36 @@
     </item>
 
     <item>
+      <title>Bears 0-0 Lions (Oct 19, 1981) Final Score</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears 0-0 Lions (Oct 19, 1981) Final Score</description>
+      <link>https://www.espn.com/nfl/game/_/gameId/11019008/bears-lions</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7a2b028b6444ed9b5a8b</guid>
+      <pubDate>Tue, 17 Nov 2026 18:55:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Bears 0-0 Oilers (Dec 7, 1992) Box Score</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears 0-0 Oilers (Dec 7, 1992) Box Score</description>
+      <link>https://www.espn.com/nfl/boxscore/_/gameId/121207010</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8d470c328f9c11621768</guid>
+      <pubDate>Tue, 17 Nov 2026 18:47:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>Nick Shook on the Bears as NFC North contenders | &apos;The NFL Report&apos;</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Nick Shook on the Bears as NFC North contenders | &apos;The NFL Report&apos;</description>
+      <link>https://www.nfl.com/videos/nick-shook-on-the-bears-as-nfc-north-contenders-the-nfl-report</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c1204d7db1aa4215804e</guid>
+      <pubDate>Tue, 17 Nov 2026 16:25:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
+    </item>
+
+    <item>
       <title>Chicago Bears announce Dutchman Heating &amp; Cooling as third 2026 Small Business All-Pros Winner, presented by PNC</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Chicago Bears announce Dutchman Heating &amp; Cooling as third 2026 Small Business All-Pros Winner, presented by PNC</description>
       <link>https://www.chicagobears.com/news/chicago-bears-announce-dutchman-heating-cooling-as-third-2026-small-business-all-pros-winner-presented-by-pnc</link>
@@ -50,33 +80,13 @@
     </item>
 
     <item>
-      <title>Bears 20-0 Steelers (Jan 31, 1993) Final Score</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears 20-0 Steelers (Jan 31, 1993) Final Score</description>
-      <link>https://www.espn.com/nfl/game/_/gameId/91112023/bears-steelers</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c7a9a662940d9f6a8377</guid>
-      <pubDate>Tue, 17 Nov 2026 12:37:00 GMT</pubDate>
+      <title>Devin Bush is the Chicago Bears&apos; Most Improved Player on Defense</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Devin Bush is the Chicago Bears&apos; Most Improved Player on Defense</description>
+      <link>https://www.si.com/nfl/bears/onsi/devin-bush-is-the-chicago-bears-most-improved-player-on-defense</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-31399278d183e33d11ba</guid>
+      <pubDate>Tue, 17 Nov 2026 14:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Steelers 6-6 Bears (Jan 31, 1993) Final Score</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Steelers 6-6 Bears (Jan 31, 1993) Final Score</description>
-      <link>https://www.espn.com/nfl/game/_/gameId/121213003/steelers-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-67db938f129fa57631fa</guid>
-      <pubDate>Tue, 17 Nov 2026 12:28:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Luther Burden: Clears concussion protocol</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Luther Burden: Clears concussion protocol</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-luther-burden-clears-concussion-protocol/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-661198f48848f93c87bb</guid>
-      <pubDate>Tue, 17 Nov 2026 10:22:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
