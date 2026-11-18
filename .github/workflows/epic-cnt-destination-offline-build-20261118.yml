@@ -7,6 +7,8 @@ on:
       - ops/epic-cnt-switcher/Dockerfile.stage
       - ops/epic-cnt-switcher/run-cnt.sh
       - ops/epic-cnt-switcher/cnt-destination-agent.py
+      - ops/epic-cnt-switcher/cnt-destination-gate.sh
+      - ops/epic-cnt-switcher/tests/test_cnt_destination_gate.py
   workflow_dispatch:
 
 permissions:
@@ -25,6 +27,8 @@ jobs:
         run: |
           set -euo pipefail
           bash -n ops/epic-cnt-switcher/run-cnt.sh
+          bash -n ops/epic-cnt-switcher/cnt-destination-gate.sh
+          python3 -m unittest discover -s ops/epic-cnt-switcher/tests -p 'test_cnt_destination_gate.py'
           python3 -m py_compile ops/epic-cnt-switcher/cnt-destination-agent.py
           python3 ops/epic-cnt-switcher/cnt-destination-agent.py --self-test
       - name: Protected OVH access
@@ -45,6 +49,7 @@ jobs:
             ops/epic-cnt-switcher/Dockerfile.stage \
             ops/epic-cnt-switcher/run-cnt.sh \
             ops/epic-cnt-switcher/cnt-destination-agent.py \
+            ops/epic-cnt-switcher/cnt-destination-gate.sh \
             ubuntu@40.160.144.185:/opt/cnt-destination-staging-20261118/
       - name: Build without altering running CNT, preserve hardened base
         run: |
