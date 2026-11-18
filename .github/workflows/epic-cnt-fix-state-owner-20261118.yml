@@ -1,0 +1,45 @@
+name: Fix CNT destination state ownership without restarting CNT
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/epic-cnt-fix-state-owner-20261118.yml]
+permissions: 
+  contents: read
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Protected SSH
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Correct only inactive agent state directory ownership
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          test "$(docker inspect -f '{{.Image}}' epic-cnt-capture)" = 'sha256:0fc522700f6589be7cf58b2b48323e793938f5c5c77e765b8c43d9480bcfc440'
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
+          test "$(docker inspect -f '{{.State.Health.Status}}' epic-cnt-capture)" = healthy
+          state_src="$(docker inspect epic-cnt-capture | python3 -c 'import json,sys;d=json.load(sys.stdin)[0];print(next(x["Source"] for x in d["Mounts"] if x["Destination"]=="/cnt-state"))')"
+          test "$state_src" = /var/lib/docker/volumes/epic-cnt-capture-state/_data
+          test -d "$state_src/destination"
+          test "$(cat "$state_src/destination/destination")" = cnt
+          chown -R 1000:1000 "$state_src/destination"
+          chmod 0700 "$state_src/destination"
+          chmod 0600 "$state_src/destination/destination"
+          test "$(stat -c '%u:%g' "$state_src/destination")" = "1000:1000"
+          test "$(stat -c '%u:%g' "$state_src/destination/destination")" = "1000:1000"
+          test "$(docker exec epic-cnt-capture sh -c 'test -w /cnt-state/destination && echo writable')" = writable
+          test "$(docker inspect -f '{{.State.Health.Status}}' epic-cnt-capture)" = healthy
+          echo "DESTINATION_AGENT_STATE_OWNER_FIXED=true"
+          echo "STATE_WRITABLE_BY_CNT=true"
+          echo "LIVE_CNT_IMAGE_UNCHANGED=true"
+          echo "LIVE_ENCODER_RESTARTED=false"
+          REMOTE
