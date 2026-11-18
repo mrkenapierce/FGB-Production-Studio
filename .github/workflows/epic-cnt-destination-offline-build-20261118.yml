@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/epic-cnt-destination-offline-build-20261118.yml
+      - ops/epic-cnt-switcher/Dockerfile.stage
   workflow_dispatch:
 
 permissions:
