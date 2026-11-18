@@ -1,0 +1,67 @@
+name: EPIC CNT destination readiness - read only
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/epic-cnt-destination-readonly-20261118.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: epic-cnt-destination-readonly-20261118
+  cancel-in-progress: false
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Set up protected OVH access
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY" || { echo "BLOCKED=OVH_SSH_KEY_MISSING"; exit 1; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset DEPLOY_KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+
+      - name: Inspect running CNT only - no mutation and no secret output
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/ovh ubuntu@40.160.144.185 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo "CHECK_UTC=$(date -u +%FT%TZ)"
+          echo "HOST=$(hostname)"
+          for d in /opt/cnt-transport /opt/epic-transport; do
+            if [ -d "$d" ]; then echo "DIRECTORY_PRESENT=$d"; else echo "DIRECTORY_ABSENT=$d"; fi
+          done
+          for file in /opt/cnt-transport/docker-compose.phase2.yml /opt/cnt-transport/.env.cnt /opt/cnt-transport/run-cnt.sh /opt/cnt-transport/ops/transport/run-cnt.sh; do
+            if [ -f "$file" ]; then echo "FILE_PRESENT=$file"; else echo "FILE_ABSENT=$file"; fi
+          done
+          sudo docker inspect epic-cnt-capture | python3 -c '
+          import json,sys
+          d=json.load(sys.stdin)[0]
+          labels=d.get("Config",{}).get("Labels") or {}
+          env=d.get("Config",{}).get("Env") or []
+          envnames={e.split("=",1)[0] for e in env}
+          print("CNT_CONTAINER="+str(d.get("Name")))
+          print("CNT_RUNNING="+str(d.get("State",{}).get("Running")))
+          print("CNT_IMAGE="+str(d.get("Config",{}).get("Image")))
+          print("COMPOSE_PROJECT="+str(labels.get("com.docker.compose.project")))
+          print("COMPOSE_DIR="+str(labels.get("com.docker.compose.project.working_dir")))
+          print("COMPOSE_CONFIG="+str(labels.get("com.docker.compose.project.config_files")))
+          print("COMPOSE_SERVICE="+str(labels.get("com.docker.compose.service")))
+          for k in ["CNT_DESTINATION_SWITCHING","EPIC_YOUTUBE_STREAM_KEY","EPIC_YOUTUBE_INGEST_URL","CNT_DESTINATION_AGENT_SECRET","CNT_YOUTUBE_STREAM_KEY"]:
+            print("CONTAINER_ENV_PRESENT_"+k+"="+str(k in envnames))
+          for x in d.get("Mounts",[]): print("MOUNT="+str(x.get("Destination"))+":"+str(x.get("Source")))
+          '
+          if sudo docker exec epic-cnt-capture sh -lc 'pgrep -x ffmpeg >/dev/null && test -s /tmp/cnt-ffmpeg.progress'; then echo 'CNT_ENCODER_PROCESS_AND_PROGRESS=true'; else echo 'CNT_ENCODER_PROCESS_AND_PROGRESS=false'; fi
+          sudo docker ps --format 'CONTAINER={{.Names}} STATUS={{.Status}}' | grep -E 'CONTAINER=(epic-cnt|fgb-transport)' || true
+          echo 'READ_ONLY=true'
+          REMOTE
