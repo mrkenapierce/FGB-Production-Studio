@@ -62,6 +62,7 @@ jobs:
           before="$(docker inspect -f '{{.Id}}' epic-cnt-capture)"
           test "$(docker ps -q --filter label=com.docker.compose.service=cnt | wc -l)" -eq 1
           docker image inspect epic-cnt-destination:staged-20261118 >/dev/null
+          docker run --rm --network none --entrypoint sh epic-cnt-destination:staged-20261118 -lc 'test -x /opt/cnt/run-cnt.sh && test -r /opt/cnt/cnt-destination-agent.py && test -r /opt/cnt/cnt-destination-gate.sh'
           python3 - <<'PY'
           from pathlib import Path
           raw=Path('/opt/cnt-transport/.env.cnt').read_text()
@@ -80,6 +81,8 @@ jobs:
           printf 'cnt' > "$state_src/destination/destination.next"
           chmod 0600 "$state_src/destination/destination.next"
           mv -f "$state_src/destination/destination.next" "$state_src/destination/destination"
+          chown 1000:1000 "$state_src/destination" "$state_src/destination/destination"
+          chmod 0700 "$state_src/destination"
           cat > "$override" <<'YAML'
           services:
             cnt:
@@ -107,7 +110,7 @@ jobs:
           test "$(docker ps -q --filter label=com.docker.compose.service=cnt | wc -l)" -eq 1
           # Wait for signed response journal, actual FFmpeg progress and health.
           ready=false
-          for i in $(seq 1 30); do
+          for i in $(seq 1 20); do
             if docker exec epic-cnt-capture sh -lc '
               test "$(cat /cnt-state/destination/destination)" = cnt &&
               test -s /cnt-state/destination/applied &&
