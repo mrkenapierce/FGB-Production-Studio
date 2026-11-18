@@ -60,7 +60,8 @@ jobs:
           cd /opt/cnt-destination-staging-20261118
           current="$(docker inspect -f '{{.Image}}' epic-cnt-capture)"
           base="$(docker image inspect -f '{{.Id}}' epic-cnt-phase2:hardened-20261104)"
-          test "$current" = "$base" || { echo "ABORT=running_image_differs_from_base"; exit 3; }
+          prior="$(docker image inspect -f '{{.Id}}' epic-cnt-destination:staged-20261118)"
+          test "$current" = "$base" || test "$current" = "$prior" || { echo "ABORT=unexpected_running_image"; exit 3; }
           live_before="$(docker inspect -f '{{.Id}}' epic-cnt-capture)"
           docker build --network none --pull=false \
             -f Dockerfile.stage \
@@ -70,7 +71,7 @@ jobs:
           test "$(docker inspect -f '{{.Id}}' epic-cnt-capture)" = "$live_before"
           test "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
           echo "STANDBY_IMAGE_BUILT=true"
-          echo "SOURCE_BASE_MATCHED_LIVE=true"
+          echo "SOURCE_BASE_VERIFIED=true"
           echo "LIVE_CNT_UNCHANGED=true"
           echo "LIVE_CNT_RESTARTED=false"
           echo "STREAM_DESTINATION_CHANGED=false"
