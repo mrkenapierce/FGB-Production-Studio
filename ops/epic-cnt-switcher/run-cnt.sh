@@ -5,6 +5,7 @@
 set -uo pipefail
 umask 077
 source ./cnt-lifecycle.sh
+source ./cnt-destination-gate.sh
 
 : "${BROADCAST_ORIGIN:?BROADCAST_ORIGIN required}"
 : "${CNT_YOUTUBE_INGEST_URL:?CNT_YOUTUBE_INGEST_URL required}"
@@ -185,9 +186,18 @@ stop_owned() {
   kill -9 "$pid" 2>/dev/null || true
   wait "$pid" 2>/dev/null || true
 }
+# Agent runs as a child of THIS script in the SAME container (sees /tmp progress + ffmpeg PID).
+# Pull-only: no inbound port. Started only after the gate validated switching on.
+AGENT_PID=""
+start_agent() {
+  [ "$CNT_DESTINATION_SWITCHING" = on ] || return 0
+  python3 ./cnt-destination-agent.py 8>&- 9>&- &
+  AGENT_PID=$!
+  log "destination agent pid $AGENT_PID (pull-only)"
+}
 shutdown() {
   trap '' TERM INT
-  stop_owned "${DESTINATION_AGENT_PID:-}"
+  stop_owned "${AGENT_PID:-}"
   stop_owned "${FFMPEG_PID:-}"
   stop_chromium || true
   stop_owned "${XVFB_PID:-}"
@@ -198,21 +208,11 @@ trap shutdown TERM INT
 
 start_display
 start_chromium || exit 1
+# Gate BEFORE the first encoder start: a stale alias file can never redirect unless validated.
+cnt_destination_gate
 sleep 8
-# The agent is scoped to this same CNT container. Missing secrets mean CNT-only.
-# Validate BEFORE the first FFmpeg spawn to prevent a stale alias redirect.
-if [ "$CNT_DESTINATION_SWITCHING" = on ] && {
-  [ -z "${CNT_DESTINATION_AGENT_SECRET:-}" ] || [ -z "${CNT_DESTINATION_AGENT_URL:-}" ];
-}; then
-  CNT_DESTINATION_SWITCHING=off
-  log "destination agent configuration incomplete; defaulting to CNT"
-fi
 start_ffmpeg
-if [ "$CNT_DESTINATION_SWITCHING" = on ]; then
-  python3 ./cnt-destination-agent.py &
-  DESTINATION_AGENT_PID=$!
-  log "destination agent started (in-container, no direct control port)"
-fi
+start_agent
 
 while sleep 5; do
   now=$(date +%s)
@@ -224,6 +224,9 @@ while sleep 5; do
     fi
   else
     watch_browser
+  fi
+  if [ "$CNT_DESTINATION_SWITCHING" = on ] && [ -n "$AGENT_PID" ] && ! kill -0 "$AGENT_PID" 2>/dev/null; then
+    wait "$AGENT_PID" 2>/dev/null; log "destination agent exited; restarting"; start_agent
   fi
   # Cooperative switch: only THIS loop stops its OWN ffmpeg child; browser/audio keep running,
   # so the page (trivia, news, audio) is captured continuously across the encoder restart.
