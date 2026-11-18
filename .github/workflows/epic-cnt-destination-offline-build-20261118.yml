@@ -5,6 +5,8 @@ on:
     paths:
       - .github/workflows/epic-cnt-destination-offline-build-20261118.yml
       - ops/epic-cnt-switcher/Dockerfile.stage
+      - ops/epic-cnt-switcher/run-cnt.sh
+      - ops/epic-cnt-switcher/cnt-destination-agent.py
   workflow_dispatch:
 
 permissions:
@@ -41,6 +43,8 @@ jobs:
         run: |
           scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh \
             ops/epic-cnt-switcher/Dockerfile.stage \
+            ops/epic-cnt-switcher/run-cnt.sh \
+            ops/epic-cnt-switcher/cnt-destination-agent.py \
             ubuntu@40.160.144.185:/opt/cnt-destination-staging-20261118/Dockerfile.stage
       - name: Build without altering running CNT, preserve hardened base
         run: |
