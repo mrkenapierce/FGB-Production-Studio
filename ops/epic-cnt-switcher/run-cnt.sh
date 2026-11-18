@@ -187,6 +187,7 @@ stop_owned() {
 }
 shutdown() {
   trap '' TERM INT
+  stop_owned "${DESTINATION_AGENT_PID:-}"
   stop_owned "${FFMPEG_PID:-}"
   stop_chromium || true
   stop_owned "${XVFB_PID:-}"
@@ -199,6 +200,19 @@ start_display
 start_chromium || exit 1
 sleep 8
 start_ffmpeg
+# The destination agent runs INSIDE this same CNT container and PID namespace.
+# Off by default. Without a configured secret and fixed HTTPS endpoint, leave
+# switching off and retain the original CNT stream. No additional open port.
+if [ "$CNT_DESTINATION_SWITCHING" = on ]; then
+  if [ -n "${CNT_DESTINATION_AGENT_SECRET:-}" ] && [ -n "${CNT_DESTINATION_AGENT_URL:-}" ]; then
+    python3 ./cnt-destination-agent.py &
+    DESTINATION_AGENT_PID=$!
+    log "destination agent started (in-container, no direct control port)"
+  else
+    CNT_DESTINATION_SWITCHING=off
+    log "destination agent configuration incomplete; switch stays disabled"
+  fi
+fi
 
 while sleep 5; do
   now=$(date +%s)
