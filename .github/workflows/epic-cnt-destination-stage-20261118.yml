@@ -1,0 +1,70 @@
+name: Stage EPIC CNT destination components on OVH - inactive
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/epic-cnt-destination-stage-20261118.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: epic-cnt-destination-stage-20261118
+  cancel-in-progress: false
+
+jobs:
+  stage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate destination scripts without starting any service
+        run: |
+          set -euo pipefail
+          bash -n ops/epic-cnt-switcher/run-cnt.sh
+          python3 -m py_compile ops/epic-cnt-switcher/cnt-destination-agent.py
+          python3 ops/epic-cnt-switcher/cnt-destination-agent.py --self-test
+          test -s ops/epic-cnt-switcher/RUNBOOK.md
+          echo LOCAL_CODE_PREFLIGHT=PASS
+
+      - name: Configure protected OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY" || { echo 'BLOCKED=OVH_DEPLOY_KEY_MISSING'; exit 1; }
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset DEPLOY_KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+
+      - name: Stage files OUTSIDE live CNT installation
+        run: |
+          set -euo pipefail
+          HOST=ubuntu@40.160.144.185
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh "$HOST" \
+            'sudo install -d -o ubuntu -g ubuntu -m 0700 /opt/cnt-destination-staging-20261118 && test -f /opt/cnt-transport/run-cnt.sh && sudo docker inspect -f "{{.State.Running}}" epic-cnt-capture | grep -qx true'
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh \
+            ops/epic-cnt-switcher/run-cnt.sh ops/epic-cnt-switcher/cnt-destination-agent.py \
+            ops/epic-cnt-switcher/RUNBOOK.md "$HOST:/opt/cnt-destination-staging-20261118/"
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh "$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/cnt-destination-staging-20261118
+          chmod 700 .
+          chmod 600 *
+          bash -n run-cnt.sh
+          python3 -m py_compile cnt-destination-agent.py
+          python3 cnt-destination-agent.py --self-test
+          echo "STAGING_SOURCE_HASHES:"
+          sha256sum run-cnt.sh cnt-destination-agent.py
+          echo "LIVE_SCRIPT_HASH:"
+          sha256sum /opt/cnt-transport/run-cnt.sh
+          echo "LIVE_SCRIPT_UNCHANGED=true"
+          echo "STAGING_DIR=/opt/cnt-destination-staging-20261118"
+          echo "CNT_LIVE_RUNNING=$(sudo docker inspect -f '{{.State.Running}}' epic-cnt-capture)"
+          echo "CNT_RESTARTED=false"
+          echo "DESTINATION_CHANGED=false"
+          REMOTE
