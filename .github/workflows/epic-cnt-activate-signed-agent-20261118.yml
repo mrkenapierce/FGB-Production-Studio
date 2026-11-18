@@ -1,0 +1,137 @@
+name: Activate CNT signed destination agent - retain CNT output
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/epic-cnt-activate-signed-agent-20261118.yml
+permissions:
+  contents: read
+concurrency:
+  group: epic-cnt-controlled-live-rollout
+  cancel-in-progress: false
+
+jobs:
+  activate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 16
+    steps:
+      - name: Authenticate OVH with existing protected key
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Roll CNT onto signed-agent image with fail-safe rollback, retaining CNT alias
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -Eeuo pipefail
+          exec 9>/run/lock/cnt-epic-switcher-deploy.lock
+          flock -n 9
+          cd /opt/cnt-transport
+          original='sha256:0fc522700f6589be7cf58b2b48323e793938f5c5c77e765b8c43d9480bcfc440'
+          base=(docker compose -p epic-cnt-transport -f docker-compose.phase2.yml -f docker-compose.cnt-hardening-20261104.yml)
+          override=/opt/cnt-destination-staging-20261118/compose-switching.yml
+          upgraded=(docker compose -p epic-cnt-transport -f docker-compose.phase2.yml -f docker-compose.cnt-hardening-20261104.yml -f "$override")
+          need_rollback=0
+          rollback() {
+            rc=$?
+            trap - ERR
+            if [ "$need_rollback" = 1 ]; then
+              echo "ROLLBACK_BEGIN=true"
+              if "${base[@]}" up -d --no-deps --no-build --force-recreate cnt >/dev/null 2>&1; then
+                echo "ROLLBACK_RUNNING=$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)"
+                echo "ROLLBACK_ORIGINAL_IMAGE=$(test "$(docker inspect -f '{{.Image}}' epic-cnt-capture)" = "$original" && echo true || echo false)"
+              else
+                echo "ROLLBACK_RECREATION_FAILED=true"
+              fi
+            else
+              echo "ROLLBACK_NOT_NEEDED_NO_LIVE_MUTATION=true"
+            fi
+            exit "$rc"
+          }
+          trap rollback ERR
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
+          test "$(docker inspect -f '{{.Image}}' epic-cnt-capture)" = "$original"
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-archive-worker)" = true
+          worker_id="$(docker inspect -f '{{.Id}}' epic-cnt-archive-worker)"
+          before="$(docker inspect -f '{{.Id}}' epic-cnt-capture)"
+          test "$(docker ps -q --filter label=com.docker.compose.service=cnt | wc -l)" -eq 1
+          docker image inspect epic-cnt-destination:staged-20261118 >/dev/null
+          python3 - <<'PY'
+          from pathlib import Path
+          raw=Path('/opt/cnt-transport/.env.cnt').read_text()
+          d=dict(line.split('=',1) for line in raw.splitlines() if '=' in line and not line.startswith('#'))
+          for n in ['CNT_YOUTUBE_STREAM_KEY','CNT_YOUTUBE_INGEST_URL','EPIC_YOUTUBE_INGEST_URL','EPIC_YOUTUBE_STREAM_KEY','CNT_DESTINATION_AGENT_URL','CNT_DESTINATION_AGENT_SECRET']:
+              assert d.get(n), n+' missing'
+          assert d.get('CNT_DESTINATION_SWITCHING','off') == 'off'
+          assert d['CNT_DESTINATION_AGENT_URL']=='https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/destination-agent'
+          assert len(d['CNT_DESTINATION_AGENT_SECRET'])>=32
+          print('HOST_BOTH_DESTINATIONS_AND_HMAC_CONFIGURED=true')
+          PY
+          # Reset any stale selection while old encoder is strictly CNT-only.
+          state_src="$(docker inspect epic-cnt-capture | python3 -c 'import json,sys;d=json.load(sys.stdin)[0];print(next(x["Source"] for x in d["Mounts"] if x["Destination"]=="/cnt-state"))')"
+          test -d "$state_src"
+          install -d -m 0700 "$state_src/destination"
+          printf 'cnt' > "$state_src/destination/destination.next"
+          chmod 0600 "$state_src/destination/destination.next"
+          mv -f "$state_src/destination/destination.next" "$state_src/destination/destination"
+          cat > "$override" <<'YAML'
+          services:
+            cnt:
+              image: epic-cnt-destination:staged-20261118
+              environment:
+                CNT_DESTINATION_SWITCHING: "on"
+          YAML
+          chmod 0600 "$override"
+          "${upgraded[@]}" config --format json | python3 -c '
+          import json,sys
+          x=json.load(sys.stdin)["services"]["cnt"]
+          assert x["image"]=="epic-cnt-destination:staged-20261118"
+          e=x.get("environment") or {}
+          for k in ["CNT_YOUTUBE_STREAM_KEY","CNT_YOUTUBE_INGEST_URL","EPIC_YOUTUBE_STREAM_KEY","EPIC_YOUTUBE_INGEST_URL","CNT_DESTINATION_AGENT_SECRET","CNT_DESTINATION_AGENT_URL"]:
+              assert e.get(k), "required environment absent: "+k
+          assert e.get("CNT_DESTINATION_SWITCHING") == "on"
+          print("NEW_COMPOSE_CHECK=PASSED")
+          '
+          echo "STARTING_CNT_ONLY_IMAGE_ACTIVATION=true"
+          need_rollback=1
+          "${upgraded[@]}" up -d --no-deps --no-build --force-recreate cnt >/dev/null
+          test "$(docker inspect -f '{{.Image}}' epic-cnt-capture)" = "$(docker image inspect -f '{{.Id}}' epic-cnt-destination:staged-20261118)"
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
+          test "$(docker inspect -f '{{.Id}}' epic-cnt-capture)" != "$before"
+          test "$(docker ps -q --filter label=com.docker.compose.service=cnt | wc -l)" -eq 1
+          # Wait for signed response journal, actual FFmpeg progress and health.
+          ready=false
+          for i in $(seq 1 30); do
+            if docker exec epic-cnt-capture sh -lc '
+              test "$(cat /cnt-state/destination/destination)" = cnt &&
+              test -s /cnt-state/destination/applied &&
+              grep -q '\''"alias":"cnt"'\'' /cnt-state/destination/applied &&
+              pgrep -x ffmpeg >/dev/null &&
+              pgrep -f cnt-destination-agent.py >/dev/null &&
+              test $(( $(date +%s) - $(stat -c %Y /tmp/cnt-ffmpeg.progress) )) -le 15 &&
+              test -s /cnt-state/destination/journal.json &&
+              grep -q '\''"nonces": {'\'' /cnt-state/destination/journal.json' >/dev/null 2>&1 &&
+            [ "$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' epic-cnt-capture)" = healthy ]; then
+              ready=true
+              break
+            fi
+            test "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
+            sleep 10
+          done
+          test "$ready" = true
+          test "$(docker inspect -f '{{.Id}}' epic-cnt-archive-worker)" = "$worker_id"
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-archive-worker)" = true
+          echo "SIGNED_AGENT_STARTED=true"
+          echo "SIGNED_RESPONSE_JOURNAL_PRESENT=true"
+          echo "ENCODER_SENDING_TO_CNT=true"
+          echo "CNT_DOCKER_HEALTH=healthy"
+          echo "ARCHIVE_WORKER_UNCHANGED=true"
+          echo "DESTINATION_SWITCH_NOT_YET_REQUESTED=true"
+          need_rollback=0
+          REMOTE
