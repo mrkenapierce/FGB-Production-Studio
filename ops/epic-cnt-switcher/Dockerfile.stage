@@ -1,0 +1,11 @@
+# Standby CNT destination-enabled image. Inherits the exact running hardened image.
+# Never activates or replaces a running container.
+FROM epic-cnt-phase2:hardened-20261104
+COPY --chown=cnt:cnt run-cnt.sh /opt/cnt/run-cnt.sh
+COPY --chown=cnt:cnt cnt-destination-agent.py /opt/cnt/cnt-destination-agent.py
+RUN bash -n /opt/cnt/run-cnt.sh && \
+    test -s /opt/cnt/cnt-lifecycle.sh && \
+    test -s /opt/cnt/capture-watchdog.py && \
+    test -s /opt/cnt/cnt-diagnostics.py && \
+    python3 -m py_compile /opt/cnt/cnt-destination-agent.py && \
+    python3 /opt/cnt/cnt-destination-agent.py --self-test
