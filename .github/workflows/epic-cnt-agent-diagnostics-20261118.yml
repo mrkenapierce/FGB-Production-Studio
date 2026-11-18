@@ -1,0 +1,46 @@
+name: Diagnose CNT destination agent activation failure - read only
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/epic-cnt-agent-diagnostics-20261118.yml]
+permissions: 
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - name: Protected SSH
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Diagnose state volume permissions and standby image wiring without keys
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          state_src="$(docker inspect epic-cnt-capture | python3 -c 'import json,sys;d=json.load(sys.stdin)[0];print(next(x["Source"] for x in d["Mounts"] if x["Destination"]=="/cnt-state"))')"
+          for p in "$state_src" "$state_src/destination" "$state_src/destination/destination" "$state_src/destination/journal.json" "$state_src/destination/applied"; do
+            if [ -e "$p" ]; then stat -c 'STATE_PERM=%n uid=%u gid=%g mode=%a' "$p"; else echo "STATE_MISSING=$p"; fi
+          done
+          echo "STANDBY_IMAGE_USER=$(docker image inspect -f '{{.Config.User}}' epic-cnt-destination:staged-20261118)"
+          echo "STANDBY_IMAGE_WORKDIR=$(docker image inspect -f '{{.Config.WorkingDir}}' epic-cnt-destination:staged-20261118)"
+          echo "STANDBY_IMAGE_COMMAND=$(docker image inspect -f '{{json .Config.Cmd}}' epic-cnt-destination:staged-20261118)"
+          docker run --rm --network none --entrypoint sh epic-cnt-destination:staged-20261118 -lc '
+            test -r /opt/cnt/run-cnt.sh && echo SCRIPT_READABLE=true
+            test -r /opt/cnt/cnt-destination-gate.sh && echo GATE_READABLE=true
+            test -r /opt/cnt/cnt-destination-agent.py && echo AGENT_READABLE=true
+            bash -n /opt/cnt/run-cnt.sh && echo SCRIPT_SYNTAX_PASS=true
+            python3 -B /opt/cnt/cnt-destination-agent.py --self-test
+            id -u | xargs printf "STANDBY_RUN_UID=%s\n"
+          '
+          echo "CURRENT_IMAGE=$(docker inspect -f '{{.Config.Image}}' epic-cnt-capture)"
+          echo "CURRENT_HEALTH=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' epic-cnt-capture)"
+          echo "CURRENT_FFMPEG_PROGRESS=$(docker exec epic-cnt-capture sh -lc 'test -f /tmp/cnt-ffmpeg.progress && test $(( $(date +%s) - $(stat -c %Y /tmp/cnt-ffmpeg.progress) )) -lt 20 && echo healthy || echo not_healthy')"
+          echo "NO_CHANGES_TO_CNT=true"
+          REMOTE
