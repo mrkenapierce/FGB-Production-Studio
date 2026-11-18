@@ -37,7 +37,7 @@ def main():
             sys.exit("CHANNEL_OR_STREAM_PIN_MISMATCH")
         secret = obj.get("agentHmacSecret", "")
         stream_name = obj.get("epicStreamName", "")
-        if not isinstance(secret, str) or not re.fullmatch(r"[0-9a-f]{64}", secret):
+        if not isinstance(secret, str) or not re.fullmatch(r"[A-Za-z0-9_-]{43,128}", secret):
             sys.exit("CONTROL_SECRET_FORMAT_INVALID")
         if not isinstance(stream_name, str) or not re.fullmatch(r"[A-Za-z0-9_-]{10,256}", stream_name):
             sys.exit("STREAM_NAME_FORMAT_INVALID")
