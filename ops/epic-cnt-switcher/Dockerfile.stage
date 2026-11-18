@@ -3,8 +3,10 @@
 FROM epic-cnt-phase2:hardened-20261104
 COPY --chown=cnt:cnt run-cnt.sh /opt/cnt/run-cnt.sh
 COPY --chown=cnt:cnt cnt-destination-agent.py /opt/cnt/cnt-destination-agent.py
+COPY --chown=cnt:cnt cnt-destination-gate.sh /opt/cnt/cnt-destination-gate.sh
 RUN bash -n /opt/cnt/run-cnt.sh && \
     test -s /opt/cnt/cnt-lifecycle.sh && \
     test -s /opt/cnt/capture-watchdog.py && \
     test -s /opt/cnt/cnt-diagnostics.py && \
+    bash -n /opt/cnt/cnt-destination-gate.sh && \
     python3 -B /opt/cnt/cnt-destination-agent.py --self-test
