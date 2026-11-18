@@ -1,0 +1,66 @@
+name: Offline build EPIC CNT standby switcher image
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/epic-cnt-destination-offline-build-20261118.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: epic-cnt-destination-offline-build-20261118
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate source
+        run: |
+          set -euo pipefail
+          bash -n ops/epic-cnt-switcher/run-cnt.sh
+          python3 -m py_compile ops/epic-cnt-switcher/cnt-destination-agent.py
+          python3 ops/epic-cnt-switcher/cnt-destination-agent.py --self-test
+      - name: Protected OVH access
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset DEPLOY_KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Upload only offline image definition to isolated staging
+        run: |
+          scp -q -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh \
+            ops/epic-cnt-switcher/Dockerfile.stage \
+            ubuntu@40.160.144.185:/opt/cnt-destination-staging-20261118/Dockerfile.stage
+      - name: Build without altering running CNT, preserve hardened base
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/ovh \
+            ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/cnt-destination-staging-20261118
+          current="$(docker inspect -f '{{.Image}}' epic-cnt-capture)"
+          base="$(docker image inspect -f '{{.Id}}' epic-cnt-phase2:hardened-20261104)"
+          test "$current" = "$base" || { echo "ABORT=running_image_differs_from_base"; exit 3; }
+          live_before="$(docker inspect -f '{{.Id}}' epic-cnt-capture)"
+          docker build --network none --pull=false \
+            -f Dockerfile.stage \
+            -t epic-cnt-destination:staged-20261118 .
+          standby="$(docker image inspect -f '{{.Id}}' epic-cnt-destination:staged-20261118)"
+          test "$standby" != "$base"
+          test "$(docker inspect -f '{{.Id}}' epic-cnt-capture)" = "$live_before"
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
+          echo "STANDBY_IMAGE_BUILT=true"
+          echo "SOURCE_BASE_MATCHED_LIVE=true"
+          echo "LIVE_CNT_UNCHANGED=true"
+          echo "LIVE_CNT_RESTARTED=false"
+          echo "STREAM_DESTINATION_CHANGED=false"
+          REMOTE
