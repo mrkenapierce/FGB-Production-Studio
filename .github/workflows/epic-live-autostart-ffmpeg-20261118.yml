@@ -1,0 +1,68 @@
+name: Trigger EPIC public YouTube auto-start with one FFmpeg sender restart
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/epic-live-autostart-ffmpeg-20261118.yml]
+permissions: 
+  contents: read
+concurrency:
+  group: epic-cnt-controlled-live-rollout
+  cancel-in-progress: false
+jobs:
+  auto_start:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - name: Authenticate existing OVH transport
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Briefly restart only FFmpeg sending to EPIC, preserve container and capture
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          exec 9>/run/lock/cnt-epic-ffmpeg-autostart.lock
+          flock -n 9
+          before_container="$(docker inspect -f '{{.Id}}' epic-cnt-capture)"
+          test "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
+          test "$(docker inspect -f '{{.Config.Image}}' epic-cnt-capture)" = epic-cnt-destination:staged-20261118
+          test "$(docker inspect -f '{{.State.Health.Status}}' epic-cnt-capture)" = healthy
+          applied="$(docker exec epic-cnt-capture sh -c 'cat /cnt-state/destination/destination')"
+          test "$applied" = epic_grants
+          pid="$(docker exec epic-cnt-capture python3 -c 'import json;print(json.load(open("/cnt-state/destination/applied"))["pid"])')"
+          [[ "$pid" =~ ^[1-9][0-9]+$ ]]
+          test "$pid" -gt 1
+          docker exec epic-cnt-capture sh -c 'test -f /tmp/cnt-ffmpeg.progress && test $(( $(date +%s)-$(stat -c %Y /tmp/cnt-ffmpeg.progress) )) -le 15'
+          docker exec epic-cnt-capture sh -c "test -r /proc/$pid/cmdline && tr '\\0' ' ' </proc/$pid/cmdline | grep -q ffmpeg"
+          echo "EPIC_SENDER_RESTART_INITIATED=true"
+          docker exec epic-cnt-capture sh -c "kill -TERM $pid"
+          recovered=false
+          for n in $(seq 1 25); do
+            if docker exec epic-cnt-capture python3 -c '
+          import json,os,time,sys
+          try:
+            a=json.load(open("/cnt-state/destination/applied"))
+            pid=int(a.get("pid",0))
+            assert a.get("alias")=="epic_grants" and pid > 1 and pid != int(sys.argv[1])
+            assert b"ffmpeg" in open("/proc/%d/cmdline"%pid,"rb").read()
+            assert time.time()-os.stat("/tmp/cnt-ffmpeg.progress").st_mtime <= 12
+          except (OSError,ValueError,AssertionError): sys.exit(1)
+          ' "$pid" >/dev/null 2>&1 && test "$(docker inspect -f '{{.State.Health.Status}}' epic-cnt-capture)" = healthy; then
+              recovered=true; break
+            fi
+            test "$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)" = true
+            sleep 4
+          done
+          test "$recovered" = true
+          test "$(docker inspect -f '{{.Id}}' epic-cnt-capture)" = "$before_container"
+          echo "EPIC_FFMPEG_NEW_PID_SENDING=true"
+          echo "EPIC_OUTPUT_ALIAS_PRESERVED=true"
+          echo "CHROMIUM_AND_CONTAINER_NOT_RESTARTED=true"
+          echo "PUBLIC_BROADCAST_YOUTUBE_STATUS_MUST_BE_VERIFIED_SEPARATELY=true"
+          REMOTE
