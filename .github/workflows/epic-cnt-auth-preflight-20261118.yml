@@ -1,0 +1,56 @@
+name: EPIC CNT credentials and published route preflight - presence only
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/epic-cnt-auth-preflight-20261118.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Check encrypted GitHub secret availability without reading values
+        env:
+          EPIC_KEY: ${{ secrets.EPIC_YOUTUBE_STREAM_KEY }}
+          EPIC_KEY_ALT: ${{ secrets.EPIC_GRANTS_YOUTUBE_STREAM_KEY }}
+          CNT_CONTROL: ${{ secrets.CNT_DESTINATION_AGENT_SECRET }}
+        run: |
+          set -euo pipefail
+          for v in EPIC_KEY EPIC_KEY_ALT CNT_CONTROL; do
+            if [ -n "${!v:-}" ]; then echo "GITHUB_SECRET_${v}=present"; else echo "GITHUB_SECRET_${v}=missing"; fi
+          done
+      - name: Check site route existence without modifying state
+        run: |
+          set -euo pipefail
+          for site in grant-gems-today.lovable.app epiccontentcreatorgrants.org; do
+            base="https://$site"
+            code=$(curl -sSL --connect-timeout 5 --max-time 18 -o /dev/null -w '%{http_code}' "$base/" || true)
+            echo "SITE_$site=HTTP_${code:-000}"
+            code=$(curl -sS --connect-timeout 5 --max-time 18 -o /dev/null -w '%{http_code}' -H 'content-type: application/json' -X POST --data '{}' "$base/api/public/channels/cruisenewstrivia/destination-agent" || true)
+            echo "CONTROL_ROUTE_$site=HTTP_${code:-000}"
+          done
+      - name: Inspect private OVH env settings by presence only
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset DEPLOY_KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          file=/opt/cnt-transport/.env.cnt
+          test -f "$file"
+          for k in EPIC_YOUTUBE_STREAM_KEY EPIC_YOUTUBE_INGEST_URL CNT_DESTINATION_AGENT_SECRET CNT_YOUTUBE_STREAM_KEY; do
+            if grep -Eq "^$k=.{1,}$" "$file"; then echo "HOST_ENV_$k=present"; else echo "HOST_ENV_$k=missing"; fi
+          done
+          echo "PRIVATE_ENV_CONTENT_NOT_PRINTED=true"
+          REMOTE
