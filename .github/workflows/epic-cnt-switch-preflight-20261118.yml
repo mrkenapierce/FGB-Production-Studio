@@ -1,0 +1,71 @@
+name: CNT EPIC switchover preflight - read only
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/epic-cnt-switch-preflight-20261118.yml
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Authenticate OVH
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Check stream, archived service and compose config without changes
+        run: |
+          ssh -o StrictHostKeyChecking=yes -o BatchMode=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          cd /opt/cnt-transport
+          echo "CURRENT_IMAGE=$(docker inspect -f '{{.Config.Image}}' epic-cnt-capture)"
+          echo "CURRENT_IMAGE_ID=$(docker inspect -f '{{.Image}}' epic-cnt-capture)"
+          echo "CURRENT_RUNNING=$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)"
+          echo "CURRENT_HEALTH=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}unknown{{end}}' epic-cnt-capture)"
+          echo "ARCHIVE_WORKER_RUNNING=$(docker inspect -f '{{.State.Running}}' epic-cnt-archive-worker)"
+          echo "CNT_STAGED_IMAGE_PRESENT=$(docker image inspect epic-cnt-destination:staged-20261118 >/dev/null 2>&1 && echo yes || echo no)"
+          echo "BASE_COMPOSE_PRESENT=$(test -f docker-compose.phase2.yml && echo yes || echo no)"
+          echo "HARDENING_COMPOSE_PRESENT=$(test -f docker-compose.cnt-hardening-20261104.yml && echo yes || echo no)"
+          echo "ENV_FILE_PRESENT=$(test -f .env.cnt && echo yes || echo no)"
+          python3 - <<'PY'
+          from pathlib import Path
+          raw=Path('/opt/cnt-transport/.env.cnt').read_text()
+          env={l.split('=',1)[0]:l.split('=',1)[1] for l in raw.splitlines() if '=' in l and not l.startswith('#')}
+          for name in ['EPIC_YOUTUBE_INGEST_URL','EPIC_YOUTUBE_STREAM_KEY','CNT_YOUTUBE_STREAM_KEY','CNT_DESTINATION_AGENT_URL','CNT_DESTINATION_AGENT_SECRET']:
+              print("HOST_HAS_"+name+"="+str(bool(env.get(name))))
+          print("HOST_SWITCHING="+str(env.get('CNT_DESTINATION_SWITCHING','unset')))
+          PY
+          docker inspect epic-cnt-capture | python3 -c '
+          import json,sys
+          d=json.load(sys.stdin)[0]
+          labels=d.get("Config",{}).get("Labels") or {}
+          env={s.split("=",1)[0] for s in d.get("Config",{}).get("Env") or []}
+          print("COMPOSE_FILES="+str(labels.get("com.docker.compose.project.config_files","")) )
+          print("COMPOSE_WORKDIR="+str(labels.get("com.docker.compose.project.working_dir","")) )
+          for name in ["CNT_YOUTUBE_STREAM_KEY","CNT_DESTINATION_SWITCHING","CNT_DESTINATION_AGENT_SECRET","EPIC_YOUTUBE_STREAM_KEY"]:
+              print("RUNNING_HAS_"+name+"="+str(name in env))
+          print("CNT_STATE_MOUNT_PRESENT="+str(any(m.get("Destination")=="/cnt-state" for m in d.get("Mounts",[]))))
+          '
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess,json
+          args=['docker','compose','-p','epic-cnt-transport','-f','docker-compose.phase2.yml','-f','docker-compose.cnt-hardening-20261104.yml','config','--format','json']
+          p=subprocess.run(args,capture_output=True,text=True)
+          if p.returncode: print("COMPOSE_RESOLVE=failed"); raise SystemExit(3)
+          d=json.loads(p.stdout); cnt=d.get('services',{}).get('cnt',{})
+          print("COMPOSE_RESOLVE=ok")
+          print("COMPOSE_CNT_IMAGE="+str(cnt.get('image','')))
+          print("COMPOSE_CNT_ENVKEYS="+str(sorted(k for k in (cnt.get('environment') or {}).keys() if k.startswith(('EPIC_','CNT_DESTINATION_')))))
+          print("COMPOSE_CNT_NETWORKS="+str(list((cnt.get('networks') or {}).keys()) if isinstance(cnt.get('networks'),dict) else cnt.get('networks',[])))
+          PY
+          if docker exec epic-cnt-capture sh -lc 'pgrep -x ffmpeg >/dev/null && test -f /tmp/cnt-ffmpeg.progress && test $(( $(date +%s)-$(stat -c %Y /tmp/cnt-ffmpeg.progress) )) -lt 20'; then echo "CNT_FFMPEG_HEALTH=ok"; else echo "CNT_FFMPEG_HEALTH=bad"; fi
+          echo "PREFLIGHT_READ_ONLY=true"
+          REMOTE
