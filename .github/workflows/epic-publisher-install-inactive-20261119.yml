@@ -1,0 +1,76 @@
+name: Stage EPIC standalone publishing worker on OVH (inactive)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/epic-publisher-install-inactive-20261119.yml']
+permissions:
+  contents: read
+jobs:
+  install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax-check verified source files
+        run: |
+          set -euo pipefail
+          bash -n ops/epic-episode-publisher/run-once.sh
+          python3 - <<'PY'
+          import ast,pathlib
+          ast.parse(pathlib.Path('ops/epic-episode-publisher/epic-episode-cutter.py').read_text())
+          print("CODE_SYNTAX_OK=true")
+          PY
+      - name: Protected OVH access
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset DEPLOY_KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Install isolated disabled service and preserve active stream
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'mkdir -p ~/epic-publisher-stage'
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh \
+            ops/epic-episode-publisher/epic-episode-cutter.py \
+            ops/epic-episode-publisher/run-once.sh \
+            ops/epic-episode-publisher/epic-episode-publisher.service \
+            ops/epic-episode-publisher/epic-episode-publisher.timer \
+            ubuntu@40.160.144.185:~/epic-publisher-stage/
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          if systemctl is-active --quiet epic-episode-publisher.timer 2>/dev/null ||
+             systemctl is-active --quiet epic-episode-publisher.service 2>/dev/null; then
+            echo "ABORT_ALREADY_ACTIVE=true"; exit 1
+          fi
+          install -d -m 0755 -o root -g root /opt/epic-episode-publisher
+          install -d -m 0700 -o root -g root /etc/epic-episode-publisher
+          install -m 0644 -o root -g root /home/ubuntu/epic-publisher-stage/epic-episode-cutter.py /opt/epic-episode-publisher/epic-episode-cutter.py
+          install -m 0755 -o root -g root /home/ubuntu/epic-publisher-stage/run-once.sh /opt/epic-episode-publisher/run-once.sh
+          install -m 0644 -o root -g root /home/ubuntu/epic-publisher-stage/epic-episode-publisher.service /etc/systemd/system/epic-episode-publisher.service
+          install -m 0644 -o root -g root /home/ubuntu/epic-publisher-stage/epic-episode-publisher.timer /etc/systemd/system/epic-episode-publisher.timer
+          if [ ! -e /etc/epic-episode-publisher/activation.conf ]; then
+            printf 'EPIC_PUBLISHER_ARMED=no\n' > /etc/epic-episode-publisher/activation.conf
+            chmod 0600 /etc/epic-episode-publisher/activation.conf
+          fi
+          bash -n /opt/epic-episode-publisher/run-once.sh
+          python3 - <<'PY'
+          import ast,pathlib
+          ast.parse(pathlib.Path('/opt/epic-episode-publisher/epic-episode-cutter.py').read_text())
+          print('INSTALLED_PYTHON_SYNTAX=true')
+          PY
+          systemctl daemon-reload
+          if systemctl is-enabled --quiet epic-episode-publisher.timer; then
+            echo 'UNEXPECTED_TIMER_ENABLED=true'; exit 1
+          fi
+          echo "INSTALLED_AND_DISABLED=true"
+          printf 'CONFIG='; grep '^EPIC_PUBLISHER_ARMED=' /etc/epic-episode-publisher/activation.conf
+          docker inspect -f 'CAPTURE_RUNNING={{.State.Running}}' epic-cnt-capture
+          docker inspect -f 'ARCHIVE_RUNNING={{.State.Running}}' epic-cnt-archive-worker
+          REMOTE
