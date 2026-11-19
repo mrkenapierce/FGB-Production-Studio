@@ -100,7 +100,7 @@ def run():
                 # Before creating a video, check the channel's latest uploaded videos for this exact title.
                 page = ""
                 for _ in range(4):
-                    params = {"part": "snippet", "playlistId": playlist, "maxResults": "50"}
+                    params = {"part": "snippet", "playlistId": playlist, "maxResults": "50", "fields": "nextPageToken,items(snippet(title))"}
                     if page:
                         params["pageToken"] = page
                     p_url = "https://www.googleapis.com/youtube/v3/playlistItems?" + urllib.parse.urlencode(params)
