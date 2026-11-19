@@ -1,0 +1,41 @@
+name: Pause isolated EPIC publisher for approved single-episode recovery
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/epic-recovery-pause-timer-20261119.yml']
+permissions:
+  contents: read
+jobs:
+  pause:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Use authorized OVH SSH
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Pause only new EPIC timer and verify live containers intact
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          docker inspect -f '{{.State.Running}}' epic-cnt-capture | grep -qx true
+          docker inspect -f '{{.State.Running}}' epic-cnt-archive-worker | grep -qx true
+          systemctl is-active --quiet epic-air-observer.service
+          if systemctl is-active --quiet epic-episode-publisher.service; then
+            echo "PUBLISHER_PASS_IN_PROGRESS=true"; exit 1
+          fi
+          systemctl stop epic-episode-publisher.timer
+          if systemctl is-active --quiet epic-episode-publisher.timer; then
+            echo "PUBLISHER_TIMER_PAUSE_FAILED=true"; exit 1
+          fi
+          echo "EPIC_PUBLISHER_TIMER_PAUSED=true"
+          echo "EPIC_OBSERVER_ACTIVE=$(systemctl is-active epic-air-observer.service)"
+          docker inspect -f 'CAPTURE_RUNNING={{.State.Running}}' epic-cnt-capture
+          docker inspect -f 'ARCHIVE_RUNNING={{.State.Running}}' epic-cnt-archive-worker
+          REMOTE
