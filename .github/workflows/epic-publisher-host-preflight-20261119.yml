@@ -72,5 +72,19 @@ jobs:
             echo SIGNED_ENDPOINT_REACHABLE=true
             printf "%s" "$response" | jq -r '\''"PROTOCOL_OK=" + ((.ok//false)|tostring), "PROTOCOL_ERROR=" + (.error//"none")'\'' | head -2
           ' || true
+          echo "SIGNED_EPIC_HTTP_PROBE"
+          docker exec epic-cnt-archive-worker bash -lc '
+            set -uo pipefail
+            export CNT_ARCHIVE_HMAC_SECRET="$(cat "${CNT_ARCHIVE_KEY_FILE:-/run/secrets/cnt_archive_key}")"
+            body="{\"action\":\"epic_episode_jobs\"}"
+            ts=$(date +%s)
+            sig=$(printf "%s.%s" "$ts" "$body" | openssl dgst -sha256 -hmac "$CNT_ARCHIVE_HMAC_SECRET" -hex | awk "{print \\\$NF}")
+            tmp=$(mktemp)
+            status=$(curl -sS -m 20 -o "$tmp" -w "%{http_code}" -X POST "$CNT_ARCHIVE_URL" -H "content-type: application/json" -H "x-cnt-timestamp: $ts" -H "x-cnt-signature: $sig" --data "$body") || status=transport_error
+            echo HTTP_STATUS="$status"
+            jq -r '\''"API_ERROR=" + (.error//"none"), "API_OK=" + ((.ok//false)|tostring)'\'' "$tmp" 2>/dev/null | head -2 || true
+            rm -f "$tmp"
+            unset CNT_ARCHIVE_HMAC_SECRET
+          ' || true
           echo "NO_MUTATION=true"
           REMOTE
