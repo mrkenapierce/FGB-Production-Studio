@@ -1,0 +1,81 @@
+name: Publish approved original EPIC trivia livestream publicly (one time)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/epic-original-livestream-public-upload-20261119.yml']
+permissions:
+  contents: read
+concurrency:
+  group: epic-historical-livestream-upload-20261119
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax and source safeguards
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ops/epic-episode-publisher/recover-epic-livestream-20261119.py
+          test "$(grep -c 'EPIC_PUBLIC_VIDEO_CONFIRMED=true' ops/epic-episode-publisher/recover-epic-livestream-20261119.py)" -eq 1
+          grep -q '2026-11-19-Play-Once-Qualify-Once.ts' ops/epic-episode-publisher/recover-epic-livestream-20261119.py
+          grep -q '488db828-e266-402b-b2d9-6c0eb54c66fa' ops/epic-episode-publisher/recover-epic-livestream-20261119.py
+          echo 'ONE_TIME_UPLOADER_SOURCE_VALIDATED=true'
+      - name: Secure existing OVH key
+        shell: bash
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Install reviewed one-time recovery script without modifying livestream
+        shell: bash
+        run: |
+          set -euo pipefail
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh \
+            ops/epic-episode-publisher/recover-epic-livestream-20261119.py \
+            ubuntu@40.160.144.185:~/epic-publisher-stage/recover-epic-livestream-20261119.py
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          test -f /srv/epic-publishing-recovery/2026-11-19-Play-Once-Qualify-Once.ts
+          test "$(stat -c %s /srv/epic-publishing-recovery/2026-11-19-Play-Once-Qualify-Once.ts)" -eq 331723368
+          ! systemctl is-active --quiet epic-episode-publisher.timer
+          ! systemctl is-active --quiet epic-episode-publisher.service
+          systemctl is-active --quiet epic-air-observer.service
+          docker inspect -f '{{.State.Running}}' epic-cnt-capture | grep -qx true
+          docker inspect -f '{{.State.Running}}' epic-cnt-archive-worker | grep -qx true
+          install -m 0700 -o root -g root \
+            /home/ubuntu/epic-publisher-stage/recover-epic-livestream-20261119.py \
+            /opt/epic-episode-publisher/recover-epic-livestream-20261119.py
+          python3 -m py_compile /opt/epic-episode-publisher/recover-epic-livestream-20261119.py
+          echo 'ORIGINAL_LIVESTREAM_SOURCE_VERIFIED=true'
+          echo 'PUBLISHING_ISOLATED_TO_ONE_JOB=true'
+          REMOTE
+      - name: Upload preserved livestream unchanged and confirm public EPIC receipt
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=15 \
+            -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          ! systemctl is-active --quiet epic-episode-publisher.timer
+          ! systemctl is-active --quiet epic-episode-publisher.service
+          export EPIC_HISTORICAL_RECOVERY_APPROVED=yes
+          export CNT_ARCHIVE_URL=https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/archive
+          export CNT_ARCHIVE_HMAC_SECRET="$(cat /etc/epic-cnt/archive-hmac)"
+          python3 -u /opt/epic-episode-publisher/recover-epic-livestream-20261119.py
+          unset CNT_ARCHIVE_HMAC_SECRET
+          echo 'ORIGINAL_LIVESTREAM_UPLOADED_AS_CAPTURED=true'
+          systemctl start epic-episode-publisher.timer
+          systemctl is-active --quiet epic-episode-publisher.timer
+          echo 'AUTOMATIC_EPIC_PUBLISHER_RESUMED=true'
+          docker inspect -f 'CAPTURE_RUNNING={{.State.Running}}' epic-cnt-capture
+          docker inspect -f 'ARCHIVE_RUNNING={{.State.Running}}' epic-cnt-archive-worker
+          REMOTE
