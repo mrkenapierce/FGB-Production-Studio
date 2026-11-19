@@ -56,5 +56,12 @@ jobs:
           done
           echo "SYSTEMD_MATCHING_UNITS"
           systemctl list-unit-files --no-pager | grep -Ei 'epic.*publish|cnt.*archive|episode.*cutter' | head -20 || true
+          echo "ARCHIVE_ENV_KEYS"
+          for box in epic-cnt-archive-worker epic-cnt-capture; do
+            echo "ENV_CONTAINER=$box"
+            docker inspect "$box" --format '{{json .Config.Env}}' | python3 -c 'import json,sys; print("ENV_KEYS="+",".join(sorted(x.split("=",1)[0] for x in json.load(sys.stdin) if x.split("=",1)[0].startswith(("CNT_","EPIC_","EPISODE_")))))'
+            docker inspect "$box" --format 'ENTRYPOINT={{json .Config.Entrypoint}} CMD={{json .Config.Cmd}}'
+            docker exec "$box" sh -c 'id -u; id -g; test -r /run/secrets/cnt_archive_key && echo ARCHIVE_SECRET_FILE_READABLE=true || echo ARCHIVE_SECRET_FILE_READABLE=false'
+          done
           echo "NO_MUTATION=true"
           REMOTE
