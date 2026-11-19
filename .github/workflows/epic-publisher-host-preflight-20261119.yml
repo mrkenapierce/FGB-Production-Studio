@@ -63,5 +63,13 @@ jobs:
             docker inspect "$box" --format 'ENTRYPOINT={{json .Config.Entrypoint}} CMD={{json .Config.Cmd}}'
             docker exec "$box" sh -c 'id -u; id -g; test -r /run/secrets/cnt_archive_key && echo ARCHIVE_SECRET_FILE_READABLE=true || echo ARCHIVE_SECRET_FILE_READABLE=false'
           done
+          echo "SIGNED_EPIC_ENDPOINT_PROBE"
+          docker exec epic-cnt-archive-worker bash -lc '
+            set -uo pipefail
+            . ./episode-lib.sh
+            response=$(ep_api "{\"action\":\"epic_episode_jobs\"}" 2>/dev/null) || { echo SIGNED_ENDPOINT_REACHABLE=false; exit 0; }
+            echo SIGNED_ENDPOINT_REACHABLE=true
+            printf "%s" "$response" | jq -r '\''"PROTOCOL_OK=" + ((.ok//false)|tostring), "PROTOCOL_ERROR=" + (.error//"none")'\'' | head -2
+          ' || true
           echo "NO_MUTATION=true"
           REMOTE
