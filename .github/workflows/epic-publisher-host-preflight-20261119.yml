@@ -1,0 +1,60 @@
+name: Inspect EPIC isolated publisher host readiness (read-only)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/epic-publisher-host-preflight-20261119.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Set up protected OVH SSH
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Inspect mounts, image, publisher dependencies, and host tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo "CHECK_UTC=$(date -u +%FT%TZ)"
+          echo "SYSTEM=$(uname -sr)"
+          echo "FILESYSTEM"; df -h /srv/cnt-archive
+          echo "PYTHON"; python3 --version
+          echo "DOCKER"; docker --version
+          for box in epic-cnt-archive-worker epic-cnt-capture; do
+            echo "BEGIN_CONTAINER=$box"
+            docker inspect --format 'NAME={{.Name}} IMAGE={{.Config.Image}} RUNNING={{.State.Running}} USER={{.Config.User}}' "$box"
+            docker inspect --format '{{range .Mounts}}{{println "MOUNT" .Type .Source "=>" .Destination .RW}}{{end}}' "$box"
+            docker exec "$box" python3 -c '
+          import os,shutil
+          from pathlib import Path
+          print("WORKDIR=",os.getcwd())
+          print("PYTHON=",shutil.which("python3"))
+          print("LIB_SH=",list(map(str,Path(".").glob("episode-lib.sh"))))
+          print("RETENTION=",list(map(str,Path(".").glob("archive-retention.py"))))
+          print("CUTTER=",list(map(str,Path(".").glob("episode-cutter.sh"))))
+          print("ARCHIVE_PRESENT=",Path("/cnt-archive/rolling").is_dir())
+          print("WORKER_SCRIPT_PRESENT=",Path("/opt/epic-episode-publisher/epic-episode-cutter.py").exists())
+          ' || true
+            echo "END_CONTAINER=$box"
+          done
+          echo "HOST_RELEVANT_DIRS"
+          for p in /srv/cnt-archive/state /srv/cnt-archive/rolling /srv/cnt-archive/episodes /opt/cnt-transport /opt/epic-episode-publisher; do
+            if [ -d "$p" ]; then stat -c '%n owner=%U:%G mode=%a' "$p"; else echo "$p missing"; fi
+          done
+          echo "SYSTEMD_MATCHING_UNITS"
+          systemctl list-unit-files --no-pager | grep -Ei 'epic.*publish|cnt.*archive|episode.*cutter' | head -20 || true
+          echo "NO_MUTATION=true"
+          REMOTE
