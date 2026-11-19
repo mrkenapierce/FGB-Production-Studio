@@ -78,7 +78,7 @@ jobs:
           print('INSTALLED_PYTHON_SYNTAX=true')
           PY
           systemctl daemon-reload
-          if systemctl is-enabled --quiet epic-air-observer.service; then echo 'UNEXPECTED_OBSERVER_ENABLED=true'; exit 1; fi
+          if [ "$(systemctl is-enabled epic-air-observer.service 2>/dev/null || true)" = enabled ]; then echo 'UNEXPECTED_OBSERVER_ENABLED=true'; exit 1; fi
           if systemctl is-enabled --quiet epic-episode-publisher.timer; then
             echo 'UNEXPECTED_TIMER_ENABLED=true'; exit 1
           fi
