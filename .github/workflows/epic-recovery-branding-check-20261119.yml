@@ -1,0 +1,38 @@
+name: Inspect preserved EPIC broadcast branding (read only)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/epic-recovery-branding-check-20261119.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Establish OVH SSH securely
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset DEPLOY_KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Extract three small unmodified visual samples only
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          recording=/cnt-archive/episodes/1fbce3b4-21ac-43da-98d9-15c569b954cd.ts
+          for second in 30 390 765; do
+            echo "FRAME_BEGIN_$second"
+            docker exec epic-cnt-archive-worker ffmpeg -hide_banner -loglevel error -nostdin -ss "$second" -i "$recording" -frames:v 1 -vf 'scale=480:-2' -q:v 8 -f image2pipe -vcodec mjpeg - | base64 -w0
+            echo
+            echo "FRAME_END_$second"
+          done
+          echo "SOURCE_NOT_MODIFIED=true"
+          REMOTE
