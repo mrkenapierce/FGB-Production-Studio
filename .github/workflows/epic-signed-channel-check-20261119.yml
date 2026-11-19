@@ -1,0 +1,53 @@
+name: Verify EPIC website-to-OVH signed jobs channel (read only)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/epic-signed-channel-check-20261119.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Connect using established OVH SSH credential
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset DEPLOY_KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: One signed read-only EPIC jobs check, no access tokens or uploads
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo python3 -' <<'PY'
+          import hashlib,hmac,json,time,urllib.error,urllib.request
+          from pathlib import Path
+          secret=Path('/etc/epic-cnt/archive-hmac').read_text().strip().encode()
+          assert len(secret)>=32
+          ts=str(int(time.time()))
+          body=json.dumps({'action':'epic_episode_jobs'},separators=(',',':')).encode()
+          signature=hmac.new(secret,ts.encode()+b'.'+body,hashlib.sha256).hexdigest()
+          req=urllib.request.Request(
+              'https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/archive',
+              method='POST',data=body,headers={
+                 'content-type':'application/json','x-cnt-timestamp':ts,'x-cnt-signature':signature
+              })
+          try:
+              with urllib.request.urlopen(req,timeout=25) as response:
+                  status=response.status;raw=response.read(16384)
+          except urllib.error.HTTPError as e:
+              status=e.code;raw=e.read(16384)
+          try:obj=json.loads(raw)
+          except Exception:obj={}
+          print('SIGNED_API_HTTP='+str(status))
+          print('SIGNED_API_ERROR='+str(obj.get('error','none'))[:100])
+          print('SIGNED_API_OK='+str(obj.get('ok','missing')))
+          print('SIGNED_API_JOB_COUNT='+str(len(obj.get('jobs',[]))) if isinstance(obj.get('jobs'),list) else 'SIGNED_API_JOB_COUNT=not_returned')
+          print('NO_MEDIA_UPLOAD_OR_MUTATION=true')
+          PY
