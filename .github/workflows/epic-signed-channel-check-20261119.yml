@@ -49,5 +49,6 @@ jobs:
           print('SIGNED_API_ERROR='+str(obj.get('error','none'))[:100])
           print('SIGNED_API_OK='+str(obj.get('ok','missing')))
           print('SIGNED_API_JOB_COUNT='+str(len(obj.get('jobs',[]))) if isinstance(obj.get('jobs'),list) else 'SIGNED_API_JOB_COUNT=not_returned')
+          print('SIGNED_ENDPOINT_CHECK_AFTER_ACTIVATION=true')
           print('NO_MEDIA_UPLOAD_OR_MUTATION=true')
           PY
