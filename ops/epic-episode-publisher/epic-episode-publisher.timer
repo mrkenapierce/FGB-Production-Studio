@@ -1,0 +1,11 @@
+[Unit]
+Description=Check for approved EPIC standalone video uploads
+
+[Timer]
+OnBootSec=90sec
+OnUnitActiveSec=60sec
+Persistent=false
+Unit=epic-episode-publisher.service
+
+[Install]
+WantedBy=timers.target
