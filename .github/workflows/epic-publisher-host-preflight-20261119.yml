@@ -66,6 +66,7 @@ jobs:
           echo "SIGNED_EPIC_ENDPOINT_PROBE"
           docker exec epic-cnt-archive-worker bash -lc '
             set -uo pipefail
+            export CNT_ARCHIVE_HMAC_SECRET="$(cat "${CNT_ARCHIVE_KEY_FILE:-/run/secrets/cnt_archive_key}")"
             . ./episode-lib.sh
             response=$(ep_api "{\"action\":\"epic_episode_jobs\"}" 2>/dev/null) || { echo SIGNED_ENDPOINT_REACHABLE=false; exit 0; }
             echo SIGNED_ENDPOINT_REACHABLE=true
