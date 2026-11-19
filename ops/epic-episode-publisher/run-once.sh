@@ -6,7 +6,7 @@ if [[ "${EPIC_PUBLISHER_ARMED:-no}" != "yes" ]]; then
   exit 0
 fi
 test -s /opt/epic-episode-publisher/epic-episode-cutter.py
-test -r /etc/epic-cnt/archive-key
+test -r /etc/epic-cnt/archive-hmac
 test -d /srv/cnt-archive/rolling
 exec /usr/bin/docker run --rm --pull never --name epic-episode-publisher-once \
   --user 1000:1000 --network bridge --read-only \
@@ -14,7 +14,7 @@ exec /usr/bin/docker run --rm --pull never --name epic-episode-publisher-once \
   --cap-drop ALL --security-opt no-new-privileges \
   --pids-limit 100 --memory 384m --cpus 0.7 \
   --mount type=bind,src=/srv/cnt-archive,dst=/cnt-archive \
-  --mount type=bind,src=/etc/epic-cnt/archive-key,dst=/run/secrets/cnt_archive_key,readonly \
+  --mount type=bind,src=/etc/epic-cnt/archive-hmac,dst=/run/secrets/cnt_archive_key,readonly \
   --mount type=bind,src=/opt/epic-episode-publisher/epic-episode-cutter.py,dst=/opt/cnt/epic-episode-cutter.py,readonly \
   -e CNT_ARCHIVE_DIR=/cnt-archive -e CNT_ARCHIVE_KEY_FILE=/run/secrets/cnt_archive_key \
   -e CNT_ARCHIVE_URL=https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/archive \
