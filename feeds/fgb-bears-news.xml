@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 19 Nov 2026 01:09:33 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 19 Nov 2026 08:43:44 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Hey NFL, Don’t Forget the Chicago Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Hey NFL, Don’t Forget the Chicago Bears</description>
+      <link>https://sports.yahoo.com/articles/bears-over-beers-hey-nfl-013417613.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-dd907dd485077043d2bb</guid>
+      <pubDate>Thu, 19 Nov 2026 01:34:17 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears vs. Saints Injury Report: Kyler Gordon DNP, Jeffery Simmons Limited</title>
@@ -15,16 +25,6 @@
       <link>https://sports.yahoo.com/articles/bears-vs-saints-injury-report-224439372.html</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-8125a54b67bfb1792d76</guid>
       <pubDate>Wed, 18 Nov 2026 22:44:39 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Wednesday’s Saints vs. Bears Injury Report: CJ Donaldson is back</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Wednesday’s Saints vs. Bears Injury Report: CJ Donaldson is back</description>
-      <link>https://sports.yahoo.com/articles/wednesday-saints-vs-bears-injury-215812818.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-bdc6b656dc99e2b4de48</guid>
-      <pubDate>Wed, 18 Nov 2026 21:58:12 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -80,13 +80,13 @@
     </item>
 
     <item>
-      <title>NFL survivor pool picks Week 11: Can you trust the Bears, Broncos, Cowboys, Texans?</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: NFL survivor pool picks Week 11: Can you trust the Bears, Broncos, Cowboys, Texans?</description>
-      <link>https://www.nytimes.com/athletic/7791846/2026/11/18/nfl-survivor-pool-picks-bears-broncos-cowboys-texans-week-11/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6109d237b8bf213fe0ca</guid>
-      <pubDate>Wed, 18 Nov 2026 04:33:00 GMT</pubDate>
+      <title>Saints vs. Bears preview | Week 11</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: Saints vs. Bears preview | Week 11</description>
+      <link>https://www.nfl.com/videos/saints-vs-bears-preview-week-11</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-461ffe846088a2b9965b</guid>
+      <pubDate>Wed, 18 Nov 2026 11:41:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
   </channel>
 </rss>
