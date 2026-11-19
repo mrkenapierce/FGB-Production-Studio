@@ -1,0 +1,50 @@
+name: Inspect earlier EPIC airing's saved recording (read only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/epic-earlier-episode-preflight-20261119.yml
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - name: SSH using existing OVH key
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Read-only file and cut validation
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          id=1fbce3b4-21ac-43da-98d9-15c569b954cd
+          file=/srv/cnt-archive/episodes/$id.ts
+          echo "CHECK_UTC=$(date -u +%FT%TZ)"
+          if [ -s "$file" ]; then
+            stat -c 'EXISTING_CUT_BYTES=%s CREATED=%w MODIFIED=%y' "$file"
+            if command -v ffprobe >/dev/null; then
+              ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_type,codec_name,width,height -of default=noprint_wrappers=1 "$file" 2>&1 | head -24
+            else
+              echo "FFPROBE_HOST_MISSING=true"
+              docker exec epic-cnt-archive-worker ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_type,codec_name,width,height -of default=noprint_wrappers=1 /cnt-archive/episodes/$id.ts 2>&1 | head -24 || true
+            fi
+          else
+            echo "EXISTING_CUT_MISSING=true"
+          fi
+          for f in /srv/cnt-archive/episodes/$id.json /srv/cnt-archive/state/epic-episodes/$id.ts /srv/cnt-archive/state/epic-episodes/$id.json; do
+            [ -f "$f" ] && echo "EXISTING_UPLOAD_STATE_PRESENT=$(basename "$f") in $(basename "$(dirname "$f")")" || true
+          done
+          echo "ROLLING_RECENT_COUNT=$(find /srv/cnt-archive/rolling -maxdepth 1 -type f -name 'live-*.ts' | wc -l)"
+          echo "DISK"; df -h /srv/cnt-archive | tail -1
+          echo "CAPTURE_RUNNING=$(docker inspect -f '{{.State.Running}}' epic-cnt-capture)"
+          echo "ARCHIVE_RUNNING=$(docker inspect -f '{{.State.Running}}' epic-cnt-archive-worker)"
+          echo "READ_ONLY=true"
+          REMOTE
