@@ -1,0 +1,62 @@
+name: Provision EPIC-only archive HMAC and update disabled OVH runner
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/epic-publisher-provision-hmac-20261119.yml']
+permissions:
+  contents: read
+jobs:
+  provision:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - name: Protected OVH SSH
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Provision key without printing value; keep worker disabled
+        shell: bash
+        run: |
+          set -euo pipefail
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ops/epic-episode-publisher/run-once.sh ubuntu@40.160.144.185:~/epic-publisher-stage/run-once.sh
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          if systemctl is-active --quiet epic-episode-publisher.timer ||
+             systemctl is-active --quiet epic-episode-publisher.service; then
+            echo "ABORT_WORKER_ACTIVE=true"; exit 1
+          fi
+          install -d -m 0755 /etc/epic-cnt
+          f=/etc/epic-cnt/archive-hmac
+          if [ ! -s "$f" ]; then
+            umask 077
+            openssl rand -hex 32 > "$f"
+            echo "NEW_EPIC_HMAC_CREATED=true"
+          else
+            echo "NEW_EPIC_HMAC_CREATED=false"
+          fi
+          python3 - "$f" <<'PY'
+          import re,sys
+          b=open(sys.argv[1],'rb').read().strip()
+          assert re.fullmatch(rb'[0-9a-f]{64}',b), "Signing secret format invalid"
+          print("HMAC_FORMAT_VALID=true")
+          PY
+          chown 1000:1000 "$f"
+          chmod 0400 "$f"
+          install -m 0755 -o root -g root /home/ubuntu/epic-publisher-stage/run-once.sh /opt/epic-episode-publisher/run-once.sh
+          bash -n /opt/epic-episode-publisher/run-once.sh
+          grep -q '/etc/epic-cnt/archive-hmac' /opt/epic-episode-publisher/run-once.sh
+          echo "HOST_HMAC_PROVISIONED=true"
+          echo "HMAC_VALUE_NOT_PRINTED=true"
+          grep '^EPIC_PUBLISHER_ARMED=' /etc/epic-episode-publisher/activation.conf
+          docker inspect -f 'CAPTURE_RUNNING={{.State.Running}}' epic-cnt-capture
+          docker inspect -f 'ARCHIVE_RUNNING={{.State.Running}}' epic-cnt-archive-worker
+          REMOTE
