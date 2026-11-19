@@ -1,4 +1,5 @@
 name: Publish approved original EPIC trivia livestream publicly (one time)
+# Diagnostic retry: local upload state verified to have no session or video ID; same job owner is preserved.
 on:
   push:
     branches: [main]
