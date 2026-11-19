@@ -12,3 +12,6 @@ ExecStart=/opt/epic-episode-publisher/run-observer.sh
 Restart=on-failure
 RestartSec=20s
 TimeoutStartSec=30s
+
+[Install]
+WantedBy=multi-user.target
