@@ -76,14 +76,17 @@ def run():
                 state[field] = result[field]
         uploader.save(STATE_FILE, state)
         print("ONE_TIME_EPIC_JOB_CLAIMED=true", flush=True)
+        phase = 'preflight'
         try:
             if not state.get("videoId"):
+                phase = 'token'
                 response = uploader.api({"action": "epic_episode_token", **base})
                 if response.get("ok") is not True or response.get("targetChannelId") != TARGET or not response.get("accessToken"):
                     raise RuntimeError("identity_mismatch")
                 token = response["accessToken"]
                 headers = {"authorization": "Bearer " + token}
                 url = "https://www.googleapis.com/youtube/v3/channels?part=id,contentDetails&mine=true"
+                phase = 'youtube_channel_check'
                 code, _, body = uploader.http(url, "GET", headers)
                 if code != 200:
                     raise RuntimeError("permission_denied")
@@ -93,6 +96,7 @@ def run():
                 playlist = channel[0].get("contentDetails", {}).get("relatedPlaylists", {}).get("uploads")
                 if not isinstance(playlist, str) or not playlist:
                     raise RuntimeError("identity_mismatch")
+                phase = 'youtube_duplicate_check'
                 # Before creating a video, check the channel's latest uploaded videos for this exact title.
                 page = ""
                 for _ in range(4):
@@ -111,6 +115,7 @@ def run():
                     if not page:
                         break
                 print("EPIC_CHANNEL_ID_AND_DUPLICATE_CHECK_PASSED=true", flush=True)
+                phase = 'youtube_upload'
                 video_id = uploader.upload(
                     SOURCE, state, lambda s: uploader.save(STATE_FILE, s), token,
                     lambda url: uploader.api({"action": "epic_episode_session", "sessionUrl": url, **base}).get("ok") is True,
@@ -118,6 +123,7 @@ def run():
             else:
                 video_id = state["videoId"]
             print("YOUTUBE_RETURNED_VIDEO_ID=" + video_id, flush=True)
+            phase = 'youtube_receipt_verification'
             receipt = uploader.api({"action": "epic_episode_uploaded", "videoId": video_id, **base})
             if receipt.get("confirmed") is not True:
                 raise RuntimeError("receipt_unverified")
@@ -127,6 +133,8 @@ def run():
             print("EPIC_PUBLIC_URL=https://www.youtube.com/watch?v=" + video_id, flush=True)
             print("SOURCE_RECORDING_PRESERVED=true", flush=True)
         except Exception as err:
+            print('RECOVERY_FAILURE_PHASE=' + phase, flush=True)
+            print('RECOVERY_FAILURE_CLASS=' + type(err).__name__, flush=True)
             reason = str(err)
             allowed = {
                 "permission_denied", "identity_mismatch", "upload_unavailable",
