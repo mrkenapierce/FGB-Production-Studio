@@ -94,5 +94,31 @@ jobs:
             echo "EPIC_PAIRING_PUBLIC_KEY_AVAILABLE=false"
           fi
           echo "EPIC_PAIRING_PUBLIC_KEY_END"
+          echo "OBSERVER_RUNTIME_PREFLIGHT"
+          docker inspect epic-cnt-archive-worker --format '{{json .Config.Env}}' | python3 -c '
+          import json,sys
+          d=dict(x.split("=",1) for x in json.load(sys.stdin) if "=" in x)
+          for k in ("CNT_AIR_LOG","CNT_AIR_STATE","CNT_ARCHIVE_URL"):
+              print(k+"="+d.get(k,"(unset)"))
+          '
+          docker exec epic-cnt-archive-worker python3 -c '
+          import os
+          from pathlib import Path
+          log=os.environ.get("CNT_AIR_LOG","")
+          print("AIR_LOG_ACCESSIBLE="+str(bool(log) and Path(log).is_file()))
+          if log: print("AIR_LOG_FILENAME="+Path(log).name)
+          pids=[]
+          for pid in os.listdir("/proc"):
+              if not pid.isdigit(): continue
+              try:
+                  args=Path("/proc/"+pid+"/cmdline").read_bytes().replace(b"\\0",b" ").decode(errors="replace")
+                  if "cnt-air-observer.py" not in args or "python3" not in args: continue
+                  env=Path("/proc/"+pid+"/environ").read_bytes()
+                  pids.append(pid)
+                  print("OBSERVER_PROCESS="+pid)
+                  print("OBSERVER_HMAC_ENV_PRESENT="+str(b"CNT_ARCHIVE_HMAC_SECRET=" in env))
+              except (OSError,PermissionError): pass
+          print("OBSERVER_PIDS="+",".join(pids))
+          ' || true
           echo "NO_MUTATION=true"
           REMOTE
