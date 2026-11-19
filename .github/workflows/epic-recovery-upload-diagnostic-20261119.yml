@@ -1,0 +1,68 @@
+name: Diagnose EPIC original livestream upload preflight safely
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/epic-recovery-upload-diagnostic-20261119.yml']
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Configure secure OVH access
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Check OAuth and duplicate-query HTTP codes without exposing credentials
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo python3 -' <<'PY'
+          import json,sys,os,hmac,hashlib,urllib.request,urllib.error,urllib.parse,time,importlib.util
+          from pathlib import Path
+          spec=importlib.util.spec_from_file_location("up","/opt/epic-episode-publisher/epic-episode-cutter.py")
+          up=importlib.util.module_from_spec(spec);spec.loader.exec_module(up)
+          state=json.loads(Path("/srv/epic-publishing-recovery/private-upload/488db828-e266-402b-b2d9-6c0eb54c66fa.json").read_text())
+          secret=Path("/etc/epic-cnt/archive-hmac").read_text().strip()
+          payload={"action":"epic_episode_token","episodeId":"488db828-e266-402b-b2d9-6c0eb54c66fa","owner":state["owner"]}
+          body=json.dumps(payload,separators=(",",":")).encode()
+          ts=str(int(time.time()))
+          sign=hmac.new(secret.encode(),ts.encode()+b'.'+body,hashlib.sha256).hexdigest()
+          status,_,raw=up.http("https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/archive","POST",{"content-type":"application/json","x-cnt-timestamp":ts,"x-cnt-signature":sign},body)
+          print("TOKEN_HTTP="+str(status))
+          try: data=json.loads(raw)
+          except: data={}
+          print("TOKEN_RECEIVED="+str(bool(data.get("accessToken"))))
+          print("TOKEN_SAFE_ERROR="+str(data.get("error","none"))[:120])
+          if not data.get("accessToken"): sys.exit(0)
+          hdr={"authorization":"Bearer "+data["accessToken"]}
+          url="https://www.googleapis.com/youtube/v3/channels?part=id,contentDetails&mine=true"
+          code,_,b=up.http(url,"GET",hdr)
+          print("CHANNEL_HTTP="+str(code))
+          try: d=json.loads(b)
+          except: d={}
+          print("CHANNEL_SAFE_ERROR="+str(d.get("error",{}).get("errors",[{}])[0].get("reason","none")) if isinstance(d.get("error"),dict) else "CHANNEL_SAFE_ERROR=none")
+          if code!=200:sys.exit(0)
+          items=d.get("items") or []
+          print("CHANNEL_ITEM_COUNT="+str(len(items)))
+          print("CHANNEL_MATCH="+str(len(items)==1 and items[0].get("id")=="UCxtESG21aQASGiuQQzd87UA"))
+          uploads=items[0].get("contentDetails",{}).get("relatedPlaylists",{}).get("uploads") if len(items)==1 else None
+          print("UPLOADS_PLAYLIST_PRESENT="+str(bool(uploads)))
+          if uploads:
+            params=urllib.parse.urlencode({"part":"snippet","playlistId":uploads,"maxResults":"50"})
+            st,_,raw=up.http("https://www.googleapis.com/youtube/v3/playlistItems?"+params,"GET",hdr)
+            print("PLAYLIST_HTTP="+str(st))
+            try:
+              x=json.loads(raw)
+            except:x={}
+            err=x.get("error")
+            print("PLAYLIST_SAFE_ERROR="+str(err.get("errors",[{}])[0].get("reason","none")) if isinstance(err,dict) else "PLAYLIST_SAFE_ERROR=none")
+            print("EXACT_TITLE_ALREADY_PRESENT="+str(any(t.get("snippet",{}).get("title","").strip()==state["title"].strip() for t in x.get("items",[]))))
+          print("NO_UPLOAD_ATTEMPTED=true")
+          PY
