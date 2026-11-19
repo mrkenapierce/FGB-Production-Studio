@@ -1,5 +1,5 @@
 name: Publish approved original EPIC trivia livestream publicly (one time)
-# Diagnostic retry: local upload state verified to have no session or video ID; same job owner is preserved.
+# Corrected duplicate check: request only titles to avoid truncated YouTube playlist JSON; same durable job owner.
 on:
   push:
     branches: [main]
