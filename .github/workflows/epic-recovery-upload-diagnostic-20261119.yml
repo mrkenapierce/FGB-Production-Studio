@@ -35,6 +35,10 @@ jobs:
           ts=str(int(time.time()))
           sign=hmac.new(secret.encode(),ts.encode()+b'.'+body,hashlib.sha256).hexdigest()
           status,_,raw=up.http("https://epiccontentcreatorgrants.org/api/public/channels/cruisenewstrivia/archive","POST",{"content-type":"application/json","x-cnt-timestamp":ts,"x-cnt-signature":sign},body)
+          print("LOCAL_INITIATING="+str(bool(state.get("initiating"))))
+          print("LOCAL_SESSION_PRESENT="+str(bool(state.get("sessionUrl"))))
+          print("LOCAL_VIDEO_ID_PRESENT="+str(bool(state.get("videoId"))))
+          print("LOCAL_CONFIRMED="+str(bool(state.get("confirmed"))))
           print("TOKEN_HTTP="+str(status))
           try: data=json.loads(raw)
           except: data={}
