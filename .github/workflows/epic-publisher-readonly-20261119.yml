@@ -1,0 +1,59 @@
+name: EPIC Publisher Read-only Audit 2026-11-19
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/epic-publisher-readonly-20261119.yml'
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - name: Protected OVH setup
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh_key
+          chmod 600 ~/.ssh/ovh_key
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Inspect recorder and cutter only
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=12 -i ~/.ssh/ovh_key ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo "CHECK_UTC=$(date -u +%FT%TZ)"
+          echo 'CONTAINERS_BEGIN'
+          docker ps --format '{{.Names}} | {{.Status}}' | grep -E 'epic-cnt|fgb-transport' || true
+          echo 'CONTAINERS_END'
+          echo 'DISK'
+          df -h /srv/cnt-archive || true
+          echo 'RECENT_ROLLING_FILES'
+          find /srv/cnt-archive/rolling -maxdepth 1 -type f -name 'live-*.ts' -printf '%f %s %TY-%Tm-%TdT%TH:%TM:%TS\n' 2>/dev/null | sort | tail -14 || true
+          echo 'LATEST_EPISODE_FILES'
+          find /srv/cnt-archive/episodes -maxdepth 1 -type f -printf '%f %s bytes\n' 2>/dev/null | sort | tail -20 || true
+          echo 'PENDING_EPISODE_LOCAL_STATE'
+          for file in /srv/cnt-archive/episodes/1fbce3b4-21ac-43da-98d9-15c569b954cd.json /srv/cnt-archive/state/dependencies/episode-1fbce3b4-21ac-43da-98d9-15c569b954cd.json; do
+            if [ -f "$file" ]; then
+              printf '%s present ' "$(basename "$file")"
+              python3 - "$file" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1]))
+          print("keys="+",".join(sorted(d.keys())),"videoIdPresent="+str(bool(d.get("videoId"))),"status="+str(d.get("status")),"confirmed="+str(d.get("confirmed")))
+          PY
+            else echo "$(basename "$file") absent"; fi
+          done
+          echo 'WORKER_PROCESSES'
+          docker exec epic-cnt-archive-worker sh -c "ps -eo pid,comm,args | grep -E 'episode-cutter|cnt-rolling|cnt-daily' | grep -v grep | cut -c1-140" || true
+          echo 'WORKER_RECENT_SAFE_MARKERS'
+          docker logs --since 90m --tail 220 epic-cnt-archive-worker 2>&1 |
+            grep -E 'episode:cnt|episode:epic|no local recording|no upload token|upload incomplete|awaiting complete processing receipt|not closed|cut failed|jobs unavailable|missing' |
+            sed -E 's#https?://[^ ]+#(url-redacted)#g;s/[A-Za-z0-9_-]{80,}/(redacted)/g' | tail -35 || true
+          echo 'READ_ONLY=true'
+          REMOTE
