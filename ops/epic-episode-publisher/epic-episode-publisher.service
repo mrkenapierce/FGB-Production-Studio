@@ -1,0 +1,13 @@
+[Unit]
+Description=EPIC standalone video publisher (isolated from CNT live encoder)
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+ConditionPathExists=/opt/epic-episode-publisher/epic-episode-cutter.py
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/epic-episode-publisher/activation.conf
+ExecStart=/opt/epic-episode-publisher/run-once.sh
+TimeoutStartSec=30min
+# Preserve media and journals even if the upload fails.
