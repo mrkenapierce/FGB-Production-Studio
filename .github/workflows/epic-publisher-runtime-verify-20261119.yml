@@ -1,0 +1,65 @@
+name: Verify active EPIC episode pipeline (read-only)
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/epic-publisher-runtime-verify-20261119.yml
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - name: Connect to OVH securely
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset DEPLOY_KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Inspect isolated worker, observer, and recording health
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo "CHECK_UTC=$(date -u +%FT%TZ)"
+          for u in epic-air-observer.service epic-episode-publisher.timer epic-episode-publisher.service; do
+            printf 'UNIT %s: ' "$u"
+            systemctl is-active "$u" 2>/dev/null || true
+            printf 'UNIT_RESULT %s: ' "$u"
+            systemctl show "$u" -p Result --value 2>/dev/null || true
+          done
+          echo 'TIMER_SCHEDULE'
+          systemctl list-timers epic-episode-publisher.timer --no-pager | tail -5 || true
+          echo 'PUBLISHER_JOURNAL'
+          journalctl -u epic-episode-publisher.service -u epic-episode-publisher.timer --since '20 minutes ago' --no-pager -o cat 2>/dev/null | tail -28 |
+          sed -E 's#https?://[^ ]+#(url)#g; s/[A-Za-z0-9_+/-]{100,}/[redacted]/g' || true
+          echo 'OBSERVER_JOURNAL'
+          journalctl -u epic-air-observer.service --since '20 minutes ago' --no-pager -o cat 2>/dev/null | tail -18 |
+          sed -E 's#https?://[^ ]+#(url)#g; s/[A-Za-z0-9_+/-]{100,}/[redacted]/g' || true
+          python3 - <<'PY'
+          from pathlib import Path
+          import json,datetime
+          root=Path('/srv/cnt-archive/state')
+          p=root/'epic-air-observer.json'
+          print('OBSERVER_STATE_PRESENT='+str(p.exists()))
+          if p.exists():
+            d=json.loads(p.read_text())
+            print('OBSERVER_PENDING_COUNT='+str(len(d.get('pending',[]))))
+            print('OBSERVER_SENT_COUNT='+str(len(d.get('sent',[]))))
+            print('OBSERVER_OPEN_PLAY='+str(bool(d.get('open'))))
+            print('OBSERVER_CURSOR='+str(d.get('cursor',0)))
+            print('OBSERVER_STATE_LAST_WRITE='+datetime.datetime.fromtimestamp(p.stat().st_mtime,datetime.timezone.utc).isoformat())
+          log=root/'chrome.log'
+          print('BROADCAST_LOG_BYTES='+str(log.stat().st_size if log.exists() else 0))
+          PY
+          docker inspect -f 'CAPTURE_RUNNING={{.State.Running}}' epic-cnt-capture
+          docker inspect -f 'ARCHIVE_RUNNING={{.State.Running}}' epic-cnt-archive-worker
+          echo 'READ_ONLY=true'
+          REMOTE
