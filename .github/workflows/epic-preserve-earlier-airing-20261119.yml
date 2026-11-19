@@ -1,0 +1,52 @@
+name: Preserve earlier EPIC video before archive retention (no upload)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/epic-preserve-earlier-airing-20261119.yml']
+permissions:
+  contents: read
+jobs:
+  preserve:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Prepare protected OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Back up complete video without touching source or live workers
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          src=/srv/cnt-archive/episodes/1fbce3b4-21ac-43da-98d9-15c569b954cd.ts
+          destdir=/srv/epic-publishing-recovery
+          dest="$destdir/2026-11-19-Play-Once-Qualify-Once.ts"
+          test -s "$src" || { echo 'SOURCE_MISSING=true'; exit 1; }
+          install -d -o root -g root -m 0700 "$destdir"
+          if [ ! -e "$dest" ]; then
+            tmp="$destdir/.copy-in-progress.$$"
+            trap 'rm -f "$tmp"' EXIT
+            cp --reflink=auto -- "$src" "$tmp"
+            chmod 0600 "$tmp"
+            chown root:root "$tmp"
+            cmp -s "$src" "$tmp" || { echo 'BACKUP_MISMATCH=true'; exit 1; }
+            mv -n "$tmp" "$dest"
+          else
+            cmp -s "$src" "$dest" || { echo 'BACKUP_CONFLICT=true'; exit 1; }
+          fi
+          test -s "$dest"
+          printf 'PRESERVED_BACKUP_BYTES='; stat -c %s "$dest"
+          printf 'SOURCE_BYTES='; stat -c %s "$src"
+          echo 'PRESERVED_IN_SEPARATE_DIRECTORY=true'
+          echo 'ORIGINAL_SOURCE_UNCHANGED=true'
+          docker inspect -f 'CAPTURE_RUNNING={{.State.Running}}' epic-cnt-capture
+          docker inspect -f 'ARCHIVE_RUNNING={{.State.Running}}' epic-cnt-archive-worker
+          REMOTE
