@@ -15,9 +15,11 @@ jobs:
         run: |
           set -euo pipefail
           bash -n ops/epic-episode-publisher/run-once.sh
+          bash -n ops/epic-episode-publisher/run-observer.sh
           python3 - <<'PY'
           import ast,pathlib
           ast.parse(pathlib.Path('ops/epic-episode-publisher/epic-episode-cutter.py').read_text())
+          ast.parse(pathlib.Path('ops/epic-episode-publisher/epic-air-observer.py').read_text())
           print("CODE_SYNTAX_OK=true")
           PY
       - name: Protected OVH access
@@ -42,11 +44,15 @@ jobs:
             ops/epic-episode-publisher/run-once.sh \
             ops/epic-episode-publisher/epic-episode-publisher.service \
             ops/epic-episode-publisher/epic-episode-publisher.timer \
+            ops/epic-episode-publisher/epic-air-observer.py \
+            ops/epic-episode-publisher/run-observer.sh \
+            ops/epic-episode-publisher/epic-air-observer.service \
             ubuntu@40.160.144.185:~/epic-publisher-stage/
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
           set -euo pipefail
           if systemctl is-active --quiet epic-episode-publisher.timer 2>/dev/null ||
-             systemctl is-active --quiet epic-episode-publisher.service 2>/dev/null; then
+             systemctl is-active --quiet epic-episode-publisher.service 2>/dev/null ||
+             systemctl is-active --quiet epic-air-observer.service 2>/dev/null; then
             echo "ABORT_ALREADY_ACTIVE=true"; exit 1
           fi
           install -d -m 0755 -o root -g root /opt/epic-episode-publisher
@@ -55,17 +61,24 @@ jobs:
           install -m 0755 -o root -g root /home/ubuntu/epic-publisher-stage/run-once.sh /opt/epic-episode-publisher/run-once.sh
           install -m 0644 -o root -g root /home/ubuntu/epic-publisher-stage/epic-episode-publisher.service /etc/systemd/system/epic-episode-publisher.service
           install -m 0644 -o root -g root /home/ubuntu/epic-publisher-stage/epic-episode-publisher.timer /etc/systemd/system/epic-episode-publisher.timer
+          install -m 0644 -o root -g root /home/ubuntu/epic-publisher-stage/epic-air-observer.py /opt/epic-episode-publisher/epic-air-observer.py
+          install -m 0755 -o root -g root /home/ubuntu/epic-publisher-stage/run-observer.sh /opt/epic-episode-publisher/run-observer.sh
+          install -m 0644 -o root -g root /home/ubuntu/epic-publisher-stage/epic-air-observer.service /etc/systemd/system/epic-air-observer.service
           if [ ! -e /etc/epic-episode-publisher/activation.conf ]; then
             printf 'EPIC_PUBLISHER_ARMED=no\n' > /etc/epic-episode-publisher/activation.conf
             chmod 0600 /etc/epic-episode-publisher/activation.conf
           fi
           bash -n /opt/epic-episode-publisher/run-once.sh
+          bash -n /opt/epic-episode-publisher/run-observer.sh
+          grep -q '^EPIC_OBSERVER_ARMED=' /etc/epic-episode-publisher/activation.conf || printf 'EPIC_OBSERVER_ARMED=no\n' >> /etc/epic-episode-publisher/activation.conf
           python3 - <<'PY'
           import ast,pathlib
           ast.parse(pathlib.Path('/opt/epic-episode-publisher/epic-episode-cutter.py').read_text())
+          ast.parse(pathlib.Path('/opt/epic-episode-publisher/epic-air-observer.py').read_text())
           print('INSTALLED_PYTHON_SYNTAX=true')
           PY
           systemctl daemon-reload
+          if systemctl is-enabled --quiet epic-air-observer.service; then echo 'UNEXPECTED_OBSERVER_ENABLED=true'; exit 1; fi
           if systemctl is-enabled --quiet epic-episode-publisher.timer; then
             echo 'UNEXPECTED_TIMER_ENABLED=true'; exit 1
           fi
