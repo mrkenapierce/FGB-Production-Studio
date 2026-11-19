@@ -86,5 +86,13 @@ jobs:
             rm -f "$tmp"
             unset CNT_ARCHIVE_HMAC_SECRET
           ' || true
+          echo "EPIC_PAIRING_PUBLIC_KEY_BEGIN"
+          if [ -s /root/.config/epic-cnt-credential-pairing/private.pem ]; then
+            openssl pkey -in /root/.config/epic-cnt-credential-pairing/private.pem -pubout 2>/dev/null
+            echo "EPIC_PAIRING_PUBLIC_KEY_AVAILABLE=true"
+          else
+            echo "EPIC_PAIRING_PUBLIC_KEY_AVAILABLE=false"
+          fi
+          echo "EPIC_PAIRING_PUBLIC_KEY_END"
           echo "NO_MUTATION=true"
           REMOTE
