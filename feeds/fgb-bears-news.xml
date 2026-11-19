@@ -5,28 +5,78 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Thu, 19 Nov 2026 08:43:44 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 19 Nov 2026 17:39:55 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Hey NFL, Don’t Forget the Chicago Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Hey NFL, Don’t Forget the Chicago Bears</description>
-      <link>https://sports.yahoo.com/articles/bears-over-beers-hey-nfl-013417613.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-dd907dd485077043d2bb</guid>
-      <pubDate>Thu, 19 Nov 2026 01:34:17 GMT</pubDate>
+      <title>Bears-Lions Thanksgiving audience will be huge — and it could have been even bigger</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears-Lions Thanksgiving audience will be huge — and it could have been even bigger</description>
+      <link>https://sports.yahoo.com/articles/bears-lions-thanksgiving-audience-huge-162812288.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b492d23ed7c56d53fc66</guid>
+      <pubDate>Thu, 19 Nov 2026 16:28:12 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears vs. Saints Injury Report: Kyler Gordon DNP, Jeffery Simmons Limited</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Saints Injury Report: Kyler Gordon DNP, Jeffery Simmons Limited</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-saints-injury-report-224439372.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8125a54b67bfb1792d76</guid>
-      <pubDate>Wed, 18 Nov 2026 22:44:39 GMT</pubDate>
+      <title>Why Bears Could Limit Kyle Monangai&apos;s Workload in Week 11 vs. Saints</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Why Bears Could Limit Kyle Monangai&apos;s Workload in Week 11 vs. Saints</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-kyle-monangai-workload-week-11-saints</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e923d3f415d486e254d8</guid>
+      <pubDate>Thu, 19 Nov 2026 08:31:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Players Who Must Step Against the Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Players Who Must Step Against the Bears</description>
+      <link>https://sports.yahoo.com/articles/players-must-step-against-bears-160921823.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-32ccf47f5fa72b739aa7</guid>
+      <pubDate>Thu, 19 Nov 2026 08:09:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Bears Rank Dead Last in Key Red Zone Stat While Saints Thrive in Same Category</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Rank Dead Last in Key Red Zone Stat While Saints Thrive in Same Category</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-rank-dead-last-red-zone-stat-saints-thrive-same-category</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8125a36a53450aec53b7</guid>
+      <pubDate>Thu, 19 Nov 2026 07:34:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>NFL underdog picks, predictions: Best bets for Week 11 upsets include Saints-Bears, Commanders-Bengals</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL underdog picks, predictions: Best bets for Week 11 upsets include Saints-Bears, Commanders-Bengals</description>
+      <link>https://www.cbssports.com/prediction/news/nfl-underdog-picks-predictions-best-bets-for-week-11-upsets-include-saints-bears-commanders-bengals/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a96fe55434fa573cf8ae</guid>
+      <pubDate>Thu, 19 Nov 2026 04:45:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Why the Bears believe they’re built to conquer the loaded NFC North</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Why the Bears believe they’re built to conquer the loaded NFC North</description>
+      <link>https://www.nytimes.com/athletic/7792630/2026/11/19/bears-nfc-north-race-confidence/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b75f95d587e55b014088</guid>
+      <pubDate>Thu, 19 Nov 2026 04:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Bears-Lions Thanksgiving audience will be huge — and it could have been even bigger</title>
+      <description>Football&apos;s Greatest Bears news brief from Pro Football Talk: Bears-Lions Thanksgiving audience will be huge — and it could have been even bigger</description>
+      <link>https://www.nbcsports.com/nfl/profootballtalk/rumor-mill/news/bears-lions-thanksgiving-audience-will-be-huge-and-it-could-have-been-even-bigger</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-973cc111a1200ae97e36</guid>
+      <pubDate>Thu, 19 Nov 2026 03:28:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nbcsports.com/nfl/profootballtalk">Pro Football Talk</source>
     </item>
 
     <item>
@@ -37,56 +87,6 @@
       <pubDate>Wed, 18 Nov 2026 16:37:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Kyler Gordon: Estimated as a DNP</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyler Gordon: Estimated as a DNP</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-kyler-gordon-estimated-as-a-dnp/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fdf0e59fceabbbee177d</guid>
-      <pubDate>Wed, 18 Nov 2026 16:34:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears Have Two Problems Ben Johnson Wants Fixed Before They Cost Them Against the Saints</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Have Two Problems Ben Johnson Wants Fixed Before They Cost Them Against the Saints</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-problems-ben-johnson-saints-week-11</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5c7135e13e1cec132329</guid>
-      <pubDate>Wed, 18 Nov 2026 15:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>How to watch, listen to, stream Bears-Saints Week 11 game</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: How to watch, listen to, stream Bears-Saints Week 11 game</description>
-      <link>https://www.chicagobears.com/news/how-to-watch-chicago-bears-new-orleans-saints-2026-week-11-listen-stream-tv-radio-football-online-nfl</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e25664b3f57eac652fba</guid>
-      <pubDate>Wed, 18 Nov 2026 15:02:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Monangai, Burden, Simmons Injury Updates &amp; More From Bears&apos; Wednesday Practice Report</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Monangai, Burden, Simmons Injury Updates &amp; More From Bears&apos; Wednesday Practice Report</description>
-      <link>https://www.si.com/nfl/bears/onsi/kyle-monangai-luther-burden-jeffery-simmons-injury-updates-bears-wednesday-practice-report</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b4a52225fc282ad57e78</guid>
-      <pubDate>Wed, 18 Nov 2026 13:24:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Saints vs. Bears preview | Week 11</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Saints vs. Bears preview | Week 11</description>
-      <link>https://www.nfl.com/videos/saints-vs-bears-preview-week-11</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-461ffe846088a2b9965b</guid>
-      <pubDate>Wed, 18 Nov 2026 11:41:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
   </channel>
 </rss>
