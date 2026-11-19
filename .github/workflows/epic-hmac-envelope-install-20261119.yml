@@ -1,0 +1,76 @@
+name: Install sealed EPIC archive HMAC on OVH (no stream changes)
+on:
+  push:
+    branches: [main]
+    paths: ['ops/epic-episode-publisher/archive-envelope.b64']
+permissions:
+  contents: read
+jobs:
+  install:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Authenticated OVH SSH
+        env:
+          KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Decrypt only on OVH in tmpfs and atomically replace disabled publisher key
+        run: |
+          set -euo pipefail
+          test -s ops/epic-episode-publisher/archive-envelope.b64
+          scp -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ops/epic-episode-publisher/archive-envelope.b64 ubuntu@40.160.144.185:~/epic-publisher-stage/archive-envelope.b64
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          if systemctl is-active --quiet epic-episode-publisher.timer ||
+             systemctl is-active --quiet epic-episode-publisher.service ||
+             systemctl is-active --quiet epic-air-observer.service; then
+            echo 'ABORT_ACTIVE_WORKER=true'; exit 1
+          fi
+          umask 077
+          work=$(mktemp -d /dev/shm/epic-hmac.XXXXXXXX)
+          trap 'rm -rf "$work"' EXIT
+          base64 -d /home/ubuntu/epic-publisher-stage/archive-envelope.b64 > "$work/cipher.bin"
+          key=/root/.config/epic-cnt-credential-pairing/private.pem
+          test -r "$key"
+          expected=59637a3c5d166f2203f504adba2c1b1535a570b708c88ae19acce61fc4427365
+          actual=$(openssl pkey -in "$key" -pubout -outform DER 2>/dev/null | sha256sum | awk '{print $1}')
+          [ "$actual" = "$expected" ] || { echo 'HOST_KEY_FINGERPRINT_MISMATCH=true'; exit 1; }
+          openssl pkeyutl -decrypt -inkey "$key" \
+            -pkeyopt rsa_padding_mode:oaep \
+            -pkeyopt rsa_oaep_md:sha256 \
+            -pkeyopt rsa_mgf1_md:sha256 \
+            -in "$work/cipher.bin" -out "$work/envelope.json"
+          python3 - "$work/envelope.json" <<'PY'
+          import json,os,re,sys,tempfile
+          envelope=json.load(open(sys.argv[1]))
+          assert envelope.get('v')==1 and envelope.get('purpose')=='cnt_archive_hmac','Wrong envelope purpose'
+          secret=envelope.get('secret')
+          assert isinstance(secret,str) and re.fullmatch('[A-Za-z0-9]{64}',secret),'Invalid secret format'
+          destination='/etc/epic-cnt/archive-hmac'
+          fd,tmp=tempfile.mkstemp(prefix='.archive-hmac-',dir='/etc/epic-cnt')
+          try:
+              os.fchmod(fd,0o400)
+              os.fchown(fd,1000,1000)
+              with os.fdopen(fd,'w') as h:
+                  h.write(secret+'\n')
+                  h.flush();os.fsync(h.fileno())
+              os.replace(tmp,destination)
+          finally:
+              if os.path.exists(tmp):os.unlink(tmp)
+          print('OVH_HMAC_ENVELOPE_DECRYPTED_AND_INSTALLED=true')
+          print('SECRET_CONTENT_NOT_PRINTED=true')
+          PY
+          grep '^EPIC_PUBLISHER_ARMED=no' /etc/epic-episode-publisher/activation.conf >/dev/null
+          echo 'EPIC_PUBLISHER_STILL_DISABLED=true'
+          docker inspect -f 'CAPTURE_RUNNING={{.State.Running}}' epic-cnt-capture
+          docker inspect -f 'ARCHIVE_RUNNING={{.State.Running}}' epic-cnt-archive-worker
+          REMOTE
