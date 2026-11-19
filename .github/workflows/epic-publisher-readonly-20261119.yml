@@ -66,5 +66,29 @@ jobs:
           docker logs --since 90m --tail 220 epic-cnt-archive-worker 2>&1 |
             grep -E 'episode:cnt|episode:epic|no local recording|no upload token|upload incomplete|awaiting complete processing receipt|not closed|cut failed|jobs unavailable|missing' |
             sed -E 's#https?://[^ ]+#(url-redacted)#g;s/[A-Za-z0-9_-]{80,}/(redacted)/g' | tail -35 || true
+          echo 'YOUTUBE_INITIATION_STATUS_PROBE'
+          docker exec epic-cnt-archive-worker bash -lc '
+            set -uo pipefail
+            export EPISODE_CHANNEL=cnt
+            . ./episode-lib.sh
+            tmp=$(mktemp -d)
+            trap "rm -rf \"$tmp\"" EXIT
+            jobs=$(ep_api "{\"action\":\"episode_jobs\"}" 2>/dev/null) || { echo API_JOBS_UNAVAILABLE=true; exit 0; }
+            job=$(jq -c '\''.jobs[] | select(.episodeId=="1fbce3b4-21ac-43da-98d9-15c569b954cd")'\'' <<<"$jobs" | head -1)
+            [ -n "$job" ] || { echo TARGET_JOB_RETURNED=false; exit 0; }
+            echo TARGET_JOB_RETURNED=true
+            tok=$(ep_api "{\"action\":\"token\"}" 2>/dev/null | jq -r '\''.accessToken // empty'\'')
+            [ -n "$tok" ] || { echo ACCESS_TOKEN_AVAILABLE=false; exit 0; }
+            echo ACCESS_TOKEN_AVAILABLE=true
+            title=$(jq -r .title <<<"$job")
+            desc=$(jq -r '\''.description // ""'\'' <<<"$job")
+            privacy=$(jq -r .privacy <<<"$job")
+            jq -cn --arg t "$title" --arg d "$desc" --arg p "$privacy" '\''{snippet:{title:$t,description:$d,categoryId:"17"},status:{privacyStatus:$p,selfDeclaredMadeForKids:false}}'\'' > "$tmp/meta.json"
+            size=331723368
+            http=$(curl --silent --show-error -m 25 -D "$tmp/headers" -o "$tmp/body" -w "%{http_code}" -X POST "https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status" -H "authorization: Bearer $tok" -H "content-type: application/json; charset=UTF-8" -H "x-upload-content-type: video/mp2t" -H "x-upload-content-length: $size" --data-binary @"$tmp/meta.json" 2>/dev/null) || http=transport_error
+            echo YOUTUBE_INIT_HTTP_CODE="$http"
+            if grep -qi "^location:" "$tmp/headers"; then echo SESSION_HEADER_PRESENT=true; else echo SESSION_HEADER_PRESENT=false; fi
+            if [ -s "$tmp/body" ]; then jq -r '\''"YOUTUBE_ERROR_CODE=" + (.error.code|tostring), "YOUTUBE_ERROR_REASON=" + (.error.errors[0].reason // "unknown")'\'' "$tmp/body" 2>/dev/null | head -2 || true; fi
+          ' || echo 'DIAGNOSTIC_WRAPPER_FAILED=true'
           echo 'READ_ONLY=true'
           REMOTE
