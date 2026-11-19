@@ -1,0 +1,56 @@
+name: Activate isolated EPIC audio boundary observer (no stream restart)
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/epic-observer-activate-20261119.yml']
+permissions:
+  contents: read
+jobs:
+  start:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - name: Protected OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset DEPLOY_KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+      - name: Start EPIC observer only
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          f=/etc/epic-episode-publisher/activation.conf
+          grep -qx 'EPIC_PUBLISHER_ARMED=no' "$f"
+          grep -qx 'EPIC_OBSERVER_ARMED=no' "$f"
+          test -r /etc/epic-cnt/archive-hmac
+          test -s /opt/epic-episode-publisher/epic-air-observer.py
+          test -f /srv/cnt-archive/state/chrome.log
+          ! systemctl is-active --quiet epic-air-observer.service
+          sed -i 's/^EPIC_OBSERVER_ARMED=no$/EPIC_OBSERVER_ARMED=yes/' "$f"
+          if ! systemctl enable --now epic-air-observer.service; then
+            systemctl disable --now epic-air-observer.service || true
+            sed -i 's/^EPIC_OBSERVER_ARMED=yes$/EPIC_OBSERVER_ARMED=no/' "$f"
+            echo 'EPIC_OBSERVER_ACTIVATION_FAILED=true'
+            exit 1
+          fi
+          sleep 5
+          if ! systemctl is-active --quiet epic-air-observer.service; then
+            journalctl -u epic-air-observer.service --no-pager -n 12 || true
+            systemctl disable --now epic-air-observer.service || true
+            sed -i 's/^EPIC_OBSERVER_ARMED=yes$/EPIC_OBSERVER_ARMED=no/' "$f"
+            echo 'EPIC_OBSERVER_NOT_RUNNING=true'
+            exit 1
+          fi
+          echo 'EPIC_OBSERVER_RUNNING=true'
+          docker inspect -f 'EPIC_OBSERVER_CONTAINER_RUNNING={{.State.Running}}' epic-air-observer
+          grep '^EPIC_PUBLISHER_ARMED=' "$f"
+          docker inspect -f 'CAPTURE_RUNNING={{.State.Running}}' epic-cnt-capture
+          docker inspect -f 'ARCHIVE_RUNNING={{.State.Running}}' epic-cnt-archive-worker
+          REMOTE
