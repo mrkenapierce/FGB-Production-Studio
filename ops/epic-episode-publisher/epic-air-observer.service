@@ -1,0 +1,14 @@
+[Unit]
+Description=EPIC trusted audio boundary observer (isolated from CNT capture)
+After=docker.service network-online.target
+Wants=network-online.target
+Requires=docker.service
+ConditionPathExists=/opt/epic-episode-publisher/epic-air-observer.py
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/epic-episode-publisher/activation.conf
+ExecStart=/opt/epic-episode-publisher/run-observer.sh
+Restart=on-failure
+RestartSec=20s
+TimeoutStartSec=30s
