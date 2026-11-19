@@ -49,6 +49,17 @@ jobs:
           PY
             else echo "$(basename "$file") absent"; fi
           done
+          echo 'EXACT_PENDING_EPISODE_FILE_CHECK'
+          for f in /srv/cnt-archive/episodes/1fbce3b4-21ac-43da-98d9-15c569b954cd.ts /srv/cnt-archive/episodes/1fbce3b4-21ac-43da-98d9-15c569b954cd.json; do
+            if [ -f "$f" ]; then stat -c 'PENDING_FILE=%n SIZE=%s MTIME=%y' "$f";
+              if [[ "$f" == *.json ]]; then python3 - "$f" <<'PY'
+          import json,sys
+          d=json.load(open(sys.argv[1]))
+          print('SESSION_PRESENT='+str(bool(d.get('sessionUrl'))),'VIDEO_ID_PRESENT='+str(bool(d.get('videoId'))),'CONFIRMED='+str(bool(d.get('confirmed'))))
+          PY
+              fi
+            else echo "PENDING_FILE_ABSENT=$(basename "$f")"; fi
+          done
           echo 'WORKER_PROCESSES'
           docker exec epic-cnt-archive-worker sh -c "ps -eo pid,comm,args | grep -E 'episode-cutter|cnt-rolling|cnt-daily' | grep -v grep | cut -c1-140" || true
           echo 'WORKER_RECENT_SAFE_MARKERS'
