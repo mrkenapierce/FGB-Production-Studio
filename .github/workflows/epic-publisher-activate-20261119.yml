@@ -1,0 +1,69 @@
+name: Activate isolated EPIC YouTube episode publisher timer
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/epic-publisher-activate-20261119.yml
+permissions:
+  contents: read
+concurrency:
+  group: epic-publisher-activation-20261119
+  cancel-in-progress: false
+jobs:
+  activate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 9
+    steps:
+      - name: Protected OVH SSH
+        env:
+          DEPLOY_KEY: ${{ secrets.OVH_SSH_KEY || secrets.ORACLE_SSH_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$DEPLOY_KEY"
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/ovh
+          chmod 600 ~/.ssh/ovh
+          unset DEPLOY_KEY
+          ssh-keyscan -T 8 -H 40.160.144.185 > ~/.ssh/known_hosts 2>/dev/null
+          test -s ~/.ssh/known_hosts
+      - name: Enable only the isolated timer with rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/ovh ubuntu@40.160.144.185 'sudo bash -s' <<'REMOTE'
+          set -euo pipefail
+          conf=/etc/epic-episode-publisher/activation.conf
+          test -f "$conf"
+          grep -qx 'EPIC_OBSERVER_ARMED=yes' "$conf"
+          grep -qx 'EPIC_PUBLISHER_ARMED=no' "$conf"
+          systemctl is-active --quiet epic-air-observer.service
+          ! systemctl is-active --quiet epic-episode-publisher.timer
+          test -s /opt/epic-episode-publisher/epic-episode-cutter.py
+          test -x /opt/epic-episode-publisher/run-once.sh
+          test -s /etc/epic-cnt/archive-hmac
+          test -d /srv/cnt-archive/rolling
+          test -d /srv/cnt-archive/episodes
+          test -d /srv/cnt-archive/state
+          docker inspect -f '{{.State.Running}}' epic-cnt-capture | grep -qx true
+          docker inspect -f '{{.State.Running}}' epic-cnt-archive-worker | grep -qx true
+          sed -i 's/^EPIC_PUBLISHER_ARMED=no$/EPIC_PUBLISHER_ARMED=yes/' "$conf"
+          if ! systemctl enable --now epic-episode-publisher.timer; then
+            systemctl disable --now epic-episode-publisher.timer || true
+            sed -i 's/^EPIC_PUBLISHER_ARMED=yes$/EPIC_PUBLISHER_ARMED=no/' "$conf"
+            echo 'EPIC_PUBLISHER_ACTIVATION_FAILED=true'
+            exit 1
+          fi
+          sleep 3
+          if ! systemctl is-active --quiet epic-episode-publisher.timer; then
+            systemctl disable --now epic-episode-publisher.timer || true
+            sed -i 's/^EPIC_PUBLISHER_ARMED=yes$/EPIC_PUBLISHER_ARMED=no/' "$conf"
+            echo 'EPIC_PUBLISHER_TIMER_NOT_ACTIVE=true'
+            exit 1
+          fi
+          echo 'EPIC_PUBLISHER_TIMER_ACTIVE=true'
+          echo 'EPIC_OBSERVER_ACTIVE=true'
+          systemctl list-timers --no-pager epic-episode-publisher.timer | tail -5
+          docker inspect -f 'CAPTURE_RUNNING={{.State.Running}}' epic-cnt-capture
+          docker inspect -f 'ARCHIVE_RUNNING={{.State.Running}}' epic-cnt-archive-worker
+          REMOTE
