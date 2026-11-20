@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 20 Nov 2026 04:52:35 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 20 Nov 2026 13:43:14 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears’ Caleb Williams Focused on Bouncing Back After Four-Interception Game</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Caleb Williams Focused on Bouncing Back After Four-Interception Game</description>
+      <link>https://sports.yahoo.com/articles/bears-caleb-williams-focused-bouncing-130000655.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-762da4046fd7ece7f567</guid>
+      <pubDate>Fri, 20 Nov 2026 13:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Ben Johnson on what it’s like to prepare for Bears DT Jeffery Simmons</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ben Johnson on what it’s like to prepare for Bears DT Jeffery Simmons</description>
+      <link>https://sports.yahoo.com/articles/ben-johnson-prepare-bears-dt-132417858.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-e8fa79757aaeb49af618</guid>
+      <pubDate>Fri, 20 Nov 2026 05:24:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>6 things we learned from Bears coordinators</title>
@@ -30,31 +50,11 @@
     </item>
 
     <item>
-      <title>Ian Rapoport gives eye-opening update on Bears’ stadium saga</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Ian Rapoport gives eye-opening update on Bears’ stadium saga</description>
-      <link>https://sports.yahoo.com/articles/ian-rapoport-gives-eye-opening-012212565.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-da18d39a50221902f95b</guid>
-      <pubDate>Thu, 19 Nov 2026 16:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Saints QB Tyler Shough Gets Encouraging Injury Update Before Bears Game</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Saints QB Tyler Shough Gets Encouraging Injury Update Before Bears Game</description>
-      <link>https://sports.yahoo.com/articles/saints-qb-tyler-shough-gets-030321481.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6363e3f35e669368957f</guid>
-      <pubDate>Thu, 19 Nov 2026 16:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
       <title>Who are the Experts Picking in Bears vs. Saints Week 11?</title>
       <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Who are the Experts Picking in Bears vs. Saints Week 11?</description>
       <link>https://www.si.com/nfl/bears/onsi/who-are-the-experts-picking-in-bears-vs-saints-week-11</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-426e3558d9d609d103f8</guid>
-      <pubDate>Thu, 19 Nov 2026 16:00:00 GMT</pubDate>
+      <pubDate>Thu, 19 Nov 2026 16:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
