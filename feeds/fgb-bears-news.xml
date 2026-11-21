@@ -5,7 +5,7 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 21 Nov 2026 02:49:19 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 21 Nov 2026 10:26:37 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
@@ -40,21 +40,21 @@
     </item>
 
     <item>
-      <title>Bears&apos; Kyler Gordon: Out in Week 11</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyler Gordon: Out in Week 11</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-kyler-gordon-out-in-week-11/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ca8315e008eec3c0635f</guid>
-      <pubDate>Fri, 20 Nov 2026 13:00:00 GMT</pubDate>
+      <title>Bears&apos; D&apos;Andre Swift: Welcoming back Monangai</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; D&apos;Andre Swift: Welcoming back Monangai</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-dandre-swift-welcoming-back-monangai/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b897313d42228ebdca75</guid>
+      <pubDate>Fri, 20 Nov 2026 15:13:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
-      <title>Bears&apos; Kyle Monangai: Ready to return in Week 11</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyle Monangai: Ready to return in Week 11</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-kyle-monangai-ready-to-return-in-week-11/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-7c1ce8674917f78d0b51</guid>
-      <pubDate>Fri, 20 Nov 2026 11:49:00 GMT</pubDate>
+      <title>Bears&apos; Kyler Gordon: Out in Week 11</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyler Gordon: Out in Week 11</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-kyler-gordon-out-in-week-11/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ca8315e008eec3c0635f</guid>
+      <pubDate>Fri, 20 Nov 2026 13:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
