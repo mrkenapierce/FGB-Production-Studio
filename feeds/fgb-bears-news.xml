@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 21 Nov 2026 17:41:54 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 21 Nov 2026 22:23:31 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears have a chance to prove a key prediction wrong in Week 11 vs. Saints</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears have a chance to prove a key prediction wrong in Week 11 vs. Saints</description>
+      <link>https://sports.yahoo.com/articles/bears-chance-prove-key-prediction-203000075.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-76d4e064c7ae1b4d28e7</guid>
+      <pubDate>Sat, 21 Nov 2026 20:30:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears vs. New Orleans Saints: Week 11 Players to Watch</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. New Orleans Saints: Week 11 Players to Watch</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-vs-orleans-saints-190000658.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c6a530b05605fdef0bd2</guid>
+      <pubDate>Sat, 21 Nov 2026 19:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears-Saints game preview | 2026 Week 11</title>
@@ -20,23 +40,23 @@
     </item>
 
     <item>
-      <title>Bears Discussion: Saints preview, bye week reflection, 2027 NFL Draft safety prospects</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Discussion: Saints preview, bye week reflection, 2027 NFL Draft safety prospects</description>
-      <link>https://sports.yahoo.com/articles/bears-discussion-saints-preview-bye-150000687.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-04a9788463c93d1a7e40</guid>
-      <pubDate>Sat, 21 Nov 2026 15:00:00 GMT</pubDate>
+      <title>Saints Duo Tests Where Bears Tackle Theo Benedet Made Biggest Strides</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Saints Duo Tests Where Bears Tackle Theo Benedet Made Biggest Strides</description>
+      <link>https://www.si.com/nfl/bears/onsi/saints-duo-tests-where-bears-tackle-theo-benedet-made-biggest-strides</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-39fa4409d00c55d0ffab</guid>
+      <pubDate>Sat, 21 Nov 2026 11:28:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Saints vs. Bears: Key Matchups</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Saints vs. Bears: Key Matchups</description>
-      <link>https://sports.yahoo.com/articles/saints-vs-bears-key-matchups-150000322.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9042f7aef269570be6ac</guid>
-      <pubDate>Sat, 21 Nov 2026 15:00:00 GMT</pubDate>
+      <title>Chicago Bears Week 11 Keys to Victory: Caleb Williams Needs Redemption vs Saints</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Week 11 Keys to Victory: Caleb Williams Needs Redemption vs Saints</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-week-11-keys-to-victory-saints</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4e86f3aef72d1fbcf44e</guid>
+      <pubDate>Sat, 21 Nov 2026 10:30:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -50,26 +70,6 @@
     </item>
 
     <item>
-      <title>Bears&apos; Updated Cap Space After Tyson Bagent Contract Restructure &amp; What it Could Mean</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Updated Cap Space After Tyson Bagent Contract Restructure &amp; What it Could Mean</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-updated-cap-space-tyson-bagent-restructure</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-3911fcafd4720c3ca0b0</guid>
-      <pubDate>Sat, 21 Nov 2026 08:39:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Bears Explain Ozzy Trapilo&apos;s Lack of Snaps Last 2 Games, Confirm Nothing is Settled at LT</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Explain Ozzy Trapilo&apos;s Lack of Snaps Last 2 Games, Confirm Nothing is Settled at LT</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-explain-ozzy-trapilo-lack-snaps-games-confirm-nothing-settled-left-tackle</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-24e8b85048f55cc538ac</guid>
-      <pubDate>Sat, 21 Nov 2026 07:08:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Jeffery Simmons appreciates warm reception he&apos;s received from Bears fans</title>
       <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Jeffery Simmons appreciates warm reception he&apos;s received from Bears fans</description>
       <link>https://www.chicagobears.com/news/jeffery-simmons-appreciates-warm-reception-he-s-received-from-bears-fans</link>
@@ -77,16 +77,6 @@
       <pubDate>Fri, 20 Nov 2026 15:59:33 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>Bears rule out CB Kyler Gordon; RB Kyle Monangai cleared to return</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears rule out CB Kyler Gordon; RB Kyle Monangai cleared to return</description>
-      <link>https://www.espn.com/nfl/story/_/id/50542720/bears-rule-cb-kyler-gordon-vs-saints</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4d934cb33a48fd5b8450</guid>
-      <pubDate>Fri, 20 Nov 2026 11:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
