@@ -5,28 +5,68 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 21 Nov 2026 10:26:37 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 21 Nov 2026 17:41:54 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>At 7-2, Have the Bears Met or Exceeded Your Preseason Expectations?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: At 7-2, Have the Bears Met or Exceeded Your Preseason Expectations?</description>
-      <link>https://sports.yahoo.com/articles/7-2-bears-met-exceeded-010000295.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fb68d42d52bd0ba17706</guid>
-      <pubDate>Sat, 21 Nov 2026 01:00:00 GMT</pubDate>
+      <title>Bears-Saints game preview | 2026 Week 11</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears-Saints game preview | 2026 Week 11</description>
+      <link>https://www.chicagobears.com/news/bears-saints-game-preview-2026-week-11</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-053924f136bff4a28eff</guid>
+      <pubDate>Sat, 21 Nov 2026 17:14:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Bears Discussion: Saints preview, bye week reflection, 2027 NFL Draft safety prospects</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears Discussion: Saints preview, bye week reflection, 2027 NFL Draft safety prospects</description>
+      <link>https://sports.yahoo.com/articles/bears-discussion-saints-preview-bye-150000687.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-04a9788463c93d1a7e40</guid>
+      <pubDate>Sat, 21 Nov 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Saints at Bears: 5 Props to Play</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Saints at Bears: 5 Props to Play</description>
-      <link>https://sports.yahoo.com/articles/saints-bears-5-props-play-230000225.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-fc808fa5bb482ddf8a7b</guid>
-      <pubDate>Fri, 20 Nov 2026 23:00:00 GMT</pubDate>
+      <title>Saints vs. Bears: Key Matchups</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Saints vs. Bears: Key Matchups</description>
+      <link>https://sports.yahoo.com/articles/saints-vs-bears-key-matchups-150000322.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-9042f7aef269570be6ac</guid>
+      <pubDate>Sat, 21 Nov 2026 15:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>NFL upset picks: Week 11 underdog predictions include Saints-Bears, Commanders-Bengals</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL upset picks: Week 11 underdog predictions include Saints-Bears, Commanders-Bengals</description>
+      <link>https://www.cbssports.com/prediction/news/nfl-upset-picks-week-11-underdog-predictions-include-saints-bears-commanders-bengals/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-7003bba7ef0b715174e8</guid>
+      <pubDate>Sat, 21 Nov 2026 08:39:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Updated Cap Space After Tyson Bagent Contract Restructure &amp; What it Could Mean</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Updated Cap Space After Tyson Bagent Contract Restructure &amp; What it Could Mean</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-updated-cap-space-tyson-bagent-restructure</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-3911fcafd4720c3ca0b0</guid>
+      <pubDate>Sat, 21 Nov 2026 08:39:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears Explain Ozzy Trapilo&apos;s Lack of Snaps Last 2 Games, Confirm Nothing is Settled at LT</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Explain Ozzy Trapilo&apos;s Lack of Snaps Last 2 Games, Confirm Nothing is Settled at LT</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-explain-ozzy-trapilo-lack-snaps-games-confirm-nothing-settled-left-tackle</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-24e8b85048f55cc538ac</guid>
+      <pubDate>Sat, 21 Nov 2026 07:08:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -40,36 +80,6 @@
     </item>
 
     <item>
-      <title>Bears&apos; D&apos;Andre Swift: Welcoming back Monangai</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; D&apos;Andre Swift: Welcoming back Monangai</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-dandre-swift-welcoming-back-monangai/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-b897313d42228ebdca75</guid>
-      <pubDate>Fri, 20 Nov 2026 15:13:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Kyler Gordon: Out in Week 11</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Kyler Gordon: Out in Week 11</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-kyler-gordon-out-in-week-11/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ca8315e008eec3c0635f</guid>
-      <pubDate>Fri, 20 Nov 2026 13:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears&apos; Final Week 11 Injury Report: 1 Ruled Out, 1 New Addition, 4 Cleared to Play</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Final Week 11 Injury Report: 1 Ruled Out, 1 New Addition, 4 Cleared to Play</description>
-      <link>https://www.si.com/nfl/bears/onsi/bears-final-week-11-injury-report-ruled-out-new-addition-cleared-play</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-40f0b12b7cc33d9cc39e</guid>
-      <pubDate>Fri, 20 Nov 2026 11:49:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
       <title>Bears rule out CB Kyler Gordon; RB Kyle Monangai cleared to return</title>
       <description>Football&apos;s Greatest Bears news brief from ESPN: Bears rule out CB Kyler Gordon; RB Kyle Monangai cleared to return</description>
       <link>https://www.espn.com/nfl/story/_/id/50542720/bears-rule-cb-kyler-gordon-vs-saints</link>
@@ -77,16 +87,6 @@
       <pubDate>Fri, 20 Nov 2026 11:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Two Stunning Stats Show Jeffery Simmons&apos; Massive Impact on Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Two Stunning Stats Show Jeffery Simmons&apos; Massive Impact on Bears</description>
-      <link>https://www.si.com/nfl/bears/onsi/jeffery-simmons-bears-stats-impact</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-eff68b19a6bfcaa658c1</guid>
-      <pubDate>Fri, 20 Nov 2026 10:31:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
   </channel>
 </rss>
