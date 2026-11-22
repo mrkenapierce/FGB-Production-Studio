@@ -5,28 +5,38 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 22 Nov 2026 02:25:19 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 22 Nov 2026 09:59:25 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>The Best is Yet to Come for Caleb Williams and the Bears’ Offense</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Best is Yet to Come for Caleb Williams and the Bears’ Offense</description>
-      <link>https://sports.yahoo.com/articles/best-yet-come-caleb-williams-230000383.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-853a7d6b21f6d6089f5b</guid>
-      <pubDate>Sat, 21 Nov 2026 23:00:00 GMT</pubDate>
+      <title>Chicago Bears vs. New Orleans Saints Picks and Predictions</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. New Orleans Saints Picks and Predictions</description>
+      <link>https://sports.yahoo.com/articles/chicago-bears-vs-orleans-saints-063312673.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-fae44ca7d74d27cfa501</guid>
+      <pubDate>Sun, 22 Nov 2026 06:33:12 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears have a chance to prove a key prediction wrong in Week 11 vs. Saints</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears have a chance to prove a key prediction wrong in Week 11 vs. Saints</description>
-      <link>https://sports.yahoo.com/articles/bears-chance-prove-key-prediction-203000075.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-76d4e064c7ae1b4d28e7</guid>
-      <pubDate>Sat, 21 Nov 2026 20:30:00 GMT</pubDate>
+      <title>Bears vs. Saints: How to Watch and Listen, Odds, Previews, and More</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Saints: How to Watch and Listen, Odds, Previews, and More</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-saints-watch-listen-040000428.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-adff7cb3a98dceaf59dd</guid>
+      <pubDate>Sun, 22 Nov 2026 04:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Celebrating Women and Girls in Sports: How Phoebe Schecter is helping the Bears grow flag football internationally</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Celebrating Women and Girls in Sports: How Phoebe Schecter is helping the Bears grow flag football internationally</description>
+      <link>https://www.chicagobears.com/news/celebrating-women-and-girls-in-sports-how-phoebe-schecter-is-helping-the-bears-grow-flag-football-internationally</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-1de410f0d8942c4ba5bc</guid>
+      <pubDate>Sun, 22 Nov 2026 02:28:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
@@ -77,16 +87,6 @@
       <pubDate>Sat, 21 Nov 2026 08:39:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Jeffery Simmons appreciates warm reception he&apos;s received from Bears fans</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Jeffery Simmons appreciates warm reception he&apos;s received from Bears fans</description>
-      <link>https://www.chicagobears.com/news/jeffery-simmons-appreciates-warm-reception-he-s-received-from-bears-fans</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6be4da3d451ef8f9c8d7</guid>
-      <pubDate>Fri, 20 Nov 2026 15:59:33 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
   </channel>
 </rss>
