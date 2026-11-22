@@ -5,9 +5,19 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 21 Nov 2026 22:23:31 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 22 Nov 2026 02:25:19 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>The Best is Yet to Come for Caleb Williams and the Bears’ Offense</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Best is Yet to Come for Caleb Williams and the Bears’ Offense</description>
+      <link>https://sports.yahoo.com/articles/best-yet-come-caleb-williams-230000383.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-853a7d6b21f6d6089f5b</guid>
+      <pubDate>Sat, 21 Nov 2026 23:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears have a chance to prove a key prediction wrong in Week 11 vs. Saints</title>
@@ -20,13 +30,13 @@
     </item>
 
     <item>
-      <title>Chicago Bears vs. New Orleans Saints: Week 11 Players to Watch</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. New Orleans Saints: Week 11 Players to Watch</description>
-      <link>https://sports.yahoo.com/articles/chicago-bears-vs-orleans-saints-190000658.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c6a530b05605fdef0bd2</guid>
-      <pubDate>Sat, 21 Nov 2026 19:00:00 GMT</pubDate>
+      <title>Bears vs. Saints prediction, odds, time: NFL Week 11 picks by proven model</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears vs. Saints prediction, odds, time: NFL Week 11 picks by proven model</description>
+      <link>https://www.cbssports.com/betting/news/bears-saints-prediction-odds-time-2026-nfl-week-11-picks/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-24a1e0ac18a8320c893c</guid>
+      <pubDate>Sat, 21 Nov 2026 17:21:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -40,21 +50,21 @@
     </item>
 
     <item>
-      <title>Saints Duo Tests Where Bears Tackle Theo Benedet Made Biggest Strides</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Saints Duo Tests Where Bears Tackle Theo Benedet Made Biggest Strides</description>
-      <link>https://www.si.com/nfl/bears/onsi/saints-duo-tests-where-bears-tackle-theo-benedet-made-biggest-strides</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-39fa4409d00c55d0ffab</guid>
-      <pubDate>Sat, 21 Nov 2026 11:28:00 GMT</pubDate>
+      <title>Bears &apos;Force-Multiplier&apos; Jeffery Simmons Provides More Than Sacks</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears &apos;Force-Multiplier&apos; Jeffery Simmons Provides More Than Sacks</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-force-multiplier-jeffery-simmons-provides-more-than-sacks</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d89f8acd69f272326c7d</guid>
+      <pubDate>Sat, 21 Nov 2026 15:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Chicago Bears Week 11 Keys to Victory: Caleb Williams Needs Redemption vs Saints</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Week 11 Keys to Victory: Caleb Williams Needs Redemption vs Saints</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-week-11-keys-to-victory-saints</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4e86f3aef72d1fbcf44e</guid>
-      <pubDate>Sat, 21 Nov 2026 10:30:00 GMT</pubDate>
+      <title>How Chicago Bears Should Replace Injured Kyler Gordon in Week 11 vs. Saints</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: How Chicago Bears Should Replace Injured Kyler Gordon in Week 11 vs. Saints</description>
+      <link>https://www.si.com/nfl/bears/onsi/how-chicago-bears-kyler-gordon-replace-week-11-saints</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-09cefb5ed4822fc051a9</guid>
+      <pubDate>Sat, 21 Nov 2026 12:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
