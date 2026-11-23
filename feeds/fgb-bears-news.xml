@@ -5,88 +5,88 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 23 Nov 2026 03:21:52 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 23 Nov 2026 13:21:31 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Bears vs. Lions odds: Opening lines for Week 12 matchup</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Lions odds: Opening lines for Week 12 matchup</description>
-      <link>https://sports.yahoo.com/articles/bears-vs-lions-odds-opening-021156797.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-a8a98314da9f28ea6736</guid>
-      <pubDate>Mon, 23 Nov 2026 02:11:56 GMT</pubDate>
+      <title>Winning ugly is still winning, and the Bears will take it</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Winning ugly is still winning, and the Bears will take it</description>
+      <link>https://sports.yahoo.com/articles/winning-ugly-still-winning-bears-130000340.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-243153054f5e22dd908f</guid>
+      <pubDate>Mon, 23 Nov 2026 13:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Here’s where the Bears sit in the NFC playoff standings right now</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Here’s where the Bears sit in the NFC playoff standings right now</description>
-      <link>https://sports.yahoo.com/articles/where-bears-sit-nfc-playoff-213529922.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-27e4dea8663891bab366</guid>
-      <pubDate>Mon, 23 Nov 2026 02:05:21 GMT</pubDate>
+      <title>Lions vs. Bears odds: Detroit home underdogs on Thanksgiving</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Lions vs. Bears odds: Detroit home underdogs on Thanksgiving</description>
+      <link>https://sports.yahoo.com/articles/lions-vs-bears-odds-detroit-123000843.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a83c9269dd8ec899123c</guid>
+      <pubDate>Mon, 23 Nov 2026 12:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears win fifth straight game, move to 8-2 with victory over Saints | Game Recap</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears win fifth straight game, move to 8-2 with victory over Saints | Game Recap</description>
-      <link>https://www.chicagobears.com/news/bears-win-fifth-straight-game-move-to-8-2-with-victory-over-saints-game-recap</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-67b59f0113a92fed6da8</guid>
-      <pubDate>Sun, 22 Nov 2026 21:59:00 GMT</pubDate>
+      <title>Bears Rookie Zavion Thomas Sure to Get More Touches After Big Day</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Rookie Zavion Thomas Sure to Get More Touches After Big Day</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-rookie-zavion-thomas-sure-to-get-more-touches-after-big-day</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8000ce7243a7f737eebf</guid>
+      <pubDate>Mon, 23 Nov 2026 05:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Bears defense goes from doubted to dancing as Chicago rallies around Jeffery Simmons</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Bears defense goes from doubted to dancing as Chicago rallies around Jeffery Simmons</description>
+      <link>https://www.nytimes.com/athletic/7804436/2026/11/23/chicago-bears-defense-jeffery-simmons/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6c5eef083c4dbb289f98</guid>
+      <pubDate>Mon, 23 Nov 2026 03:47:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+    </item>
+
+    <item>
+      <title>Jeffery Simmons Wins the Race to the Quarterback in Bears&apos; Victory</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Jeffery Simmons Wins the Race to the Quarterback in Bears&apos; Victory</description>
+      <link>https://www.si.com/nfl/bears/onsi/jeffery-simmons-wins-the-race-to-the-quarterback-in-bears-victory</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-6b367241a4c80d6065fd</guid>
+      <pubDate>Mon, 23 Nov 2026 03:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Jeffery Simmons, Montez Sweat lead Bears&apos; strong defensive effort in win over Saints</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Jeffery Simmons, Montez Sweat lead Bears&apos; strong defensive effort in win over Saints</description>
+      <link>https://www.chicagobears.com/news/jeffery-simmons-montez-sweat-lead-bears-strong-defensive-effort-in-win-over-saints</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f368b84a42e8f6c0a80c</guid>
+      <pubDate>Mon, 23 Nov 2026 00:48:35 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
-      <title>Bears vs. Lions (Nov 26, 2026) Odds and Spread</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears vs. Lions (Nov 26, 2026) Odds and Spread</description>
-      <link>https://www.espn.com/nfl/odds/_/gameId/401873081</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c07349cbd7ee38a71fd8</guid>
-      <pubDate>Sun, 22 Nov 2026 19:04:00 GMT</pubDate>
+      <title>By the Numbers: Bears&apos; Week 11 victory over Saints</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: By the Numbers: Bears&apos; Week 11 victory over Saints</description>
+      <link>https://www.chicagobears.com/news/by-the-numbers-bears-week-11-victory-over-saints</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-5aecab478011c71df927</guid>
+      <pubDate>Mon, 23 Nov 2026 00:12:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
     </item>
 
     <item>
-      <title>Saints vs. Bears odds, picks, prediction, spread: Start time, NFL Week 11 betting preview, best bets</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Saints vs. Bears odds, picks, prediction, spread: Start time, NFL Week 11 betting preview, best bets</description>
-      <link>https://www.cbssports.com/betting/news/saints-vs-bears-odds-picks-prediction-spread-start-time-nfl-week-11-betting-preview-best-bets/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-19c6986075e543f2f0d6</guid>
-      <pubDate>Sun, 22 Nov 2026 16:25:36 GMT</pubDate>
+      <title>Week 11 fantasy takeaways: Josh Allen underwhelms again; Bears have an overcrowding issue</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: Week 11 fantasy takeaways: Josh Allen underwhelms again; Bears have an overcrowding issue</description>
+      <link>https://www.nytimes.com/athletic/7804932/2026/11/23/fantasy-football-week-11-takeaways-allen-bears/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-eb4da8c1058fa0b93a3f</guid>
+      <pubDate>Sun, 22 Nov 2026 17:05:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Jeffery Simmons matches career high with 3 sacks in Bears&apos; win</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: Jeffery Simmons matches career high with 3 sacks in Bears&apos; win</description>
-      <link>https://www.espn.com/nfl/story/_/id/50567207/jeffery-simmons-matches-career-high-3-sacks-bears-win</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-2577d2b057ac40a72a41</guid>
-      <pubDate>Sun, 22 Nov 2026 16:08:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>How Jeffery Simmons has put his signature all over the Bears&apos; defensive surge</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: How Jeffery Simmons has put his signature all over the Bears&apos; defensive surge</description>
-      <link>https://www.nfl.com/news/how-jeffery-simmons-has-put-his-signature-all-over-the-bears-defensive-surge</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-adf6a04249dcb7a1ddca</guid>
-      <pubDate>Sun, 22 Nov 2026 16:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Jeffery Simmons Ties 2 Career-Best Marks in Week 11 Win, Continues to Prove Bears Right</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Jeffery Simmons Ties 2 Career-Best Marks in Week 11 Win, Continues to Prove Bears Right</description>
-      <link>https://www.si.com/nfl/bears/onsi/jeffery-simmons-sacks-week-11-saints-trade</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-f622b749e697bfeb3c3f</guid>
-      <pubDate>Sun, 22 Nov 2026 16:00:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
