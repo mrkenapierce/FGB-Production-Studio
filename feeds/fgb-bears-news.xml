@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 22 Nov 2026 22:46:55 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 23 Nov 2026 03:21:52 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears vs. Lions odds: Opening lines for Week 12 matchup</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Lions odds: Opening lines for Week 12 matchup</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-lions-odds-opening-021156797.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-a8a98314da9f28ea6736</guid>
+      <pubDate>Mon, 23 Nov 2026 02:11:56 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Here’s where the Bears sit in the NFC playoff standings right now</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Here’s where the Bears sit in the NFC playoff standings right now</description>
+      <link>https://sports.yahoo.com/articles/where-bears-sit-nfc-playoff-213529922.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-27e4dea8663891bab366</guid>
+      <pubDate>Mon, 23 Nov 2026 02:05:21 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
 
     <item>
       <title>Bears win fifth straight game, move to 8-2 with victory over Saints | Game Recap</title>
@@ -20,23 +40,13 @@
     </item>
 
     <item>
-      <title>Here’s where the Bears sit in the NFC playoff standings right now</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Here’s where the Bears sit in the NFC playoff standings right now</description>
-      <link>https://sports.yahoo.com/articles/where-bears-sit-nfc-playoff-213529922.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-27e4dea8663891bab366</guid>
-      <pubDate>Sun, 22 Nov 2026 21:35:29 GMT</pubDate>
+      <title>Bears vs. Lions (Nov 26, 2026) Odds and Spread</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Bears vs. Lions (Nov 26, 2026) Odds and Spread</description>
+      <link>https://www.espn.com/nfl/odds/_/gameId/401873081</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c07349cbd7ee38a71fd8</guid>
+      <pubDate>Sun, 22 Nov 2026 19:04:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>Best Kalshi promo code CBSSPORTS55: Score $55 bonus for Bears-Saints, Broncos-Raiders, 49ers-Vikings, NFL</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Best Kalshi promo code CBSSPORTS55: Score $55 bonus for Bears-Saints, Broncos-Raiders, 49ers-Vikings, NFL</description>
-      <link>https://www.cbssports.com/prediction/news/best-kalshi-promo-code-cbssports55-score-55-bonus-saints-bears-broncos-raiders-49ers-vikings-nfl/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8cb1092144353e9f2f57</guid>
-      <pubDate>Sun, 22 Nov 2026 17:14:39 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
 
     <item>
@@ -50,41 +60,31 @@
     </item>
 
     <item>
-      <title>Chris Olave&apos;s best plays from 102-yard game vs. Bears | Week 11</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Chris Olave&apos;s best plays from 102-yard game vs. Bears | Week 11</description>
-      <link>https://www.nfl.com/videos/chris-olave-s-best-plays-from-102-yard-game-vs-bears-week-11</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-9160d4939db152e828ae</guid>
-      <pubDate>Sun, 22 Nov 2026 14:23:00 GMT</pubDate>
+      <title>Jeffery Simmons matches career high with 3 sacks in Bears&apos; win</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Jeffery Simmons matches career high with 3 sacks in Bears&apos; win</description>
+      <link>https://www.espn.com/nfl/story/_/id/50567207/jeffery-simmons-matches-career-high-3-sacks-bears-win</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-2577d2b057ac40a72a41</guid>
+      <pubDate>Sun, 22 Nov 2026 16:08:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
+    </item>
+
+    <item>
+      <title>How Jeffery Simmons has put his signature all over the Bears&apos; defensive surge</title>
+      <description>Football&apos;s Greatest Bears news brief from NFL.com: How Jeffery Simmons has put his signature all over the Bears&apos; defensive surge</description>
+      <link>https://www.nfl.com/news/how-jeffery-simmons-has-put-his-signature-all-over-the-bears-defensive-surge</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-adf6a04249dcb7a1ddca</guid>
+      <pubDate>Sun, 22 Nov 2026 16:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
 
     <item>
-      <title>One stat shows Chicago Bears’ dominance over last 5 weeks</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: One stat shows Chicago Bears’ dominance over last 5 weeks</description>
-      <link>https://sports.yahoo.com/articles/one-stat-shows-chicago-bears-221841605.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6630892b2a1f4411a149</guid>
-      <pubDate>Sun, 22 Nov 2026 14:19:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
-    </item>
-
-    <item>
-      <title>FULL HIGHLIGHTS: Bears&apos; 21-13 win over Saints</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: FULL HIGHLIGHTS: Bears&apos; 21-13 win over Saints</description>
-      <link>https://www.chicagobears.com/video/full-highlights-bears-21-13-win-over-saints-x7966</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-98d206e9c61adf1c221f</guid>
-      <pubDate>Sun, 22 Nov 2026 13:46:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>4 Winners and 3 Losers From Chicago Bears Week 11 Win Against the Saints</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: 4 Winners and 3 Losers From Chicago Bears Week 11 Win Against the Saints</description>
-      <link>https://www.si.com/nfl/bears/onsi/4-winners-and-3-losers-from-chicago-bears-week-11-win-against-the-saints</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-5bc531b946489ef7ffeb</guid>
-      <pubDate>Sun, 22 Nov 2026 13:39:00 GMT</pubDate>
+      <title>Jeffery Simmons Ties 2 Career-Best Marks in Week 11 Win, Continues to Prove Bears Right</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Jeffery Simmons Ties 2 Career-Best Marks in Week 11 Win, Continues to Prove Bears Right</description>
+      <link>https://www.si.com/nfl/bears/onsi/jeffery-simmons-sacks-week-11-saints-trade</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-f622b749e697bfeb3c3f</guid>
+      <pubDate>Sun, 22 Nov 2026 16:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
