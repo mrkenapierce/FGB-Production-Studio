@@ -5,26 +5,26 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 24 Nov 2026 01:03:39 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 24 Nov 2026 10:52:42 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Lions, Bears Week 12 injury report: 4 defenders unable to practice; DJ Reed upgraded to FULL</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Lions, Bears Week 12 injury report: 4 defenders unable to practice; DJ Reed upgraded to FULL</description>
-      <link>https://sports.yahoo.com/articles/lions-bears-week-12-injury-004649628.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-1010a5a59b36d86f9c6a</guid>
-      <pubDate>Tue, 24 Nov 2026 00:46:49 GMT</pubDate>
+      <title>Bears vs. Lions Injury Report: Chicago has 3 DNP, and Detroit has 4</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Lions Injury Report: Chicago has 3 DNP, and Detroit has 4</description>
+      <link>https://sports.yahoo.com/articles/bears-vs-lions-injury-report-060344712.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d6d118a75bcc89922088</guid>
+      <pubDate>Tue, 24 Nov 2026 06:03:44 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Game Recap: Saints visit Bears in Week 11</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Game Recap: Saints visit Bears in Week 11</description>
-      <link>https://sports.yahoo.com/articles/game-recap-saints-visit-bears-233500638.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4b466e116a6139965b63</guid>
-      <pubDate>Mon, 23 Nov 2026 23:35:00 GMT</pubDate>
+      <title>NFL Thanksgiving schedule: Chiefs-Bills, Eagles-Cowboys, Bears-Lions on the menu</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: NFL Thanksgiving schedule: Chiefs-Bills, Eagles-Cowboys, Bears-Lions on the menu</description>
+      <link>https://sports.yahoo.com/articles/nfl-thanksgiving-schedule-chiefs-bills-125541392.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-66062f43d0f48654a52d</guid>
+      <pubDate>Tue, 24 Nov 2026 02:35:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -40,13 +40,33 @@
     </item>
 
     <item>
-      <title>Bears&apos; Cairo Santos: Misses PAT in Week 11 win</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Cairo Santos: Misses PAT in Week 11 win</description>
-      <link>https://www.cbssports.com/fantasy/football/news/bears-cairo-santos-misses-pat-in-week-11-win/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8a13e62a8a79362b4ea3</guid>
-      <pubDate>Mon, 23 Nov 2026 16:30:00 GMT</pubDate>
+      <title>Bears&apos; Jeffery Simmons: Three sacks against New Orleans</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Jeffery Simmons: Three sacks against New Orleans</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-jeffery-simmons-three-sacks-against-new-orleans/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-d9dde42c0a518c1c0da9</guid>
+      <pubDate>Mon, 23 Nov 2026 20:08:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Zavion Thomas: Two big plays against New Orleans</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears&apos; Zavion Thomas: Two big plays against New Orleans</description>
+      <link>https://www.cbssports.com/fantasy/football/news/bears-zavion-thomas-two-big-plays-against-new-orleans/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-44b7ea200f42072b43c6</guid>
+      <pubDate>Mon, 23 Nov 2026 17:35:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Bears&apos; Monday Injury Report: Kyler Gordon Among 3 Non-Participants to Start Week 12</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears&apos; Monday Injury Report: Kyler Gordon Among 3 Non-Participants to Start Week 12</description>
+      <link>https://www.si.com/nfl/bears/onsi/bears-monday-injury-report-kyler-gordon-non-participants-week-12</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-8cbb9334cf544060c084</guid>
+      <pubDate>Mon, 23 Nov 2026 16:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
@@ -65,26 +85,6 @@
       <link>https://www.nfl.com/videos/dan-campbell-discusses-thanksgiving-day-game-vs-bears</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-186c4b741f0b689e8169</guid>
       <pubDate>Mon, 23 Nov 2026 15:52:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears Former Nemesis Claims He Turned Them Down Cold in Free Agency</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Chicago Bears Former Nemesis Claims He Turned Them Down Cold in Free Agency</description>
-      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-former-nemesis-claims-he-turned-them-down-cold-in-free-agency</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-d32ed553e5248a40fecb</guid>
-      <pubDate>Mon, 23 Nov 2026 15:30:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
-    </item>
-
-    <item>
-      <title>Kellen Moore breaks down Week 11 loss vs. Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Kellen Moore breaks down Week 11 loss vs. Bears</description>
-      <link>https://www.nfl.com/videos/kellen-moore-breaks-down-week-11-loss-vs-bears</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-6a330404ca4a8121c61e</guid>
-      <pubDate>Mon, 23 Nov 2026 14:36:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
