@@ -5,26 +5,36 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 25 Nov 2026 22:47:07 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 26 Nov 2026 04:36:01 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
 
     <item>
-      <title>Lions vs. Bears Week 12 preview: Madden 27 simulation</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Lions vs. Bears Week 12 preview: Madden 27 simulation</description>
-      <link>https://sports.yahoo.com/fantasy/articles/lions-vs-bears-week-12-220000316.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-51c02857905af990fd94</guid>
-      <pubDate>Wed, 25 Nov 2026 22:00:00 GMT</pubDate>
+      <title>Thanksgiving and Black Friday NFL expert picks: Can Lions fend off Bears? Do Steelers save their season?</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Thanksgiving and Black Friday NFL expert picks: Can Lions fend off Bears? Do Steelers save their season?</description>
+      <link>https://www.cbssports.com/nfl/news/thanksgiving-games-black-friday-nfl-expert-picks-lions-bears-steelers/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-97d59000e30317803aa3</guid>
+      <pubDate>Thu, 26 Nov 2026 04:00:37 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>Chicago Bears vs. Detroit Lions: Picks and Predictions</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Chicago Bears vs. Detroit Lions: Picks and Predictions</description>
+      <link>https://sports.yahoo.com/betting/articles/chicago-bears-vs-detroit-lions-030000871.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-0e9c3254d234e6419103</guid>
+      <pubDate>Thu, 26 Nov 2026 03:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Bears vs. Lions Injury Report: Kyler Gordon Out, Tyrique Stevenson Limited</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears vs. Lions Injury Report: Kyler Gordon Out, Tyrique Stevenson Limited</description>
-      <link>https://sports.yahoo.com/nfl/articles/bears-vs-lions-injury-report-215000540.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-618d448aca67548bd55b</guid>
-      <pubDate>Wed, 25 Nov 2026 21:50:00 GMT</pubDate>
+      <title>Detroit Lions vs. Chicago Bears preview: 4 key stats</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Detroit Lions vs. Chicago Bears preview: 4 key stats</description>
+      <link>https://sports.yahoo.com/nfl/articles/detroit-lions-vs-chicago-bears-011545158.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-155ea8e0b568e7722440</guid>
+      <pubDate>Thu, 26 Nov 2026 01:15:45 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
@@ -40,33 +50,33 @@
     </item>
 
     <item>
-      <title>Thanksgiving and Black Friday NFL expert picks: Can Lions fend off Bears? Do Steelers save their season?</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Thanksgiving and Black Friday NFL expert picks: Can Lions fend off Bears? Do Steelers save their season?</description>
-      <link>https://www.cbssports.com/nfl/news/thanksgiving-games-black-friday-nfl-expert-picks-lions-bears-steelers/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-97d59000e30317803aa3</guid>
-      <pubDate>Wed, 25 Nov 2026 18:32:02 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Lions vs. Bears Thanksgiving prediction: Which team will be in control of NFC North?</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Lions vs. Bears Thanksgiving prediction: Which team will be in control of NFC North?</description>
-      <link>https://www.cbssports.com/nfl/news/lions-vs-bears-thanksgiving-prediction-odds-how-to-watch/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-646cbf3499483e1c4003</guid>
-      <pubDate>Wed, 25 Nov 2026 17:42:15 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Bears mourn loss of Martha Firestone Ford</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears mourn loss of Martha Firestone Ford</description>
-      <link>https://www.chicagobears.com/news/bears-mourn-loss-of-martha-firestone-ford</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-bfe7ba1e445a261a5f3c</guid>
-      <pubDate>Wed, 25 Nov 2026 16:15:00 GMT</pubDate>
+      <title>Bears celebrate 2026 girls flag football All-State team, honor player and coach of the year winners</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Bears celebrate 2026 girls flag football All-State team, honor player and coach of the year winners</description>
+      <link>https://www.chicagobears.com/news/bears-celebrate-2026-girls-flag-football-all-state-team-honor-player-and-coach-of-the-year-winners</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-61d31ce9a8d39dc289c1</guid>
+      <pubDate>Wed, 25 Nov 2026 19:00:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>Who Are the Experts Picking in Bears vs. Lions Week 12 Clash?</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Who Are the Experts Picking in Bears vs. Lions Week 12 Clash?</description>
+      <link>https://www.si.com/nfl/bears/onsi/who-are-the-experts-picking-in-bears-vs-lions-week-12-clash</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-ef8e2d5169cd24853679</guid>
+      <pubDate>Wed, 25 Nov 2026 16:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
+
+    <item>
+      <title>Lions, Bears clash for first place in NFC North on Thanksgiving</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Lions, Bears clash for first place in NFC North on Thanksgiving</description>
+      <link>https://www.cbssports.com/nfl/news/lions-bears-clash-for-first-place-in-nfc-north-on-thanksgiving/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4c5726cea07782154822</guid>
+      <pubDate>Wed, 25 Nov 2026 14:58:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
@@ -77,16 +87,6 @@
       <pubDate>Wed, 25 Nov 2026 13:04:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Chicago Bears vs. Detroit Lions NFL Pro Week 12 Preview</title>
-      <description>Football&apos;s Greatest Bears news brief from NFL.com: Chicago Bears vs. Detroit Lions NFL Pro Week 12 Preview</description>
-      <link>https://www.nfl.com/videos/chicago-bears-vs-detroit-lions-nfl-pro-week-12-preview</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-ff436bfec3e3ac743df0</guid>
-      <pubDate>Wed, 25 Nov 2026 12:42:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nfl.com/teams/chicago-bears/">NFL.com</source>
     </item>
   </channel>
 </rss>
