@@ -5,9 +5,29 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 27 Nov 2026 14:43:29 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 27 Nov 2026 22:57:46 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>Bears feared to lose another TE long-term as Colston Loveland looks for second opinion on knee injury</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Bears feared to lose another TE long-term as Colston Loveland looks for second opinion on knee injury</description>
+      <link>https://www.cbssports.com/nfl/news/bears-te-colston-loveland-second-opinion-knee-injury-thanksgiving-win/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-296dc8c94ebb2673deee</guid>
+      <pubDate>Fri, 27 Nov 2026 19:15:33 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
+
+    <item>
+      <title>NFL Week 12 grades for Thanksgiving: Cowboys choke their way to a &apos;D,&apos; Bears earn &apos;B&apos; for big win</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 12 grades for Thanksgiving: Cowboys choke their way to a &apos;D,&apos; Bears earn &apos;B&apos; for big win</description>
+      <link>https://www.cbssports.com/nfl/news/nfl-week-12-grades-thanksgiving-bears-earn-b-packers-get-d/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-483b7af5dc65d61ed32e</guid>
+      <pubDate>Fri, 27 Nov 2026 14:49:23 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
+    </item>
 
     <item>
       <title>By the Numbers: Bears&apos; 39-35 Thanksgiving victory in Detroit</title>
@@ -20,73 +40,53 @@
     </item>
 
     <item>
-      <title>The Chicago Bears are on top of the world</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Chicago Bears are on top of the world</description>
-      <link>https://sports.yahoo.com/nfl/articles/chicago-bears-top-world-130000430.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-911da7d8029b2e88f985</guid>
-      <pubDate>Fri, 27 Nov 2026 13:00:00 GMT</pubDate>
+      <title>Colston Loveland’s Injury Leaves the Bears With Hope and a Tough Call</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Colston Loveland’s Injury Leaves the Bears With Hope and a Tough Call</description>
+      <link>https://sports.yahoo.com/nfl/articles/colston-loveland-injury-leaves-bears-214712149.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-c1f29a73a32fd4b49b15</guid>
+      <pubDate>Fri, 27 Nov 2026 13:46:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Do you feel better, worse about Detroit Lions after loss to Bears?</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Do you feel better, worse about Detroit Lions after loss to Bears?</description>
-      <link>https://sports.yahoo.com/nfl/articles/feel-better-worse-detroit-lions-122631228.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-633111c568b947f067f2</guid>
-      <pubDate>Fri, 27 Nov 2026 12:26:31 GMT</pubDate>
+      <title>Williams-Odunze connection moves to the forefront at big moments for the Bears</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Williams-Odunze connection moves to the forefront at big moments for the Bears</description>
+      <link>https://sports.yahoo.com/nfl/articles/williams-odunze-connection-moves-forefront-204053342.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-64b0382e0d7f85bc8786</guid>
+      <pubDate>Fri, 27 Nov 2026 12:41:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
     </item>
 
     <item>
-      <title>Historically Bad Bears Defense Sufficient to Stop Mistake-Prone Lions</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Historically Bad Bears Defense Sufficient to Stop Mistake-Prone Lions</description>
-      <link>https://www.si.com/nfl/bears/onsi/historically-bad-bears-defense-sufficient-to-stop-mistake-prone-lions</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-795030784a55c0f6af90</guid>
-      <pubDate>Fri, 27 Nov 2026 06:00:00 GMT</pubDate>
+      <title>Bears Announce Colston Loveland Injury Update That Offers More Optimism Than Reports</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Bears Announce Colston Loveland Injury Update That Offers More Optimism Than Reports</description>
+      <link>https://www.si.com/nfl/bears/onsi/chicago-bears-announce-colston-loveland-injury-update-more-optimism</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-15ca7186588321e76779</guid>
+      <pubDate>Fri, 27 Nov 2026 11:22:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>NFL Week 12 grades for Thanksgiving: Cowboys choke their way to a &apos;D,&apos; Bears earn &apos;B&apos; for big win</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 12 grades for Thanksgiving: Cowboys choke their way to a &apos;D,&apos; Bears earn &apos;B&apos; for big win</description>
-      <link>https://www.cbssports.com/nfl/news/nfl-week-12-grades-thanksgiving-bears-earn-b-packers-get-d/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-483b7af5dc65d61ed32e</guid>
-      <pubDate>Fri, 27 Nov 2026 05:13:44 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>NFL Thanksgiving overreactions: Bears a shoo-in for NFC North title? Should Joe Milton be a full-time QB1?</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Thanksgiving overreactions: Bears a shoo-in for NFC North title? Should Joe Milton be a full-time QB1?</description>
-      <link>https://www.cbssports.com/nfl/news/nfl-thanksgiving-overreactions-bears-a-shoo-in-nfc-north-title-joe-milton-full-time-qb1/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-60fd40482eb605592538</guid>
-      <pubDate>Fri, 27 Nov 2026 05:07:38 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
-    </item>
-
-    <item>
-      <title>Salvon Ahmed is Turning Limited Bears Touches Into 2027 Free Agency Audition</title>
-      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Salvon Ahmed is Turning Limited Bears Touches Into 2027 Free Agency Audition</description>
-      <link>https://www.si.com/nfl/bears/onsi/salvon-ahmed-bears-2027-free-agency-audition</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-4f6d0d34ef6fcba6b81a</guid>
-      <pubDate>Fri, 27 Nov 2026 05:00:00 GMT</pubDate>
+      <title>Where Bears&apos; Epic Thanksgiving Game Ranks Among Recent Comeback Victories</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Where Bears&apos; Epic Thanksgiving Game Ranks Among Recent Comeback Victories</description>
+      <link>https://www.si.com/nfl/bears/onsi/where-bears-epic-thanksgiving-game-ranks-among-recent-comeback-victories</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-b2dbaa04d1c984e4a37a</guid>
+      <pubDate>Fri, 27 Nov 2026 09:30:00 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>First-place Bears erase ghosts of past in Thanksgiving win in Detroit</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: First-place Bears erase ghosts of past in Thanksgiving win in Detroit</description>
-      <link>https://www.nytimes.com/athletic/7815658/2026/11/27/bears-lions-comeback-win-thanksgiving/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-edd4bb570021f6adcc29</guid>
-      <pubDate>Fri, 27 Nov 2026 04:01:00 GMT</pubDate>
+      <title>Sources - Bears TE Loveland week-to-week with knee injury</title>
+      <description>Football&apos;s Greatest Bears news brief from ESPN: Sources - Bears TE Loveland week-to-week with knee injury</description>
+      <link>https://www.espn.com/nfl/story/_/id/50612564/sources-bears-expected-place-te-colston-loveland-knee-ir</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-63ed07413c25560c4ccc</guid>
+      <pubDate>Fri, 27 Nov 2026 09:23:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
+      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
     </item>
   </channel>
 </rss>
