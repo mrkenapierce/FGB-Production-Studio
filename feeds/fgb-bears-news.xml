@@ -5,88 +5,88 @@
     <link>https://www.youtube.com/@FootballsGreatestBears</link>
     <description>Current Chicago Bears headlines from approved sources for Football&apos;s Greatest Bears live programming.</description>
     <language>en-us</language>
-    <lastBuildDate>Fri, 27 Nov 2026 04:58:42 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 27 Nov 2026 14:43:29 GMT</lastBuildDate>
     <ttl>5</ttl>
     <atom:link href="https://raw.githubusercontent.com/mrkenapierce/FGB-Production-Studio/main/feeds/fgb-bears-news.xml" rel="self" type="application/rss+xml" />
+
+    <item>
+      <title>By the Numbers: Bears&apos; 39-35 Thanksgiving victory in Detroit</title>
+      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: By the Numbers: Bears&apos; 39-35 Thanksgiving victory in Detroit</description>
+      <link>https://www.chicagobears.com/news/by-the-numbers-bears-39-35-thanksgiving-victory-in-detroit</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-077d7bf987c4bb1d6bc9</guid>
+      <pubDate>Fri, 27 Nov 2026 14:03:01 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
+    </item>
+
+    <item>
+      <title>The Chicago Bears are on top of the world</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: The Chicago Bears are on top of the world</description>
+      <link>https://sports.yahoo.com/nfl/articles/chicago-bears-top-world-130000430.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-911da7d8029b2e88f985</guid>
+      <pubDate>Fri, 27 Nov 2026 13:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Do you feel better, worse about Detroit Lions after loss to Bears?</title>
+      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Do you feel better, worse about Detroit Lions after loss to Bears?</description>
+      <link>https://sports.yahoo.com/nfl/articles/feel-better-worse-detroit-lions-122631228.html</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-633111c568b947f067f2</guid>
+      <pubDate>Fri, 27 Nov 2026 12:26:31 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+    </item>
+
+    <item>
+      <title>Historically Bad Bears Defense Sufficient to Stop Mistake-Prone Lions</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Historically Bad Bears Defense Sufficient to Stop Mistake-Prone Lions</description>
+      <link>https://www.si.com/nfl/bears/onsi/historically-bad-bears-defense-sufficient-to-stop-mistake-prone-lions</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-795030784a55c0f6af90</guid>
+      <pubDate>Fri, 27 Nov 2026 06:00:00 GMT</pubDate>
+      <category>normal</category>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
+    </item>
 
     <item>
       <title>NFL Week 12 grades for Thanksgiving: Cowboys choke their way to a &apos;D,&apos; Bears earn &apos;B&apos; for big win</title>
       <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Week 12 grades for Thanksgiving: Cowboys choke their way to a &apos;D,&apos; Bears earn &apos;B&apos; for big win</description>
       <link>https://www.cbssports.com/nfl/news/nfl-week-12-grades-thanksgiving-bears-earn-b-packers-get-d/</link>
       <guid isPermaLink="false">footballs-greatest-bears-news-483b7af5dc65d61ed32e</guid>
-      <pubDate>Fri, 27 Nov 2026 02:08:04 GMT</pubDate>
+      <pubDate>Fri, 27 Nov 2026 05:13:44 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
-      <title>Game Recap: Bears move into first place in NFC North with thrilling comeback win over Lions</title>
-      <description>Football&apos;s Greatest Bears news brief from ChicagoBears.com: Game Recap: Bears move into first place in NFC North with thrilling comeback win over Lions</description>
-      <link>https://www.chicagobears.com/news/bears-move-into-first-place-in-nfc-north-with-thrilling-comeback-win-over-lions-game-recap</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-e2ba4d6745821521cc11</guid>
-      <pubDate>Thu, 26 Nov 2026 21:59:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.chicagobears.com/">ChicagoBears.com</source>
-    </item>
-
-    <item>
-      <title>QB Caleb Williams, WR Rome Odunze&apos;s chemistry helps Bears stun Lions</title>
-      <description>Football&apos;s Greatest Bears news brief from ESPN: QB Caleb Williams, WR Rome Odunze&apos;s chemistry helps Bears stun Lions</description>
-      <link>https://www.espn.com/nfl/story/_/id/50608495/qb-caleb-williams-wr-rome-odunze-chemistry-helps-bears-stun-lions</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-8d46c7b0d8c7e58f0a6a</guid>
-      <pubDate>Thu, 26 Nov 2026 19:06:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.espn.com/nfl/team/_/name/chi/chicago-bears">ESPN</source>
-    </item>
-
-    <item>
-      <title>Caleb Williams works his magic, leads Bears over Lions in Thanksgiving instant classic</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: Caleb Williams works his magic, leads Bears over Lions in Thanksgiving instant classic</description>
-      <link>https://www.nytimes.com/athletic/7814862/2026/11/26/bears-vs-lions-result-thanksgiving-game-takeaways/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-43877741f977e000b7c2</guid>
-      <pubDate>Thu, 26 Nov 2026 18:02:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>It won’t be easy for Lions to shake loss to Bears: ‘It’s going to sting’</title>
-      <description>Football&apos;s Greatest Bears news brief from The Athletic: It won’t be easy for Lions to shake loss to Bears: ‘It’s going to sting’</description>
-      <link>https://www.nytimes.com/athletic/7815352/2026/11/26/lions-loss-thanksgiving-jahmyr-gibbs-bears/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-c7d93ec439f9a9956d62</guid>
-      <pubDate>Thu, 26 Nov 2026 17:47:00 GMT</pubDate>
-      <category>normal</category>
-      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
-    </item>
-
-    <item>
-      <title>Week 12 NFL odds, lines, totals, spreads for every game, including Bears-Lions, Cowboys-Eagles, Bills-Chiefs</title>
-      <description>Football&apos;s Greatest Bears news brief from CBS Sports: Week 12 NFL odds, lines, totals, spreads for every game, including Bears-Lions, Cowboys-Eagles, Bills-Chiefs</description>
-      <link>https://www.cbssports.com/betting/news/week-12-nfl-betting-lines-odds-spreads-totals/</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-29b2bb0c3c32c22ef855</guid>
-      <pubDate>Thu, 26 Nov 2026 16:40:29 GMT</pubDate>
+      <title>NFL Thanksgiving overreactions: Bears a shoo-in for NFC North title? Should Joe Milton be a full-time QB1?</title>
+      <description>Football&apos;s Greatest Bears news brief from CBS Sports: NFL Thanksgiving overreactions: Bears a shoo-in for NFC North title? Should Joe Milton be a full-time QB1?</description>
+      <link>https://www.cbssports.com/nfl/news/nfl-thanksgiving-overreactions-bears-a-shoo-in-nfc-north-title-joe-milton-full-time-qb1/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-60fd40482eb605592538</guid>
+      <pubDate>Fri, 27 Nov 2026 05:07:38 GMT</pubDate>
       <category>normal</category>
       <source url="https://www.cbssports.com/nfl/teams/CHI/chicago-bears/">CBS Sports</source>
     </item>
 
     <item>
-      <title>Podcast: Breaking down ramifications of Lions’ loss to Bears</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Podcast: Breaking down ramifications of Lions’ loss to Bears</description>
-      <link>https://sports.yahoo.com/nfl/articles/podcast-breaking-down-ramifications-lions-030929617.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-11e9fe68049e8303bec1</guid>
-      <pubDate>Thu, 26 Nov 2026 16:00:00 GMT</pubDate>
+      <title>Salvon Ahmed is Turning Limited Bears Touches Into 2027 Free Agency Audition</title>
+      <description>Football&apos;s Greatest Bears news brief from Sports Illustrated: Salvon Ahmed is Turning Limited Bears Touches Into 2027 Free Agency Audition</description>
+      <link>https://www.si.com/nfl/bears/onsi/salvon-ahmed-bears-2027-free-agency-audition</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-4f6d0d34ef6fcba6b81a</guid>
+      <pubDate>Fri, 27 Nov 2026 05:00:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.si.com/nfl/bears/">Sports Illustrated</source>
     </item>
 
     <item>
-      <title>Bears’ Jeffery Simmons calls out Lions for ‘crying’ over Juice Scruggs’ false starts</title>
-      <description>Football&apos;s Greatest Bears news brief from Yahoo Sports: Bears’ Jeffery Simmons calls out Lions for ‘crying’ over Juice Scruggs’ false starts</description>
-      <link>https://sports.yahoo.com/nfl/articles/bears-jeffery-simmons-calls-lions-023709564.html</link>
-      <guid isPermaLink="false">footballs-greatest-bears-news-0a5998e8ec755864b85c</guid>
-      <pubDate>Thu, 26 Nov 2026 16:00:00 GMT</pubDate>
+      <title>First-place Bears erase ghosts of past in Thanksgiving win in Detroit</title>
+      <description>Football&apos;s Greatest Bears news brief from The Athletic: First-place Bears erase ghosts of past in Thanksgiving win in Detroit</description>
+      <link>https://www.nytimes.com/athletic/7815658/2026/11/27/bears-lions-comeback-win-thanksgiving/</link>
+      <guid isPermaLink="false">footballs-greatest-bears-news-edd4bb570021f6adcc29</guid>
+      <pubDate>Fri, 27 Nov 2026 04:01:00 GMT</pubDate>
       <category>normal</category>
-      <source url="https://sports.yahoo.com/nfl/teams/chicago/">Yahoo Sports</source>
+      <source url="https://www.nytimes.com/athletic/nfl/team/bears/">The Athletic</source>
     </item>
   </channel>
 </rss>
